@@ -1,2 +1,1 @@
-# settlements-bc
-**EXPERIMENTAL** vNext Settlements Bounded Context
+# Settlements Bounded Context

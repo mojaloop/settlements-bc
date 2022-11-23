@@ -1,0 +1,31 @@
+{
+  "name": "@mojaloop/settlements-bc-public-types-lib",
+  "version": "0.0.3",
+  "description": "Settlements BC - Public Types Library",
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/mojaloop/settlements-bc/tree/main/packages/public-types-lib",
+  "bugs": {
+    "url": "https://github.com/mojaloop/settlements-bc/issues#readme"
+  },
+  "contributors": [
+    "Jason Bruwer <jason.bruwer@coil.com>"
+  ],
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "/dist"
+  ],
+  "scripts": {
+    "clean:dist": "rm -fr dist/",
+    "dep:check": "ncu -e 2",
+    "dep:upgrade": "ncu -u",
+    "audit:check": "npm audit",
+    "audit:fix": "npm audit fix",
+    "lint": "eslint src/",
+    "build": "tsc",
+    "test:unit": "echo \"public-types-lib doesn't have unit tests\"",
+    "pub": "npm version patch && npm publish --tag latest --access public"
+  },
+  "devDependencies": {},
+  "dependencies": {}
+}
