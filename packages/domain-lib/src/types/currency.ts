@@ -19,7 +19,7 @@
  their names indented and be marked with a '-'. Email address can be added
  optionally within square brackets <email>.
 
- * Coil
+ Coil
  - Jason Bruwer <jason.bruwer@coil.com>
 
  --------------
@@ -27,36 +27,7 @@
 
 "use strict";
 
-export interface ISettlementBatchDto {
-	id: string | null;
-	timestamp: number | null;
-}
-
-export interface ISettlementAccountDto {
-	id: string | null;
-	externalId: string | null;
-	type: LedgerType;
-	currencyCode: string;
-	currencyDecimals: number | null;
-	creditBalance: string;
-	debitBalance: string;
-	timestamp: number | null;
-}
-
-export interface ISettlementTransferDto {
-	id: string | null;
-	externalId: string | null;
-	externalCategory: string | null;
-	currencyCode: string;
-	currencyDecimals: number | null;
-	amount: string;
-	creditedAccountId: string;
-	debitedAccountId: string;
-	timestamp: number | null;
-}
-
-export enum LedgerType {
-	DEFAULT = "DEFAULT",
-	FX = "FX",
-	FEE = "FEE"
+export interface ICurrency {
+	code: string;
+	decimals: number;
 }

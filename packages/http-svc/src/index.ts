@@ -20,43 +20,13 @@
  optionally within square brackets <email>.
 
  * Coil
- - Jason Bruwer <jason.bruwer@coil.com>
+ * - Jason Bruwer <jason.bruwer@coil.com>
 
  --------------
  ******/
 
 "use strict";
 
-export interface ISettlementBatchDto {
-	id: string | null;
-	timestamp: number | null;
-}
+import {startHttpService} from "./http_svc";
 
-export interface ISettlementAccountDto {
-	id: string | null;
-	externalId: string | null;
-	type: LedgerType;
-	currencyCode: string;
-	currencyDecimals: number | null;
-	creditBalance: string;
-	debitBalance: string;
-	timestamp: number | null;
-}
-
-export interface ISettlementTransferDto {
-	id: string | null;
-	externalId: string | null;
-	externalCategory: string | null;
-	currencyCode: string;
-	currencyDecimals: number | null;
-	amount: string;
-	creditedAccountId: string;
-	debitedAccountId: string;
-	timestamp: number | null;
-}
-
-export enum LedgerType {
-	DEFAULT = "DEFAULT",
-	FX = "FX",
-	FEE = "FEE"
-}
+startHttpService();

@@ -20,43 +20,34 @@
  optionally within square brackets <email>.
 
  * Coil
- - Jason Bruwer <jason.bruwer@coil.com>
+ * - Jason Bruwer <jason.bruwer@coil.com>
 
  --------------
  ******/
 
 "use strict";
 
-export interface ISettlementBatchDto {
-	id: string | null;
-	timestamp: number | null;
-}
+import {IAuthorizationClient} from "@mojaloop/security-bc-public-types-lib";
+import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 
-export interface ISettlementAccountDto {
-	id: string | null;
-	externalId: string | null;
-	type: LedgerType;
-	currencyCode: string;
-	currencyDecimals: number | null;
-	creditBalance: string;
-	debitBalance: string;
-	timestamp: number | null;
-}
+// TODO: should anything by logged?
+export class AuthorizationClientMock implements IAuthorizationClient {
+	// Properties received through the constructor.
+	private readonly logger: ILogger;
 
-export interface ISettlementTransferDto {
-	id: string | null;
-	externalId: string | null;
-	externalCategory: string | null;
-	currencyCode: string;
-	currencyDecimals: number | null;
-	amount: string;
-	creditedAccountId: string;
-	debitedAccountId: string;
-	timestamp: number | null;
-}
+	constructor(logger: ILogger) {
+		this.logger = logger;
+	}
 
-export enum LedgerType {
-	DEFAULT = "DEFAULT",
-	FX = "FX",
-	FEE = "FEE"
+	async init(): Promise<void> {
+		return;
+	}
+
+	async destroy(): Promise<void> {
+		return;
+	}
+
+	roleHasPrivilege(roleId: string, privilegeId: string): boolean {
+		return true;
+	}
 }

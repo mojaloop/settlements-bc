@@ -1,0 +1,41 @@
+{
+  "name": "@mojaloop/settlements-bc-domain-lib",
+  "version": "0.0.1",
+  "description": "Settlements BC - Domain Library",
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/mojaloop/settlements-bc/tree/main/packages/domain-lib",
+  "bugs": {
+    "url": "https://github.com/mojaloop/settlements-bc/issues#readme"
+  },
+  "contributors": [
+    "Jason Bruwer <jason.bruwer@coil.com>"
+  ],
+  "private": true,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "/dist"
+  ],
+  "scripts": {
+    "clean:dist": "rm -fr dist/",
+    "dep:check": "ncu -e 2",
+    "dep:upgrade": "ncu -u",
+    "audit:check": "npm audit",
+    "audit:fix": "npm audit fix",
+    "lint": "eslint src/",
+    "build": "tsc",
+    "postbuild": "cp src/currencies.json dist/",
+    "test:unit": "jest",
+    "test:unit-single": "jest --coverage false -t"
+  },
+  "devDependencies": {
+    "@mojaloop/settlements-bc-shared-mocks-lib": "~0.0.1"
+  },
+  "dependencies": {
+    "@mojaloop/settlements-bc-public-types-lib": "~0.0.1",
+    "@mojaloop/auditing-bc-public-types-lib": "~0.0.10",
+    "@mojaloop/logging-bc-public-types-lib": "~0.1.12",
+    "@mojaloop/security-bc-client-lib": "~0.0.52",
+    "@mojaloop/security-bc-public-types-lib": "~0.0.7"
+  }
+}

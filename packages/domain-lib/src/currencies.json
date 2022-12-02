@@ -1,0 +1,10 @@
+[
+  {
+	"code": "EUR",
+	"decimals": 2
+  },
+  {
+	"code": "USD",
+	"decimals": 2
+  }
+]
