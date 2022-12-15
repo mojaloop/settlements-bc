@@ -42,12 +42,13 @@ import {
 	InvalidBatchIdentifierError,
 	InvalidBatchSettlementModelError,
 	SettlementBatchAlreadyExistsError,
-	InvalidAmountError
+	InvalidAmountError, NoSettlementConfig
 } from "./types/errors";
 import {
 	ISettlementBatchRepo,
 	ISettlementBatchAccountRepo,
-	ISettlementTransferRepo
+	ISettlementTransferRepo,
+	ISettlementConfigRepo
 } from "./types/infrastructure";
 import {SettlementBatch} from "./types/batch";
 import {SettlementBatchAccount} from "./types/account";
@@ -67,6 +68,7 @@ import {join} from "path";
 import {readFileSync} from "fs";
 import {ICurrency} from "./types/currency";
 import {bigintToString, stringToBigint} from "./converters";
+import {SettlementConfig} from "./types/settlement_config";
 
 enum AuditingActions {
 	SETTLEMENT_BATCH_CREATED = "SETTLEMENT_BATCH_CREATED",
@@ -82,6 +84,7 @@ export class Aggregate {
 	private readonly batchRepo: ISettlementBatchRepo;
 	private readonly batchAccountRepo: ISettlementBatchAccountRepo;
 	private readonly transfersRepo: ISettlementTransferRepo;
+	private readonly configRepo: ISettlementConfigRepo;
 	private readonly currencies: ICurrency[];
 	// Other properties.
 	private static readonly CURRENCIES_FILE_NAME: string = "currencies.json";
@@ -92,7 +95,8 @@ export class Aggregate {
 		auditingClient: IAuditClient,
 		batchRepo: ISettlementBatchRepo,
 		batchAccountRepo: ISettlementBatchAccountRepo,
-		transfersRepo: ISettlementTransferRepo
+		transfersRepo: ISettlementTransferRepo,
+		configRepo: ISettlementConfigRepo
 	) {
 		this.logger = logger;
 		this.authorizationClient = authorizationClient;
@@ -100,6 +104,7 @@ export class Aggregate {
 		this.batchRepo = batchRepo;
 		this.batchAccountRepo = batchAccountRepo;
 		this.transfersRepo = transfersRepo;
+		this.configRepo = configRepo;
 
 		// TODO: @jason Need to obtain currencies from PlatForm config perhaps:
 		const currenciesFilePath: string = join(__dirname, Aggregate.CURRENCIES_FILE_NAME);
@@ -381,12 +386,16 @@ export class Aggregate {
 	) : Promise<ISettlementBatchDto> {
 		const timestamp = transfer.timestamp;
 
-		//TODO 0. Lookup Settlement Batch config for Model:
-		const fromDate: number = 1, toDate: number = 2;
+		const configDto = await this.configRepo.getSettlementConfigByModel(model);
+		if (configDto == null) throw new NoSettlementConfig(`No settlement config for model '${model}'.`);
+		const config = new SettlementConfig(
+			configDto.id,
+			configDto.model,
+			configDto.batchCreateInterval
+		)
+		const fromDate: number = config.calculateBatchFromDate(timestamp),
+			toDate: number = config.calculateBatchToDate(timestamp);
 
-		// TODO 1. need to get the settlement batch.
-		// TODO 2. need to create new batch if batch is closed.
-		// TODO 3. Need to create a batch if there isn't any
 		let settlementBatchDto = this.batchRepo.getOpenSettlementBatch(fromDate, toDate, model)
 		if (settlementBatchDto === null) {
 			// Create a new Batch to store the transfer against:
@@ -395,15 +404,25 @@ export class Aggregate {
 				timestamp,
 				model,
 				SettlementBatchStatus.OPEN,
-				await this.generateBatchIdentifier()
+				this.generateBatchIdentifier(model, transfer.currencyCode, toDate)
 			).toDto()
 			await this.createSettlementBatch(settlementBatchDto, securityContext);
 		}
 		return settlementBatchDto;
 	}
 
-	async generateBatchIdentifier() : Promise<string> {
-		return "";
+	private generateBatchIdentifier(
+		model: SettlementModel,
+		currencyCode: string,
+		toDate: number
+	) : string {
+		//TODO add assertion here:
+		//FX.XOF:RWF.2021.08.23.00.00
+		const formatTimestamp = "2021.08.23.00.00";
+		//TODO 1. Need to fetch all the closed batches for the suffix
+		const suffix = "001";//TODO for more than one open batch...
+
+		return `${model}.${currencyCode.toUpperCase()}.${formatTimestamp}.${suffix}`;
 	}
 
 	async obtainSettlementModel(

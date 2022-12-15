@@ -28,11 +28,18 @@
 "use strict";
 
 import {
+	ISettlementConfigDto,
 	ISettlementBatchDto,
 	SettlementModel,
 	ISettlementBatchAccountDto,
 	ISettlementTransferDto
 } from "@mojaloop/settlements-bc-public-types-lib";
+
+export interface ISettlementConfigRepo {
+	init(): Promise<void>;
+	destroy(): Promise<void>;
+	getSettlementConfigByModel(model: SettlementModel): Promise<ISettlementConfigDto | null>;
+}
 
 export interface ISettlementBatchRepo {
 	init(): Promise<void>;

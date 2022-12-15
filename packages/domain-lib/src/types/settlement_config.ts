@@ -20,60 +20,46 @@
  optionally within square brackets <email>.
 
  * Coil
- - Jason Bruwer <jason.bruwer@coil.com>
+ *  - Jason Bruwer <jason.bruwer@coil.com>
 
  --------------
  ******/
 
 "use strict";
 
-export interface ISettlementConfigDto {
-	id: string | null;
-	settlementModel: SettlementModel;
+import {SettlementModel, ISettlementConfigDto} from "@mojaloop/settlements-bc-public-types-lib";
+import {bigintToString} from "../converters";
+import {SettlementBatch} from "./batch";
+
+export class SettlementConfig {
+	id: string;
+	model: SettlementModel;
 	batchCreateInterval: number;
-}
 
-export interface ISettlementBatchDto {
-	id: string | null;
-	timestamp: number | null;
-	settlementModel: SettlementModel;
-	batchStatus: SettlementBatchStatus | null;
-	batchIdentifier: string;
-}
+	constructor(
+		id: string,
+		model: SettlementModel,
+		batchCreateInterval: number
+	) {
+		this.id = id;
+		this.model = model;
+		this.batchCreateInterval = batchCreateInterval;
+	}
 
-export interface ISettlementBatchAccountDto {
-	id: string | null;
-	externalId: string | null;
-	currencyCode: string;
-	currencyDecimals: number | null;
-	creditBalance: string;
-	debitBalance: string;
-	timestamp: number | null;
-}
+	calculateBatchFromDate(timestamp : number) : number {
+		return 1;
+	}
 
-export interface ISettlementTransferDto {
-	id: string | null;
-	externalId: string | null;
-	externalCategory: string | null;
-	currencyCode: string;
-	currencyDecimals: number | null;
-	amount: string;
-	//TODO need to add from credit and debit accounts rather.
-	creditAccountId: string;
-	debitAccountId: string;
-	timestamp: number | null;
-	batch: ISettlementBatchDto | null;
-}
+	calculateBatchToDate(timestamp : number) : number {
+		return 2;
+	}
 
-export enum SettlementModel {
-	UNKNOWN = "UNKNOWN",
-	DEFAULT = "DEFAULT",
-	FX = "FX",
-	REMITTANCE = "REMITTANCE",
-	FEE = "FEE"
-}
-
-export enum SettlementBatchStatus {
-	OPEN = "OPEN",
-	CLOSED = "CLOSED"
+	toDto(): ISettlementConfigDto {
+		const configDto: ISettlementConfigDto = {
+			id: this.id,
+			model: this.model,
+			batchCreateInterval: this.batchCreateInterval,
+		};
+		return configDto;
+	}
 }
