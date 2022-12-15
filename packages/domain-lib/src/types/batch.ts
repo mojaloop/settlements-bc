@@ -20,54 +20,44 @@
  optionally within square brackets <email>.
 
  * Coil
- - Jason Bruwer <jason.bruwer@coil.com>
+ *  - Jason Bruwer <jason.bruwer@coil.com>
 
  --------------
  ******/
 
 "use strict";
 
-export interface ISettlementBatchDto {
-	id: string | null;
-	timestamp: number | null;
+import {SettlementModel, SettlementBatchStatus, ISettlementBatchDto} from "@mojaloop/settlements-bc-public-types-lib";
+
+export class SettlementBatch {
+	id: string;
+	timestamp: number;
 	settlementModel: SettlementModel;
-	batchStatus: SettlementBatchStatus | null;
+	batchStatus: SettlementBatchStatus;
 	batchIdentifier: string;
-}
 
-export interface ISettlementBatchAccountDto {
-	id: string | null;
-	externalId: string | null;
-	currencyCode: string;
-	currencyDecimals: number | null;
-	creditBalance: string;
-	debitBalance: string;
-	timestamp: number | null;
-}
+	constructor(
+		id: string,
+		timestamp: number,
+		settlementModel: SettlementModel,
+		batchStatus: SettlementBatchStatus,
+		batchIdentifier: string
+	) {
+		this.id = id;
+		this.timestamp = timestamp;
+		this.settlementModel = settlementModel;
+		this.batchIdentifier = batchIdentifier;
+		this.batchStatus = batchStatus;
+	}
 
-export interface ISettlementTransferDto {
-	id: string | null;
-	externalId: string | null;
-	externalCategory: string | null;
-	currencyCode: string;
-	currencyDecimals: number | null;
-	amount: string;
-	//TODO need to add from credit and debit accounts rather.
-	creditAccountId: string;
-	debitAccountId: string;
-	timestamp: number | null;
-	batch: ISettlementBatchDto | null;
-}
-
-export enum SettlementModel {
-	UNKNOWN = "UNKNOWN",
-	DEFAULT = "DEFAULT",
-	FX = "FX",
-	REMITTANCE = "REMITTANCE",
-	FEE = "FEE"
-}
-
-export enum SettlementBatchStatus {
-	OPEN = "OPEN",
-	CLOSED = "CLOSED"
+	toDto(): ISettlementBatchDto {
+		const batchDto: ISettlementBatchDto = {
+			id: this.id,
+			timestamp: this.timestamp,
+			settlementModel: this.settlementModel,
+			batchStatus: this.batchStatus,
+			batchIdentifier: this.batchIdentifier
+		};
+		return batchDto;
+	}
 }

@@ -32,6 +32,7 @@ export class InvalidCreditBalanceError extends Error {}
 export class InvalidDebitBalanceError extends Error {}
 // JournalEntry.
 export class InvalidExternalCategoryError extends Error {}
+export class InvalidAmountError extends Error {}
 export class InvalidJournalEntryAmountError extends Error {}
 export class SameCreditedAndDebitedAccountsError extends Error {}
 export class NoSuchCreditedAccountError extends Error {}
@@ -44,9 +45,12 @@ export class InvalidExternalIdError extends Error {}
 export class InvalidCurrencyCodeError extends Error {}
 export class InvalidCurrencyDecimalsError extends Error {}
 export class InvalidTimestampError extends Error {}
+export class InvalidBatchIdentifierError extends Error {}
+export class InvalidBatchSettlementModelError extends Error {}
 // Repos.
 export class UnableToInitRepoError extends Error {}
 export class AccountAlreadyExistsError extends Error {}
+export class SettlementBatchAlreadyExistsError extends Error {}
 export class JournalEntryAlreadyExistsError extends Error {}
 export class NoSuchAccountError extends Error {}
 export class UnableToStoreAccountError extends Error {}

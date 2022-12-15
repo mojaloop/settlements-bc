@@ -20,54 +20,20 @@
  optionally within square brackets <email>.
 
  * Coil
- - Jason Bruwer <jason.bruwer@coil.com>
+ *  - Jason Bruwer <jason.bruwer@coil.com>
 
  --------------
  ******/
 
 "use strict";
 
-export interface ISettlementBatchDto {
-	id: string | null;
-	timestamp: number | null;
-	settlementModel: SettlementModel;
-	batchStatus: SettlementBatchStatus | null;
-	batchIdentifier: string;
-}
+export enum Privileges {
+	CREATE_SETTLEMENT_BATCH_ACCOUNT = "CREATE_SETTLEMENT_BATCH_ACCOUNT",
+	CREATE_SETTLEMENT_BATCH = "CREATE_SETTLEMENT_BATCH",
+	CREATE_SETTLEMENT_TRANSFER = "CREATE_SETTLEMENT_TRANSFER",
+	REQUEST_SETTLEMENT_MATRIX = "REQUEST_SETTLEMENT_MATRIX",
 
-export interface ISettlementBatchAccountDto {
-	id: string | null;
-	externalId: string | null;
-	currencyCode: string;
-	currencyDecimals: number | null;
-	creditBalance: string;
-	debitBalance: string;
-	timestamp: number | null;
-}
+	RETRIEVE_SETTLEMENT_BATCH = "RETRIEVE_SETTLEMENT_BATCH",
+	RETRIEVE_SETTLEMENT_TRANSFERS = "RETRIEVE_SETTLEMENT_TRANSFERS"
 
-export interface ISettlementTransferDto {
-	id: string | null;
-	externalId: string | null;
-	externalCategory: string | null;
-	currencyCode: string;
-	currencyDecimals: number | null;
-	amount: string;
-	//TODO need to add from credit and debit accounts rather.
-	creditAccountId: string;
-	debitAccountId: string;
-	timestamp: number | null;
-	batch: ISettlementBatchDto | null;
-}
-
-export enum SettlementModel {
-	UNKNOWN = "UNKNOWN",
-	DEFAULT = "DEFAULT",
-	FX = "FX",
-	REMITTANCE = "REMITTANCE",
-	FEE = "FEE"
-}
-
-export enum SettlementBatchStatus {
-	OPEN = "OPEN",
-	CLOSED = "CLOSED"
 }
