@@ -34,7 +34,7 @@ import {SettlementBatch} from "./batch";
 export class SettlementConfig {
 	id: string;
 	model: SettlementModel;
-	batchCreateInterval: number;
+	batchCreateInterval: number;// [seconds]
 
 	constructor(
 		id: string,
@@ -47,11 +47,11 @@ export class SettlementConfig {
 	}
 
 	calculateBatchFromDate(timestamp : number) : number {
-		return 1;
+		return 1;//TODO calculate the fram
 	}
 
 	calculateBatchToDate(timestamp : number) : number {
-		return 2;
+		return 2;//TODO calculate the to
 	}
 
 	toDto(): ISettlementConfigDto {

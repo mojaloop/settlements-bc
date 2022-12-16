@@ -32,6 +32,7 @@ import {
 	ISettlementBatchDto,
 	SettlementModel,
 	ISettlementBatchAccountDto,
+	IParticipantAccountDto,
 	ISettlementTransferDto
 } from "@mojaloop/settlements-bc-public-types-lib";
 
@@ -68,6 +69,13 @@ export interface ISettlementBatchAccountRepo {
 		debitBalance: string,
 		timeStampLastJournalEntry: number): Promise<void>;
 }
+
+export interface IParticipantAccountRepo {
+	init(): Promise<void>;
+	destroy(): Promise<void>;
+	getAccountById(accountId: string): Promise<IParticipantAccountDto | null>;
+}
+
 
 export interface ISettlementTransferRepo {
 	init(): Promise<void>;

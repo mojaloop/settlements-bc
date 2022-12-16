@@ -20,47 +20,25 @@
  optionally within square brackets <email>.
 
  * Coil
- *  - Jason Bruwer <jason.bruwer@coil.com>
+ * - Jason Bruwer <jason.bruwer@coil.com>
 
  --------------
  ******/
 
 "use strict";
 
-import {SettlementModel, SettlementBatchStatus, ISettlementBatchDto} from "@mojaloop/settlements-bc-public-types-lib";
+import {SettlementModel} from "@mojaloop/settlements-bc-public-types-lib";
 
-export class SettlementBatch {
-	id: string;
-	timestamp: number;
-	settlementModel: SettlementModel;
-	batchStatus: SettlementBatchStatus;
-	batchIdentifier: string;// TODO individual fields.
+export function obtainSettlementModelFrom(
+	transferAmount: bigint,
+	debitAccountCurrency: string,
+	creditAccountCurrency: string
+) : Promise<SettlementModel> {
+	if (debitAccountCurrency === null) return SettlementModel.UNKNOWN;
+	if (creditAccountCurrency === null) return SettlementModel.UNKNOWN;
+	if (debitAccountCurrency !== creditAccountCurrency) {
+		return SettlementModel.FX;
+	} else return SettlementModel.DEFAULT;
 
-	//TODO main acc id
-	//TODO map for settlement-batch-accounts vs external accounts
-
-	constructor(
-		id: string,
-		timestamp: number,
-		settlementModel: SettlementModel,
-		batchStatus: SettlementBatchStatus,
-		batchIdentifier: string
-	) {
-		this.id = id;
-		this.timestamp = timestamp;
-		this.settlementModel = settlementModel;
-		this.batchIdentifier = batchIdentifier;
-		this.batchStatus = batchStatus;
-	}
-
-	toDto(): ISettlementBatchDto {
-		const batchDto: ISettlementBatchDto = {
-			id: this.id,
-			timestamp: this.timestamp,
-			settlementModel: this.settlementModel,
-			batchStatus: this.batchStatus,
-			batchIdentifier: this.batchIdentifier
-		};
-		return batchDto;
-	}
+	// TODO we need to unpack REMITTANCE
 }

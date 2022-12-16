@@ -19,48 +19,12 @@
  their names indented and be marked with a '-'. Email address can be added
  optionally within square brackets <email>.
 
- * Coil
- *  - Jason Bruwer <jason.bruwer@coil.com>
+ Coil
+ - Jason Bruwer <jason.bruwer@coil.com>
 
  --------------
  ******/
 
 "use strict";
 
-import {SettlementModel, SettlementBatchStatus, ISettlementBatchDto} from "@mojaloop/settlements-bc-public-types-lib";
-
-export class SettlementBatch {
-	id: string;
-	timestamp: number;
-	settlementModel: SettlementModel;
-	batchStatus: SettlementBatchStatus;
-	batchIdentifier: string;// TODO individual fields.
-
-	//TODO main acc id
-	//TODO map for settlement-batch-accounts vs external accounts
-
-	constructor(
-		id: string,
-		timestamp: number,
-		settlementModel: SettlementModel,
-		batchStatus: SettlementBatchStatus,
-		batchIdentifier: string
-	) {
-		this.id = id;
-		this.timestamp = timestamp;
-		this.settlementModel = settlementModel;
-		this.batchIdentifier = batchIdentifier;
-		this.batchStatus = batchStatus;
-	}
-
-	toDto(): ISettlementBatchDto {
-		const batchDto: ISettlementBatchDto = {
-			id: this.id,
-			timestamp: this.timestamp,
-			settlementModel: this.settlementModel,
-			batchStatus: this.batchStatus,
-			batchIdentifier: this.batchIdentifier
-		};
-		return batchDto;
-	}
-}
+export * from "./settlementmodel";

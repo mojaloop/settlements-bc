@@ -42,11 +42,12 @@ import {
 	InvalidBatchIdentifierError,
 	InvalidBatchSettlementModelError,
 	SettlementBatchAlreadyExistsError,
-	InvalidAmountError, NoSettlementConfig
+	InvalidAmountError, NoSettlementConfig, PositionAccountNotFoundError
 } from "./types/errors";
 import {
 	ISettlementBatchRepo,
 	ISettlementBatchAccountRepo,
+	IParticipantAccountRepo,
 	ISettlementTransferRepo,
 	ISettlementConfigRepo
 } from "./types/infrastructure";
@@ -57,9 +58,11 @@ import {
 	ISettlementBatchDto,
 	ISettlementBatchAccountDto,
 	ISettlementTransferDto,
+	IParticipantAccountDto,
 	SettlementBatchStatus,
 	SettlementModel
 } from "@mojaloop/settlements-bc-public-types-lib";
+import {obtainSettlementModelFrom} from "@mojaloop/settlements-model-lib";
 import {IAuditClient, AuditSecurityContext} from "@mojaloop/auditing-bc-public-types-lib";
 import {CallSecurityContext} from "@mojaloop/security-bc-client-lib";
 import {IAuthorizationClient} from "@mojaloop/security-bc-public-types-lib";
@@ -83,6 +86,7 @@ export class Aggregate {
 	private readonly auditingClient: IAuditClient;
 	private readonly batchRepo: ISettlementBatchRepo;
 	private readonly batchAccountRepo: ISettlementBatchAccountRepo;
+	private readonly participantAccRepo: IParticipantAccountRepo;
 	private readonly transfersRepo: ISettlementTransferRepo;
 	private readonly configRepo: ISettlementConfigRepo;
 	private readonly currencies: ICurrency[];
@@ -95,6 +99,7 @@ export class Aggregate {
 		auditingClient: IAuditClient,
 		batchRepo: ISettlementBatchRepo,
 		batchAccountRepo: ISettlementBatchAccountRepo,
+		participantAccRepo: IParticipantAccountRepo,
 		transfersRepo: ISettlementTransferRepo,
 		configRepo: ISettlementConfigRepo
 	) {
@@ -103,6 +108,7 @@ export class Aggregate {
 		this.auditingClient = auditingClient;
 		this.batchRepo = batchRepo;
 		this.batchAccountRepo = batchAccountRepo;
+		this.participantAccRepo = participantAccRepo;
 		this.transfersRepo = transfersRepo;
 		this.configRepo = configRepo;
 
@@ -297,11 +303,23 @@ export class Aggregate {
 			this.logger.error(error);
 			throw error;
 		}
+
+		// Create the Debit/Credit accounts as required:
 		if (creditedAccountDto === null) {
-			//TODO Create new settlement account using batch-id + accountId / participantId
+			creditedAccountDto = await this.createSettlementBatchAccountFromAccId(
+				transferDto.creditedAccountId,
+				transfer.batch.id,
+				currency,
+				securityContext
+			);
 		}
 		if (debitedAccountDto === null) {
-			//TODO Create new settlement account using batch-id + accountId / participantId
+			debitedAccountDto = await this.createSettlementBatchAccountFromAccId(
+				transferDto.debitedAccountId,
+				transfer.batch.id,
+				currency,
+				securityContext
+			);
 		}
 
 		const creditedAccount = new SettlementBatchAccount(
@@ -374,6 +392,31 @@ export class Aggregate {
 		return transfer.id;
 	}
 
+	private async createSettlementBatchAccountFromAccId(
+		accId: string,
+		batchId: string,
+		currency: ICurrency,
+		securityContext: CallSecurityContext
+	): Promise<ISettlementBatchAccountDto> {
+		const timestamp: number = Date.now();
+		const partAcc : IParticipantAccountDto = this.participantAccRepo.getAccountById(accId);
+		if (partAcc == null) {
+			throw new PositionAccountNotFoundError(`Unable to locate Position account with id '${accId}'.`);
+		}
+
+		const accountDto = new ISettlementBatchAccountDto(
+			this.deriveSettlementAccountId(partAcc.id, batchId),
+			batchId,// Links the account to the batch.
+			currency.code,
+			currency.decimals,
+			"0",
+			"0",
+			timestamp
+		);
+		await this.createSettlementBatchAccount(accountDto, securityContext);
+		return accountDto;
+	}
+
 	private deriveSettlementAccountId(accId: string, batchId: string): string {
 		// TODO need to perform op:
     return accId;
@@ -425,28 +468,17 @@ export class Aggregate {
 		return `${model}.${currencyCode.toUpperCase()}.${formatTimestamp}.${suffix}`;
 	}
 
+	//TODO this will not be in settlements anymore:
 	async obtainSettlementModel(
 		transfer: SettlementTransfer
 	) : Promise<SettlementModel> {
 		if (transfer == null) return SettlementModel.UNKNOWN;
 
-		return await this.obtainSettlementModelFromRaw(
+		return await obtainSettlementModelFrom(
 			transfer.amount,
 			transfer.currencyCode,//TODO This will always result in default...
 			transfer.currencyCode
 		);
-	}
-
-	async obtainSettlementModelFromRaw(
-		transferAmount: bigint,
-		debitAccountCurrency: string,
-		creditAccountCurrency: string
-	) : Promise<SettlementModel> {
-		if (debitAccountCurrency === null) return SettlementModel.UNKNOWN;
-		if (creditAccountCurrency === null) return SettlementModel.UNKNOWN;
-		if (debitAccountCurrency !== creditAccountCurrency) {
-			return SettlementModel.FX;
-		} else return SettlementModel.DEFAULT;
 	}
 
 	async getSettlementAccountsBy(

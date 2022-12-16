@@ -51,6 +51,15 @@ export interface ISettlementBatchAccountDto {
 	timestamp: number | null;
 }
 
+export interface IParticipantAccountDto {
+	id: string | null;
+	externalId: string | null;
+	currencyCode: string;
+	currencyDecimals: number | null;
+	creditBalance: string;
+	debitBalance: string;
+}
+
 export interface ISettlementTransferDto {
 	id: string | null;
 	externalId: string | null;

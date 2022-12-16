@@ -35,6 +35,7 @@ export class InvalidExternalCategoryError extends Error {}
 export class InvalidAmountError extends Error {}
 export class NoSettlementConfig extends Error {}
 export class UnableToGetSettlementConfigError extends Error {}
+export class PositionAccountNotFoundError extends Error {}
 export class InvalidJournalEntryAmountError extends Error {}
 export class SameCreditedAndDebitedAccountsError extends Error {}
 export class NoSuchCreditedAccountError extends Error {}
