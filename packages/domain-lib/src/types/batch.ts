@@ -33,22 +33,28 @@ export class SettlementBatch {
 	id: string;
 	timestamp: number;
 	settlementModel: SettlementModel;
+	debitCurrency: string;
+	creditCurrency: string;
+	batchSequence: number;
+	batchIdentifier: string;// FX.XOF:RWF.2021.08.23.00.00.001
 	batchStatus: SettlementBatchStatus;
-	batchIdentifier: string;// TODO individual fields.
-
-	//TODO main acc id
-	//TODO map for settlement-batch-accounts vs external accounts
 
 	constructor(
 		id: string,
 		timestamp: number,
 		settlementModel: SettlementModel,
-		batchStatus: SettlementBatchStatus,
-		batchIdentifier: string
+		debitCurrency: string,
+		creditCurrency: string,
+		batchSequence: number,
+		batchIdentifier: string,
+		batchStatus: SettlementBatchStatus
 	) {
 		this.id = id;
 		this.timestamp = timestamp;
 		this.settlementModel = settlementModel;
+		this.debitCurrency = debitCurrency;
+		this.creditCurrency = creditCurrency;
+		this.batchSequence = batchSequence;
 		this.batchIdentifier = batchIdentifier;
 		this.batchStatus = batchStatus;
 	}
@@ -58,8 +64,11 @@ export class SettlementBatch {
 			id: this.id,
 			timestamp: this.timestamp,
 			settlementModel: this.settlementModel,
-			batchStatus: this.batchStatus,
-			batchIdentifier: this.batchIdentifier
+			debitCurrency: this.debitCurrency,
+			creditCurrency: this.creditCurrency,
+			batchSequence: this.batchSequence,
+			batchIdentifier: this.batchIdentifier,
+			batchStatus: this.batchStatus
 		};
 		return batchDto;
 	}

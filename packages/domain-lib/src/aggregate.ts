@@ -161,8 +161,11 @@ export class Aggregate {
 			randomUUID(),
 			timestamp,
 			batchDto.settlementModel,
-			batchDto.batchStatus,
-			batchDto.batchIdentifier
+			batchDto.debitCurrency,
+			batchDto.creditCurrency,
+			batchDto.batchSequence,
+			batchDto.batchIdentifier,
+			batchDto.batchStatus
 		);
 
 		// Store the account (accountDto can't be stored).
@@ -287,8 +290,11 @@ export class Aggregate {
 			batchDto.id,
 			batchDto.timestamp,
 			batchDto.settlementModel,
-			batchDto.batchStatus,
-			batchDto.batchIdentifier
+			batchDto.debitCurrency,
+			batchDto.creditCurrency,
+			batchDto.batchSequence,
+			batchDto.batchIdentifier,
+			batchDto.batchStatus
 		)
 
 		let creditedAccountDto: ISettlementBatchAccountDto | null;
@@ -401,7 +407,7 @@ export class Aggregate {
 		const timestamp: number = Date.now();
 		const partAcc : IParticipantAccountDto = this.participantAccRepo.getAccountById(accId);
 		if (partAcc == null) {
-			throw new PositionAccountNotFoundError(`Unable to locate Position account with id '${accId}'.`);
+			throw new PositionAccountNotFoundError(`Unable to locate Participant account with id '${accId}'.`);
 		}
 
 		const accountDto = new ISettlementBatchAccountDto(
@@ -418,8 +424,11 @@ export class Aggregate {
 	}
 
 	private deriveSettlementAccountId(accId: string, batchId: string): string {
-		// TODO need to perform op:
-    return accId;
+		const settlementAccId = randomUUID();
+
+		// TODO need to create mapping table between batch account and participant account:
+
+		return settlementAccId
 	}
 
 	async obtainSettlementBatch(
@@ -441,13 +450,17 @@ export class Aggregate {
 
 		let settlementBatchDto = this.batchRepo.getOpenSettlementBatch(fromDate, toDate, model)
 		if (settlementBatchDto === null) {
+			const nextBatchSeq = this.nextBatchSequence(model, transfer.currencyCode, transfer.currencyCode, toDate)
 			// Create a new Batch to store the transfer against:
 			settlementBatchDto = new SettlementBatch(
 				randomUUID(),
 				timestamp,
 				model,
+				transfer.currencyCode,
+				transfer.currencyCode,
+				nextBatchSeq,
 				SettlementBatchStatus.OPEN,
-				this.generateBatchIdentifier(model, transfer.currencyCode, toDate)
+				this.generateBatchIdentifier(model, transfer.currencyCode, transfer.currencyCode, toDate, nextBatchSeq)
 			).toDto()
 			await this.createSettlementBatch(settlementBatchDto, securityContext);
 		}
@@ -456,16 +469,30 @@ export class Aggregate {
 
 	private generateBatchIdentifier(
 		model: SettlementModel,
-		currencyCode: string,
-		toDate: number
+		debitCurrency: string,
+		creditCurrency: string,
+		toDate: number,
+		batchSeq: number
 	) : string {
 		//TODO add assertion here:
 		//FX.XOF:RWF.2021.08.23.00.00
 		const formatTimestamp = "2021.08.23.00.00";
 		//TODO 1. Need to fetch all the closed batches for the suffix
-		const suffix = "001";//TODO for more than one open batch...
 
-		return `${model}.${currencyCode.toUpperCase()}.${formatTimestamp}.${suffix}`;
+		return `${model}.${debitCurrency.toUpperCase()}:${creditCurrency.toUpperCase()}.${formatTimestamp}.${batchSeq}`;
+	}
+
+	private nextBatchSequence(
+		model: SettlementModel,
+		debitCurrency: string,
+		creditCurrency: string,
+		toDate: number
+	) : number {
+		//TODO add assertion here:
+
+		//TODO need to get max batch seq using criteria
+
+		return 1;
 	}
 
 	//TODO this will not be in settlements anymore:

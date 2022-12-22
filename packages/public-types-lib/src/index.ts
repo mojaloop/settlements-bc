@@ -37,8 +37,11 @@ export interface ISettlementBatchDto {
 	id: string | null;
 	timestamp: number | null;
 	settlementModel: SettlementModel;
+	debitCurrency: string;
+	creditCurrency: string;
+	batchSequence: number;
+	batchIdentifier: string;// FX.XOF:RWF.2021.08.23.00.00.001
 	batchStatus: SettlementBatchStatus | null;
-	batchIdentifier: string;
 }
 
 export interface ISettlementBatchAccountDto {
