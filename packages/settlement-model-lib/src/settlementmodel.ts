@@ -34,11 +34,12 @@ export function obtainSettlementModelFrom(
 	debitAccountCurrency: string,
 	creditAccountCurrency: string
 ) : Promise<SettlementModel> {
-	if (debitAccountCurrency === null) return SettlementModel.UNKNOWN;
-	if (creditAccountCurrency === null) return SettlementModel.UNKNOWN;
+	if (debitAccountCurrency === null || creditAccountCurrency===null)
+		return Promise.resolve(SettlementModel.UNKNOWN);
 	if (debitAccountCurrency !== creditAccountCurrency) {
-		return SettlementModel.FX;
-	} else return SettlementModel.DEFAULT;
+		return Promise.resolve(SettlementModel.FX);
+	} else
+		return Promise.resolve(SettlementModel.DEFAULT);
 
 	// TODO we need to unpack REMITTANCE
 }
