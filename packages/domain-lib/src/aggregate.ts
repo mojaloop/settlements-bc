@@ -59,6 +59,7 @@ import {
 	ISettlementBatchAccountDto,
 	ISettlementTransferDto,
 	IParticipantAccountDto,
+	ISettlementMatrixDto,
 	SettlementBatchStatus,
 	SettlementModel
 } from "@mojaloop/settlements-bc-public-types-lib";
@@ -76,7 +77,8 @@ import {SettlementConfig} from "./types/settlement_config";
 enum AuditingActions {
 	SETTLEMENT_BATCH_CREATED = "SETTLEMENT_BATCH_CREATED",
 	SETTLEMENT_BATCH_ACCOUNT_CREATED = "SETTLEMENT_BATCH_ACCOUNT_CREATED",
-	SETTLEMENT_TRANSFER_CREATED = "SETTLEMENT_TRANSFER_CREATED"
+	SETTLEMENT_TRANSFER_CREATED = "SETTLEMENT_TRANSFER_CREATED",
+	SETTLEMENT_MATRIX_CREATED = "SETTLEMENT_MATRIX_CREATED"
 }
 
 export class Aggregate {
@@ -394,8 +396,57 @@ export class Aggregate {
 			true,
 			this.getAuditSecurityContext(securityContext), [{key: "settlementTransferId", value: transfer.id}]
 		);
-
 		return transfer.id;
+	}
+
+	async createSettlementMatrix(
+		settlementModel: SettlementModel,
+		fromDate: number,
+		toDate: number,
+		securityContext: CallSecurityContext
+	): Promise<ISettlementMatrixDto> {
+		const timestamp: number = Date.now();
+
+		this.enforcePrivilege(securityContext, Privileges.REQUEST_SETTLEMENT_MATRIX);
+
+		//TODO 1. Fetch all the batches, as long as the last batch is outside the [toDate]
+		//TODO 2. Close the batches not already closed (no new txn's will be allowed on those closed batches)
+		//TODO -----------
+		//TODO 3. Fetch all of the settlement accounts
+		//TODO 4. Calculate the settlement balance required for each of the accounts
+		//TODO 5. Send an event in order to update the external system position account for the batches where the account was not closed.
+
+		// Generate the Matrix!:
+		try {
+			//TODO await this.transfersRepo.storeNewSettlementTransfer(formattedTransferDto);
+		} catch (error: unknown) {
+			this.logger.error(error);
+			throw error;
+		}
+
+		// We perform an async audit:
+		this.auditingClient.audit(
+			AuditingActions.SETTLEMENT_MATRIX_CREATED,
+			true,
+			this.getAuditSecurityContext(securityContext), [{key: "settlementModel", value: settlementModel}]
+		);
+
+		const returnVal : ISettlementMatrixDto = new ISettlementMatrixDto();
+		return returnVal;
+	}
+
+	private async getSettlementBatches(
+		settlementModel: SettlementModel,
+		fromDate: number,
+		toDate: number,
+		securityContext: CallSecurityContext
+	): Promise<ISettlementBatchDto[] | null> {
+		const timestamp: number = Date.now();
+
+		this.enforcePrivilege(securityContext, Privileges.RETRIEVE_SETTLEMENT_BATCH);
+
+		//TODO need to complete this
+		return null;
 	}
 
 	private async createSettlementBatchAccountFromAccId(

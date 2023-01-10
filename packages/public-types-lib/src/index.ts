@@ -77,6 +77,29 @@ export interface ISettlementTransferDto {
 	batch: ISettlementBatchDto | null;
 }
 
+/* Settlement Matrix */
+export interface ISettlementMatrixSettlementBatchAccountDto {
+	id: string | null;
+	externalId: string | null;
+	currencyCode: string;
+	creditBalance: string;
+	debitBalance: string;
+}
+
+export interface ISettlementMatrixBatchDto {
+	batchIdentifier: string;
+	batchStatus: SettlementBatchStatus;
+	batchStatusNew: SettlementBatchStatus;
+	batchAccounts: ISettlementMatrixSettlementBatchAccountDto[];
+}
+
+export interface ISettlementMatrixDto {
+	fromDate: number;
+	toDateDate: number;
+	settlementModel: SettlementModel;
+	batches: ISettlementMatrixBatchDto[] | null;
+}
+
 export enum SettlementModel {
 	UNKNOWN = "UNKNOWN",
 	DEFAULT = "DEFAULT",
