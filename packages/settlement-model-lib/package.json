@@ -1,5 +1,5 @@
 {
-  "name": "@mojaloop/settlements-model-lib",
+  "name": "@mojaloop/settlements-bc-model-lib",
   "version": "0.0.1",
   "description": "Settlements BC - Settlement Model Library",
   "license": "Apache-2.0",
@@ -24,7 +24,6 @@
     "audit:fix": "npm audit fix",
     "lint": "eslint src/",
     "build": "tsc",
-    "postbuild": "cp src/currencies.json dist/",
     "test:unit": "jest",
     "test:unit-single": "jest --coverage false -t"
   },
