@@ -36,7 +36,6 @@
     "@mojaloop/auditing-bc-public-types-lib": "~0.0.10",
     "@mojaloop/logging-bc-public-types-lib": "~0.1.12",
     "@mojaloop/security-bc-client-lib": "~0.0.52",
-    "@mojaloop/security-bc-public-types-lib": "~0.0.7",
-    "@mojaloop/settlements-model-lib": "~0.0.1"
+    "@mojaloop/security-bc-public-types-lib": "~0.0.7"
   }
 }

@@ -63,7 +63,7 @@ import {
 	SettlementBatchStatus,
 	SettlementModel
 } from "@mojaloop/settlements-bc-public-types-lib";
-import {obtainSettlementModelFrom} from "@mojaloop/settlements-model-lib";
+//TODO import {obtainSettlementModelFrom} from "@mojaloop/settlements-model-lib";
 import {IAuditClient, AuditSecurityContext} from "@mojaloop/auditing-bc-public-types-lib";
 import {CallSecurityContext} from "@mojaloop/security-bc-client-lib";
 import {IAuthorizationClient} from "@mojaloop/security-bc-public-types-lib";
@@ -552,11 +552,12 @@ export class Aggregate {
 	) : Promise<SettlementModel> {
 		if (transfer == null) return SettlementModel.UNKNOWN;
 
-		return await obtainSettlementModelFrom(
+		//TODO need to use the lib again:
+		/*return await obtainSettlementModelFrom(
 			transfer.amount,
 			transfer.currencyCode,//TODO This will always result in default...
 			transfer.currencyCode
-		);
+		);*/
 	}
 
 	async getSettlementAccountsBy(
