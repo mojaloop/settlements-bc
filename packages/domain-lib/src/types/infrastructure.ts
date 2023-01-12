@@ -60,6 +60,7 @@ export interface ISettlementBatchAccountRepo {
 	storeNewSettlementBatchAccount(account: ISettlementBatchAccountDto): Promise<void>; // Throws if account.id is not unique.
 	getAccountById(accountId: string): Promise<ISettlementBatchAccountDto | null>;
 	getAccountsByExternalId(externalId: string): Promise<ISettlementBatchAccountDto[]>;
+	getAccountsByBatch(batch: ISettlementBatchDto): Promise<ISettlementBatchAccountDto[]>;
 	updateAccountCreditBalanceAndTimestampById(
 		accountId: string,
 		creditBalance: string,

@@ -50,4 +50,10 @@ export class AuthorizationClientMock implements IAuthorizationClient {
 	roleHasPrivilege(roleId: string, privilegeId: string): boolean {
 		return true;
 	}
+
+	addPrivilege(privId: string, labelName: string, description: string): void {
+	}
+
+	addPrivilegesArray(privsArray: { privId: string; labelName: string; description: string }[]): void {
+	}
 }

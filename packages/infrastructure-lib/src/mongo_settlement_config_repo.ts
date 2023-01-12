@@ -80,7 +80,7 @@ export class MongoSettlementConfigRepo implements ISettlementConfigRepo {
 	async getSettlementConfigByModel(model: SettlementModel): Promise<ISettlementConfigDto | null> {
 		try {
 			// findOne() doesn't throw if no item is found - null is returned.
-			const config: ISettlementConfigDto | null = await this.configs.findOne({settlementModel: model});
+			const config: ISettlementConfigDto | null = null;//TODO FIX: await this.configs.findOne({settlementModel: model});
 			return config;
 		} catch (error: unknown) {
 			throw new UnableToGetSettlementConfigError((error as any)?.message);

@@ -57,7 +57,7 @@ export class SettlementConfig {
 	toDto(): ISettlementConfigDto {
 		const configDto: ISettlementConfigDto = {
 			id: this.id,
-			model: this.model,
+			settlementModel: this.model,
 			batchCreateInterval: this.batchCreateInterval,
 		};
 		return configDto;

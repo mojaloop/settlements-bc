@@ -42,7 +42,11 @@ import {
 	InvalidBatchIdentifierError,
 	InvalidBatchSettlementModelError,
 	SettlementBatchAlreadyExistsError,
-	InvalidAmountError, NoSettlementConfig, PositionAccountNotFoundError
+	InvalidAmountError,
+	NoSettlementConfig,
+	PositionAccountNotFoundError,
+	InvalidCreditAccountError,
+	InvalidDebitAccountError
 } from "./types/errors";
 import {
 	ISettlementBatchRepo,
@@ -151,7 +155,7 @@ export class Aggregate {
 		if (batchDto.batchIdentifier === null || batchDto.batchIdentifier === "") throw new InvalidBatchIdentifierError();
 
 		// IDs:
-		if (batchDto.externalId === "") throw new InvalidExternalIdError();
+		if (batchDto.id === "") throw new InvalidExternalIdError();
 
 		// Generate a random UUId, if needed:
 		if (await this.batchRepo.batchExistsByBatchIdentifier(batchDto.batchIdentifier)) {
@@ -167,7 +171,7 @@ export class Aggregate {
 			batchDto.creditCurrency,
 			batchDto.batchSequence,
 			batchDto.batchIdentifier,
-			batchDto.batchStatus
+			batchDto.batchStatus === undefined ? SettlementBatchStatus.OPEN : batchDto.batchStatus!
 		);
 
 		// Store the account (accountDto can't be stored).
@@ -203,7 +207,7 @@ export class Aggregate {
 		if (accountDto.timestamp !== null) throw new InvalidTimestampError();
 		if (parseInt(accountDto.creditBalance) !== 0) throw new InvalidCreditBalanceError();
 		if (parseInt(accountDto.debitBalance) !== 0) throw new InvalidDebitBalanceError();
-		if (accountDto.externalId === "") throw new InvalidExternalIdError();
+		if (accountDto.externalId === undefined || accountDto.externalId === "") throw new InvalidExternalIdError();
 
 		const currency: ICurrency | undefined = this.currencies.find(currency => {
 			return currency.code === accountDto.currencyCode;
@@ -212,7 +216,7 @@ export class Aggregate {
 
 		const account: SettlementBatchAccount = new SettlementBatchAccount(
 			randomUUID(),
-			accountDto.externalId,
+			accountDto.externalId!,
 			accountDto.currencyCode,
 			currency.decimals,
 			0n,
@@ -238,7 +242,7 @@ export class Aggregate {
 			this.getAuditSecurityContext(securityContext),
 			[
 				{key: "accountId", value: account.id},
-				{key: "accountExternalId", value: account.externalId}
+				{key: "accountExternalId", value: account.externalId!}
 			]
 		);
 
@@ -252,8 +256,10 @@ export class Aggregate {
 
 		if (transferDto.currencyDecimals !== null) throw new InvalidCurrencyDecimalsError();
 		if (transferDto.timestamp !== null) throw new InvalidTimestampError();
-		if (transferDto.externalId === "") throw new InvalidExternalIdError();
-		if (transferDto.externalCategory === "") throw new InvalidExternalCategoryError();
+		if (transferDto.externalId === undefined || transferDto.externalId === "") throw new InvalidExternalIdError();
+		if (transferDto.externalCategory === undefined || transferDto.externalCategory === "") throw new InvalidExternalCategoryError();
+		if (transferDto.creditAccountId === undefined || transferDto.creditAccountId === "") throw new InvalidCreditAccountError();
+		if (transferDto.debitAccountId === undefined || transferDto.debitAccountId === "") throw new InvalidDebitAccountError();
 
 		// Verify the currency code (and get the corresponding currency decimals).
 		const currency: ICurrency | undefined = this.currencies.find(currency => {
@@ -272,13 +278,13 @@ export class Aggregate {
 
 		const transfer: SettlementTransfer = new SettlementTransfer(
 			randomUUID(),
-			transferDto.externalId,
-			transferDto.externalCategory,
+			transferDto.externalId!,
+			transferDto.externalCategory!,
 			transferDto.currencyCode,
 			currency.decimals,
 			amount,
-			transferDto.creditedAccountId,
-			transferDto.debitedAccountId,
+			transferDto.creditAccountId!,
+			transferDto.debitAccountId!,
 			null,
 			timestamp
 		);
@@ -296,16 +302,16 @@ export class Aggregate {
 			batchDto.creditCurrency,
 			batchDto.batchSequence,
 			batchDto.batchIdentifier,
-			batchDto.batchStatus
+			batchDto.batchStatus!
 		)
 
 		let creditedAccountDto: ISettlementBatchAccountDto | null;
 		let debitedAccountDto: ISettlementBatchAccountDto | null;
 		try {
 			creditedAccountDto = await this.batchAccountRepo.getAccountById(
-				this.deriveSettlementAccountId(transferDto.creditedAccountId, transfer.batch.id));
+				this.deriveSettlementAccountId(transferDto.creditAccountId, transfer.batch.id));
 			debitedAccountDto = await this.batchAccountRepo.getAccountById(
-				this.deriveSettlementAccountId(transferDto.debitedAccountId, transfer.batch.id)
+				this.deriveSettlementAccountId(transferDto.debitAccountId, transfer.batch.id)
 			);
 		} catch (error: unknown) {
 			this.logger.error(error);
@@ -315,7 +321,7 @@ export class Aggregate {
 		// Create the Debit/Credit accounts as required:
 		if (creditedAccountDto === null) {
 			creditedAccountDto = await this.createSettlementBatchAccountFromAccId(
-				transferDto.creditedAccountId,
+				transferDto.creditAccountId,
 				transfer.batch.id,
 				currency,
 				securityContext
@@ -323,7 +329,7 @@ export class Aggregate {
 		}
 		if (debitedAccountDto === null) {
 			debitedAccountDto = await this.createSettlementBatchAccountFromAccId(
-				transferDto.debitedAccountId,
+				transferDto.debitAccountId,
 				transfer.batch.id,
 				currency,
 				securityContext
@@ -332,7 +338,7 @@ export class Aggregate {
 
 		const creditedAccount = new SettlementBatchAccount(
 			creditedAccountDto.id!,
-			creditedAccountDto.externalId,
+			creditedAccountDto.externalId!,
 			creditedAccountDto.currencyCode,
 			creditedAccountDto.currencyDecimals!,
 			stringToBigint(creditedAccountDto.creditBalance, creditedAccountDto.currencyDecimals!),
@@ -341,7 +347,7 @@ export class Aggregate {
 		);
 		const debitedAccount = new SettlementBatchAccount(
 			debitedAccountDto.id!,
-			debitedAccountDto.externalId,
+			debitedAccountDto.externalId!,
 			debitedAccountDto.currencyCode,
 			debitedAccountDto.currencyDecimals!,
 			stringToBigint(debitedAccountDto.creditBalance, debitedAccountDto.currencyDecimals!),
@@ -431,7 +437,12 @@ export class Aggregate {
 			this.getAuditSecurityContext(securityContext), [{key: "settlementModel", value: settlementModel}]
 		);
 
-		const returnVal : ISettlementMatrixDto = new ISettlementMatrixDto();
+		const returnVal : ISettlementMatrixDto = {
+			fromDate: fromDate,
+			toDateDate: toDate,
+			settlementModel: settlementModel,
+			batches: null//TODO @jason need to complete
+		};
 		return returnVal;
 	}
 
@@ -456,20 +467,20 @@ export class Aggregate {
 		securityContext: CallSecurityContext
 	): Promise<ISettlementBatchAccountDto> {
 		const timestamp: number = Date.now();
-		const partAcc : IParticipantAccountDto = this.participantAccRepo.getAccountById(accId);
-		if (partAcc == null) {
+		const partAcc : null | IParticipantAccountDto = await this.participantAccRepo.getAccountById(accId);
+		if (partAcc === null) {
 			throw new PositionAccountNotFoundError(`Unable to locate Participant account with id '${accId}'.`);
 		}
 
-		const accountDto = new ISettlementBatchAccountDto(
-			this.deriveSettlementAccountId(partAcc.id, batchId),
-			batchId,// Links the account to the batch.
-			currency.code,
-			currency.decimals,
-			"0",
-			"0",
-			timestamp
-		);
+		const accountDto : ISettlementBatchAccountDto = {
+			id: this.deriveSettlementAccountId(partAcc.id!, batchId),
+			externalId: batchId,// Links the account to the batch
+			currencyCode: currency.code,
+			currencyDecimals: currency.decimals,
+			creditBalance: "0",
+			debitBalance: "0",
+			timestamp: timestamp
+		};
 		await this.createSettlementBatchAccount(accountDto, securityContext);
 		return accountDto;
 	}
@@ -493,13 +504,13 @@ export class Aggregate {
 		if (configDto == null) throw new NoSettlementConfig(`No settlement config for model '${model}'.`);
 		const config = new SettlementConfig(
 			configDto.id,
-			configDto.model,
+			configDto.settlementModel,
 			configDto.batchCreateInterval
 		)
 		const fromDate: number = config.calculateBatchFromDate(timestamp),
 			toDate: number = config.calculateBatchToDate(timestamp);
 
-		let settlementBatchDto = this.batchRepo.getOpenSettlementBatch(fromDate, toDate, model)
+		let settlementBatchDto : null | ISettlementBatchDto = await this.batchRepo.getOpenSettlementBatch(fromDate, toDate, model)
 		if (settlementBatchDto === null) {
 			const nextBatchSeq = this.nextBatchSequence(model, transfer.currencyCode, transfer.currencyCode, toDate)
 			// Create a new Batch to store the transfer against:
@@ -510,8 +521,8 @@ export class Aggregate {
 				transfer.currencyCode,
 				transfer.currencyCode,
 				nextBatchSeq,
-				SettlementBatchStatus.OPEN,
-				this.generateBatchIdentifier(model, transfer.currencyCode, transfer.currencyCode, toDate, nextBatchSeq)
+				this.generateBatchIdentifier(model, transfer.currencyCode, transfer.currencyCode, toDate, nextBatchSeq),
+				SettlementBatchStatus.OPEN
 			).toDto()
 			await this.createSettlementBatch(settlementBatchDto, securityContext);
 		}
@@ -551,6 +562,7 @@ export class Aggregate {
 		transfer: SettlementTransfer
 	) : Promise<SettlementModel> {
 		if (transfer == null) return SettlementModel.UNKNOWN;
+		return SettlementModel.DEFAULT;
 
 		//TODO need to use the lib again:
 		/*return await obtainSettlementModelFrom(
@@ -568,8 +580,12 @@ export class Aggregate {
 	): Promise<ISettlementBatchAccountDto | null> {
 		this.enforcePrivilege(securityContext, Privileges.RETRIEVE_SETTLEMENT_BATCH);
 		try {
-			const accountDto: ISettlementBatchAccountDto | null = await this.batchRepo.getSettlementBatchesBy(fromDate, toDate, model);
-			return accountDto;
+			// TODO first fetch all the batches....
+			// TODO fetch all the accounts for the batches...
+
+			// const accountDto: ISettlementBatchAccountDto[] | null = await this.batchAccountRepo.getAccountsByBatch();
+			//return accountDto;
+			return null;
 		} catch (error: unknown) {
 			this.logger.error(error);
 			throw error;

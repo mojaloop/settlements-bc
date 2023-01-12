@@ -50,7 +50,7 @@ import {IAuditClient} from "@mojaloop/auditing-bc-public-types-lib";
 import {AuthorizationClient, TokenHelper} from "@mojaloop/security-bc-client-lib";
 import {IAuthorizationClient} from "@mojaloop/security-bc-public-types-lib";
 import {ExpressHttpServer} from "./http_server/express_http_server";
-import {AuthorizationClientMock} from "@mojaloop/accounts-and-balances-bc-shared-mocks-lib";
+import {AuthorizationClientMock} from "@mojaloop/settlements-bc-shared-mocks-lib";
 
 /* ********** Constants Begin ********** */
 
@@ -95,7 +95,7 @@ const DB_PORT_NO: number =
 	parseInt(process.env.SETTLEMENTS_DB_PORT_NO ?? "") || 27018;
 const DB_URL: string = `mongodb://${DB_HOST}:${DB_PORT_NO}`;
 const DB_NAME: string = "settlements";
-const SETTLEMENT_CONFIGS_COLLECTION_NAME: string = "accounts";
+const SETTLEMENT_CONFIGS_COLLECTION_NAME: string = "settlement_configs";
 
 // Server.
 const HTTP_SERVER_HOST: string = process.env.SETTLEMENTS_HTTP_SERVER_HOST || "localhost";
@@ -279,11 +279,6 @@ export async function startHttpService(
 	try {
 		await httpServer.stop();
 		await httpServer.start();
-		/*await httpServer.stop();
-		await httpServer.start();
-		await httpServer.start();
-		await httpServer.stop();
-		await httpServer.stop();*/
 	} catch (error: unknown) {
 		logger.fatal(error);
 		await stopHttpService();
@@ -293,24 +288,14 @@ export async function startHttpService(
 
 function addPrivileges(authorizationClient: AuthorizationClient): void {
 	authorizationClient.addPrivilege(
-		Privileges.CREATE_ACCOUNT,
-		"CREATE_ACCOUNT",
-		"Allows the creation of accounts."
+		Privileges.CREATE_SETTLEMENT_TRANSFER,
+		"CREATE_SETTLEMENT_TRANSFER",
+		"Allows the creation of a settlement transfer."
 	);
 	authorizationClient.addPrivilege(
-		Privileges.CREATE_JOURNAL_ENTRY,
-		"CREATE_JOURNAL_ENTRY",
-		"Allows the creation of journal entries." // TODO: @jason, add correct ones.
-	);
-	authorizationClient.addPrivilege(
-		Privileges.VIEW_ACCOUNT,
-		"VIEW_ACCOUNT",
-		"Allows the retrieval of accounts." // TODO: @jason, add correct ones.
-	);
-	authorizationClient.addPrivilege(
-		Privileges.VIEW_JOURNAL_ENTRY,
-		"VIEW_JOURNAL_ENTRY",
-		"Allows the retrieval of journal entries." // TODO: @jason, add correct ones.
+		Privileges.REQUEST_SETTLEMENT_MATRIX,
+		"REQUEST_SETTLEMENT_MATRIX",
+		"Allows the creation of a settlement matrix."
 	);
 }
 

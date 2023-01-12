@@ -28,14 +28,14 @@
 "use strict";
 
 export interface ISettlementConfigDto {
-	id: string | null;
+	id: string;
 	settlementModel: SettlementModel;
 	batchCreateInterval: number;
 }
 
 export interface ISettlementBatchDto {
-	id: string | null;
-	timestamp: number | null;
+	id: string;
+	timestamp: number;
 	settlementModel: SettlementModel;
 	debitCurrency: string;
 	creditCurrency: string;

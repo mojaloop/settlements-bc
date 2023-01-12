@@ -196,13 +196,13 @@ export class ExpressRoutes {
 	private async postSettlementMatrix(req: Request, res: Response): Promise<void> {
 		try {
 			const settlementModel = req.query.settlementModel as SettlementModel;
-			const fromDate = req.query.fromDate as number;
-			const toDate = req.query.fromDate as number;
+			const fromDate = req.query.fromDate as string;
+			const toDate = req.query.fromDate as string;
 
 			const settlementMatrix: ISettlementMatrixDto = await this.aggregate.createSettlementMatrix(
 				settlementModel,
-				fromDate,
-				toDate,
+				Number(fromDate),
+				Number(toDate),
 				req.securityContext!
 			);
 			this.sendSuccessResponse(
