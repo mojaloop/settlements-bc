@@ -46,8 +46,8 @@
     "nyc": "^15.1.0"
   },
   "workspaces": [
+    "packages/settlement-model-lib",
     "packages/public-types-lib",
-    "packages/grpc-common-lib",
     "packages/domain-lib",
     "packages/infrastructure-lib",
     "packages/shared-mocks-lib",
