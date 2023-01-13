@@ -32,6 +32,7 @@
     "@mojaloop/settlements-bc-shared-mocks-lib": "~0.0.1"
   },
   "dependencies": {
+    "@mojaloop/settlements-bc-model-lib": "~0.0.1",
     "@mojaloop/settlements-bc-public-types-lib": "~0.0.1",
     "@mojaloop/auditing-bc-public-types-lib": "~0.0.10",
     "@mojaloop/logging-bc-public-types-lib": "~0.1.12",

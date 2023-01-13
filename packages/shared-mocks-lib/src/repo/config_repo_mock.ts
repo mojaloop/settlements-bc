@@ -38,7 +38,11 @@ export class SettlementConfigRepoMock implements ISettlementConfigRepo {
 		return Promise.resolve();
 	}
 	getSettlementConfigByModel(model: SettlementModel): Promise<ISettlementConfigDto | null> {
-		const returnVal : ISettlementConfigDto = {}
-		return returnVal;
+		const returnVal : ISettlementConfigDto = {
+			id: "1",
+			settlementModel: SettlementModel.DEFAULT,
+			batchCreateInterval: 0
+		}
+		return Promise.resolve(returnVal);
 	}
 }
