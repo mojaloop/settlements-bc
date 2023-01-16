@@ -27,12 +27,28 @@
 
 "use strict";
 
-export * from "./audit_client_mock";
-export * from "./authentication_service_mock";
-export * from "./authorization_client_mock";
+import {IParticipantAccountRepo} from "@mojaloop/settlements-bc-domain-lib";
+import {IParticipantAccountDto} from "@mojaloop/settlements-bc-public-types-lib";
 
-export * from "./repo/config_repo_mock";
-export * from "./repo/participant_account_repo_mock";
-export * from "./repo/settlement_batch_account_repo_mock";
-export * from "./repo/settlement_batch_repo_mock";
-export * from "./repo/settlement_transfer_repo_mock";
+export class ParticipantAccountRepoMock implements IParticipantAccountRepo {
+	batches: Array<IParticipantAccountDto> = [];
+
+	init(): Promise<void> {
+		return Promise.resolve();
+	}
+	destroy(): Promise<void>{
+		return Promise.resolve();
+	}
+
+	getAccountById(accountId: string): Promise<IParticipantAccountDto | null> {
+		const returnVal : IParticipantAccountDto = {
+			id : accountId,
+			externalId : accountId,
+			currencyCode : 'USD',
+			currencyDecimals : 2,
+			creditBalance : '0',
+			debitBalance : '0'
+		}
+		return Promise.resolve(returnVal);
+	}
+}

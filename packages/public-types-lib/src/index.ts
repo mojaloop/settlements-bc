@@ -47,6 +47,7 @@ export interface ISettlementBatchDto {
 export interface ISettlementBatchAccountDto {
 	id: string | null;
 	externalId: string | null;
+	settlementBatch: ISettlementBatchDto;
 	currencyCode: string;
 	currencyDecimals: number | null;
 	creditBalance: string;

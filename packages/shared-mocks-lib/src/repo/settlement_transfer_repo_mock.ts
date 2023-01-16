@@ -27,12 +27,43 @@
 
 "use strict";
 
-export * from "./audit_client_mock";
-export * from "./authentication_service_mock";
-export * from "./authorization_client_mock";
+import {ISettlementTransferRepo} from "@mojaloop/settlements-bc-domain-lib";
+import {ISettlementTransferDto} from "@mojaloop/settlements-bc-public-types-lib";
+export class SettlementTransferRepoMock implements ISettlementTransferRepo {
+	transfers: Array<ISettlementTransferDto> = [];
 
-export * from "./repo/config_repo_mock";
-export * from "./repo/participant_account_repo_mock";
-export * from "./repo/settlement_batch_account_repo_mock";
-export * from "./repo/settlement_batch_repo_mock";
-export * from "./repo/settlement_transfer_repo_mock";
+	init(): Promise<void> {
+		return Promise.resolve();
+	}
+	destroy(): Promise<void>{
+		return Promise.resolve();
+	}
+
+	storeNewSettlementTransfer(transfer: ISettlementTransferDto): Promise<void> {
+		if (transfer === undefined) return Promise.resolve();
+		this.transfers.push(transfer);
+		return Promise.resolve();
+	}
+
+	transferExistsById(id: string): Promise<boolean> {
+		if (id === undefined || id.trim() === '') return Promise.resolve(false);
+
+		for (const transferIter of this.transfers) {
+			if (transferIter.id === id) return Promise.resolve(true);
+		}
+
+		return Promise.resolve(false);
+	}
+
+	getSettlementTransfersByAccountId(accountId: string): Promise<ISettlementTransferDto[]> {
+		let returnVal : Array<ISettlementTransferDto> = [];
+		if (accountId === undefined || accountId.trim() === '') return Promise.resolve(returnVal);
+
+		for (const transferIter of this.transfers) {
+			if (transferIter.creditAccountId === accountId ||
+				transferIter.debitAccountId === accountId) returnVal.push(transferIter);
+		}
+
+		return Promise.resolve(returnVal);
+	}
+}

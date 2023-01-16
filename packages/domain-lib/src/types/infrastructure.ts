@@ -50,25 +50,27 @@ export interface ISettlementBatchRepo {
 
 	batchExistsByBatchIdentifier(batchIdentifier: string): Promise<boolean>;
 	getSettlementBatchesBy(fromData: number, toDate: number, model?: SettlementModel): Promise<ISettlementBatchDto[]>;
-	getOpenSettlementBatch(fromData: number, toDate: number, model?: SettlementModel): Promise<ISettlementBatchDto | null>;
+	getOpenSettlementBatch(fromData: number, toDate: number, model: SettlementModel): Promise<ISettlementBatchDto | null>;
 }
 
 export interface ISettlementBatchAccountRepo {
 	init(): Promise<void>;
 	destroy(): Promise<void>;
-	accountExistsById(accountId: string): Promise<boolean>;
 	storeNewSettlementBatchAccount(account: ISettlementBatchAccountDto): Promise<void>; // Throws if account.id is not unique.
+	accountExistsById(accountId: string): Promise<boolean>;
 	getAccountById(accountId: string): Promise<ISettlementBatchAccountDto | null>;
 	getAccountsByExternalId(externalId: string): Promise<ISettlementBatchAccountDto[]>;
 	getAccountsByBatch(batch: ISettlementBatchDto): Promise<ISettlementBatchAccountDto[]>;
 	updateAccountCreditBalanceAndTimestampById(
 		accountId: string,
 		creditBalance: string,
-		timeStampLastJournalEntry: number): Promise<void>;
+		timeStampLastJournalEntry: number
+	): Promise<void>;
 	updateAccountDebitBalanceAndTimestampById(
 		accountId: string,
 		debitBalance: string,
-		timeStampLastJournalEntry: number): Promise<void>;
+		timeStampLastJournalEntry: number
+	): Promise<void>;
 }
 
 export interface IParticipantAccountRepo {
@@ -77,11 +79,10 @@ export interface IParticipantAccountRepo {
 	getAccountById(accountId: string): Promise<IParticipantAccountDto | null>;
 }
 
-
 export interface ISettlementTransferRepo {
 	init(): Promise<void>;
 	destroy(): Promise<void>;
-	transferExistsById(id: string): Promise<boolean>;
 	storeNewSettlementTransfer(transfer: ISettlementTransferDto): Promise<void>; // Throws if account.id is not unique.
+	transferExistsById(id: string): Promise<boolean>;
 	getSettlementTransfersByAccountId(accountId: string): Promise<ISettlementTransferDto[]>;
 }
