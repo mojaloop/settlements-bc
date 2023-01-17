@@ -50,7 +50,7 @@ import {IAuditClient} from "@mojaloop/auditing-bc-public-types-lib";
 import {AuthorizationClient, TokenHelper} from "@mojaloop/security-bc-client-lib";
 import {IAuthorizationClient} from "@mojaloop/security-bc-public-types-lib";
 import {ExpressHttpServer} from "./http_server/express_http_server";
-import {AuthorizationClientMock} from "@mojaloop/settlements-bc-shared-mocks-lib";
+import * as console from "console";
 
 /* ********** Constants Begin ********** */
 
@@ -158,15 +158,18 @@ export async function startHttpService(
 		logger
 	);
 	try {
-		await tokenHelper.init();
+		// TODO Need to put back:
+		//TODO await tokenHelper.init();
+		logger.info('tokenHelper.init() needs to be put back!');
 	} catch (error: unknown) {
+		logger.fatal('Token Helper is broken!');
 		logger.fatal(error);
 		await stopHttpService();
 		process.exit(-1); // TODO: verify code.
 	}
 
 	// Authorization.
-	/*if (authorizationClient === undefined) {
+	if (authorizationClient === undefined) {
 		authorizationClient = new AuthorizationClient(
 			BOUNDED_CONTEXT_NAME,
 			SERVICE_NAME,
@@ -177,10 +180,6 @@ export async function startHttpService(
 		addPrivileges(authorizationClient as AuthorizationClient);
 		await (authorizationClient as AuthorizationClient).bootstrap(true);
 		await (authorizationClient as AuthorizationClient).fetch();
-	}*/
-	// TODO: remove.
-	if (authorizationClient === undefined) {
-		authorizationClient = new AuthorizationClientMock(logger);
 	}
 
 	// Auditing.

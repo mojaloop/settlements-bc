@@ -129,10 +129,12 @@ export class Aggregate {
 	}
 
 	private enforcePrivilege(securityContext: CallSecurityContext, privilegeId: string): void {
+		if (securityContext === undefined) {
+			this.logger.warn(`No [CallSecurityContext]. Not enforcing privilege: ${privilegeId}`);
+			return;
+		}
 		for (const roleId of securityContext.rolesIds) {
-			if (this.authorizationClient.roleHasPrivilege(roleId, privilegeId)) {
-				return;
-			}
+			if (this.authorizationClient.roleHasPrivilege(roleId, privilegeId)) return;
 		}
 		throw new UnauthorizedError();
 	}
@@ -253,11 +255,13 @@ export class Aggregate {
 
 	async createSettlementTransfer(transferDto: ISettlementTransferDto, securityContext: CallSecurityContext): Promise<string> {
 		const timestamp: number = Date.now();
+		this.logger.debug(`Incoming Transfer: ${transferDto.currencyDecimals}`)
 
 		this.enforcePrivilege(securityContext, Privileges.CREATE_SETTLEMENT_TRANSFER);
 
-		if (transferDto.currencyDecimals !== null) throw new InvalidCurrencyDecimalsError();
-		if (transferDto.timestamp !== null) throw new InvalidTimestampError();
+		if (transferDto.timestamp === undefined) transferDto.timestamp = timestamp;// TODO maybe we want to change this...
+		if (transferDto.currencyCode === undefined || transferDto.currencyCode === "") throw new InvalidCurrencyCodeError();
+		if (transferDto.amount === undefined || transferDto.amount === "") throw new InvalidAmountError();
 		if (transferDto.externalId === undefined || transferDto.externalId === "") throw new InvalidExternalIdError();
 		if (transferDto.externalCategory === undefined || transferDto.externalCategory === "") throw new InvalidExternalCategoryError();
 		if (transferDto.creditAccountId === undefined || transferDto.creditAccountId === "") throw new InvalidCreditAccountError();

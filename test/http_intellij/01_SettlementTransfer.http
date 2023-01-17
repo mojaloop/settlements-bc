@@ -1,0 +1,15 @@
+### Test - Settlement Transfer
+POST http://localhost:1234/transfer
+Content-Type: application/json
+X-Correlation-ID: Manual-{{$uuid}}
+authorization: 123456
+
+{
+  "id" : null,
+  "externalId" : "{{$uuid}}",
+  "externalCategory" : "POSITION",
+  "creditAccountId" : "{{$uuid}}",
+  "debitAccountId" : "{{$uuid}}",
+  "currencyCode" : "USD",
+  "amount" : "10000"
+}

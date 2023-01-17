@@ -28,5 +28,33 @@
 "use strict";
 
 import {startHttpService} from "./http_svc";
+import {ConsoleLogger, LogLevel} from "@mojaloop/logging-bc-public-types-lib";
+import {
+  AuditClientMock,
+  AuthorizationClientMock,
+  SettlementConfigRepoMock
+} from "@mojaloop/settlements-bc-shared-mocks-lib";
 
-startHttpService();
+startWithConditions();
+
+export function startWithConditions(): void {
+  const MOCK_MODE = true;
+
+  if (MOCK_MODE) {
+    // Bootstrap:
+    const logger = new ConsoleLogger();
+    logger.setLogLevel(LogLevel.TRACE);
+    const authorizationClient = new AuthorizationClientMock(logger);
+    const auditClient = new AuditClientMock(logger);
+
+    // Repos:
+    const repoSettlementConfig = new SettlementConfigRepoMock();
+
+    startHttpService(
+      logger,
+      authorizationClient,
+      auditClient,
+      repoSettlementConfig
+    );
+  } else startHttpService();
+}

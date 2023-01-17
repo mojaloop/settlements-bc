@@ -31,7 +31,8 @@
     "posttest": "npm run coverage:merge && npm run coverage:gen-report",
     "coverage:merge": "nyc merge ./coverage/ ./coverage/coverage.json",
     "coverage:gen-report": "nyc report --reporter=lcov --temp-dir=./coverage",
-    "test": "npm run test:unit"
+    "test": "npm run test:unit",
+    "start-http": "npm -w @mojaloop/settlements-bc-http-svc run start"
   },
   "devDependencies": {
     "@types/jest": "~29.1.1",
