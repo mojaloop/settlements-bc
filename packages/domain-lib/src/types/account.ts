@@ -64,6 +64,7 @@ export class SettlementBatchAccount {
 		const accountDto: ISettlementBatchAccountDto = {
 			id: this.id,
 			externalId: this.externalId,
+			settlementBatch: null,
 			currencyCode: this.currencyCode,
 			currencyDecimals: this.currencyDecimals,
 			creditBalance: creditBalance,

@@ -77,10 +77,11 @@ export class SettlementBatchAccountRepoMock implements ISettlementBatchAccountRe
 	}
 
 	getAccountsByBatch(batch: ISettlementBatchDto): Promise<ISettlementBatchAccountDto[]> {
-		let returnVal : Array<ISettlementBatchDto> = [];
+		let returnVal : Array<ISettlementBatchAccountDto> = [];
 		if (batch === undefined || batch.id === undefined) return Promise.resolve(returnVal);
 
 		for (const batchAccIter of this.batchAccounts) {
+			if (batchAccIter.settlementBatch === null) continue;
 			if (batch.id === batchAccIter.settlementBatch.id) returnVal.push(batchAccIter);
 		}
 		return Promise.resolve(returnVal);

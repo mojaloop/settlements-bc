@@ -156,6 +156,8 @@ export class Aggregate {
 
 		// IDs:
 		if (batchDto.id === "") throw new InvalidExternalIdError();
+		if (batchDto.debitCurrency === null || batchDto.debitCurrency === "") throw new InvalidCurrencyCodeError();
+		if (batchDto.creditCurrency === null || batchDto.creditCurrency === "") throw new InvalidCurrencyCodeError();
 
 		// Generate a random UUId, if needed:
 		if (await this.batchRepo.batchExistsByBatchIdentifier(batchDto.batchIdentifier)) {
@@ -167,8 +169,8 @@ export class Aggregate {
 			randomUUID(),
 			timestamp,
 			batchDto.settlementModel,
-			batchDto.debitCurrency,
-			batchDto.creditCurrency,
+			batchDto.debitCurrency!,
+			batchDto.creditCurrency!,
 			batchDto.batchSequence,
 			batchDto.batchIdentifier,
 			batchDto.batchStatus === undefined ? SettlementBatchStatus.OPEN : batchDto.batchStatus!
@@ -297,11 +299,11 @@ export class Aggregate {
 		transfer.batch = new SettlementBatch(
 			batchDto.id,
 			batchDto.timestamp,
-			batchDto.settlementModel,
-			batchDto.debitCurrency,
-			batchDto.creditCurrency,
+			batchDto.settlementModel!,
+			batchDto.debitCurrency!,
+			batchDto.creditCurrency!,
 			batchDto.batchSequence,
-			batchDto.batchIdentifier,
+			batchDto.batchIdentifier!,
 			batchDto.batchStatus!
 		)
 
@@ -472,9 +474,21 @@ export class Aggregate {
 			throw new PositionAccountNotFoundError(`Unable to locate Participant account with id '${accId}'.`);
 		}
 
+		const settlementBatch : ISettlementBatchDto = {
+			id: batchId,
+			timestamp: 0,
+			settlementModel: null,
+			debitCurrency: null,
+			creditCurrency: null,
+			batchSequence: 0,
+			batchIdentifier: null,
+			batchStatus: null
+		}
+
 		const accountDto : ISettlementBatchAccountDto = {
 			id: this.deriveSettlementAccountId(partAcc.id!, batchId),
 			externalId: batchId,// Links the account to the batch
+			settlementBatch: settlementBatch,
 			currencyCode: currency.code,
 			currencyDecimals: currency.decimals,
 			creditBalance: "0",
