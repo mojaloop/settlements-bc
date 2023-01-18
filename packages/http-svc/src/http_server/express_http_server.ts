@@ -84,7 +84,7 @@ export class ExpressHttpServer {
 				this.HOST,
 				() => {
 					this.logger.info("* * * * * * * * * * * * * * * * * * * *");
-					this.logger.info("HTTP server started 🚀");
+					this.logger.info("HTTP server started (settlements-bc) 🚀");
 					this.logger.info(`Host: ${this.HOST}`);
 					this.logger.info(`Port: ${this.PORT_NO}`);
 					this.logger.info(`Base URL: http://${this.HOST}:${this.PORT_NO}`);

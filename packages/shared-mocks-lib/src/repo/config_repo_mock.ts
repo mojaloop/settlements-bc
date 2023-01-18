@@ -31,17 +31,17 @@ import {ISettlementConfigRepo} from "@mojaloop/settlements-bc-domain-lib";
 import {SettlementModel, ISettlementConfigDto} from "@mojaloop/settlements-bc-public-types-lib";
 
 export class SettlementConfigRepoMock implements ISettlementConfigRepo {
-	init(): Promise<void> {
+	async init(): Promise<void> {
 		return Promise.resolve();
 	}
-	destroy(): Promise<void>{
+	async destroy(): Promise<void>{
 		return Promise.resolve();
 	}
-	getSettlementConfigByModel(model: SettlementModel): Promise<ISettlementConfigDto | null> {
+	async getSettlementConfigByModel(model: SettlementModel): Promise<ISettlementConfigDto | null> {
 		const returnVal : ISettlementConfigDto = {
 			id: "1",
-			settlementModel: SettlementModel.DEFAULT,
-			batchCreateInterval: 0
+			settlementModel: model,
+			batchCreateInterval: 5000
 		}
 		return Promise.resolve(returnVal);
 	}

@@ -32,7 +32,8 @@ import {ConsoleLogger, LogLevel} from "@mojaloop/logging-bc-public-types-lib";
 import {
   AuditClientMock,
   AuthorizationClientMock,
-  SettlementConfigRepoMock
+  SettlementConfigRepoMock,
+  SettlementBatchRepoMock, SettlementBatchAccountRepoMock, ParticipantAccountRepoMock, SettlementTransferRepoMock
 } from "@mojaloop/settlements-bc-shared-mocks-lib";
 
 startWithConditions();
@@ -49,12 +50,20 @@ export function startWithConditions(): void {
 
     // Repos:
     const repoSettlementConfig = new SettlementConfigRepoMock();
+    const repoSettlementBatch = new SettlementBatchRepoMock();
+    const repoSettlementBatchAccount = new SettlementBatchAccountRepoMock();
+    const repoParticipantAccount = new ParticipantAccountRepoMock();
+    const repoTransfer = new SettlementTransferRepoMock();
 
     startHttpService(
       logger,
       authorizationClient,
       auditClient,
-      repoSettlementConfig
+      repoSettlementConfig,
+      repoSettlementBatch,
+      repoSettlementBatchAccount,
+      repoParticipantAccount,
+      repoTransfer
     );
   } else startHttpService();
 }

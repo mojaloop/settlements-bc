@@ -1,0 +1,5 @@
+### Test - Get Settlement Batches
+GET http://localhost:1234/settlement_batches?settlementModel=DEFAULT&fromDate=123&toDate=456
+Content-Type: application/json
+X-Correlation-ID: Manual-{{$uuid}}
+authorization: 123456

@@ -45,13 +45,17 @@ export class SettlementConfig {
 		this.model = model;
 		this.batchCreateInterval = batchCreateInterval;
 	}
+	private batchIntervalMillis() : number {
+		return (this.batchCreateInterval * 1000);
+	}
 
 	calculateBatchFromDate(timestamp : number) : number {
-		return 1;//TODO calculate the fram
+		//const date = new Date(timestamp);
+		return (timestamp - this.batchIntervalMillis());
 	}
 
 	calculateBatchToDate(timestamp : number) : number {
-		return 2;//TODO calculate the to
+		return (timestamp + this.batchIntervalMillis());
 	}
 
 	toDto(): ISettlementConfigDto {

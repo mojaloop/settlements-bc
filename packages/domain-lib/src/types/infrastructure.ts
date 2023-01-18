@@ -49,8 +49,9 @@ export interface ISettlementBatchRepo {
 	closeBatch(batch: ISettlementBatchDto): Promise<void>;
 
 	batchExistsByBatchIdentifier(batchIdentifier: string): Promise<boolean>;
-	getSettlementBatchesBy(fromData: number, toDate: number, model?: SettlementModel): Promise<ISettlementBatchDto[]>;
-	getOpenSettlementBatch(fromData: number, toDate: number, model: SettlementModel): Promise<ISettlementBatchDto | null>;
+	getSettlementBatchById(batchIdentifier: string): Promise<ISettlementBatchDto | null>;
+	getSettlementBatchesBy(fromDate: number, toDate: number, model?: SettlementModel): Promise<ISettlementBatchDto[]>;
+	getOpenSettlementBatch(fromDate: number, toDate: number, model: SettlementModel): Promise<ISettlementBatchDto | null>;
 }
 
 export interface ISettlementBatchAccountRepo {

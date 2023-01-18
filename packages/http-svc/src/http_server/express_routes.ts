@@ -31,7 +31,12 @@
 
 import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import {
-	Aggregate, InvalidCreditAccountError, InvalidCurrencyCodeError, InvalidDebitAccountError, InvalidExternalIdError,
+	Aggregate,
+	InvalidCreditAccountError,
+	InvalidCurrencyCodeError,
+	InvalidDebitAccountError,
+	InvalidExternalIdError,
+	SettlementBatchNotFoundError,
 	UnableToGetAccountError,
 	UnauthorizedError
 } from "@mojaloop/settlements-bc-domain-lib";
@@ -82,6 +87,7 @@ export class ExpressRoutes {
 		this._router.post("/settlement_matrix", this.postSettlementMatrix.bind(this));
 		// Gets:
 		this._router.get("/settlement_batches", this.getSettlementBatches.bind(this));
+		this._router.get("/settlement_accounts", this.getSettlementBatchAccounts.bind(this));
 	}
 
 	get router(): Router {
@@ -102,21 +108,13 @@ export class ExpressRoutes {
 
 		const authorizationHeader: string | undefined = req.headers["authorization"]; // TODO: type.
 		if (authorizationHeader === undefined) {
-			this.sendErrorResponse(
-				res,
-				403,
-				"unauthorized" // TODO: verify.
-			);
+			this.sendErrorResponse(res, 403, "unauthorized");// TODO: verify.
 			return;
 		}
 
 		const bearer: string[] = authorizationHeader!.trim().split(" "); // TODO: name.
 		if (bearer.length != BEARER_LENGTH) {
-			this.sendErrorResponse(
-				res,
-				403,
-				"unauthorized" // TODO: verify.
-			);
+			this.sendErrorResponse(res, 403, "unauthorized"); // TODO: verify.
 			return;
 		}
 
@@ -126,19 +124,11 @@ export class ExpressRoutes {
 			verified = await this.tokenHelper.verifyToken(bearerToken);
 		} catch (error: unknown) {
 			this.logger.error(error);
-			this.sendErrorResponse(
-				res,
-				403,
-				"unauthorized" // TODO: verify.
-			);
+			this.sendErrorResponse(res, 403, "unauthorized"); // TODO: verify.
 			return;
 		}
 		if (!verified) {
-			this.sendErrorResponse(
-				res,
-				403,
-				"unauthorized" // TODO: verify.
-			);
+			this.sendErrorResponse(res, 403, "unauthorized"); // TODO: verify.
 			return;
 		}
 
@@ -146,11 +136,7 @@ export class ExpressRoutes {
 		if (decodedToken === undefined // TODO: undefined?
 			|| decodedToken === null // TODO: null?
 			|| decodedToken.sub.indexOf("::") === -1) {
-			this.sendErrorResponse(
-				res,
-				403,
-				"unauthorized" // TODO: verify.
-			);
+			this.sendErrorResponse(res, 403, "unauthorized"); // TODO: verify.
 			return;
 		}
 
@@ -164,7 +150,6 @@ export class ExpressRoutes {
 			rolesIds: decodedToken.roles,
 			accessToken: bearerToken
 		};
-
 		next();
 	}
 
@@ -172,14 +157,10 @@ export class ExpressRoutes {
 		try {
 			this.logger.debug(`Settlement Transfer Req Body: ${JSON.stringify(req.body)}`);
 			const settlementTransferId: string = await this.aggregate.createSettlementTransfer(req.body, req.securityContext!);
-			this.sendSuccessResponse(
-				res,
-				201, // Created
-				{settlementTransferId: settlementTransferId}
-			);
+			this.sendSuccessResponse(res, 201,
+				{settlementTransferId: settlementTransferId}); // Created
 		} catch (error: any) {
 			this.logger.error(error);
-			this.logger.error(error.stack);
 			if (error instanceof UnauthorizedError) {
 				this.sendErrorResponse(res, 403, "unauthorized");// TODO: verify.
 			} else if (error instanceof InvalidExternalIdError) {
@@ -210,39 +191,49 @@ export class ExpressRoutes {
 				Number(toDate),
 				req.securityContext!
 			);
-			this.sendSuccessResponse(
-				res,
-				200,// OK
-				settlementMatrix
-			);
+			this.sendSuccessResponse(res, 200, settlementMatrix);// OK
 		} catch (error: unknown) {
+			this.logger.error(error);
 			if (error instanceof UnauthorizedError) {
-				this.sendErrorResponse(
-					res,
-					403,
-					"unauthorized" // TODO: verify.
-				);
+				this.sendErrorResponse(res, 403, "unauthorized"); // TODO: verify.
 			} else {
-				this.sendErrorResponse(
-					res,
-					500,
-					ExpressRoutes.UNKNOWN_ERROR_MESSAGE
-				);
+				this.sendErrorResponse(res, 500, ExpressRoutes.UNKNOWN_ERROR_MESSAGE);
 			}
 		}
 	}
 
 	private async getSettlementBatches(req: Request, res: Response): Promise<void> {
-		// req.query is always defined - if no query was specified, req.query is an empty object.
-		/* if (req.query.id !== undefined) {
-			await this.getAccountById(req, res);
-			return;
-		}*/
-		this.sendErrorResponse( // TODO: should this be done?
-			res,
-			400, // TODO: status code.
-			"invalid query"
-		);
+		const settlementModel = req.query.settlementModel as SettlementModel;
+		const fromDate = req.query.fromDate as string;
+		const toDate = req.query.fromDate as string;
+		try {
+			const settlementBatches = await this.aggregate.getSettlementBatches(
+				settlementModel,
+				Number(fromDate),
+				Number(toDate),
+				req.securityContext!
+			);
+			this.sendSuccessResponse(res, 200, settlementBatches);// OK
+		} catch (error: any) {
+			this.logger.error(error);
+			this.sendErrorResponse(res, 500, ExpressRoutes.UNKNOWN_ERROR_MESSAGE);
+		}
+	}
+
+	private async getSettlementBatchAccounts(req: Request, res: Response): Promise<void> {
+		const batchIdentifier = req.query.batchIdentifier as string;
+		try {
+			const settlementBatches = await this.aggregate.getSettlementBatchAccounts(
+				batchIdentifier, req.securityContext!);
+			this.sendSuccessResponse(res, 200, settlementBatches);// OK
+		} catch (error: any) {
+			this.logger.error(error);
+			if (error instanceof SettlementBatchNotFoundError) {
+				this.sendErrorResponse(res, 400, error.message);
+			} else {
+				this.sendErrorResponse(res, 500, ExpressRoutes.UNKNOWN_ERROR_MESSAGE);
+			}
+		}
 	}
 
 	private sendErrorResponse(res: Response, statusCode: number, message: string) {

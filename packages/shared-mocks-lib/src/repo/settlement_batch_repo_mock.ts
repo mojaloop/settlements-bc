@@ -33,20 +33,20 @@ import {SettlementModel, SettlementBatchStatus, ISettlementBatchDto} from "@moja
 export class SettlementBatchRepoMock implements ISettlementBatchRepo {
 	batches: Array<ISettlementBatchDto> = [];
 
-	init(): Promise<void> {
+	async init(): Promise<void> {
 		return Promise.resolve();
 	}
-	destroy(): Promise<void>{
+	async destroy(): Promise<void>{
 		return Promise.resolve();
 	}
 
-	storeNewBatch(batch: ISettlementBatchDto): Promise<void> {
+	async storeNewBatch(batch: ISettlementBatchDto): Promise<void> {
 		if (batch === undefined) return Promise.resolve();
 		this.batches.push(batch);
 		return Promise.resolve();
 	}
 
-	closeBatch(batch: ISettlementBatchDto): Promise<void> {
+	async closeBatch(batch: ISettlementBatchDto): Promise<void> {
 		if (batch === undefined) return Promise.resolve();
 
 		this.batches.forEach(batchIter => {
@@ -58,17 +58,22 @@ export class SettlementBatchRepoMock implements ISettlementBatchRepo {
 		return Promise.resolve();
 	}
 
-	batchExistsByBatchIdentifier(batchIdentifier: string): Promise<boolean> {
-		if (batchIdentifier === undefined || batchIdentifier.trim() === '') return Promise.resolve(false);
+	async getSettlementBatchById(batchIdentifier: string): Promise<ISettlementBatchDto | null> {
+		if (batchIdentifier === undefined || batchIdentifier.trim() === '') return Promise.resolve(null);
 
 		for (const batchIter of this.batches) {
-			if (batchIter.batchIdentifier === batchIdentifier) return Promise.resolve(true);
+			if (batchIter.batchIdentifier === batchIdentifier) return Promise.resolve(batchIter);
 		}
 
-		return Promise.resolve(false);
+		return Promise.resolve(null);
 	}
 
-	getSettlementBatchesBy(fromData: number, toDate: number, model?: SettlementModel): Promise<ISettlementBatchDto[]> {
+	async batchExistsByBatchIdentifier(batchIdentifier: string): Promise<boolean> {
+		const batchById = await this.getSettlementBatchById(batchIdentifier);
+		return Promise.resolve(batchById !== null);
+	}
+
+	async getSettlementBatchesBy(fromData: number, toDate: number, model?: SettlementModel): Promise<ISettlementBatchDto[]> {
 		let returnVal : Array<ISettlementBatchDto> = [];
 
 		this.batches.forEach(batchIter => {
@@ -81,7 +86,7 @@ export class SettlementBatchRepoMock implements ISettlementBatchRepo {
 		return Promise.resolve(returnVal);
 	}
 
-	getOpenSettlementBatch(fromData: number, toDate: number, model: SettlementModel): Promise<ISettlementBatchDto | null> {
+	async getOpenSettlementBatch(fromData: number, toDate: number, model: SettlementModel): Promise<ISettlementBatchDto | null> {
 		for (const batchIter of this.batches) {
 			if ((batchIter.timestamp >= fromData && batchIter.timestamp <= toDate) &&
 				(batchIter.settlementModel === model) && batchIter.batchStatus === SettlementBatchStatus.OPEN) {

@@ -46,7 +46,7 @@ import {
 	NoSettlementConfig,
 	PositionAccountNotFoundError,
 	InvalidCreditAccountError,
-	InvalidDebitAccountError
+	InvalidDebitAccountError, InvalidIdError, SettlementBatchNotFoundError
 } from "./types/errors";
 import {
 	ISettlementBatchRepo,
@@ -140,6 +140,8 @@ export class Aggregate {
 	}
 
 	private getAuditSecurityContext(securityContext: CallSecurityContext): AuditSecurityContext {
+		if (securityContext === undefined) return {userId: 'unknown', appId: 'settlement-bc', role: ''};
+
 		return {
 			userId: securityContext.username,
 			appId: securityContext.clientId,
@@ -153,15 +155,15 @@ export class Aggregate {
 		this.enforcePrivilege(securityContext, Privileges.CREATE_SETTLEMENT_BATCH);
 
 		if (batchDto.settlementModel === null) throw new InvalidBatchSettlementModelError();
-		if (batchDto.timestamp !== null) throw new InvalidTimestampError();
+		if (batchDto.timestamp === undefined) batchDto.timestamp = timestamp;
 		if (batchDto.batchIdentifier === null || batchDto.batchIdentifier === "") throw new InvalidBatchIdentifierError();
 
 		// IDs:
-		if (batchDto.id === "") throw new InvalidExternalIdError();
+		if (batchDto.id === "") throw new InvalidIdError();
 		if (batchDto.debitCurrency === null || batchDto.debitCurrency === "") throw new InvalidCurrencyCodeError();
 		if (batchDto.creditCurrency === null || batchDto.creditCurrency === "") throw new InvalidCurrencyCodeError();
 
-		// Generate a random UUId, if needed:
+		// Generate a random UUID, if needed:
 		if (await this.batchRepo.batchExistsByBatchIdentifier(batchDto.batchIdentifier)) {
 			throw new InvalidBatchIdentifierError(`Batch with identifier '${batchDto.batchIdentifier}' already created.`);
 		}
@@ -204,11 +206,11 @@ export class Aggregate {
 
 	async createSettlementBatchAccount(accountDto: ISettlementBatchAccountDto, securityContext: CallSecurityContext): Promise<string> {
 		const timestamp: number = Date.now();
+		this.logger.debug(`Creating Batch Account: ${JSON.stringify(accountDto)}`);
 
 		this.enforcePrivilege(securityContext, Privileges.CREATE_SETTLEMENT_BATCH_ACCOUNT);
 
-		if (accountDto.currencyDecimals !== null) throw new InvalidCurrencyDecimalsError();
-		if (accountDto.timestamp !== null) throw new InvalidTimestampError();
+		if (accountDto.timestamp === null) accountDto.timestamp = timestamp;
 		if (parseInt(accountDto.creditBalance) !== 0) throw new InvalidCreditBalanceError();
 		if (parseInt(accountDto.debitBalance) !== 0) throw new InvalidDebitBalanceError();
 		if (accountDto.externalId === undefined || accountDto.externalId === "") throw new InvalidExternalIdError();
@@ -255,7 +257,6 @@ export class Aggregate {
 
 	async createSettlementTransfer(transferDto: ISettlementTransferDto, securityContext: CallSecurityContext): Promise<string> {
 		const timestamp: number = Date.now();
-		this.logger.debug(`Incoming Transfer: ${transferDto.currencyDecimals}`)
 
 		this.enforcePrivilege(securityContext, Privileges.CREATE_SETTLEMENT_TRANSFER);
 
@@ -452,18 +453,29 @@ export class Aggregate {
 		return returnVal;
 	}
 
-	private async getSettlementBatches(
+	public async getSettlementBatches(
 		settlementModel: SettlementModel,
 		fromDate: number,
 		toDate: number,
 		securityContext: CallSecurityContext
-	): Promise<ISettlementBatchDto[] | null> {
-		const timestamp: number = Date.now();
-
+	): Promise<ISettlementBatchDto[]> {
 		this.enforcePrivilege(securityContext, Privileges.RETRIEVE_SETTLEMENT_BATCH);
 
-		//TODO need to complete this
-		return null;
+		return await this.batchRepo.getSettlementBatchesBy(fromDate, toDate)
+	}
+
+	public async getSettlementBatchAccounts(
+		batchIdentifier : string,
+		securityContext: CallSecurityContext
+	): Promise<ISettlementBatchAccountDto[]> {
+		this.enforcePrivilege(securityContext, Privileges.RETRIEVE_SETTLEMENT_BATCH_ACCOUNTS);
+
+		const batch = await this.batchRepo.getSettlementBatchById(batchIdentifier);
+		if (batch === null) {
+			throw new SettlementBatchNotFoundError(`Unable to locate Settlement Batch with identifier '${batchIdentifier}'.`);
+		}
+
+		return await this.batchAccountRepo.getAccountsByBatch(batch)
 	}
 
 	private async createSettlementBatchAccountFromAccId(

@@ -234,7 +234,7 @@ export async function startHttpService(
 	if (_batchRepo !== undefined) {
 		batchRepo = _batchRepo;
 	} else {
-		
+		// TODO need to init batch repo.
 	}
 
 	if (_accountRepo !== undefined) {
