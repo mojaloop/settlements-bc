@@ -29,23 +29,24 @@
 
 import {ISettlementBatchAccountRepo} from "@mojaloop/settlements-bc-domain-lib";
 import {ISettlementBatchAccountDto, ISettlementBatchDto} from "@mojaloop/settlements-bc-public-types-lib";
+import console from "console";
 export class SettlementBatchAccountRepoMock implements ISettlementBatchAccountRepo {
 	batchAccounts: Array<ISettlementBatchAccountDto> = [];
 
-	init(): Promise<void> {
+	async init(): Promise<void> {
 		return Promise.resolve();
 	}
-	destroy(): Promise<void>{
+	async destroy(): Promise<void>{
 		return Promise.resolve();
 	}
 
-	storeNewSettlementBatchAccount(account: ISettlementBatchAccountDto): Promise<void> {
+	async storeNewSettlementBatchAccount(account: ISettlementBatchAccountDto): Promise<void> {
 		if (account === undefined) return Promise.resolve();
 		this.batchAccounts.push(account);
 		return Promise.resolve();
 	}
 
-	accountExistsById(accountId: string): Promise<boolean> {
+	async accountExistsById(accountId: string): Promise<boolean> {
 		if (accountId === undefined || accountId.trim() === '') return Promise.resolve(false);
 
 		for (const batchAccIter of this.batchAccounts) {
@@ -55,7 +56,7 @@ export class SettlementBatchAccountRepoMock implements ISettlementBatchAccountRe
 		return Promise.resolve(false);
 	}
 
-	getAccountById(accountId: string): Promise<ISettlementBatchAccountDto | null> {
+	async getAccountById(accountId: string): Promise<ISettlementBatchAccountDto | null> {
 		if (accountId === undefined || accountId.trim() === '') return Promise.resolve(null);
 
 		for (const batchAccIter of this.batchAccounts) {
@@ -65,7 +66,7 @@ export class SettlementBatchAccountRepoMock implements ISettlementBatchAccountRe
 		return Promise.resolve(null);
 	}
 
-	getAccountsByExternalId(externalId: string): Promise<ISettlementBatchAccountDto[]> {
+	async getAccountsByExternalId(externalId: string): Promise<ISettlementBatchAccountDto[]> {
 		let returnVal : Array<ISettlementBatchAccountDto> = [];
 		if (externalId === undefined || externalId.trim() === '') return Promise.resolve(returnVal);
 
@@ -76,30 +77,46 @@ export class SettlementBatchAccountRepoMock implements ISettlementBatchAccountRe
 		return Promise.resolve(returnVal);
 	}
 
-	getAccountsByBatch(batch: ISettlementBatchDto): Promise<ISettlementBatchAccountDto[]> {
+	async getAccountsByBatch(batch: ISettlementBatchDto): Promise<ISettlementBatchAccountDto[]> {
 		let returnVal : Array<ISettlementBatchAccountDto> = [];
 		if (batch === undefined || batch.id === undefined) return Promise.resolve(returnVal);
 
 		for (const batchAccIter of this.batchAccounts) {
 			if (batchAccIter.settlementBatch === null) continue;
-			if (batch.id === batchAccIter.settlementBatch.id) returnVal.push(batchAccIter);
+			if (batch.id === batchAccIter.settlementBatch!.id) returnVal.push(batchAccIter);
 		}
 		return Promise.resolve(returnVal);
 	}
 
-	updateAccountCreditBalanceAndTimestampById(
+	async updateAccountCreditBalanceAndTimestampById(
 		accountId: string,
 		creditBalance: string,
-		timeStampLastJournalEntry: number
+		timeStamp: number
 	): Promise<void> {
+		if (accountId === undefined || creditBalance === undefined) return Promise.resolve();
+
+		const accById = await this.getAccountById(accountId);
+		if (accById == null) return Promise.resolve();
+
+		accById.timestamp = timeStamp;
+		accById.creditBalance = creditBalance;
+
 		return Promise.resolve();
 	}
 
-	updateAccountDebitBalanceAndTimestampById(
+	async updateAccountDebitBalanceAndTimestampById(
 		accountId: string,
 		debitBalance: string,
-		timeStampLastJournalEntry: number
+		timeStamp: number
 	): Promise<void> {
+		if (accountId === undefined || debitBalance === undefined) return Promise.resolve();
+
+		const accById = await this.getAccountById(accountId);
+		if (accById == null) return Promise.resolve();
+
+		accById.timestamp = timeStamp;
+		accById.debitBalance = debitBalance;
+
 		return Promise.resolve();
 	}
 }

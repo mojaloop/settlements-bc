@@ -29,6 +29,7 @@
 
 import {ISettlementBatchRepo} from "@mojaloop/settlements-bc-domain-lib";
 import {SettlementModel, SettlementBatchStatus, ISettlementBatchDto} from "@mojaloop/settlements-bc-public-types-lib";
+import * as console from "console";
 
 export class SettlementBatchRepoMock implements ISettlementBatchRepo {
 	batches: Array<ISettlementBatchDto> = [];
@@ -62,7 +63,8 @@ export class SettlementBatchRepoMock implements ISettlementBatchRepo {
 		if (batchIdentifier === undefined || batchIdentifier.trim() === '') return Promise.resolve(null);
 
 		for (const batchIter of this.batches) {
-			if (batchIter.batchIdentifier === batchIdentifier) return Promise.resolve(batchIter);
+			if (batchIter.id === batchIdentifier) return Promise.resolve(batchIter);
+			else if (batchIter.batchIdentifier === batchIdentifier) return Promise.resolve(batchIter);
 		}
 
 		return Promise.resolve(null);
@@ -73,11 +75,11 @@ export class SettlementBatchRepoMock implements ISettlementBatchRepo {
 		return Promise.resolve(batchById !== null);
 	}
 
-	async getSettlementBatchesBy(fromData: number, toDate: number, model?: SettlementModel): Promise<ISettlementBatchDto[]> {
+	async getSettlementBatchesBy(fromDate: number, toDate: number, model?: SettlementModel): Promise<ISettlementBatchDto[]> {
 		let returnVal : Array<ISettlementBatchDto> = [];
 
 		this.batches.forEach(batchIter => {
-			if (batchIter.timestamp >= fromData && batchIter.timestamp <= toDate) {
+			if (batchIter.timestamp >= fromDate && batchIter.timestamp <= toDate) {
 				if (model === undefined) returnVal.push(batchIter);
 				else if (batchIter.settlementModel === model) returnVal.push(batchIter);
 			}

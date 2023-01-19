@@ -80,7 +80,7 @@ export class ExpressRoutes {
 	}
 
 	private setUp(): void {
-		// Inject authentication - all requests require a valid token. TODO: clarify.
+		// Inject authentication - all requests require a valid token. TODO: Need to provide.
 		this._router.use(this.authenticate.bind(this)); // All requests require authentication.
 		// Posts:
 		this._router.post("/transfer", this.postSettlementTransfer.bind(this));
@@ -88,6 +88,7 @@ export class ExpressRoutes {
 		// Gets:
 		this._router.get("/settlement_batches", this.getSettlementBatches.bind(this));
 		this._router.get("/settlement_accounts", this.getSettlementBatchAccounts.bind(this));
+		this._router.get("/settlement_transfers", this.getSettlementBatchTransfers.bind(this));
 	}
 
 	get router(): Router {
@@ -156,9 +157,14 @@ export class ExpressRoutes {
 	private async postSettlementTransfer(req: Request, res: Response): Promise<void> {
 		try {
 			this.logger.debug(`Settlement Transfer Req Body: ${JSON.stringify(req.body)}`);
-			const settlementTransferId: string = await this.aggregate.createSettlementTransfer(req.body, req.securityContext!);
+			const settlementTransfer: ISettlementTransferDto = await this.aggregate.createSettlementTransfer(req.body, req.securityContext!);
 			this.sendSuccessResponse(res, 201,
-				{settlementTransferId: settlementTransferId}); // Created
+				{
+					settlementTransferId: settlementTransfer.id,
+					batchId: settlementTransfer.batch!.id,
+					batchIdentifier: settlementTransfer.batch!.batchIdentifier
+				}
+			); // Created
 		} catch (error: any) {
 			this.logger.error(error);
 			if (error instanceof UnauthorizedError) {
@@ -205,8 +211,9 @@ export class ExpressRoutes {
 	private async getSettlementBatches(req: Request, res: Response): Promise<void> {
 		const settlementModel = req.query.settlementModel as SettlementModel;
 		const fromDate = req.query.fromDate as string;
-		const toDate = req.query.fromDate as string;
+		const toDate = req.query.toDate as string;
 		try {
+			this.logger.debug(`Now is [${Date.now()}] Settlement Batches from [${new Date(Number(fromDate))}] to [${new Date(Number(toDate))}] on [${settlementModel}].`);
 			const settlementBatches = await this.aggregate.getSettlementBatches(
 				settlementModel,
 				Number(fromDate),
@@ -223,7 +230,23 @@ export class ExpressRoutes {
 	private async getSettlementBatchAccounts(req: Request, res: Response): Promise<void> {
 		const batchIdentifier = req.query.batchIdentifier as string;
 		try {
-			const settlementBatches = await this.aggregate.getSettlementBatchAccounts(
+			const settlementAccounts = await this.aggregate.getSettlementBatchAccounts(
+				batchIdentifier, req.securityContext!);
+			this.sendSuccessResponse(res, 200, settlementAccounts);// OK
+		} catch (error: any) {
+			this.logger.error(error);
+			if (error instanceof SettlementBatchNotFoundError) {
+				this.sendErrorResponse(res, 400, error.message);
+			} else {
+				this.sendErrorResponse(res, 500, ExpressRoutes.UNKNOWN_ERROR_MESSAGE);
+			}
+		}
+	}
+
+	private async getSettlementBatchTransfers(req: Request, res: Response): Promise<void> {
+		const batchIdentifier = req.query.batchIdentifier as string;
+		try {
+			const settlementBatches = await this.aggregate.getSettlementBatchTransfers(
 				batchIdentifier, req.securityContext!);
 			this.sendSuccessResponse(res, 200, settlementBatches);// OK
 		} catch (error: any) {

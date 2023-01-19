@@ -31,23 +31,20 @@ import {IParticipantAccountRepo} from "@mojaloop/settlements-bc-domain-lib";
 import {IParticipantAccountDto} from "@mojaloop/settlements-bc-public-types-lib";
 
 export class ParticipantAccountRepoMock implements IParticipantAccountRepo {
-	batches: Array<IParticipantAccountDto> = [];
+	participants: Array<IParticipantAccountDto> = [];
 
-	init(): Promise<void> {
+	async init(): Promise<void> {
 		return Promise.resolve();
 	}
-	destroy(): Promise<void>{
+	async destroy(): Promise<void>{
 		return Promise.resolve();
 	}
 
-	getAccountById(accountId: string): Promise<IParticipantAccountDto | null> {
+	async getAccountById(accountId: string): Promise<IParticipantAccountDto | null> {
 		const returnVal : IParticipantAccountDto = {
 			id : accountId,
-			externalId : accountId,
 			currencyCode : 'USD',
-			currencyDecimals : 2,
-			creditBalance : '0',
-			debitBalance : '0'
+			currencyDecimals : 2
 		}
 		return Promise.resolve(returnVal);
 	}

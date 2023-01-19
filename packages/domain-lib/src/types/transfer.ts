@@ -27,7 +27,7 @@
 
 "use strict";
 
-import {ISettlementTransferDto, ISettlementBatchDto} from "@mojaloop/settlements-bc-public-types-lib";
+import {ISettlementTransferDto, ISettlementBatchDto, ISettlementBatchAccountDto} from "@mojaloop/settlements-bc-public-types-lib";
 import {bigintToString} from "../converters";
 import {SettlementBatch} from "./batch";
 
@@ -38,8 +38,8 @@ export class SettlementTransfer {
 	currencyCode: string;
 	currencyDecimals: number;
 	amount: bigint;
-	creditAccountId: string;
 	debitAccountId: string;
+	creditAccountId: string;
 	batch: SettlementBatch | null;
 	timestamp: number;
 
@@ -61,8 +61,8 @@ export class SettlementTransfer {
 		this.currencyCode = currencyCode;
 		this.currencyDecimals = currencyDecimals;
 		this.amount = amount;
-		this.creditAccountId = creditAccountId;
 		this.debitAccountId = debitAccountId;
+		this.creditAccountId = creditAccountId;
 		this.batch = batch;
 		this.timestamp = timestamp;
 	}
@@ -70,6 +70,26 @@ export class SettlementTransfer {
 	toDto(): ISettlementTransferDto {
 		const amount: string = bigintToString(this.amount, this.currencyDecimals);
 		const batch: ISettlementBatchDto | null = this.batch === null ? null : this.batch.toDto();
+		const debitAcc: ISettlementBatchAccountDto = {
+			id: this.debitAccountId,
+			externalId: null,
+			settlementBatch: null,
+			currencyCode: "",
+			currencyDecimals: null,
+			creditBalance: "",
+			debitBalance: "",
+			timestamp: null
+		};
+		const creditAcc: ISettlementBatchAccountDto = {
+			id: this.creditAccountId,
+			externalId: null,
+			settlementBatch: null,
+			currencyCode: "",
+			currencyDecimals: null,
+			creditBalance: "",
+			debitBalance: "",
+			timestamp: null
+		};
 
 		const transferDto: ISettlementTransferDto = {
 			id: this.id,
@@ -78,8 +98,8 @@ export class SettlementTransfer {
 			currencyCode: this.currencyCode,
 			currencyDecimals: this.currencyDecimals,
 			amount: amount,
-			creditAccountId: this.creditAccountId,
-			debitAccountId: this.debitAccountId,
+			debitAccount: debitAcc,
+			creditAccount: creditAcc,
 			batch,
 			timestamp: this.timestamp
 		};

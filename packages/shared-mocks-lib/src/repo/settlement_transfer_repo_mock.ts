@@ -29,23 +29,24 @@
 
 import {ISettlementTransferRepo} from "@mojaloop/settlements-bc-domain-lib";
 import {ISettlementTransferDto} from "@mojaloop/settlements-bc-public-types-lib";
+import console from "console";
 export class SettlementTransferRepoMock implements ISettlementTransferRepo {
 	transfers: Array<ISettlementTransferDto> = [];
 
-	init(): Promise<void> {
+	async init(): Promise<void> {
 		return Promise.resolve();
 	}
-	destroy(): Promise<void>{
+	async destroy(): Promise<void>{
 		return Promise.resolve();
 	}
 
-	storeNewSettlementTransfer(transfer: ISettlementTransferDto): Promise<void> {
+	async storeNewSettlementTransfer(transfer: ISettlementTransferDto): Promise<void> {
 		if (transfer === undefined) return Promise.resolve();
 		this.transfers.push(transfer);
 		return Promise.resolve();
 	}
 
-	transferExistsById(id: string): Promise<boolean> {
+	async transferExistsById(id: string): Promise<boolean> {
 		if (id === undefined || id.trim() === '') return Promise.resolve(false);
 
 		for (const transferIter of this.transfers) {
@@ -55,13 +56,27 @@ export class SettlementTransferRepoMock implements ISettlementTransferRepo {
 		return Promise.resolve(false);
 	}
 
-	getSettlementTransfersByAccountId(accountId: string): Promise<ISettlementTransferDto[]> {
+	async getSettlementTransfersByAccountId(accountId: string): Promise<ISettlementTransferDto[]> {
 		let returnVal : Array<ISettlementTransferDto> = [];
 		if (accountId === undefined || accountId.trim() === '') return Promise.resolve(returnVal);
 
 		for (const transferIter of this.transfers) {
-			if (transferIter.creditAccountId === accountId ||
-				transferIter.debitAccountId === accountId) returnVal.push(transferIter);
+			if (transferIter.creditAccount.id === accountId ||
+				transferIter.debitAccount.id === accountId) returnVal.push(transferIter);
+		}
+
+		return Promise.resolve(returnVal);
+	}
+
+	async getSettlementTransfersByAccountIds(accountIds: string[]): Promise<ISettlementTransferDto[]> {
+		let returnVal : Array<ISettlementTransferDto> = [];
+		if (accountIds === undefined || accountIds.length === 0) return Promise.resolve(returnVal);
+
+		for (const accId of accountIds) {
+			const results = await this.getSettlementTransfersByAccountId(accId);
+			console.error(`getSettlementTransfersByAccountIds(${accId}):`)
+			console.error(results)
+			results.forEach(itm => returnVal.push(itm));
 		}
 
 		return Promise.resolve(returnVal);

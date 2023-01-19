@@ -86,4 +86,5 @@ export interface ISettlementTransferRepo {
 	storeNewSettlementTransfer(transfer: ISettlementTransferDto): Promise<void>; // Throws if account.id is not unique.
 	transferExistsById(id: string): Promise<boolean>;
 	getSettlementTransfersByAccountId(accountId: string): Promise<ISettlementTransferDto[]>;
+	getSettlementTransfersByAccountIds(accountId: string[]): Promise<ISettlementTransferDto[]>;
 }

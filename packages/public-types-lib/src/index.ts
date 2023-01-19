@@ -47,7 +47,7 @@ export interface ISettlementBatchDto {
 export interface ISettlementBatchAccountDto {
 	id: string | null;
 	externalId: string | null;
-	settlementBatch: ISettlementBatchDto | null;
+	settlementBatch?: ISettlementBatchDto | null;
 	currencyCode: string;
 	currencyDecimals: number | null;
 	creditBalance: string;
@@ -57,11 +57,8 @@ export interface ISettlementBatchAccountDto {
 
 export interface IParticipantAccountDto {
 	id: string | null;
-	externalId: string | null;
 	currencyCode: string;
 	currencyDecimals: number | null;
-	creditBalance: string;
-	debitBalance: string;
 }
 
 export interface ISettlementTransferDto {
@@ -71,11 +68,10 @@ export interface ISettlementTransferDto {
 	currencyCode: string;
 	currencyDecimals: number | null;
 	amount: string;
-	//TODO need to add from credit and debit accounts rather.
-	creditAccountId: string;
-	debitAccountId: string;
+	debitAccount: ISettlementBatchAccountDto;
+	creditAccount: ISettlementBatchAccountDto;
 	timestamp: number | null;
-	batch: ISettlementBatchDto | null;
+	batch?: ISettlementBatchDto | null;
 }
 
 /* Settlement Matrix */
@@ -91,6 +87,9 @@ export interface ISettlementMatrixBatchDto {
 	batchIdentifier: string;
 	batchStatus: SettlementBatchStatus;
 	batchStatusNew: SettlementBatchStatus;
+	currencyCode: string;
+	creditBalance: string;
+	debitBalance: string;
 	batchAccounts: ISettlementMatrixSettlementBatchAccountDto[];
 }
 
@@ -98,7 +97,8 @@ export interface ISettlementMatrixDto {
 	fromDate: number;
 	toDateDate: number;
 	settlementModel: SettlementModel;
-	batches: ISettlementMatrixBatchDto[] | null;
+	generationDuration: number
+	batches: ISettlementMatrixBatchDto[];
 }
 
 export enum SettlementModel {
