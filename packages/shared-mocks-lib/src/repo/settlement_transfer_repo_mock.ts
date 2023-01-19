@@ -74,8 +74,6 @@ export class SettlementTransferRepoMock implements ISettlementTransferRepo {
 
 		for (const accId of accountIds) {
 			const results = await this.getSettlementTransfersByAccountId(accId);
-			console.error(`getSettlementTransfersByAccountIds(${accId}):`)
-			console.error(results)
 			results.forEach(itm => returnVal.push(itm));
 		}
 

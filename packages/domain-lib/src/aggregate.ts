@@ -380,7 +380,6 @@ export class Aggregate {
 			debitedAccount.debitBalance + transfer.amount,
 			debitedAccount.currencyDecimals
 		);
-		console.log('NEW BALANCE DEBIT '+updatedDebitBalance)
 		try {
 			await this.batchAccountRepo.updateAccountDebitBalanceAndTimestampById(
 				debitedAccount.id,
@@ -397,7 +396,6 @@ export class Aggregate {
 			creditedAccount.creditBalance + transfer.amount,
 			creditedAccount.currencyDecimals
 		);
-		console.log('NEW BALANCE CREDIT '+updatedCreditBalance)
 		try {
 			await this.batchAccountRepo.updateAccountCreditBalanceAndTimestampById(
 				creditedAccount.id,
@@ -528,8 +526,6 @@ export class Aggregate {
 		}
 
 		const settlementAccounts = await this.batchAccountRepo.getAccountsByBatch(batch);
-		console.log(`ZAPPER accounts for batch ${batchIdentifier} - ${batch.id}`)
-		console.log(settlementAccounts)
 		const accIds : string[] = [];
 		settlementAccounts.forEach(itm => accIds.push(itm.id!));
 
