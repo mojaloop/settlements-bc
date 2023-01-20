@@ -27,11 +27,11 @@
 
 "use strict";
 
-import {IParticipantAccountRepo} from "@mojaloop/settlements-bc-domain-lib";
-import {IParticipantAccountDto} from "@mojaloop/settlements-bc-public-types-lib";
-
-export class ParticipantAccountRepoMock implements IParticipantAccountRepo {
-	participants: Array<IParticipantAccountDto> = [];
+import {ISettlementTransferRepo} from "@mojaloop/settlements-bc-domain-lib";
+import {ISettlementTransferDto} from "@mojaloop/settlements-bc-public-types-lib";
+import console from "console";
+import {AccountsAndBalancesBCSettlementBatchAccountRepo} from "./acc_bal_settlement_batch_account_repo";
+export class AccountsAndBalancesBCSettlementTransferRepo implements ISettlementTransferRepo {
 
 	async init(): Promise<void> {
 		return Promise.resolve();
@@ -40,27 +40,37 @@ export class ParticipantAccountRepoMock implements IParticipantAccountRepo {
 		return Promise.resolve();
 	}
 
-	async storeBatchParticipant(participant: IParticipantAccountDto): Promise<void> {
-		if (participant === undefined) return Promise.resolve();
-		this.participants.push(participant);
+	async storeNewSettlementTransfer(transfer: ISettlementTransferDto): Promise<void> {
+		if (transfer === undefined) return Promise.resolve();
+
+		//TODO Complete this...
+		
 		return Promise.resolve();
 	}
 
-	async getAccountBy(participantId: string, batchId: string): Promise<IParticipantAccountDto | null> {
-		if (participantId === undefined || batchId === undefined) return Promise.resolve(null);
+	async transferExistsById(id: string): Promise<boolean> {
+		if (id === undefined || id.trim() === '') return Promise.resolve(false);
 
-		for (const partIter of this.participants) {
-			if (partIter.participantId === participantId && batchId === partIter.settlementBatchId) {
-				return Promise.resolve(partIter);
-			}
-		}
-		return Promise.resolve(null);
+		//TODO Complete this...
+
+		return Promise.resolve(false);
 	}
 
-	async publishSettlementNotification(accounts: IParticipantAccountDto[]): Promise<void> {
-		//TODO publish to the external system:
-		return Promise.resolve();
+	async getSettlementTransfersByAccountId(accountId: string): Promise<ISettlementTransferDto[]> {
+		let returnVal : Array<ISettlementTransferDto> = [];
+		if (accountId === undefined || accountId.trim() === '') return Promise.resolve(returnVal);
+
+		//TODO Complete this...
+
+		return Promise.resolve(returnVal);
 	}
 
+	async getSettlementTransfersByAccountIds(accountIds: string[]): Promise<ISettlementTransferDto[]> {
+		let returnVal : Array<ISettlementTransferDto> = [];
+		if (accountIds === undefined || accountIds.length === 0) return Promise.resolve(returnVal);
 
+		//TODO Complete this...
+
+		return Promise.resolve(returnVal);
+	}
 }

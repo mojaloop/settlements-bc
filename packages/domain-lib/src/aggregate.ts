@@ -317,10 +317,10 @@ export class Aggregate {
 		let debitedAccountDto: ISettlementBatchAccountDto | null;
 		try {
 			debitedAccountDto = await this.batchAccountRepo.getAccountById(
-				this.deriveSettlementAccountId(transferDto.debitAccount.id!, transfer.batch.id)
+				await this.deriveSettlementAccountId(transferDto.debitAccount.id!, transfer.batch.id)
 			);
 			creditedAccountDto = await this.batchAccountRepo.getAccountById(
-				this.deriveSettlementAccountId(transferDto.creditAccount.id!, transfer.batch.id));
+				await this.deriveSettlementAccountId(transferDto.creditAccount.id!, transfer.batch.id));
 		} catch (error: any) {
 			this.logger.error(error);
 			throw error;
@@ -551,9 +551,14 @@ export class Aggregate {
 		securityContext: CallSecurityContext
 	): Promise<ISettlementBatchAccountDto> {
 		const timestamp: number = Date.now();
-		const partAcc : null | IParticipantAccountDto = await this.participantAccRepo.getAccountById(accId);
+		let partAcc : null | IParticipantAccountDto = await this.participantAccRepo.getAccountBy(accId, batchId);
 		if (partAcc === null) {
-			throw new PositionAccountNotFoundError(`Unable to locate Participant account with id '${accId}'.`);
+			partAcc = {
+				participantId: accId,
+				settlementBatchId: batchId,
+				settlementBatchAccountId: randomUUID()
+			};
+			await this.participantAccRepo.storeBatchParticipant(partAcc);
 		}
 
 		const settlementBatch : ISettlementBatchDto = {
@@ -568,8 +573,8 @@ export class Aggregate {
 		}
 
 		const accountDto : ISettlementBatchAccountDto = {
-			id: this.deriveSettlementAccountId(partAcc.id!, batchId),
-			externalId: batchId,// Links the account to the batch
+			id: await this.deriveSettlementAccountId(partAcc.participantId!, batchId),
+			externalId: partAcc.participantId!,
 			settlementBatch: settlementBatch,
 			currencyCode: currency.code,
 			currencyDecimals: currency.decimals,
@@ -582,12 +587,11 @@ export class Aggregate {
 		return accountDto;
 	}
 
-	private deriveSettlementAccountId(accId: string, batchId: string): string {
-		const settlementAccId = randomUUID();
+	async deriveSettlementAccountId(accId: string, batchId: string): Promise<string> {
+		const partAcc = await this.participantAccRepo.getAccountBy(accId, batchId);
+		if (partAcc == null) return ""
 
-		// TODO need to create mapping table between batch account and participant account:
-
-		return settlementAccId
+		return partAcc.settlementBatchAccountId;
 	}
 
 	async obtainSettlementBatch(

@@ -1,0 +1,38 @@
+### Test - Settlement Transfer:
+POST http://localhost:1234/transfer
+Content-Type: application/json
+X-Correlation-ID: Manual-{{$uuid}}
+authorization: 123456
+
+{
+  "id" : null,
+  "externalId" : "{{$uuid}}",
+  "externalCategory" : "POSITION",
+  "debitAccount" : {"id" :  "deb-acc"},
+  "creditAccount" : {"id" :  "credit-acc"},
+  "currencyCode" : "USD",
+  "amount" : "10000"
+}
+
+> {%
+    client.global.set("txn_resp_id", response.body.settlementTransferId);
+    client.global.set("txn_batch_id", response.body.batchId);
+%}
+
+### Test - Get Settlement Batches:
+GET http://localhost:1234/settlement_batches?settlementModel=DEFAULT&fromDate=1674140933634&toDate={{$timestamp}}000
+Content-Type: application/json
+X-Correlation-ID: Manual-{{$uuid}}
+authorization: 123456
+
+### Test - Get Settlement Batch Accounts:
+GET http://localhost:1234/settlement_accounts?batchIdentifier={{txn_batch_id}}
+Content-Type: application/json
+X-Correlation-ID: Manual-{{$uuid}}
+authorization: 123456
+
+### Test - Get Settlement Batch Transfers:
+GET http://localhost:1234/settlement_transfers?batchIdentifier={{txn_batch_id}}
+Content-Type: application/json
+X-Correlation-ID: Manual-{{$uuid}}
+authorization: 123456

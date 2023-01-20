@@ -28,3 +28,5 @@
 "use strict";
 
 export * from "./mongo_settlement_config_repo";
+export * from "./acc_balances_bc/acc_bal_settlement_batch_account_repo";
+export * from "./acc_balances_bc/acc_bal_settlement_transfer_repo";

@@ -77,7 +77,8 @@ export interface ISettlementBatchAccountRepo {
 export interface IParticipantAccountRepo {
 	init(): Promise<void>;
 	destroy(): Promise<void>;
-	getAccountById(accountId: string): Promise<IParticipantAccountDto | null>;
+	storeBatchParticipant(participant: IParticipantAccountDto): Promise<void>;
+	getAccountBy(participantId: string, batchId: string): Promise<IParticipantAccountDto | null>;
 	publishSettlementNotification(accounts: IParticipantAccountDto[]): Promise<void>;
 }
 

@@ -56,9 +56,9 @@ export interface ISettlementBatchAccountDto {
 }
 
 export interface IParticipantAccountDto {
-	id: string | null;
-	currencyCode: string;
-	currencyDecimals: number | null;
+	participantId: string;
+	settlementBatchId: string;
+	settlementBatchAccountId: string;
 	settlementNotification?: IParticipantSettlementNotificationDto | null;
 }
 
