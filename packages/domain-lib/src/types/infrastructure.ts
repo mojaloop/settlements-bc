@@ -78,6 +78,7 @@ export interface IParticipantAccountRepo {
 	init(): Promise<void>;
 	destroy(): Promise<void>;
 	getAccountById(accountId: string): Promise<IParticipantAccountDto | null>;
+	publishSettlementNotification(accounts: IParticipantAccountDto[]): Promise<void>;
 }
 
 export interface ISettlementTransferRepo {

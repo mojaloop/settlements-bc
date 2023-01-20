@@ -48,4 +48,11 @@ export class ParticipantAccountRepoMock implements IParticipantAccountRepo {
 		}
 		return Promise.resolve(returnVal);
 	}
+
+	async publishSettlementNotification(accounts: IParticipantAccountDto[]): Promise<void> {
+		//TODO publish to the external system:
+		return Promise.resolve();
+	}
+
+
 }

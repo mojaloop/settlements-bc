@@ -59,6 +59,13 @@ export interface IParticipantAccountDto {
 	id: string | null;
 	currencyCode: string;
 	currencyDecimals: number | null;
+	settlementNotification?: IParticipantSettlementNotificationDto | null;
+}
+
+export interface IParticipantSettlementNotificationDto {
+	debitBalance: string;
+	creditBalance: string;
+	//TODO settlementBatch: ISettlementBatchDto[];
 }
 
 export interface ISettlementTransferDto {

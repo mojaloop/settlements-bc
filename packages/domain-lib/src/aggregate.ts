@@ -474,6 +474,11 @@ export class Aggregate {
 		// TODO rather fetch the batches using the ids from the TOP, otherwise we may land up returning a WIP batch.
 		const settBatches = await this.batchRepo.getSettlementBatchesBy(fromDate, toDate, settlementModel);
 
+		// TODO set and exec : IParticipantSettlementNotificationDto
+		//TODO Complete:
+		await this.participantAccRepo.publishSettlementNotification([]);
+
+
 		const returnVal : ISettlementMatrixDto = {
 			fromDate: fromDate,
 			toDateDate: toDate,
