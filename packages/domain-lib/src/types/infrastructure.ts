@@ -30,7 +30,6 @@
 import {
 	ISettlementConfigDto,
 	ISettlementBatchDto,
-	SettlementModel,
 	ISettlementBatchAccountDto,
 	IParticipantAccountDto,
 	ISettlementTransferDto
@@ -39,7 +38,7 @@ import {
 export interface ISettlementConfigRepo {
 	init(): Promise<void>;
 	destroy(): Promise<void>;
-	getSettlementConfigByModel(model: SettlementModel): Promise<ISettlementConfigDto | null>;
+	getSettlementConfigByModel(model: string): Promise<ISettlementConfigDto | null>;
 }
 
 export interface ISettlementBatchRepo {
@@ -50,8 +49,8 @@ export interface ISettlementBatchRepo {
 
 	batchExistsByBatchIdentifier(batchIdentifier: string): Promise<boolean>;
 	getSettlementBatchById(batchIdentifier: string): Promise<ISettlementBatchDto | null>;
-	getSettlementBatchesBy(fromDate: number, toDate: number, model?: SettlementModel): Promise<ISettlementBatchDto[]>;
-	getOpenSettlementBatch(fromDate: number, toDate: number, model: SettlementModel): Promise<ISettlementBatchDto | null>;
+	getSettlementBatchesBy(fromDate: number, toDate: number, model?: string): Promise<ISettlementBatchDto[]>;
+	getOpenSettlementBatch(fromDate: number, toDate: number, model: string): Promise<ISettlementBatchDto | null>;
 }
 
 export interface ISettlementBatchAccountRepo {

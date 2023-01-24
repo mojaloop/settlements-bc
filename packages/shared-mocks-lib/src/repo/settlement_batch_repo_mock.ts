@@ -28,7 +28,7 @@
 "use strict";
 
 import {ISettlementBatchRepo} from "@mojaloop/settlements-bc-domain-lib";
-import {SettlementModel, SettlementBatchStatus, ISettlementBatchDto} from "@mojaloop/settlements-bc-public-types-lib";
+import {SettlementBatchStatus, ISettlementBatchDto} from "@mojaloop/settlements-bc-public-types-lib";
 import * as console from "console";
 
 export class SettlementBatchRepoMock implements ISettlementBatchRepo {
@@ -75,7 +75,7 @@ export class SettlementBatchRepoMock implements ISettlementBatchRepo {
 		return Promise.resolve(batchById !== null);
 	}
 
-	async getSettlementBatchesBy(fromDate: number, toDate: number, model?: SettlementModel): Promise<ISettlementBatchDto[]> {
+	async getSettlementBatchesBy(fromDate: number, toDate: number, model?: string): Promise<ISettlementBatchDto[]> {
 		let returnVal : Array<ISettlementBatchDto> = [];
 
 		this.batches.forEach(batchIter => {
@@ -88,7 +88,7 @@ export class SettlementBatchRepoMock implements ISettlementBatchRepo {
 		return Promise.resolve(returnVal);
 	}
 
-	async getOpenSettlementBatch(fromData: number, toDate: number, model: SettlementModel): Promise<ISettlementBatchDto | null> {
+	async getOpenSettlementBatch(fromData: number, toDate: number, model: string): Promise<ISettlementBatchDto | null> {
 		for (const batchIter of this.batches) {
 			if ((batchIter.timestamp >= fromData && batchIter.timestamp <= toDate) &&
 				(batchIter.settlementModel === model) && batchIter.batchStatus === SettlementBatchStatus.OPEN) {

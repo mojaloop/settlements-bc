@@ -27,12 +27,12 @@
 
 "use strict";
 
-import {SettlementModel, SettlementBatchStatus, ISettlementBatchDto} from "@mojaloop/settlements-bc-public-types-lib";
+import {SettlementBatchStatus, ISettlementBatchDto} from "@mojaloop/settlements-bc-public-types-lib";
 
 export class SettlementBatch {
 	id: string;
 	timestamp: number;
-	settlementModel: SettlementModel;
+	settlementModel: string;
 	debitCurrency: string;
 	creditCurrency: string;
 	batchSequence: number;
@@ -42,7 +42,7 @@ export class SettlementBatch {
 	constructor(
 		id: string,
 		timestamp: number,
-		settlementModel: SettlementModel,
+		settlementModel: string,
 		debitCurrency: string,
 		creditCurrency: string,
 		batchSequence: number,

@@ -43,8 +43,7 @@ import {
 import {TokenHelper, CallSecurityContext} from "@mojaloop/security-bc-client-lib";
 import {
 	ISettlementTransferDto,
-	ISettlementMatrixDto,
-	SettlementModel
+	ISettlementMatrixDto
 } from "@mojaloop/settlements-bc-public-types-lib";
 import {NextFunction, Request, Response, Router} from "express";
 
@@ -187,7 +186,7 @@ export class ExpressRoutes {
 
 	private async postSettlementMatrix(req: Request, res: Response): Promise<void> {
 		try {
-			const settlementModel = req.query.settlementModel as SettlementModel;
+			const settlementModel = req.query.settlementModel as string;
 			const fromDate = req.query.fromDate as string;
 			const toDate = req.query.fromDate as string;
 
@@ -209,7 +208,7 @@ export class ExpressRoutes {
 	}
 
 	private async getSettlementBatches(req: Request, res: Response): Promise<void> {
-		const settlementModel = req.query.settlementModel as SettlementModel;
+		const settlementModel = req.query.settlementModel as string;
 		const fromDate = req.query.fromDate as string;
 		const toDate = req.query.toDate as string;
 		try {

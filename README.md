@@ -68,3 +68,9 @@ error:25066067:DSO support routines:dlfcn_load:could not load the shared library
 ```
 Fix: https://github.com/mojaloop/security-bc.git  `export OPENSSL_CONF=/dev/null`
 
+## Documentation
+The following documentation provides insight into the Settlements Bounded Context.
+
+- **Technical Flows** - `../docs/flows`
+- **Settlement Operational Implementation** - https://docs.mojaloop.io/business-operations-framework-docs/guide/SettlementBC.html#core-settlement-operations
+- **Reference Architecture** - https://mojaloop.github.io/reference-architecture-doc/boundedContexts/settlements/

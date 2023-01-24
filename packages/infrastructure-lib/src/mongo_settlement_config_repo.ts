@@ -34,7 +34,7 @@ import {
 	UnableToGetSettlementConfigError,
 	UnableToInitRepoError
 } from "@mojaloop/settlements-bc-domain-lib";
-import {ISettlementConfigDto, SettlementModel} from "@mojaloop/settlements-bc-public-types-lib";
+import {ISettlementConfigDto} from "@mojaloop/settlements-bc-public-types-lib";
 
 export class MongoSettlementConfigRepo implements ISettlementConfigRepo {
 	// Properties received through the constructor.
@@ -77,7 +77,7 @@ export class MongoSettlementConfigRepo implements ISettlementConfigRepo {
 		await this.mongoClient.close(); // Doesn't throw if the repo is unreachable.
 	}
 
-	async getSettlementConfigByModel(model: SettlementModel): Promise<ISettlementConfigDto | null> {
+	async getSettlementConfigByModel(model: string): Promise<ISettlementConfigDto | null> {
 		try {
 			// findOne() doesn't throw if no item is found - null is returned.
 			const config: ISettlementConfigDto | null = null;//TODO FIX: await this.configs.findOne({settlementModel: model});

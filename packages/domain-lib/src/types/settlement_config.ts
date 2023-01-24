@@ -27,18 +27,18 @@
 
 "use strict";
 
-import {SettlementModel, ISettlementConfigDto} from "@mojaloop/settlements-bc-public-types-lib";
+import {ISettlementConfigDto} from "@mojaloop/settlements-bc-public-types-lib";
 import {bigintToString} from "../converters";
 import {SettlementBatch} from "./batch";
 
 export class SettlementConfig {
 	id: string;
-	model: SettlementModel;
+	model: string;
 	batchCreateInterval: number;// [seconds]
 
 	constructor(
 		id: string,
-		model: SettlementModel,
+		model: string,
 		batchCreateInterval: number
 	) {
 		this.id = id;

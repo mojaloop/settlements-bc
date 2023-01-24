@@ -29,14 +29,14 @@
 
 export interface ISettlementConfigDto {
 	id: string;
-	settlementModel: SettlementModel;
+	settlementModel: string;
 	batchCreateInterval: number;
 }
 
 export interface ISettlementBatchDto {
 	id: string;
 	timestamp: number;
-	settlementModel: SettlementModel | null;
+	settlementModel: string | null;
 	debitCurrency: string | null;
 	creditCurrency: string | null;
 	batchSequence: number;
@@ -103,17 +103,9 @@ export interface ISettlementMatrixBatchDto {
 export interface ISettlementMatrixDto {
 	fromDate: number;
 	toDateDate: number;
-	settlementModel: SettlementModel;
+	settlementModel: string;
 	generationDuration: number
 	batches: ISettlementMatrixBatchDto[];
-}
-
-export enum SettlementModel {
-	UNKNOWN = "UNKNOWN",
-	DEFAULT = "DEFAULT",
-	FX = "FX",
-	REMITTANCE = "REMITTANCE",
-	FEE = "FEE"
 }
 
 export enum SettlementBatchStatus {

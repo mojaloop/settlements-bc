@@ -65,7 +65,7 @@ import {
 	IParticipantAccountDto,
 	ISettlementMatrixDto,
 	SettlementBatchStatus,
-	SettlementModel, ISettlementMatrixBatchDto
+	ISettlementMatrixBatchDto
 } from "@mojaloop/settlements-bc-public-types-lib";
 import {obtainSettlementModelFrom} from "@mojaloop/settlements-bc-model-lib";
 import {IAuditClient, AuditSecurityContext} from "@mojaloop/auditing-bc-public-types-lib";
@@ -298,7 +298,7 @@ export class Aggregate {
 		);
 
 		// Assign the Batch:
-		const settlementModel: SettlementModel = await this.obtainSettlementModel(transfer);
+		const settlementModel: string = await this.obtainSettlementModel(transfer);
 
 		// Fetch or Create a Settlement Batch:
 		const batchDto = await this.obtainSettlementBatch(transfer, settlementModel, securityContext);
@@ -429,7 +429,7 @@ export class Aggregate {
 	}
 
 	async createSettlementMatrix(
-		settlementModel: SettlementModel,
+		settlementModel: string,
 		fromDate: number,
 		toDate: number,
 		securityContext: CallSecurityContext
@@ -490,7 +490,7 @@ export class Aggregate {
 	}
 
 	public async getSettlementBatches(
-		settlementModel: SettlementModel,
+		settlementModel: string,
 		fromDate: number,
 		toDate: number,
 		securityContext: CallSecurityContext
@@ -596,7 +596,7 @@ export class Aggregate {
 
 	async obtainSettlementBatch(
 		transfer: SettlementTransfer,
-		model: SettlementModel,
+		model: string,
 		securityContext: CallSecurityContext
 	) : Promise<ISettlementBatchDto> {
 		const timestamp = transfer.timestamp;
@@ -631,7 +631,7 @@ export class Aggregate {
 	}
 
 	private generateBatchIdentifier(
-		model: SettlementModel,
+		model: string,
 		debitCurrency: string,
 		creditCurrency: string,
 		toDate: number,
@@ -647,7 +647,7 @@ export class Aggregate {
 	}
 
 	private nextBatchSequence(
-		model: SettlementModel,
+		model: string,
 		debitCurrency: string,
 		creditCurrency: string,
 		toDate: number
@@ -662,9 +662,8 @@ export class Aggregate {
 	//TODO this will not be in settlements anymore:
 	async obtainSettlementModel(
 		transfer: SettlementTransfer
-	) : Promise<SettlementModel> {
-		if (transfer == null) return SettlementModel.UNKNOWN;
-		return SettlementModel.DEFAULT;
+	) : Promise<string> {
+		if (transfer == null) return 'DEFAULT';
 
 		return obtainSettlementModelFrom(
 			transfer.amount,
@@ -677,7 +676,7 @@ export class Aggregate {
 		fromDate: number,
 		toDate: number,
 		securityContext: CallSecurityContext,
-		model?: SettlementModel
+		model?: string
 	): Promise<ISettlementBatchAccountDto | null> {
 		this.enforcePrivilege(securityContext, Privileges.RETRIEVE_SETTLEMENT_BATCH);
 		try {

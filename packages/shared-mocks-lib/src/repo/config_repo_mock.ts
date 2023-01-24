@@ -28,7 +28,7 @@
 "use strict";
 
 import {ISettlementConfigRepo} from "@mojaloop/settlements-bc-domain-lib";
-import {SettlementModel, ISettlementConfigDto} from "@mojaloop/settlements-bc-public-types-lib";
+import {ISettlementConfigDto} from "@mojaloop/settlements-bc-public-types-lib";
 
 export class SettlementConfigRepoMock implements ISettlementConfigRepo {
 	async init(): Promise<void> {
@@ -37,7 +37,7 @@ export class SettlementConfigRepoMock implements ISettlementConfigRepo {
 	async destroy(): Promise<void>{
 		return Promise.resolve();
 	}
-	async getSettlementConfigByModel(model: SettlementModel): Promise<ISettlementConfigDto | null> {
+	async getSettlementConfigByModel(model: string): Promise<ISettlementConfigDto | null> {
 		const returnVal : ISettlementConfigDto = {
 			id: "1",
 			settlementModel: model,

@@ -27,19 +27,17 @@
 
 "use strict";
 
-import {SettlementModel} from "@mojaloop/settlements-bc-public-types-lib";
-
 export function obtainSettlementModelFrom(
 	transferAmount: bigint,
 	debitAccountCurrency: string,
 	creditAccountCurrency: string
-) : Promise<SettlementModel> {
+) : Promise<string> {
 	if (debitAccountCurrency === null || creditAccountCurrency===null)
-		return Promise.resolve(SettlementModel.UNKNOWN);
+		return Promise.resolve('UNKNOWN');
 	if (debitAccountCurrency !== creditAccountCurrency) {
-		return Promise.resolve(SettlementModel.FX);
+		return Promise.resolve('FX');
 	} else
-		return Promise.resolve(SettlementModel.DEFAULT);
+		return Promise.resolve('DEFAULT');
 
 	// TODO we need to unpack REMITTANCE
 }
