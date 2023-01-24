@@ -36,16 +36,14 @@ end
 group 2. Settlement - App Logic
 autonumber
     sbc_app_logic <--> sbc_app_logic: Settlement Matrix triggered with:\n-> **From Date** - From\n-> **To Date** - To\n-> **Settlement Model** - Model
-    sbc_app_logic --> sbc_app_logic : Validate **settlement transfer data payload**
-    sbc_app_logic <--> sbc_db : Fetch and cache settlement configuration\n**TODO - This needs to be updated**
-    sbc_app_logic <--> sbc_db : Obtain current open settlement batch based on \n**settlement transfer data payload**\n//New OPEN Batch will be created if no OPEN batch is available//
-    sbc_app_logic <-> abbc_grpc : Obtain Debit/Credit **Settlement Accounts** based on participant account info\n//(The settlement accounts are derived and linked from the participant accounts)//
-    abbc_grpc <--> abbc_tigerbeetle : Create account \nif 'not exists'
-    abbc_grpc -> sbc_app_logic : Return **Account** creation info
-    sbc_app_logic -> abbc_grpc: Create Settlement Transfer
-    abbc_grpc <-> abbc_tigerbeetle: Debit Payer, Credit Payee
-    abbc_grpc -> sbc_app_logic : Return **Transfer** creation info
-    sbc_app_logic <--> sbc_app_logic: Return **Transfer/Account** info based on: \n-> REST - Account balance info\n-> gRPC - Account balance info\n-> Event - Publish Event
+    sbc_app_logic <--> sbc_db : Fetch all batches that form part of the settlement criteria
+    sbc_app_logic <--> sbc_db : Close //OPEN// settlement batches which forms part \nof the settlement matrix request criteria
+    sbc_app_logic <-> abbc_grpc : Obtain Debit/Credit **Settlement Accounts** based on batches
+    abbc_grpc <-> abbc_tigerbeetle: Fetch **Settlement Accounts**
+    abbc_grpc <-> sbc_app_logic : Return **Settlement Accounts** based on batches
+    sbc_app_logic <--> sbc_app_logic : Prepare the Settlement Matrix
+    sbc_app_logic -> sbc_rest : Return Settlement Matrix
+    sbc_rest -> ext_cl : Return Settlement Matrix for caller
 end
 
 @enduml

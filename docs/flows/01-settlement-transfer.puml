@@ -74,7 +74,15 @@ autonumber
 end
 
 group 3. Settlement - Retrieve Batches
+autonumber
     ext_cl -> sbc_rest : At time of fulfil:\n//retrieveSettlementBatches// \nINPUT:\n-> **From Date** - From\n-> **To Date** - To\n-> **Settlement Model** - Model //(optional)//\nOUTPUT:\n-> **Settlement Batches** - Batches
+    sbc_rest -> sbc_app_logic : Request settlement batches
+    sbc_app_logic -> abbc_grpc : Retrieve settlement batch accounts
+    abbc_grpc <-> abbc_tigerbeetle : Retrieve settlement batch accounts and balances
+    abbc_grpc -> sbc_app_logic : Return **Account** creation info
+    sbc_app_logic --> sbc_app_logic : Prepare data for batch response
+    sbc_app_logic -> sbc_rest : Return **Batches** info
+    sbc_rest -> ext_cl : Return **Batches** info
 autonumber
 
 end
