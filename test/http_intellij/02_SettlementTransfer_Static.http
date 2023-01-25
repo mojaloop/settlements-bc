@@ -37,3 +37,10 @@ GET http://localhost:1234/settlement_transfers?batchIdentifier={{txn_batch_id}}
 Content-Type: application/json
 X-Correlation-ID: Manual-{{$uuid}}
 authorization: 123456
+
+### Test - Get Settlement Matrix:
+GET http://localhost:1234/settlement_matrix?fromDate=1674140933634&toDate={{$timestamp}}000
+Content-Type: application/json
+X-Correlation-ID: Manual-{{$uuid}}
+authorization: 123456
+

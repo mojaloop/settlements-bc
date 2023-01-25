@@ -83,11 +83,11 @@ export class ExpressRoutes {
 		this._router.use(this.authenticate.bind(this)); // All requests require authentication.
 		// Posts:
 		this._router.post("/transfer", this.postSettlementTransfer.bind(this));
-		this._router.post("/settlement_matrix", this.postSettlementMatrix.bind(this));
 		// Gets:
 		this._router.get("/settlement_batches", this.getSettlementBatches.bind(this));
 		this._router.get("/settlement_accounts", this.getSettlementBatchAccounts.bind(this));
 		this._router.get("/settlement_transfers", this.getSettlementBatchTransfers.bind(this));
+		this._router.get("/settlement_matrix", this.getSettlementMatrix.bind(this));
 	}
 
 	get router(): Router {
@@ -186,7 +186,7 @@ export class ExpressRoutes {
 		}
 	}
 
-	private async postSettlementMatrix(req: Request, res: Response): Promise<void> {
+	private async getSettlementMatrix(req: Request, res: Response): Promise<void> {
 		try {
 			const settlementModel = req.query.settlementModel as string;
 			const fromDate = req.query.fromDate as string;

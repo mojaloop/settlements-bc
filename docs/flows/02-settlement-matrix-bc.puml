@@ -15,7 +15,7 @@ end box
 
 box Accounts and Balances BC #FFFFF9
     participant "gRPC" as abbc_grpc #D5E8D4
-    participant "TigerBeetle" as abbc_tigerbeetle #D5E8D4
+    database "A&B-Database" as abbc_tigerbeetle #DAE8FC
     note over abbc_grpc
         Exposed interface for
         Accounts and Balances.
