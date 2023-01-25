@@ -35,7 +35,7 @@ import {
 	InvalidCreditAccountError,
 	InvalidCurrencyCodeError,
 	InvalidDebitAccountError,
-	InvalidExternalIdError,
+	InvalidExternalIdError, InvalidTimestampError,
 	SettlementBatchNotFoundError,
 	UnableToGetAccountError,
 	UnauthorizedError
@@ -178,6 +178,8 @@ export class ExpressRoutes {
 				this.sendErrorResponse(res, 400, "invalid debit account id");
 			} else if (error instanceof UnableToGetAccountError) {
 				this.sendErrorResponse(res, 400, "invalid account");
+			} else if (error instanceof InvalidTimestampError) {
+				this.sendErrorResponse(res, 400, "invalid timestamp");
 			} else {
 				this.sendErrorResponse(res, 500, ExpressRoutes.UNKNOWN_ERROR_MESSAGE);
 			}

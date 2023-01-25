@@ -2,23 +2,12 @@
 
 title Settlement Transfer - Refer to Reference Architecture: [https://miro.com/app/board/o9J_lJyA1TA=/]
 
-box External-Transfer-System #FFFFF9
-    participant "Central-Ledger" as ext_cl
-    note over ext_cl
-        //TransferCommitt//
-        Liquidity account balances
-        are kept in Central-Ledger.
-    end note
-    note over ext_cl
-        Central-Ledger Liquidity check
-        functionality remains unchanged.
-    end note
-    participant "Transfer-BC" as ext_transfers_bc
-    note over ext_transfers_bc
-        //TransferCommittedFulfiled//
-        gRPC client for settlements are invoked.
-    end note
-end box
+participant "Central-Ledger" as ext_cl
+note over ext_cl
+    //TransferCommit//
+    Liquidity account balances
+    are kept in Central-Ledger.
+end note
 
 box Settlements BC #F9FFF9
 	participant "Rest API" as sbc_rest #D5E8D4
@@ -30,7 +19,7 @@ end box
 
 box Accounts and Balances BC #FFFFF9
     participant "gRPC" as abbc_grpc #D5E8D4
-    participant "TigerBeetle" as abbc_tigerbeetle #D5E8D4
+    database "A&B-Database" as abbc_tigerbeetle #DAE8FC
     note over abbc_grpc
         Exposed interface for
         Accounts and Balances.
@@ -40,22 +29,12 @@ box Accounts and Balances BC #FFFFF9
     end note
 end box
 
-group 1.1 Create Settlement Transfer - Central Ledger
+group 1. Create Settlement Transfer - Central Ledger
 autonumber
+    ext_cl <--> ext_cl : Transfer fulfil occurred
     ext_cl <-> ext_cl : Obtain settlement model
-    ext_cl -> sbc_rest : At time of fulfil:\n//createSettlementTransfer// \n**(settlement transfer data payload)**
-    sbc_rest -> sbc_app_logic : Invoke the App layer
-autonumber
-    ext_cl <-> ext_cl : Obtain settlement model
-    ext_cl -> sbc_event : At time of fulfil:\n//publishEvent// \n**(settlement transfer data payload and queue)**
+    ext_cl -> sbc_event : \n//publishEvent// \n**(settlement transfer data payload and queue)**
     sbc_event -> sbc_app_logic : Invoke the App layer
-end
-
-group 1.2 Create Settlement Transfer - Transfers BC
-autonumber
-    ext_cl <-> ext_cl : Obtain settlement model
-    ext_cl -> sbc_grpc : At time of fulfil:\n//createSettlementTransfer// \n**(settlement transfer data)**
-    sbc_grpc -> sbc_app_logic : Invoke the App layer
 end
 
 group 2. Settlement - App Logic
@@ -70,7 +49,7 @@ autonumber
     sbc_app_logic -> abbc_grpc: Create Settlement Transfer
     abbc_grpc <-> abbc_tigerbeetle: Debit Payer, Credit Payee
     abbc_grpc -> sbc_app_logic : Return **Transfer** creation info
-    sbc_app_logic <--> sbc_app_logic: Return **Transfer/Account** info based on: \n-> REST - Account balance info\n-> gRPC - Account balance info\n-> Event - Publish Event
+    sbc_app_logic <-> sbc_app_logic: Return **Transfer/Account** info based on: \n-> REST - Account balance info\n-> gRPC - Account balance info\n-> Event - Publish Event
 end
 
 group 3. Settlement - Retrieve Batches

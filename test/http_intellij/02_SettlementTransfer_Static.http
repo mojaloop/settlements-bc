@@ -11,7 +11,8 @@ authorization: 123456
   "debitAccount" : {"id" :  "deb-acc"},
   "creditAccount" : {"id" :  "credit-acc"},
   "currencyCode" : "USD",
-  "amount" : "10000"
+  "amount" : "10000",
+  "timestamp" : {{$timestamp}}000
 }
 
 > {%

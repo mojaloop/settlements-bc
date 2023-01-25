@@ -71,7 +71,6 @@ export interface IParticipantSettlementNotificationDto {
 export interface ISettlementTransferDto {
 	id: string | null;
 	externalId: string | null;
-	externalCategory: string | null;
 	currencyCode: string;
 	currencyDecimals: number | null;
 	amount: string;
@@ -83,8 +82,8 @@ export interface ISettlementTransferDto {
 
 /* Settlement Matrix */
 export interface ISettlementMatrixSettlementBatchAccountDto {
-	id: string | null;
-	externalId: string | null;
+	id: string;
+	externalId: string;
 	currencyCode: string;
 	creditBalance: string;
 	debitBalance: string;
@@ -102,7 +101,7 @@ export interface ISettlementMatrixBatchDto {
 
 export interface ISettlementMatrixDto {
 	fromDate: number;
-	toDateDate: number;
+	toDate: number;
 	settlementModel: string;
 	generationDuration: number
 	batches: ISettlementMatrixBatchDto[];

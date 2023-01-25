@@ -34,7 +34,6 @@ import {SettlementBatch} from "./batch";
 export class SettlementTransfer {
 	id: string;
 	externalId: string | null;
-	externalCategory: string | null;
 	currencyCode: string;
 	currencyDecimals: number;
 	amount: bigint;
@@ -46,7 +45,6 @@ export class SettlementTransfer {
 	constructor(
 		id: string,
 		externalId: string,
-		externalCategory: string,
 		currencyCode: string,
 		currencyDecimals: number,
 		amount: bigint,
@@ -57,7 +55,6 @@ export class SettlementTransfer {
 	) {
 		this.id = id;
 		this.externalId = externalId;
-		this.externalCategory = externalCategory;
 		this.currencyCode = currencyCode;
 		this.currencyDecimals = currencyDecimals;
 		this.amount = amount;
@@ -94,7 +91,6 @@ export class SettlementTransfer {
 		const transferDto: ISettlementTransferDto = {
 			id: this.id,
 			externalId: this.externalId,
-			externalCategory: this.externalCategory,
 			currencyCode: this.currencyCode,
 			currencyDecimals: this.currencyDecimals,
 			amount: amount,

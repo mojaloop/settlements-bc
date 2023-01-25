@@ -257,17 +257,16 @@ export class Aggregate {
 	}
 
 	async createSettlementTransfer(transferDto: ISettlementTransferDto, securityContext: CallSecurityContext): Promise<ISettlementTransferDto> {
-		const timestamp: number = Date.now();
-
 		this.enforcePrivilege(securityContext, Privileges.CREATE_SETTLEMENT_TRANSFER);
 
-		if (transferDto.timestamp === undefined) transferDto.timestamp = timestamp;// TODO maybe we want to change this...
+		if (transferDto.timestamp === undefined || transferDto.timestamp === null || transferDto.timestamp < 1) throw new InvalidTimestampError();
 		if (transferDto.currencyCode === undefined || transferDto.currencyCode === "") throw new InvalidCurrencyCodeError();
 		if (transferDto.amount === undefined || transferDto.amount === "") throw new InvalidAmountError();
 		if (transferDto.externalId === undefined || transferDto.externalId === "") throw new InvalidExternalIdError();
-		if (transferDto.externalCategory === undefined || transferDto.externalCategory === "") throw new InvalidExternalCategoryError();
 		if (transferDto.creditAccount === undefined) throw new InvalidCreditAccountError();
 		if (transferDto.debitAccount === undefined) throw new InvalidDebitAccountError();
+
+		const timestamp: number = transferDto.timestamp;
 
 		// Verify the currency code (and get the corresponding currency decimals).
 		const currency: ICurrency | undefined = this.currencies.find(currency => {
@@ -287,7 +286,6 @@ export class Aggregate {
 		const transfer: SettlementTransfer = new SettlementTransfer(
 			randomUUID(),
 			transferDto.externalId!,
-			transferDto.externalCategory!,
 			transferDto.currencyCode,
 			currency.decimals,
 			amount,
@@ -416,7 +414,6 @@ export class Aggregate {
 		const returnVal : ISettlementTransferDto = {
 			id: transfer.id,
 			externalId: transfer.externalId,
-			externalCategory: transfer.externalCategory,
 			currencyCode: transfer.currencyCode,
 			currencyDecimals: transfer.currencyDecimals,
 			amount: `${transfer.amount}`,
@@ -481,7 +478,7 @@ export class Aggregate {
 
 		const returnVal : ISettlementMatrixDto = {
 			fromDate: fromDate,
-			toDateDate: toDate,
+			toDate: toDate,
 			settlementModel: settlementModel,
 			generationDuration: (Date.now() - timestamp) * 1000,
 			batches: matrixBatches
