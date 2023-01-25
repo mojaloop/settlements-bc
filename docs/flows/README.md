@@ -6,11 +6,11 @@ Settlement transfer is the process of settlement receiving the settlement transf
 
 ### Settlement Transfer - Central-Ledger
 The flow below is how a fulfilled transfer is posted to Settlements:
-## ![Settlement Transfer Flow for Central-Ledger](./01-settlement-transfer-cl.svg "ST CL")
+## ![Settlement Transfer Flow for Central-Ledger](./01-settlement-transfer-cl.svg "Settlement Transfer Central-Ledger")
 
 ## Settlement Transfer - Transfers BC
 The flow below is how a fulfilled transfer is posted to Settlements:
-## ![Settlement Transfer Flow for Transfers BC](./01-settlement-transfer-bc.svg "ST TBC")
+## ![Settlement Transfer Flow for Transfers BC](./01-settlement-transfer-bc.svg "Settlement Transfer Transfers BC")
 
 ### Settlement Transfer Model `(ISettlementTransferDto)`
 The table below illustrates the Settlement Transfer fields:
@@ -41,7 +41,16 @@ Settlement matrix is the process of requesting the current settlement matrix for
 The processing request for the settlement matrix would also close any `OPEN` settlement batches that form part of the selection criteria, 
 as a consequence the external system would be notified of the settlement transfers now being fulfilled.
 
-### Settlement Matrix `(ISettlementMatrixDto)`
+### Settlement Transfer - Central-Ledger
+The flow below is how a Settlement Matrix is created in Central-Ledger:
+## ![Settlement Transfer Flow for Central-Ledger](./01-settlement-transfer-cl.svg "ST CL")
+
+## Settlement Transfer - Transfers BC
+The flow below is how a fulfilled transfer is posted to Settlements:
+## ![Settlement Transfer Flow for Transfers BC](./01-settlement-transfer-bc.svg "ST TBC")
+
+
+### Settlement Matrix Model `(ISettlementMatrixDto)`
 
 | Field                   | Definition                    | Description                                                          |
 |-------------------------|-------------------------------|----------------------------------------------------------------------|
@@ -52,7 +61,7 @@ as a consequence the external system would be notified of the settlement transfe
 | `batches`               | `ISettlementMatrixBatchDto[]` | The settlement matrix batches that were processed                    |
 
 
-### Settlement Matrix Batch `(ISettlementMatrixBatchDto)`
+### Settlement Matrix Batch Model `(ISettlementMatrixBatchDto)`
 
 | Field              | Definition                                     | Description                                                                                             |
 |--------------------|------------------------------------------------|---------------------------------------------------------------------------------------------------------|
@@ -64,7 +73,7 @@ as a consequence the external system would be notified of the settlement transfe
 | `creditBalance`    | `string`                                       | The settlement batch credit balance amount in minor denomination format (cents/fills) as text (`string) |
 | `batchAccounts`    | `ISettlementMatrixSettlementBatchAccountDto[]` | The credit balance amount in minor denomination format (cents/fills) as text (`string)                  |
 
-### Settlement Matrix Batch Account `(ISettlementMatrixSettlementBatchAccountDto)`
+### Settlement Matrix Batch Account Model `(ISettlementMatrixSettlementBatchAccountDto)`
 
 | Field             | Definition | Description |
 |-------------------|------------|-------------|
