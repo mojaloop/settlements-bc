@@ -2,9 +2,17 @@
 This document describes the data and flow for settlements.
 
 ## Settlement Transfer
-Settlement transfer is the process of settlement receiving the settlement transfers to be settled. 
+Settlement transfer is the process of settlement receiving the settlement transfers to be settled.
 
-### `Settlement Transfer` Model `(ISettlementTransferDto)`
+### Settlement Transfer - Central-Ledger
+The flow below is how a fulfilled transfer is posted to Settlements:
+## ![Settlement Transfer Flow for Central-Ledger](./01-settlement-transfer-cl.svg "ST CL")
+
+## Settlement Transfer - Transfers BC
+The flow below is how a fulfilled transfer is posted to Settlements:
+## ![Settlement Transfer Flow for Transfers BC](./01-settlement-transfer-bc.svg "ST TBC")
+
+### Settlement Transfer Model `(ISettlementTransferDto)`
 The table below illustrates the Settlement Transfer fields:
 
 | Field              | Definition                         | Description                                                                                                                   |
@@ -26,17 +34,6 @@ The table below illustrates the Settlement Batch Account fields:
 |--------------------------|-----------------|-----------------------------------------------------------------------------------------------------------|
 | `id`                     | `null / string` | The global unique identifier for settlement batch account. Assigned by Settlement.                        |
 | `externalId`             | `string`        | An external id used by the external system (Central-Ledger / Transfers BC) used to identify a transaction |
-
-
-
-### Settlement Transfer - Central-Ledger
-The flow below is how a fulfilled transfer is posted to Settlements:
-## ![Settlement Transfer Flow for Central-Ledger](./01-settlement-transfer-cl.svg "ST CL")
-
-
-## Settlement Transfer - Transfers BC
-The flow below is how a fulfilled transfer is posted to Settlements:
-## ![Settlement Transfer Flow for Transfers BC](./01-settlement-transfer-bc.svg "ST TBC")
 
 
 ## Settlement Matrix
