@@ -2,6 +2,7 @@
 This document describes the data and flow for;
 - [Create Settlement Transfers](#settlement-transfer) (creation of settlement obligation)
 - [Generation of Settlement Matrix](#settlement-matrix) (fulfilment of settlement obligation)
+- [Settlement Transfer Batch Assignment](#settlement-transfer-batch-assignment) (process of assigning transfers to batches)
 
 ## Settlement Transfer
 Settlement transfer is the process of settlement receiving the settlement transfers to be settled.
@@ -95,3 +96,24 @@ The table below illustrates the Settlement Matrix Batch Account fields:
 | `currencyCode`     | `string`                      | The currency code as described in ISO-4217 for the batch account                                                |
 | `debitBalance`     | `string`                      | The settlement batch account debit balance amount in minor denomination format (cents/fills) as text (`string)  |
 | `creditBalance`    | `string`                      | The settlement batch account credit balance amount in minor denomination format (cents/fills) as text (`string) |
+
+
+## Settlement Transfer Batch Assignment
+Instead of assigning a settlement transfer to the current open settlement window, the Settlement vNext would be responsible for allocating the transfer itself.
+Transfers-BC / Central-Ledger: At time of fulfil, produce an event to be consumed eventually by Settlement. 
+Settlement-BC would then be responsible for allocating a transfer to a settlement batch and settlement model, independently of other components.
+
+Late settlement transactions will be allocated to a newly created batch (since the batch for timespan X would have already been closed).
+Example: 
+Lets assume that the transfer timestamp for a late transaction is `2023.1.26.13.33.59`. 
+The batch meant for the "late" / delayed transfer is meant for batch:
+- `DEFAULT.USD:USD.2023.1.26.13.33.001`
+Due to the batch being in a closed state, the following batch will be created for the transfer:
+- `DEFAULT.USD:USD.2023.1.26.13.33.002`
+
+The above ensures the requirements are met:
+- Transfers will always be allocated to a batch, irrespective of the timestamp and batch statuses
+- Settlement batches that are in a `CLOSED` state cannot be altered 
+- Reconciliation is achieved by re-running the Settlement Matrix for the delayed transfer, which will automatically rectify settlement inconsistencies 
+
+
