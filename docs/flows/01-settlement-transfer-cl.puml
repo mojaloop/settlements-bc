@@ -18,11 +18,11 @@ box Settlements BC #F9FFF9
 end box
 
 box Accounts and Balances BC #FFFFF9
-    participant "gRPC" as abbc_grpc #D5E8D4
-    database "A&B-Database" as abbc_tigerbeetle #DAE8FC
+    participant "A&B SVC" as abbc_grpc #D5E8D4
+    database "A&B-Ledger" as abbc_tigerbeetle #DAE8FC
     note over abbc_grpc
-        Exposed interface for
-        Accounts and Balances.
+        Exposed gRPC interface for
+        Accounts & Balances.
     end note
     note over abbc_tigerbeetle
         TigerBeetle may be turned off/on.
