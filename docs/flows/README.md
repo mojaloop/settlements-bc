@@ -5,6 +5,10 @@ This document describes the data and flow for;
 
 ## Settlement Transfer
 Settlement transfer is the process of settlement receiving the settlement transfers to be settled.
+Once a settlement transfer has been created successfully, the settlement obligation has been created for the payer (debtor) and payee (creditor).
+
+It is the responsibility of the settlement component to settle settlement batches in order to restore liquidity limits for the DFSP's (Participant Accounts). 
+The Settlement Matrix generation process is responsible for notifying the external system of the settlement completion. 
 
 ### Settlement Transfer - Central-Ledger
 The flow below is how a fulfilled transfer is posted to Settlements:
