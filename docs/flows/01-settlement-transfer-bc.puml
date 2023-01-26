@@ -1,10 +1,10 @@
 @startuml
 
-title Settlement Transfer - Refer to Reference Architecture: [https://miro.com/app/board/o9J_lJyA1TA=/]
+title Settlement Transfer in Transfers BC - Refer to Reference Architecture: [https://miro.com/app/board/o9J_lJyA1TA=/]
 
 participant "Transfer-BC" as ext_transfers_bc
 note over ext_transfers_bc
-    //TransferCommittedFulfiled//
+    //TransferCommittedFulfilled//
     gRPC client for settlements are invoked.
 end note
 

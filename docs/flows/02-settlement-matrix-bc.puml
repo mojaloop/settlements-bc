@@ -1,11 +1,8 @@
 @startuml
 
-title Settlement Matrix - Refer to Reference Architecture: [https://miro.com/app/board/o9J_lJyA1TA=/]
+title Settlement Matrix in Participants BC - Refer to Reference Architecture: [https://miro.com/app/board/o9J_lJyA1TA=/]
 
-box External-Transfer-System #FFFFF9
-    participant "Central-Ledger" as ext_cl
-    participant "Transfer-BC" as ext_transfers_bc
-end box
+participant "Transfer-BC" as ext_transfers_bc
 
 box Settlements BC #F9FFF9
 	participant "Rest API" as sbc_rest #D5E8D4
@@ -27,9 +24,7 @@ end box
 
 group 1. Trigger Settlement Matrix - Central Ledger / Admin API
 autonumber
-    ext_cl -> sbc_rest : Request settlement matrix
-autonumber
-    ext_transfers_bc -> sbc_rest : **OR** \nRequest settlement matrix
+    ext_transfers_bc -> sbc_rest : Request settlement matrix
     sbc_rest -> sbc_app_logic : Invoke the App layer
 end
 
@@ -43,7 +38,7 @@ autonumber
     abbc_grpc <-> sbc_app_logic : Return **Settlement Accounts** based on batches
     sbc_app_logic <--> sbc_app_logic : Prepare the Settlement Matrix
     sbc_app_logic -> sbc_rest : Return Settlement Matrix
-    sbc_rest -> ext_cl : Return Settlement Matrix for caller
+    sbc_rest -> ext_transfers_bc : Return Settlement Matrix for caller
 end
 
 @enduml

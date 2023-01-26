@@ -1,16 +1,18 @@
 @startuml
 
-title Settlement Matrix - Refer to Reference Architecture: [https://miro.com/app/board/o9J_lJyA1TA=/]
+title Settlement Matrix in Central-Ledger - Refer to Reference Architecture: [https://miro.com/app/board/o9J_lJyA1TA=/]
 
-box External-Transfer-System #FFFFF9
-    participant "Central-Ledger" as ext_cl
-    participant "Transfer-BC" as ext_transfers_bc
-end box
+participant "Central-Ledger" as ext_cl
 
 box Settlements BC #F9FFF9
-	participant "Rest API" as sbc_rest #D5E8D4
-	participant "Settlements BC\nApp Logic" as sbc_app_logic #EDC54D
-	database "Settlements-Database" as sbc_db #DAE8FC
+    participant "Rest API" as sbc_rest #D5E8D4
+    participant "Event Handler" as sbc_event #D5E8D4
+    note over sbc_event
+        Kafka Topics
+        - Topic for Settlement Matrix Accounts
+    end note
+    participant "Settlements BC\nApp Logic" as sbc_app_logic #EDC54D
+    database "Settlements-Database" as sbc_db #DAE8FC
 end box
 
 box Accounts and Balances BC #FFFFF9
@@ -27,15 +29,12 @@ end box
 
 group 1. Trigger Settlement Matrix - Central Ledger / Admin API
 autonumber
-    ext_cl -> sbc_rest : Request settlement matrix
-autonumber
-    ext_transfers_bc -> sbc_rest : **OR** \nRequest settlement matrix
-    sbc_rest -> sbc_app_logic : Invoke the App layer
+    ext_cl -> sbc_rest : Request **Settlement Matrix**
+    sbc_rest --> sbc_app_logic : Invoke the App layer
 end
 
 group 2. Settlement - App Logic
-autonumber
-    sbc_app_logic <--> sbc_app_logic: Settlement Matrix triggered with:\n-> **From Date** - From\n-> **To Date** - To\n-> **Settlement Model** - Model
+    sbc_app_logic <--> sbc_app_logic: **Settlement Matrix** generation triggered with:\n-> **From Date** - From\n-> **To Date** - To\n-> **Settlement Model** - Model\n-> **TODO** - Add more
     sbc_app_logic <--> sbc_db : Fetch all batches that form part of the settlement criteria
     sbc_app_logic <--> sbc_db : Close //OPEN// settlement batches which forms part \nof the settlement matrix request criteria
     sbc_app_logic <-> abbc_grpc : Obtain Debit/Credit **Settlement Accounts** based on batches
@@ -44,6 +43,10 @@ autonumber
     sbc_app_logic <--> sbc_app_logic : Prepare the Settlement Matrix
     sbc_app_logic -> sbc_rest : Return Settlement Matrix
     sbc_rest -> ext_cl : Return Settlement Matrix for caller
+autonumber
+    == Publish Settlement Matrix Result for Liquidity Restoration ==
+    sbc_app_logic --> sbc_app_logic : Create events for each Settlement Batch Account Balance update
+    sbc_app_logic -> sbc_event : Publish event for each\nSettlement Batch Account\nBalance update
 end
 
 @enduml

@@ -1,6 +1,6 @@
 @startuml
 
-title Settlement Transfer - Refer to Reference Architecture: [https://miro.com/app/board/o9J_lJyA1TA=/]
+title Settlement Transfer in Central-Ledger - Refer to Reference Architecture: [https://miro.com/app/board/o9J_lJyA1TA=/]
 
 participant "Central-Ledger" as ext_cl
 note over ext_cl
@@ -10,11 +10,15 @@ note over ext_cl
 end note
 
 box Settlements BC #F9FFF9
-	participant "Rest API" as sbc_rest #D5E8D4
-	participant "Event Listener" as sbc_event #D5E8D4
-	participant "gRPC" as sbc_grpc #D5E8D4
-	participant "Settlements BC\nApp Logic" as sbc_app_logic #EDC54D
-	database "Settlements-Database" as sbc_db #DAE8FC
+    participant "Rest API" as sbc_rest #D5E8D4
+    participant "Event Handler" as sbc_event #D5E8D4
+    note over sbc_event
+        Kafka Topics
+        - Topic for creating Settlement Transfer
+        - Topic for Settlement Transfer create result
+    end note
+    participant "Settlements BC\nApp Logic" as sbc_app_logic #EDC54D
+    database "Settlements-Database" as sbc_db #DAE8FC
 end box
 
 box Accounts and Balances BC #FFFFF9
@@ -32,24 +36,25 @@ end box
 group 1. Create Settlement Transfer - Central Ledger
 autonumber
     ext_cl <--> ext_cl : Transfer fulfil occurred
-    ext_cl <-> ext_cl : Obtain settlement model
-    ext_cl -> sbc_event : \n//publishEvent// \n**(settlement transfer data payload and queue)**
-    sbc_event -> sbc_app_logic : Invoke the App layer
+    ext_cl <-> ext_cl : Obtain settlement model.\nSettlement model determined \nbased on fulfilled transfer
+    ext_cl -> sbc_event : \n//publishEvent// \n**(Settlement Transfer data event)**
+autonumber
+    sbc_app_logic -> sbc_event : Listen for Settlement\nTransfer event
 end
 
 group 2. Settlement - App Logic
-autonumber
-    sbc_app_logic <--> sbc_app_logic: Settlement Transfer event triggered
-    sbc_app_logic --> sbc_app_logic : Validate **settlement transfer data payload**
-    sbc_app_logic <--> sbc_db : Fetch and cache settlement configuration\n**TODO - This needs to be updated**
-    sbc_app_logic <--> sbc_db : Obtain current open settlement batch based on \n**settlement transfer data payload**\n//New OPEN Batch will be created if no OPEN batch is available//
+    sbc_app_logic <--> sbc_app_logic: Settlement Transfer event retrieved
+    sbc_app_logic --> sbc_app_logic : Validate **Settlement Transfer data payload**
+    sbc_app_logic <--> sbc_db : Fetch and cache settlement configuration\n**Platform Config BC / Admin API //(SettlementModel)//**
+    sbc_app_logic <--> sbc_db : Obtain current open settlement batch based on \n**Settlement Transfer data payload**\n//New OPEN Batch will be created if no OPEN batch is available//
     sbc_app_logic <-> abbc_grpc : Obtain Debit/Credit **Settlement Accounts** based on participant account info\n//(The settlement accounts are derived and linked from the participant accounts)//
     abbc_grpc <--> abbc_tigerbeetle : Create account \nif 'not exists'
     abbc_grpc -> sbc_app_logic : Return **Account** creation info
     sbc_app_logic -> abbc_grpc: Create Settlement Transfer
     abbc_grpc <-> abbc_tigerbeetle: Debit Payer, Credit Payee
     abbc_grpc -> sbc_app_logic : Return **Transfer** creation info
-    sbc_app_logic <-> sbc_app_logic: Return **Transfer/Account** info based on: \n-> REST - Account balance info\n-> gRPC - Account balance info\n-> Event - Publish Event
+    sbc_app_logic <-> sbc_app_logic: Prepare **Transfer/Account** data based on gRPC response
+    sbc_app_logic -> sbc_event : Publish **Settlement Transfer** data
 end
 
 group 3. Settlement - Retrieve Batches

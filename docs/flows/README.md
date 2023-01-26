@@ -35,8 +35,8 @@ The table below illustrates the Settlement Batch Account fields:
 | Field              | Definition                                | Description                                                                                               |
 |--------------------|-------------------------------------------|-----------------------------------------------------------------------------------------------------------|
 | `id`               | `null / string`                           | The global unique identifier for settlement batch account. Assigned by Settlement                         |
-| `externalId`       | `string`                                  | An external id used by the external system (Central-Ledger / Transfers BC) used to identify a transaction |
-| `settlementBatch`  | `null / ISettlementBatchDto` __Optional__ | 123                                                                                                       |
+| `externalId`       | `string`                                  | An external id used by the external system (Central-Ledger / Transfers BC) used to identify an account    |
+| `settlementBatch`  | `null / ISettlementBatchDto` __Optional__ | The settlement batch the account is assigned to                                                           |
 | `currencyCode`     | `string`                                  | The currency code for a settlement batch account as described in ISO-4217                                 |
 | `currencyDecimals` | `number / null`                           | The number of decimal precisions for the `currencyCode`                                                   |
 | `debitBalance`     | `string`                                  | The settlement account debit balance amount in minor denomination format (cents/fills) as text (`string)  |
@@ -44,17 +44,17 @@ The table below illustrates the Settlement Batch Account fields:
 | `timestamp`        | `number`                                  | The timestamp for when the settlement batch account was created                                           |
 
 ## Settlement Matrix
-Settlement matrix is the process of requesting the current settlement matrix for a specified timespan (among other selection criteria).
-The processing request for the settlement matrix would also close any `OPEN` settlement batches that form part of the selection criteria, 
-as a consequence the external system would be notified of the settlement transfers now being fulfilled.
+Settlement matrix is the process of requesting the current settlement matrix for a specified timespan (along with other selection criteria).
+The processing request for the settlement matrix would close any `OPEN` settlement batches that form part of the selection criteria, 
+as a consequence the external system would be notified of the settlement transfers now being fulfilled (central-ledger, Participants-BC etc.).
 
 ### Settlement Matrix - Central-Ledger
 The flow below is how a Settlement Matrix is created for Central-Ledger:
-## ![Settlement Transfer Flow for Central-Ledger](./01-settlement-transfer-cl.svg "ST CL")
+## ![Settlement Matrix Flow for Central-Ledger](./02-settlement-matrix-cl.svg "ST CL")
 
 ## Settlement Matrix - Participants BC
 The flow below is how a fulfilled Matrix is created for Participants BC:
-## ![Settlement Transfer Flow for Transfers BC](./01-settlement-transfer-bc.svg "ST TBC")
+## ![Settlement Matrix Flow for Transfers BC](./02-settlement-matrix-bc.svg "ST TBC")
 
 ### Settlement Matrix Model `(ISettlementMatrixDto)`
 The table below illustrates the Settlement Matrix fields:
@@ -84,8 +84,10 @@ The table below illustrates the Settlement Matrix Batch fields:
 ### Settlement Matrix Batch Account Model `(ISettlementMatrixSettlementBatchAccountDto)`
 The table below illustrates the Settlement Matrix Batch Account fields:
 
-| Field             | Definition | Description |
-|-------------------|------------|-------------|
-| `id`              | `string`   | sd          |
-| `externalId`      | `string`   | sd          |
-
+| Field              | Definition                    | Description                                                                                                     |
+|--------------------|-------------------------------|-----------------------------------------------------------------------------------------------------------------|
+| `id`               | `null / string`               | The global unique identifier for settlement batch account. Assigned by Settlement                               |
+| `externalId`       | `string`                      | An external id used by the external system (Central-Ledger / Transfers BC) used to identify a settled account   |
+| `currencyCode`     | `string`                      | The currency code as described in ISO-4217 for the batch account                                                |
+| `debitBalance`     | `string`                      | The settlement batch account debit balance amount in minor denomination format (cents/fills) as text (`string)  |
+| `creditBalance`    | `string`                      | The settlement batch account credit balance amount in minor denomination format (cents/fills) as text (`string) |
