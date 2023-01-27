@@ -1,10 +1,10 @@
 # Settlement Flows
 This document describes the data and flow for;
-- [Create Settlement Transfers](#settlement-transfer) (creation of settlement obligation)
-- [Generation of Settlement Matrix](#settlement-matrix) (fulfilment of settlement obligation)
-- [Settlement Transfer Batch Assignment](#settlement-transfer-batch-assignment) (process of assigning transfers to batches)
+- [1. Create Settlement Transfers](#1-create-settlement-transfer) (creation of settlement obligation)
+- [2. Generation of Settlement Matrix](#2-generate-settlement-matrix) (fulfilment of settlement obligation)
+- [3. Settlement Transfer Batch Assignment](#3-settlement-transfer-batch-assignment) (process of assigning transfers to batches)
 
-## Settlement Transfer
+## 1. Create Settlement Transfer
 Settlement transfer is the process of settlement receiving the settlement transfers to be settled.
 Once a settlement transfer has been created successfully, the settlement obligation has been created for the payer (debtor) and payee (creditor).
 
@@ -48,7 +48,7 @@ The table below illustrates the Settlement Batch Account fields:
 | `creditBalance`    | `string`                                  | The settlement account credit balance amount in minor denomination format (cents/fills) as text (`string) |
 | `timestamp`        | `number`                                  | The timestamp for when the settlement batch account was created                                           |
 
-## Settlement Matrix
+## 2. Generate Settlement Matrix
 Settlement matrix is the process of requesting the current settlement matrix for a specified timespan (along with other selection criteria).
 The processing request for the settlement matrix would close any `OPEN` settlement batches that form part of the selection criteria, 
 as a consequence the external system would be notified of the settlement transfers now being fulfilled (central-ledger, Participants-BC etc.).
@@ -98,7 +98,7 @@ The table below illustrates the Settlement Matrix Batch Account fields:
 | `creditBalance`    | `string`                      | The settlement batch account credit balance amount in minor denomination format (cents/fills) as text (`string) |
 
 
-## Settlement Transfer Batch Assignment
+## 3. Settlement Transfer Batch Assignment
 Instead of assigning a settlement transfer to the current open settlement window, the Settlement vNext would be responsible for allocating the transfer itself.
 Transfers-BC / Central-Ledger: At time of fulfil, produce an event to be consumed eventually by Settlement. 
 Settlement-BC would then be responsible for allocating a transfer to a settlement batch and settlement model, independently of other components.
