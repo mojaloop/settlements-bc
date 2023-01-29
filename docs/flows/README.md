@@ -148,4 +148,6 @@ The following documentation provides insight into Settlements.
 | `7.`  | **DA Work Sessions**                      | https://docs.google.com/document/d/1Nm6B_tSR1mOM0LEzxZ9uQnGwXkruBeYB2slgYK1Kflo/edit#heading=h.6w64vxvw6er4                            |
 | `8.`  | **Admin API - Settlement Models**         | https://github.com/mojaloop/mojaloop-specification/blob/master/admin-api/admin-api-specification-v1.0.md#api-resource-settlementmodels |
 | `9.`  | **Mojaloop Product Timeline**             | https://miro.com/app/board/uXjVPA3hBgE=/                                                                                               |
+| `10.` | **Settlement Basic Concepts**             | https://docs.mojaloop.io/mojaloop-business-docs/HubOperations/Settlement/settlement-basic-concepts.html                                |
+| `11.` | **Ledgers in the Hub**                    | https://docs.mojaloop.io/mojaloop-business-docs/HubOperations/Settlement/ledgers-in-the-hub.html                                       |
 
