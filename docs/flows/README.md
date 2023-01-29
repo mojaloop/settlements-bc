@@ -139,15 +139,15 @@ The following documentation provides insight into Settlements.
 
 | Ref # | Document                                  | Link                                                                                                                                   | 
 |-------|-------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------|
-| `1.`  | **Technical Flows**                       | `*.puml`                                                                                                                               |
-| `2.`  | **Settlement Version 2**                  | `../Settlement Version 2.pptx`                                                                                                         |
-| `3.`  | **Settlement Operational Implementation** | https://docs.mojaloop.io/business-operations-framework-docs/guide/SettlementBC.html#core-settlement-operations                         |
-| `4.`  | **Reference Architecture**                | https://mojaloop.github.io/reference-architecture-doc/boundedContexts/settlements/                                                     |
-| `5.`  | **MIRO Board (Reference Architecture)**   | https://miro.com/app/board/o9J_lJyA1TA=/                                                                                               |
-| `6.`  | **Settlement Functionality in MJL**       | https://docs.google.com/presentation/d/19uy6pO_igmQ9uZRnKyZkXD8a8uyMKQcn/edit#slide=id.p1                                              |
-| `7.`  | **DA Work Sessions**                      | https://docs.google.com/document/d/1Nm6B_tSR1mOM0LEzxZ9uQnGwXkruBeYB2slgYK1Kflo/edit#heading=h.6w64vxvw6er4                            |
-| `8.`  | **Admin API - Settlement Models**         | https://github.com/mojaloop/mojaloop-specification/blob/master/admin-api/admin-api-specification-v1.0.md#api-resource-settlementmodels |
-| `9.`  | **Mojaloop Product Timeline**             | https://miro.com/app/board/uXjVPA3hBgE=/                                                                                               |
+| `01.` | **Technical Flows**                       | `*.puml`                                                                                                                               |
+| `02.` | **Settlement Version 2**                  | `../Settlement Version 2.pptx`                                                                                                         |
+| `03.` | **Settlement Operational Implementation** | https://docs.mojaloop.io/business-operations-framework-docs/guide/SettlementBC.html#core-settlement-operations                         |
+| `04.` | **Reference Architecture**                | https://mojaloop.github.io/reference-architecture-doc/boundedContexts/settlements/                                                     |
+| `05.` | **MIRO Board (Reference Architecture)**   | https://miro.com/app/board/o9J_lJyA1TA=/                                                                                               |
+| `06.` | **Settlement Functionality in MJL**       | https://docs.google.com/presentation/d/19uy6pO_igmQ9uZRnKyZkXD8a8uyMKQcn/edit#slide=id.p1                                              |
+| `07.` | **DA Work Sessions**                      | https://docs.google.com/document/d/1Nm6B_tSR1mOM0LEzxZ9uQnGwXkruBeYB2slgYK1Kflo/edit#heading=h.6w64vxvw6er4                            |
+| `08.` | **Admin API - Settlement Models**         | https://github.com/mojaloop/mojaloop-specification/blob/master/admin-api/admin-api-specification-v1.0.md#api-resource-settlementmodels |
+| `09.` | **Mojaloop Product Timeline**             | https://miro.com/app/board/uXjVPA3hBgE=/                                                                                               |
 | `10.` | **Settlement Basic Concepts**             | https://docs.mojaloop.io/mojaloop-business-docs/HubOperations/Settlement/settlement-basic-concepts.html                                |
 | `11.` | **Ledgers in the Hub**                    | https://docs.mojaloop.io/mojaloop-business-docs/HubOperations/Settlement/ledgers-in-the-hub.html                                       |
 
