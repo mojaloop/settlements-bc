@@ -1,6 +1,6 @@
 @startuml
 
-title Settlement Matrix in Central-Ledger - Refer to Reference Architecture: [https://miro.com/app/board/o9J_lJyA1TA=/]
+title Settlement Matrix for Central-Ledger
 
 participant "Central-Ledger" as ext_cl
 
@@ -42,7 +42,7 @@ group 2. Settlement - App Logic
     abbc_grpc <-> sbc_app_logic : Return **Settlement Accounts** based on batches
     sbc_app_logic <--> sbc_app_logic : Prepare the Settlement Matrix
     sbc_app_logic -> sbc_rest : Return Settlement Matrix
-    sbc_rest -> ext_cl : Return Settlement Matrix for caller
+    sbc_rest -> ext_cl : Return Settlement Matrix for caller\n**//ISettlementMatrixDto//**
 autonumber
     == Publish Settlement Matrix Result for Liquidity Restoration ==
     sbc_app_logic --> sbc_app_logic : Create events for each Settlement Batch Account Balance update

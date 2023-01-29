@@ -1,6 +1,6 @@
 @startuml
 
-title Settlement Matrix in Participants BC - Refer to Reference Architecture: [https://miro.com/app/board/o9J_lJyA1TA=/]
+title Settlement Matrix for Participants BC
 
 participant "Transfer-BC" as ext_transfers_bc
 
@@ -38,7 +38,7 @@ autonumber
     abbc_grpc <-> sbc_app_logic : Return **Settlement Accounts** based on batches
     sbc_app_logic <--> sbc_app_logic : Prepare the Settlement Matrix
     sbc_app_logic -> sbc_rest : Return Settlement Matrix
-    sbc_rest -> ext_transfers_bc : Return Settlement Matrix for caller
+    sbc_rest -> ext_transfers_bc : Return Settlement Matrix for caller\n**//ISettlementMatrixDto//**
 end
 
 @enduml
