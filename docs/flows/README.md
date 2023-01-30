@@ -25,13 +25,13 @@ The diagram below illustrates how Transfers that were cleared by the **Central-L
 ## ![Settlement Transfer Flow for Central-Ledger](./01-settlement-transfer-cl.svg "Settlement Transfer Central-Ledger")
 
 ### Settlement Transfer Model
-A settlement transfer is the data object shared between Settlement and the external systems once the clearing transfer has been completed successfully.
+A settlement transfer is the data object shared between Settlement and the external services once the clearing transfer has been completed successfully.
 The table below gives a view of the Settlement Transfer fields:
 
 | Field              | Definition                                | Description                                                                                                                                        |
 |--------------------|-------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
 | `id`               | `null / string`                           | The global unique identifier for settlement transfer. Assigned by Settlement                                                                       |
-| `externalId`       | `string`                                  | An external id used by the external system (Central-Ledger / Transfers BC) used to identify a transaction                                          |
+| `externalId`       | `string`                                  | An external id used by the external services (Central-Ledger / Transfers BC) used to identify a transaction                                        |
 | `currencyCode`     | `string`                                  | The currency code for a settlement transfer as described in ISO-4217                                                                               |
 | `currencyDecimals` | `number / null`                           | The number of decimal precisions for the `currencyCode`                                                                                            |
 | `amount`           | `string`                                  | The transfer amount in minor denomination format (cents/fills) as text (`string)                                                                   |
@@ -47,7 +47,7 @@ The table below gives a view of the Settlement Batch Account fields:
 | Field              | Definition                                | Description                                                                                               |
 |--------------------|-------------------------------------------|-----------------------------------------------------------------------------------------------------------|
 | `id`               | `null / string`                           | The global unique identifier for settlement batch account. Assigned by Settlement                         |
-| `externalId`       | `string`                                  | An external id used by the external system (Central-Ledger / Transfers BC) used to identify an account    |
+| `externalId`       | `string`                                  | An external id used by the external services (Central-Ledger / Transfers BC) used to identify an account  |
 | `settlementBatch`  | `null / ISettlementBatchDto` __Optional__ | The settlement batch the account is assigned to                                                           |
 | `currencyCode`     | `string`                                  | The currency code for a settlement batch account as described in ISO-4217                                 |
 | `currencyDecimals` | `number / null`                           | The number of decimal precisions for the `currencyCode`                                                   |
@@ -64,7 +64,7 @@ the batches and returns a result set of all the DR/CR balances of the settlement
 The purpose of the matrix is to view the DR/CR balances for batches, and the payer/payee 
 settlement account balances for those batches.  
 
-Once the batches are closed, the external system (i.e. Central-Ledger, Transferes-BC, Participants-BC) 
+Once the batches are closed, the external services (i.e. Central-Ledger, Transfers BC, Participants BC) 
 that interfaces with the Settlement-BC gets notified of the settlement transfers being fulfilled.
 
 ### Settlement Matrix - Central-Ledger
@@ -76,7 +76,7 @@ The flow below is how a fulfilled Matrix is created for Participants BC:
 ## ![Settlement Matrix Flow for Transfers BC](./02-settlement-matrix-bc.svg "ST TBC")
 
 ### Settlement Matrix Model
-The settlement matrix is the data object shared between Settlement and the external systems during settlement matrix generation.
+The settlement matrix is the data object shared between Settlement and the external services during settlement matrix generation.
 The table below illustrates the Settlement Matrix fields:
 
 | Field                   | Definition                    | Description                                                        |
@@ -109,7 +109,7 @@ The table below illustrates the Settlement Matrix Batch Account fields:
 | Field              | Definition                    | Description                                                                                                     |
 |--------------------|-------------------------------|-----------------------------------------------------------------------------------------------------------------|
 | `id`               | `null / string`               | The global unique identifier for settlement batch account. Assigned by Settlement                               |
-| `externalId`       | `string`                      | An external id used by the external system (Central-Ledger / Transfers BC) used to identify a settled account   |
+| `externalId`       | `string`                      | An external id used by the external services (Central-Ledger / Transfers BC) used to identify a settled account |
 | `currencyCode`     | `string`                      | The currency code as described in ISO-4217 for the batch account                                                |
 | `debitBalance`     | `string`                      | The settlement batch account debit balance amount in minor denomination format (cents/fills) as text (`string)  |
 | `creditBalance`    | `string`                      | The settlement batch account credit balance amount in minor denomination format (cents/fills) as text (`string) |

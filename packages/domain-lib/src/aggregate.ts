@@ -640,7 +640,10 @@ export class Aggregate {
 		const formatTimestamp = `${toDateDate.getUTCFullYear()}.${toDateDate.getUTCMonth()+1}.${toDateDate.getUTCDate()}.${toDateDate.getUTCHours()}.${toDateDate.getUTCMinutes()}`;
 		//TODO 1. Need to fetch all the closed batches for the suffix
 
-		return `${model}.${debitCurrency.toUpperCase()}:${creditCurrency.toUpperCase()}.${formatTimestamp}.${batchSeq}`;
+		let batchSeqTxt = `00${batchSeq}`;
+		batchSeqTxt = batchSeqTxt.substr(batchSeqTxt.length - 3);
+
+		return `${model}.${debitCurrency.toUpperCase()}:${creditCurrency.toUpperCase()}.${formatTimestamp}.${batchSeqTxt}`;
 	}
 
 	private nextBatchSequence(
