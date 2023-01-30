@@ -16,7 +16,7 @@ This process is initiated when the Settlement BC receives cleared Transfers to s
 The process creates settlement obligations between the payer (debtor) and payee (creditor) DFSPs 
 by creating settlement transfers which are deterministically allocated to settlement batches. 
 
-## Settlement from Transfers BC
+### Settlement from vNext Transfers BC
 The diagram below illustrates how Transfers that were cleared by the **Transfers BC** get settled:
 ## ![Settlement Transfer Flow for Transfers BC](./01-settlement-transfer-bc.svg "Settlement Transfer Transfers BC")
 
@@ -67,13 +67,13 @@ settlement account balances for those batches.
 Once the batches are closed, the external services (i.e. Central-Ledger, Transfers BC, Participants BC) 
 that interfaces with the Settlement-BC gets notified of the settlement transfers being fulfilled.
 
+## Settlement Matrix - from vNext UI/API
+The flow below is how a Settlement Matrix is created from the vNext UI/API:
+## ![Settlement Matrix Flow for Transfers BC](./02-settlement-matrix-bc.svg "ST TBC")
+
 ### Settlement Matrix - Central-Ledger
 The flow below is how a Settlement Matrix is created for Central-Ledger:
 ## ![Settlement Matrix Flow for Central-Ledger](./02-settlement-matrix-cl.svg "ST CL")
-
-## Settlement Matrix - Participants BC
-The flow below is how a fulfilled Matrix is created for Participants BC:
-## ![Settlement Matrix Flow for Transfers BC](./02-settlement-matrix-bc.svg "ST TBC")
 
 ### Settlement Matrix Model
 The settlement matrix is the data object shared between Settlement and the external services during settlement matrix generation.
