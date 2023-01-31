@@ -51,8 +51,10 @@ export class InvalidExternalIdError extends Error {}
 export class InvalidCurrencyCodeError extends Error {}
 export class InvalidCurrencyDecimalsError extends Error {}
 export class InvalidTimestampError extends Error {}
+export class InvalidBatchDefinitionError extends Error {}
 export class InvalidBatchIdentifierError extends Error {}
 export class InvalidBatchSettlementModelError extends Error {}
+export class InvalidBatchSettlementAllocationError extends Error {}
 // Repos.
 export class UnableToInitRepoError extends Error {}
 export class AccountAlreadyExistsError extends Error {}

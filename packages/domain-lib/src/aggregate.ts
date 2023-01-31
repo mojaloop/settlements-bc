@@ -46,7 +46,11 @@ import {
 	NoSettlementConfig,
 	PositionAccountNotFoundError,
 	InvalidCreditAccountError,
-	InvalidDebitAccountError, InvalidIdError, SettlementBatchNotFoundError
+	InvalidDebitAccountError,
+	InvalidIdError,
+	SettlementBatchNotFoundError,
+	InvalidBatchDefinitionError,
+	InvalidBatchSettlementAllocationError
 } from "./types/errors";
 import {
 	ISettlementBatchRepo,
@@ -160,8 +164,7 @@ export class Aggregate {
 
 		// IDs:
 		if (batchDto.id === null || batchDto.id === "") throw new InvalidIdError();
-		if (batchDto.debitCurrency === null || batchDto.debitCurrency === "") throw new InvalidCurrencyCodeError();
-		if (batchDto.creditCurrency === null || batchDto.creditCurrency === "") throw new InvalidCurrencyCodeError();
+		if (batchDto.currency === null || batchDto.currency === "") throw new InvalidCurrencyCodeError();
 
 		// Generate a random UUID, if needed:
 		if (await this.batchRepo.batchExistsByBatchIdentifier(batchDto.batchIdentifier)) {
@@ -173,8 +176,8 @@ export class Aggregate {
 			batchDto.id,
 			timestamp,
 			batchDto.settlementModel,
-			batchDto.debitCurrency!,
-			batchDto.creditCurrency!,
+			batchDto.currency,
+			batchDto.batchAllocation,
 			batchDto.batchSequence,
 			batchDto.batchIdentifier,
 			batchDto.batchStatus === undefined ? SettlementBatchStatus.OPEN : batchDto.batchStatus!
@@ -260,6 +263,11 @@ export class Aggregate {
 		this.enforcePrivilege(securityContext, Privileges.CREATE_SETTLEMENT_TRANSFER);
 
 		if (transferDto.timestamp === undefined || transferDto.timestamp === null || transferDto.timestamp < 1) throw new InvalidTimestampError();
+		if (transferDto.batch === undefined || transferDto.batch === null) throw new InvalidBatchDefinitionError();
+		if (transferDto.batch.settlementModel === undefined ||
+			(transferDto.batch.settlementModel === null || transferDto.batch.settlementModel === "")) throw new InvalidBatchSettlementModelError();
+		if (transferDto.batch.batchAllocation === undefined ||
+			(transferDto.batch.batchAllocation === null || transferDto.batch.batchAllocation === "")) throw new InvalidBatchSettlementAllocationError();
 		if (transferDto.currencyCode === undefined || transferDto.currencyCode === "") throw new InvalidCurrencyCodeError();
 		if (transferDto.amount === undefined || transferDto.amount === "") throw new InvalidAmountError();
 		if (transferDto.externalId === undefined || transferDto.externalId === "") throw new InvalidExternalIdError();
@@ -283,6 +291,19 @@ export class Aggregate {
 		}
 		if (amount <= 0n) throw new InvalidAmountError();
 
+		const sbTemp : SettlementBatch = {
+			id: transferDto.batch.id,
+			timestamp: transferDto.timestamp,
+			settlementModel: transferDto.batch.settlementModel,
+			currency: transferDto.currencyCode,
+			batchAllocation: transferDto.batch.batchAllocation,
+			batchSequence: 0,
+			batchIdentifier: transferDto.batch.batchIdentifier!,
+			batchStatus: SettlementBatchStatus.CLOSED,
+			toDto: function (): ISettlementBatchDto {
+				throw new Error("Function not implemented.");
+			}
+		};
 		const transfer: SettlementTransfer = new SettlementTransfer(
 			randomUUID(),
 			transferDto.externalId!,
@@ -291,7 +312,7 @@ export class Aggregate {
 			amount,
 			transferDto.creditAccount.id!,
 			transferDto.debitAccount.id!,
-			null,
+			sbTemp,
 			timestamp
 		);
 
@@ -304,8 +325,8 @@ export class Aggregate {
 			batchDto.id,
 			batchDto.timestamp,
 			batchDto.settlementModel!,
-			batchDto.debitCurrency!,
-			batchDto.creditCurrency!,
+			batchDto.currency!,
+			batchDto.batchAllocation!,
 			batchDto.batchSequence,
 			batchDto.batchIdentifier!,
 			batchDto.batchStatus!
@@ -329,6 +350,8 @@ export class Aggregate {
 			debitedAccountDto = await this.createSettlementBatchAccountFromAccId(
 				transferDto.debitAccount.id!,
 				transfer.batch.id,
+				transfer.batch.settlementModel,
+				transfer.batch.batchAllocation,
 				currency,
 				securityContext
 			);
@@ -337,6 +360,8 @@ export class Aggregate {
 			creditedAccountDto = await this.createSettlementBatchAccountFromAccId(
 				transferDto.creditAccount.id!,
 				transfer.batch.id,
+				transfer.batch.settlementModel,
+				transfer.batch.batchAllocation,
 				currency,
 				securityContext
 			);
@@ -544,6 +569,8 @@ export class Aggregate {
 	private async createSettlementBatchAccountFromAccId(
 		accId: string,
 		batchId: string,
+		settlementModel: string,
+		batchAllocation: string,
 		currency: ICurrency,
 		securityContext: CallSecurityContext
 	): Promise<ISettlementBatchAccountDto> {
@@ -561,9 +588,9 @@ export class Aggregate {
 		const settlementBatch : ISettlementBatchDto = {
 			id: batchId,
 			timestamp: 0,
-			settlementModel: null,
-			debitCurrency: null,
-			creditCurrency: null,
+			settlementModel: settlementModel,
+			batchAllocation: batchAllocation,
+			currency: null,
 			batchSequence: 0,
 			batchIdentifier: null,
 			batchStatus: null
@@ -619,7 +646,7 @@ export class Aggregate {
 				transfer.currencyCode,
 				transfer.currencyCode,
 				nextBatchSeq,
-				this.generateBatchIdentifier(model, transfer.currencyCode, transfer.currencyCode, toDate, nextBatchSeq),
+				this.generateBatchIdentifier(model, transfer.batch.batchAllocation, nextBatchSeq),
 				SettlementBatchStatus.OPEN
 			).toDto()
 			await this.createSettlementBatch(settlementBatchDto, securityContext);
@@ -629,21 +656,18 @@ export class Aggregate {
 
 	private generateBatchIdentifier(
 		model: string,
-		debitCurrency: string,
-		creditCurrency: string,
-		toDate: number,
+		batchAllocation: string,
 		batchSeq: number
 	) : string {
 		//TODO add assertion here:
 		//FX.XOF:RWF.2021.08.23.00.00
-		const toDateDate = new Date(toDate);
-		const formatTimestamp = `${toDateDate.getUTCFullYear()}.${toDateDate.getUTCMonth()+1}.${toDateDate.getUTCDate()}.${toDateDate.getUTCHours()}.${toDateDate.getUTCMinutes()}`;
-		//TODO 1. Need to fetch all the closed batches for the suffix
+		//const toDateDate = new Date(toDate);
+		//const formatTimestamp = `${toDateDate.getUTCFullYear()}.${toDateDate.getUTCMonth()+1}.${toDateDate.getUTCDate()}.${toDateDate.getUTCHours()}.${toDateDate.getUTCMinutes()}`;
 
 		let batchSeqTxt = `00${batchSeq}`;
 		batchSeqTxt = batchSeqTxt.substr(batchSeqTxt.length - 3);
 
-		return `${model}.${debitCurrency.toUpperCase()}:${creditCurrency.toUpperCase()}.${formatTimestamp}.${batchSeqTxt}`;
+		return `${model}.${batchAllocation}.${batchSeqTxt}`;
 	}
 
 	private nextBatchSequence(

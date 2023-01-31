@@ -39,7 +39,7 @@ export class SettlementTransfer {
 	amount: bigint;
 	debitAccountId: string;
 	creditAccountId: string;
-	batch: SettlementBatch | null;
+	batch: SettlementBatch;
 	timestamp: number;
 
 	constructor(
@@ -50,7 +50,7 @@ export class SettlementTransfer {
 		amount: bigint,
 		creditAccountId: string,
 		debitAccountId: string,
-		batch: SettlementBatch | null,
+		batch: SettlementBatch,
 		timestamp: number
 	) {
 		this.id = id;
@@ -66,7 +66,7 @@ export class SettlementTransfer {
 
 	toDto(): ISettlementTransferDto {
 		const amount: string = bigintToString(this.amount, this.currencyDecimals);
-		const batch: ISettlementBatchDto | null = this.batch === null ? null : this.batch.toDto();
+		const batch: ISettlementBatchDto = this.batch.toDto();
 		const debitAcc: ISettlementBatchAccountDto = {
 			id: this.debitAccountId,
 			externalId: null,
