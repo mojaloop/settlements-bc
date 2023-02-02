@@ -16,8 +16,7 @@ authorization: 123456
   "currencyCode" : "USD",
   "amount" : "10000",
   "timestamp" : {{$timestamp}}000,
-  "settlementModel" :  "DEFAULT",
-  "batchAllocation" :  "{{$uuid}}-Date"
+  "settlementModel" :  "DEFAULT"
 }
 
 > {%

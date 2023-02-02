@@ -177,7 +177,6 @@ export class Aggregate {
 			timestamp,
 			batchDto.settlementModel,
 			batchDto.currency,
-			batchDto.batchAllocation,
 			batchDto.batchSequence,
 			batchDto.batchIdentifier,
 			batchDto.batchStatus === undefined ? SettlementBatchStatus.OPEN : batchDto.batchStatus!
@@ -266,8 +265,6 @@ export class Aggregate {
 		if (transferDto.batch === undefined || transferDto.batch === null) throw new InvalidBatchDefinitionError();
 		if (transferDto.settlementModel === undefined ||
 			(transferDto.settlementModel === null || transferDto.settlementModel === "")) throw new InvalidBatchSettlementModelError();
-		if (transferDto.batchAllocation === undefined ||
-			(transferDto.batchAllocation === null || transferDto.batchAllocation === "")) throw new InvalidBatchSettlementAllocationError();
 		if (transferDto.currencyCode === undefined || transferDto.currencyCode === "") throw new InvalidCurrencyCodeError();
 		if (transferDto.amount === undefined || transferDto.amount === "") throw new InvalidAmountError();
 		if (transferDto.externalId === undefined || transferDto.externalId === "") throw new InvalidExternalIdError();
@@ -296,7 +293,6 @@ export class Aggregate {
 			timestamp: transferDto.timestamp,
 			settlementModel: transferDto.settlementModel,
 			currency: transferDto.currencyCode,
-			batchAllocation: transferDto.batchAllocation,
 			batchSequence: 0,
 			batchIdentifier: transferDto.batchIdentifier!,
 			batchStatus: SettlementBatchStatus.CLOSED,
@@ -326,7 +322,6 @@ export class Aggregate {
 			batchDto.timestamp,
 			batchDto.settlementModel!,
 			batchDto.currency!,
-			batchDto.batchAllocation!,
 			batchDto.batchSequence,
 			batchDto.batchIdentifier!,
 			batchDto.batchStatus!
@@ -350,8 +345,7 @@ export class Aggregate {
 			debitedAccountDto = await this.createSettlementBatchAccountFromAccId(
 				transferDto.debitAccount.id!,
 				transfer.id,
-				transfer.settlementModel,
-				transfer.batchAllocation,
+				transferDto.settlementModel,
 				currency,
 				securityContext
 			);
@@ -360,8 +354,7 @@ export class Aggregate {
 			creditedAccountDto = await this.createSettlementBatchAccountFromAccId(
 				transferDto.creditAccount.id!,
 				transfer.id,
-				transfer.settlementModel,
-				transfer.batchAllocation,
+				transferDto.settlementModel,
 				currency,
 				securityContext
 			);
@@ -570,7 +563,6 @@ export class Aggregate {
 		accId: string,
 		batchId: string,
 		settlementModel: string,
-		batchAllocation: string,
 		currency: ICurrency,
 		securityContext: CallSecurityContext
 	): Promise<ISettlementBatchAccountDto> {

@@ -39,7 +39,6 @@ The table below gives a view of the Settlement Transfer fields:
 | `creditAccount`     | `ISettlementBatchAccountDto`       | The account to be credited. The actual settlement account will be derived from the provided credit account during a transfer                                         |
 | `timestamp`         | `number`                           | The timestamp of the original committed/fulfilled transfer. Settlement batch processing make use of the timestamp to allocate transfers to batches                   |
 | `settlementModel`   | `string`                           | The settlement model assigned to the transfer (Examples include `DEFAULT`, `FX` and `REMITTENCE`). Mandatory for a transfer create                                   |
-| `batchAllocation`   | `string`                           | The settlement batch allocation used to identify a batch with. Examples include `USD.2023.1.26.13.33` and `USD:USD.2023.1.26.13.33`. Mandatory for a transfer create |
 | `batch`             | __Optional__ `ISettlementBatchDto` | The settlement batch gets assigned during the settlement process. The value should not be set as part of the settlement transfer create process                      |
 * See `ISettlementTransferDto` at https://github.com/mojaloop/settlements-bc/blob/main/packages/public-types-lib/src/index.ts
 
@@ -68,10 +67,9 @@ The table below gives a view of the Settlement Batch fields:
 | `id`              | `null / string`         | The global unique identifier for settlement batch account. Assigned by Settlement                                                                                                        |
 | `timestamp`       | `number`                | The timestamp for when the settlement batch account was created                                                                                                                          |
 | `settlementModel` | `string`                | The settlement model assigned to the transfer (Examples include `DEFAULT`, `FX` and `REMITTENCE`). Mandatory for a transfer create.                                                      |
-| `batchAllocation` | `string`                | The settlement batch allocation used to identify a batch with. Examples include `USD.2023.1.26.13.33` and `USD:USD.2023.1.26.13.33`. Mandatory for a transfer create                     |
 | `currency`        | `string`                | The currency for a settlement batch as described in ISO-4217                                                                                                                             |
 | `batchSequence`   | `number`                | The sequence for a batch. See batch assignment section                                                                                                                                   |
-| `batchIdentifier` | `string`                | The settlement account debit balance amount in minor denomination format (cents/fills) as text (`string)                                                                                 |
+| `batchIdentifier` | `string`                | The settlement account debit balance amount in minor denomination format (cents/fills) as text (`string). Example include `USD.2023.1.26.13.33`                                          |
 | `batchStatus`     | `SettlementBatchStatus` | The status for a settlement batch. `OPEN` = Batch is open and may receive settlement transfers , `CLOSED` = Batch is closed and no more transactions will be allocated to a closed batch |
 * See `ISettlementBatchDto` at https://github.com/mojaloop/settlements-bc/blob/main/packages/public-types-lib/src/index.ts
 

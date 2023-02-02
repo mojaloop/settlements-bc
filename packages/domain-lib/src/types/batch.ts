@@ -34,7 +34,6 @@ export class SettlementBatch {
 	timestamp: number;
 	settlementModel: string;
 	currency: string;
-	batchAllocation: string;
 	batchSequence: number;
 	batchIdentifier: string;// FX.XOF:RWF.2021.08.23.00.00.001
 	batchStatus: SettlementBatchStatus;
@@ -44,7 +43,6 @@ export class SettlementBatch {
 		timestamp: number,
 		settlementModel: string,
 		currency: string,
-		batchAllocation: string,
 		batchSequence: number,
 		batchIdentifier: string,
 		batchStatus: SettlementBatchStatus
@@ -53,7 +51,6 @@ export class SettlementBatch {
 		this.timestamp = timestamp;
 		this.settlementModel = settlementModel;
 		this.currency = currency;
-		this.batchAllocation = batchAllocation;
 		this.batchSequence = batchSequence;
 		this.batchIdentifier = batchIdentifier;
 		this.batchStatus = batchStatus;
@@ -65,7 +62,6 @@ export class SettlementBatch {
 			timestamp: this.timestamp,
 			settlementModel: this.settlementModel,
 			currency: this.currency,
-			batchAllocation: this.batchAllocation,
 			batchSequence: this.batchSequence,
 			batchIdentifier: this.batchIdentifier,
 			batchStatus: this.batchStatus
