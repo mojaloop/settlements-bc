@@ -12,7 +12,9 @@ authorization: 123456
   "creditAccount" : {"id" :  "credit-acc"},
   "currencyCode" : "USD",
   "amount" : "10000",
-  "timestamp" : {{$timestamp}}000
+  "timestamp" : {{$timestamp}}000,
+  "settlementModel" :  "DEFAULT",
+  "batchAllocation" :  "{{$uuid}}-Date"
 }
 
 > {%

@@ -77,6 +77,8 @@ export interface ISettlementTransferDto {
 	debitAccount: ISettlementBatchAccountDto;
 	creditAccount: ISettlementBatchAccountDto;
 	timestamp: number;
+	settlementModel: string;
+	batchAllocation: string;
 	batch?: ISettlementBatchDto | null;
 }
 

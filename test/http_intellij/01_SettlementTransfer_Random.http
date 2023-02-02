@@ -4,6 +4,9 @@ Content-Type: application/json
 X-Correlation-ID: Manual-{{$uuid}}
 authorization: 123456
 
+#[USD.CAD.2023.1.26.13.33]
+#[USD.2023.1.26.13.33]
+# [settlementModel] & [batchAllocation] is optional.
 {
   "id" : null,
   "externalId" : "{{$uuid}}",
@@ -12,7 +15,9 @@ authorization: 123456
   "creditAccount" : {"id" :  "{{$uuid}}"},
   "currencyCode" : "USD",
   "amount" : "10000",
-  "timestamp" : {{$timestamp}}000
+  "timestamp" : {{$timestamp}}000,
+  "settlementModel" :  "DEFAULT",
+  "batchAllocation" :  "{{$uuid}}-Date"
 }
 
 > {%

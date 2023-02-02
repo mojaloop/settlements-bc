@@ -35,9 +35,9 @@ end box
 
 group 1. Create Settlement Transfer - Central Ledger
 autonumber
-    ext_cl <--> ext_cl : Transfer fulfil occurred
-    ext_cl <-> ext_cl : Obtain settlement model
-    ext_cl -> sbc_event : \n//publishEvent//\n**//ISettlementTransferDto//**
+    ext_cl <--> ext_cl : Transfer prepare. \nObtain settlement model and allocation data\nvia rules engine
+    ext_cl <--> ext_cl : Transfer fulfil
+    ext_cl -> sbc_event : \n//publishEvent// will all necessary data as\n**//ISettlementTransferDto//**
 autonumber
     sbc_app_logic -> sbc_event : Listen for Settlement Transfer event
 end

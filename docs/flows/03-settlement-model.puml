@@ -1,0 +1,20 @@
+@startuml
+
+object ISettlementTransferDto
+    ISettlementTransferDto : **//(PK)// id** = //uuid//
+    ISettlementTransferDto : **externalId** = //uuid//
+    ISettlementTransferDto : ...
+object ISettlementBatchAccountDto
+    ISettlementBatchAccountDto : **//(PK)// id** = //uuid//
+    ISettlementBatchAccountDto : **externalId** = //uuid//
+    ISettlementBatchAccountDto : ...
+object ISettlementBatchDto
+    ISettlementBatchDto : **//(PK)// id** = //uuid//
+    ISettlementBatchDto : ...
+
+ISettlementBatchAccountDto <|-- ISettlementTransferDto : //debitAccount//
+ISettlementBatchAccountDto <|-- ISettlementTransferDto : //creditAccount//
+ISettlementBatchDto <|-- ISettlementTransferDto : //batch (assigned during transfer)//
+ISettlementBatchDto <|-- ISettlementBatchAccountDto : //batch//
+
+@enduml

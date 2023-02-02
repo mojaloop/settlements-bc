@@ -28,20 +28,24 @@ The diagram below illustrates how Transfers that were cleared by the **Central-L
 A settlement transfer is the data object shared between Settlement and the external services once the clearing transfer has been completed successfully.
 The table below gives a view of the Settlement Transfer fields:
 
-| Field              | Definition                                | Description                                                                                                                                        |
-|--------------------|-------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
-| `id`               | `null / string`                           | The global unique identifier for settlement transfer. Assigned by Settlement                                                                       |
-| `externalId`       | `string`                                  | An external id used by the external services (Central-Ledger / Transfers BC) used to identify a transaction                                        |
-| `currencyCode`     | `string`                                  | The currency code for a settlement transfer as described in ISO-4217                                                                               |
-| `currencyDecimals` | `number / null`                           | The number of decimal precisions for the `currencyCode`                                                                                            |
-| `amount`           | `string`                                  | The transfer amount in minor denomination format (cents/fills) as text (`string)                                                                   |
-| `debitAccount`     | `ISettlementBatchAccountDto`              | The account to be debited. The actual settlement account will be derived from the provided debit account during a transfer                         |
-| `creditAccount`    | `ISettlementBatchAccountDto`              | The account to be credited. The actual settlement account will be derived from the provided credit account during a transfer                       |
-| `timestamp`        | `number`                                  | The timestamp of the original committed/fulfilled transfer. Settlement batch processing make use of the timestamp to allocate transfers to batches |
-| `batch`            | __Optional__ `null / ISettlementBatchDto` | The settlement batch gets assigned during the settlement process, by the Settlement-BC                                                             |
+| Field               | Definition                         | Description                                                                                                                                                          |
+|---------------------|------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `id`                | `null / string`                    | The global unique identifier for settlement transfer. Assigned by Settlement                                                                                         |
+| `externalId`        | `string`                           | An external id used by the external services (Central-Ledger / Transfers BC) used to identify a transaction                                                          |
+| `currencyCode`      | `string`                           | The currency code for a settlement transfer as described in ISO-4217                                                                                                 |
+| `currencyDecimals`  | `number / null`                    | The number of decimal precisions for the `currencyCode`                                                                                                              |
+| `amount`            | `string`                           | The transfer amount in minor denomination format (cents/fills) as text (`string)                                                                                     |
+| `debitAccount`      | `ISettlementBatchAccountDto`       | The account to be debited. The actual settlement account will be derived from the provided debit account during a transfer                                           |
+| `creditAccount`     | `ISettlementBatchAccountDto`       | The account to be credited. The actual settlement account will be derived from the provided credit account during a transfer                                         |
+| `timestamp`         | `number`                           | The timestamp of the original committed/fulfilled transfer. Settlement batch processing make use of the timestamp to allocate transfers to batches                   |
+| `settlementModel`   | `string`                           | The settlement model assigned to the transfer (Examples include `DEFAULT`, `FX` and `REMITTENCE`). Mandatory for a transfer create                                   |
+| `batchAllocation`   | `string`                           | The settlement batch allocation used to identify a batch with. Examples include `USD.2023.1.26.13.33` and `USD:USD.2023.1.26.13.33`. Mandatory for a transfer create |
+| `batch`             | __Optional__ `ISettlementBatchDto` | The settlement batch gets assigned during the settlement process. The value should not be set as part of the settlement transfer create process                      |
 * See `ISettlementTransferDto` at https://github.com/mojaloop/settlements-bc/blob/main/packages/public-types-lib/src/index.ts
 
 ### Settlement Batch Account Model
+A settlement batch account is an account created for a participant for a batch.
+The `externalId` may be used to link the participant account with the settlement batch account.
 The table below gives a view of the Settlement Batch Account fields:
 
 | Field              | Definition                                | Description                                                                                               |
@@ -55,6 +59,24 @@ The table below gives a view of the Settlement Batch Account fields:
 | `creditBalance`    | `string`                                  | The settlement account credit balance amount in minor denomination format (cents/fills) as text (`string) |
 | `timestamp`        | `number`                                  | The timestamp for when the settlement batch account was created                                           |
 * See `ISettlementBatchAccountDto` at https://github.com/mojaloop/settlements-bc/blob/main/packages/public-types-lib/src/index.ts
+
+### Settlement Batch Model
+The table below gives a view of the Settlement Batch fields:
+
+| Field             | Definition              | Description                                                                                                                                                                              |
+|-------------------|-------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `id`              | `null / string`         | The global unique identifier for settlement batch account. Assigned by Settlement                                                                                                        |
+| `timestamp`       | `number`                | The timestamp for when the settlement batch account was created                                                                                                                          |
+| `settlementModel` | `string`                | The settlement model assigned to the transfer (Examples include `DEFAULT`, `FX` and `REMITTENCE`). Mandatory for a transfer create.                                                      |
+| `batchAllocation` | `string`                | The settlement batch allocation used to identify a batch with. Examples include `USD.2023.1.26.13.33` and `USD:USD.2023.1.26.13.33`. Mandatory for a transfer create                     |
+| `currency`        | `string`                | The currency for a settlement batch as described in ISO-4217                                                                                                                             |
+| `batchSequence`   | `number`                | The sequence for a batch. See batch assignment section                                                                                                                                   |
+| `batchIdentifier` | `string`                | The settlement account debit balance amount in minor denomination format (cents/fills) as text (`string)                                                                                 |
+| `batchStatus`     | `SettlementBatchStatus` | The status for a settlement batch. `OPEN` = Batch is open and may receive settlement transfers , `CLOSED` = Batch is closed and no more transactions will be allocated to a closed batch |
+* See `ISettlementBatchDto` at https://github.com/mojaloop/settlements-bc/blob/main/packages/public-types-lib/src/index.ts
+
+### Settlement Model Relationships
+
 
 ## 2. Fulfilling Settlement Obligations
 This process begins with requesting the settlement matrix for a specified timespan __(Generate Settlement Matrix)__.    

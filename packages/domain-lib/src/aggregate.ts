@@ -264,10 +264,10 @@ export class Aggregate {
 
 		if (transferDto.timestamp === undefined || transferDto.timestamp === null || transferDto.timestamp < 1) throw new InvalidTimestampError();
 		if (transferDto.batch === undefined || transferDto.batch === null) throw new InvalidBatchDefinitionError();
-		if (transferDto.batch.settlementModel === undefined ||
-			(transferDto.batch.settlementModel === null || transferDto.batch.settlementModel === "")) throw new InvalidBatchSettlementModelError();
-		if (transferDto.batch.batchAllocation === undefined ||
-			(transferDto.batch.batchAllocation === null || transferDto.batch.batchAllocation === "")) throw new InvalidBatchSettlementAllocationError();
+		if (transferDto.settlementModel === undefined ||
+			(transferDto.settlementModel === null || transferDto.settlementModel === "")) throw new InvalidBatchSettlementModelError();
+		if (transferDto.batchAllocation === undefined ||
+			(transferDto.batchAllocation === null || transferDto.batchAllocation === "")) throw new InvalidBatchSettlementAllocationError();
 		if (transferDto.currencyCode === undefined || transferDto.currencyCode === "") throw new InvalidCurrencyCodeError();
 		if (transferDto.amount === undefined || transferDto.amount === "") throw new InvalidAmountError();
 		if (transferDto.externalId === undefined || transferDto.externalId === "") throw new InvalidExternalIdError();
@@ -292,13 +292,13 @@ export class Aggregate {
 		if (amount <= 0n) throw new InvalidAmountError();
 
 		const sbTemp : SettlementBatch = {
-			id: transferDto.batch.id,
+			id: transferDto.id,
 			timestamp: transferDto.timestamp,
-			settlementModel: transferDto.batch.settlementModel,
+			settlementModel: transferDto.settlementModel,
 			currency: transferDto.currencyCode,
-			batchAllocation: transferDto.batch.batchAllocation,
+			batchAllocation: transferDto.batchAllocation,
 			batchSequence: 0,
-			batchIdentifier: transferDto.batch.batchIdentifier!,
+			batchIdentifier: transferDto.batchIdentifier!,
 			batchStatus: SettlementBatchStatus.CLOSED,
 			toDto: function (): ISettlementBatchDto {
 				throw new Error("Function not implemented.");
@@ -349,9 +349,9 @@ export class Aggregate {
 		if (debitedAccountDto === null) {
 			debitedAccountDto = await this.createSettlementBatchAccountFromAccId(
 				transferDto.debitAccount.id!,
-				transfer.batch.id,
-				transfer.batch.settlementModel,
-				transfer.batch.batchAllocation,
+				transfer.id,
+				transfer.settlementModel,
+				transfer.batchAllocation,
 				currency,
 				securityContext
 			);
@@ -359,9 +359,9 @@ export class Aggregate {
 		if (creditedAccountDto === null) {
 			creditedAccountDto = await this.createSettlementBatchAccountFromAccId(
 				transferDto.creditAccount.id!,
-				transfer.batch.id,
-				transfer.batch.settlementModel,
-				transfer.batch.batchAllocation,
+				transfer.id,
+				transfer.settlementModel,
+				transfer.batchAllocation,
 				currency,
 				securityContext
 			);
@@ -646,7 +646,7 @@ export class Aggregate {
 				transfer.currencyCode,
 				transfer.currencyCode,
 				nextBatchSeq,
-				this.generateBatchIdentifier(model, transfer.batch.batchAllocation, nextBatchSeq),
+				this.generateBatchIdentifier(model, transfer.batchAllocation, nextBatchSeq),
 				SettlementBatchStatus.OPEN
 			).toDto()
 			await this.createSettlementBatch(settlementBatchDto, securityContext);
