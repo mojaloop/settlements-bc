@@ -581,7 +581,6 @@ export class Aggregate {
 			id: batchId,
 			timestamp: 0,
 			settlementModel: settlementModel,
-			batchAllocation: batchAllocation,
 			currency: null,
 			batchSequence: 0,
 			batchIdentifier: null,
@@ -638,7 +637,7 @@ export class Aggregate {
 				transfer.currencyCode,
 				transfer.currencyCode,
 				nextBatchSeq,
-				this.generateBatchIdentifier(model, transfer.batchAllocation, nextBatchSeq),
+				this.generateBatchIdentifier(model, transfer, nextBatchSeq),
 				SettlementBatchStatus.OPEN
 			).toDto()
 			await this.createSettlementBatch(settlementBatchDto, securityContext);
@@ -648,7 +647,7 @@ export class Aggregate {
 
 	private generateBatchIdentifier(
 		model: string,
-		batchAllocation: string,
+		transfer: SettlementTransfer,
 		batchSeq: number
 	) : string {
 		//TODO add assertion here:
@@ -659,7 +658,7 @@ export class Aggregate {
 		let batchSeqTxt = `00${batchSeq}`;
 		batchSeqTxt = batchSeqTxt.substr(batchSeqTxt.length - 3);
 
-		return `${model}.${batchAllocation}.${batchSeqTxt}`;
+		return `${model}.${transfer.currencyCode}.${batchSeqTxt}`;
 	}
 
 	private nextBatchSequence(

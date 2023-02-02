@@ -6,7 +6,7 @@ authorization: 123456
 
 #[USD.CAD.2023.1.26.13.33]
 #[USD.2023.1.26.13.33]
-# [settlementModel] & [batchAllocation] is optional.
+# [settlementModel] is optional.
 {
   "id" : null,
   "externalId" : "{{$uuid}}",
