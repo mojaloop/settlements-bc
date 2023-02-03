@@ -62,19 +62,20 @@ The table below gives a view of the Settlement Batch Account fields:
 ### Settlement Batch Model
 The table below gives a view of the Settlement Batch fields:
 
-| Field             | Definition              | Description                                                                                                                                                                              |
-|-------------------|-------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `id`              | `null / string`         | The global unique identifier for settlement batch account. Assigned by Settlement                                                                                                        |
-| `timestamp`       | `number`                | The timestamp for when the settlement batch account was created                                                                                                                          |
-| `settlementModel` | `string`                | The settlement model assigned to the transfer (Examples include `DEFAULT`, `FX` and `REMITTENCE`). Mandatory for a transfer create.                                                      |
-| `currency`        | `string`                | The currency for a settlement batch as described in ISO-4217                                                                                                                             |
-| `batchSequence`   | `number`                | The sequence for a batch. See batch assignment section                                                                                                                                   |
-| `batchIdentifier` | `string`                | The settlement account debit balance amount in minor denomination format (cents/fills) as text (`string). Example include `USD.2023.1.26.13.33`                                          |
-| `batchStatus`     | `SettlementBatchStatus` | The status for a settlement batch. `OPEN` = Batch is open and may receive settlement transfers , `CLOSED` = Batch is closed and no more transactions will be allocated to a closed batch |
+| Field             | Definition              | Description                                                                                                                                                                                            |
+|-------------------|-------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `id`              | `null / string`         | The global unique identifier for settlement batch account. Assigned by Settlement                                                                                                                      |
+| `timestamp`       | `number`                | The timestamp for when the settlement batch account was created                                                                                                                                        |
+| `settlementModel` | `string`                | The settlement model assigned to the transfer at time of transfer prepare (outside of the Settlement BC service) (Examples include `DEFAULT`, `FX` and `REMITTENCE`). Mandatory for a transfer create. |
+| `currency`        | `string`                | The currency for a settlement batch as described in ISO-4217                                                                                                                                           |
+| `batchSequence`   | `number`                | The sequence for a batch. See batch assignment section                                                                                                                                                 |
+| `batchIdentifier` | `string`                | The settlement account debit balance amount in minor denomination format (cents/fills) as text (`string). Example include `USD.2023.1.26.13.33`                                                        |
+| `batchStatus`     | `SettlementBatchStatus` | The status for a settlement batch. `OPEN` = Batch is open and may receive settlement transfers , `CLOSED` = Batch is closed and no more transactions will be allocated to a closed batch               |
 * See `ISettlementBatchDto` at https://github.com/mojaloop/settlements-bc/blob/main/packages/public-types-lib/src/index.ts
 
 ### Settlement Model Relationships
-
+The diagram below illustrates the relationships between persisted settlement data:
+## ![Settlement Data Relationships](./03-settlement-model.svg "Settlement Data Relationships")
 
 ## 2. Fulfilling Settlement Obligations
 This process begins with requesting the settlement matrix for a specified timespan __(Generate Settlement Matrix)__.    
