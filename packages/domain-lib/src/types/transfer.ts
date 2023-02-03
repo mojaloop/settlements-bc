@@ -33,13 +33,13 @@ import {SettlementBatch} from "./batch";
 
 export class SettlementTransfer {
 	id: string;
-	externalId: string | null;
+	externalId: string;
 	currencyCode: string;
 	currencyDecimals: number;
 	amount: bigint;
 	debitAccountId: string;
 	creditAccountId: string;
-	batch: SettlementBatch;
+	batch: SettlementBatch | null;
 	timestamp: number;
 
 	constructor(
@@ -50,7 +50,7 @@ export class SettlementTransfer {
 		amount: bigint,
 		creditAccountId: string,
 		debitAccountId: string,
-		batch: SettlementBatch,
+		batch: SettlementBatch | null,
 		timestamp: number
 	) {
 		this.id = id;
@@ -66,7 +66,7 @@ export class SettlementTransfer {
 
 	toDto(): ISettlementTransferDto {
 		const amount: string = bigintToString(this.amount, this.currencyDecimals);
-		const batch: ISettlementBatchDto = this.batch.toDto();
+		const batch: ISettlementBatchDto | null = this.batch === null ? null : this.batch.toDto();
 		const debitAcc: ISettlementBatchAccountDto = {
 			id: this.debitAccountId,
 			externalId: null,
@@ -97,7 +97,8 @@ export class SettlementTransfer {
 			debitAccount: debitAcc,
 			creditAccount: creditAcc,
 			batch,
-			timestamp: this.timestamp
+			timestamp: this.timestamp,
+			settlementModel: batch === undefined ? '' : batch!.settlementModel
 		};
 		return transferDto;
 	}

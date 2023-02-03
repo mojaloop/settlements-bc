@@ -288,18 +288,6 @@ export class Aggregate {
 		}
 		if (amount <= 0n) throw new InvalidAmountError();
 
-		const sbTemp : SettlementBatch = {
-			id: transferDto.id,
-			timestamp: transferDto.timestamp,
-			settlementModel: transferDto.settlementModel,
-			currency: transferDto.currencyCode,
-			batchSequence: 0,
-			batchIdentifier: transferDto.batchIdentifier!,
-			batchStatus: SettlementBatchStatus.CLOSED,
-			toDto: function (): ISettlementBatchDto {
-				throw new Error("Function not implemented.");
-			}
-		};
 		const transfer: SettlementTransfer = new SettlementTransfer(
 			randomUUID(),
 			transferDto.externalId!,
@@ -308,7 +296,7 @@ export class Aggregate {
 			amount,
 			transferDto.creditAccount.id!,
 			transferDto.debitAccount.id!,
-			sbTemp,
+			null,
 			timestamp
 		);
 
@@ -438,6 +426,7 @@ export class Aggregate {
 			debitAccount: debitedAccountDto,
 			creditAccount: creditedAccountDto,
 			timestamp: timestamp,
+			settlementModel: transfer.batch.settlementModel,
 			batch: batchDto
 		}
 		return returnVal;
@@ -634,7 +623,6 @@ export class Aggregate {
 				randomUUID(),
 				timestamp,
 				model,
-				transfer.currencyCode,
 				transfer.currencyCode,
 				nextBatchSeq,
 				this.generateBatchIdentifier(model, transfer, nextBatchSeq),
