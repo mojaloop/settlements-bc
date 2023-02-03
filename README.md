@@ -1,13 +1,38 @@
 # Settlements Bounded Context
 
+[![Git Commit](https://img.shields.io/github/last-commit/mojaloop/settlements-bc.svg?style=flat)](https://github.com/mojaloop/settlements-bc/commits/master)
+[![Git Releases](https://img.shields.io/github/release/mojaloop/settlements-bc.svg?style=flat)](https://github.com/mojaloop/settlements-bc/releases)
+[![Docker pulls](https://img.shields.io/docker/pulls/mojaloop/settlements-bc.svg?style=flat)](https://hub.docker.com/r/mojaloop/settlements-bc)
+[![CircleCI](https://circleci.com/gh/mojaloop/settlements-bc.svg?style=svg)](https://circleci.com/gh/mojaloop/settlements-bc)
+
 ## Packages
+The Settlements BC consists of the following packages;
 
-### settlements-bc-http-svc
+### `public-types-lib`
+Public shared types.
+[README](./packages/public-types-lib/README.md)
 
-[README](./modules/http-svc/README.md)
+### `domain-lib`
+Domain library types.
+[README](./packages/domain-lib/README.md)
+
+### `infrastructure-lib`
+Infrastructure library.
+[README](./packages/infrastructure-lib/README.md)
+
+### `settlements-bc-http-svc`
+HTTP service for Settlements BC.
+[README](./packages/http-svc/README.md)
+
+### `settlement-model-lib`
+Settlement library used to determine the settlement model for a settlement transfer.
+[README](./packages/settlement-model-lib/README.md)
+
+### `shared-mocks-lib`
+Mock implementation used for testing.
+[README](./packages/shared-mocks-lib/README.md)
 
 #### Run
-
 ```bash
 npm run start:http-svc
 ```
@@ -49,7 +74,6 @@ Use https://github.com/mojaloop/platform-shared-tools/tree/main/packages/deploym
 
 Follow instructions in the docker-compose-infra `README.md` to run the supporting services.
 
-
 ## After running the docker-compose-infra we can start settlements-bc-http-svc:
 ```shell
 npm run start:http-svc
@@ -62,7 +86,7 @@ npm run test:integration
 
 ## Troubleshoot
 
-### Unable to load dlfcn_load
+### Unable to load `dlfcn_load`
 ```bash
 error:25066067:DSO support routines:dlfcn_load:could not load the shared library
 ```
