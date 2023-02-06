@@ -7,7 +7,6 @@ authorization: 123456
 {
   "id" : null,
   "externalId" : "{{$uuid}}",
-  "externalCategory" : "POSITION",
   "debitAccount" : {"id" :  "deb-acc"},
   "creditAccount" : {"id" :  "credit-acc"},
   "currencyCode" : "USD",

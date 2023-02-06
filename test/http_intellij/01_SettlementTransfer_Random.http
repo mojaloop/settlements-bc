@@ -9,8 +9,7 @@ authorization: 123456
 # [settlementModel] is optional.
 {
   "id" : null,
-  "externalId" : "{{$uuid}}",
-  "externalCategory" : "POSITION",
+  "transferId" : "{{$uuid}}",
   "debitAccount" : {"id" :  "{{$uuid}}"},
   "creditAccount" : {"id" :  "{{$uuid}}"},
   "currencyCode" : "USD",
