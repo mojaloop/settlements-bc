@@ -55,7 +55,7 @@ import {
 import {
 	ISettlementBatchRepo,
 	ISettlementBatchAccountRepo,
-	IParticipantAccountRepo,
+	IParticipantAccountBatchMappingRepo,
 	ISettlementTransferRepo,
 	ISettlementConfigRepo
 } from "./types/infrastructure";
@@ -96,7 +96,7 @@ export class Aggregate {
 	private readonly auditingClient: IAuditClient;
 	private readonly batchRepo: ISettlementBatchRepo;
 	private readonly batchAccountRepo: ISettlementBatchAccountRepo;
-	private readonly participantAccRepo: IParticipantAccountRepo;
+	private readonly participantAccRepo: IParticipantAccountBatchMappingRepo;
 	private readonly transfersRepo: ISettlementTransferRepo;
 	private readonly configRepo: ISettlementConfigRepo;
 	private readonly currencies: ICurrency[];
@@ -109,7 +109,7 @@ export class Aggregate {
 		auditingClient: IAuditClient,
 		batchRepo: ISettlementBatchRepo,
 		batchAccountRepo: ISettlementBatchAccountRepo,
-		participantAccRepo: IParticipantAccountRepo,
+		participantAccRepo: IParticipantAccountBatchMappingRepo,
 		transfersRepo: ISettlementTransferRepo,
 		configRepo: ISettlementConfigRepo
 	) {
@@ -319,10 +319,10 @@ export class Aggregate {
 		let debitedAccountDto: ISettlementBatchAccountDto | null;
 		try {
 			debitedAccountDto = await this.batchAccountRepo.getAccountById(
-				await this.deriveSettlementAccountId(transferDto.debitAccount.id!, transfer.batch.id)
+				await this.obtainSettlementAccountId(transferDto.debitAccount.id!, transfer.batch.id)
 			);
 			creditedAccountDto = await this.batchAccountRepo.getAccountById(
-				await this.deriveSettlementAccountId(transferDto.creditAccount.id!, transfer.batch.id));
+				await this.obtainSettlementAccountId(transferDto.creditAccount.id!, transfer.batch.id));
 		} catch (error: any) {
 			this.logger.error(error);
 			throw error;
@@ -556,7 +556,7 @@ export class Aggregate {
 		securityContext: CallSecurityContext
 	): Promise<ISettlementBatchAccountDto> {
 		const timestamp: number = Date.now();
-		let partAcc : null | IParticipantAccountDto = await this.participantAccRepo.getAccountBy(accId, batchId);
+		let partAcc : null | IParticipantAccountBatchMappingDto = await this.participantAccRepo.getAccountBy(accId, batchId);
 		if (partAcc === null) {
 			partAcc = {
 				participantId: accId,
@@ -577,7 +577,7 @@ export class Aggregate {
 		}
 
 		const accountDto : ISettlementBatchAccountDto = {
-			id: await this.deriveSettlementAccountId(partAcc.participantId!, batchId),
+			id: await this.obtainSettlementAccountId(partAcc.participantId!, batchId),
 			externalId: partAcc.participantId!,
 			settlementBatch: settlementBatch,
 			currencyCode: currency.code,
@@ -591,7 +591,7 @@ export class Aggregate {
 		return accountDto;
 	}
 
-	async deriveSettlementAccountId(accId: string, batchId: string): Promise<string> {
+	async obtainSettlementAccountId(accId: string, batchId: string): Promise<string> {
 		const partAcc = await this.participantAccRepo.getAccountBy(accId, batchId);
 		if (partAcc == null) return ""
 

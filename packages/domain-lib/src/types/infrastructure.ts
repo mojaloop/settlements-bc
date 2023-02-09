@@ -31,7 +31,7 @@ import {
 	ISettlementConfigDto,
 	ISettlementBatchDto,
 	ISettlementBatchAccountDto,
-	IParticipantAccountDto,
+	IParticipantAccountBatchMappingDto,
 	ISettlementTransferDto
 } from "@mojaloop/settlements-bc-public-types-lib";
 
@@ -73,12 +73,12 @@ export interface ISettlementBatchAccountRepo {
 	): Promise<void>;
 }
 
-export interface IParticipantAccountRepo {
+export interface IParticipantAccountBatchMappingRepo {
 	init(): Promise<void>;
 	destroy(): Promise<void>;
-	storeBatchParticipant(participant: IParticipantAccountDto): Promise<void>;
-	getAccountBy(participantId: string, batchId: string): Promise<IParticipantAccountDto | null>;
-	publishSettlementNotification(accounts: IParticipantAccountDto[]): Promise<void>;
+	storeBatchParticipant(participant: IParticipantAccountBatchMappingDto): Promise<void>;
+	getAccountBy(participantId: string, batchId: string): Promise<IParticipantAccountBatchMappingDto | null>;
+	publishSettlementNotification(accounts: IParticipantAccountBatchMappingDto[]): Promise<void>;
 }
 
 export interface ISettlementTransferRepo {

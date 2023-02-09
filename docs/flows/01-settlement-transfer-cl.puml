@@ -33,6 +33,21 @@ box Accounts & Balances BC #FFFFF9
     end note
 end box
 
+box Auditing BC #E6E6E6
+    participant "Auditing SVC" as audit_svc #D5E8D4
+    database "Audit-Log" as audit_db #DAE8FC
+end box
+
+box Logging BC #E6E6E6
+    participant "Logging SVC" as logging_svc #D5E8D4
+    database "Logging-Database" as logging_db #DAE8FC
+end box
+
+box Security BC #E6E6E6
+    participant "Security SVC" as security_svc #D5E8D4
+    database "Security-Database" as security_db #DAE8FC
+end box
+
 group 1. Create Settlement Transfer - Central Ledger
 autonumber
     ext_cl <--> ext_cl : Transfer prepare. \nObtain settlement model and allocation data\nvia rules engine

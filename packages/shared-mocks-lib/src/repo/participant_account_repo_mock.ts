@@ -27,11 +27,11 @@
 
 "use strict";
 
-import {IParticipantAccountRepo} from "@mojaloop/settlements-bc-domain-lib";
-import {IParticipantAccountDto} from "@mojaloop/settlements-bc-public-types-lib";
+import {IParticipantAccountBatchMappingRepo} from "@mojaloop/settlements-bc-domain-lib";
+import {IParticipantAccountBatchMappingDto} from "@mojaloop/settlements-bc-public-types-lib";
 
-export class ParticipantAccountRepoMock implements IParticipantAccountRepo {
-	participants: Array<IParticipantAccountDto> = [];
+export class ParticipantAccountRepoMock implements IParticipantAccountBatchMappingRepo {
+	participants: Array<IParticipantAccountBatchMappingDto> = [];
 
 	async init(): Promise<void> {
 		return Promise.resolve();
@@ -40,13 +40,13 @@ export class ParticipantAccountRepoMock implements IParticipantAccountRepo {
 		return Promise.resolve();
 	}
 
-	async storeBatchParticipant(participant: IParticipantAccountDto): Promise<void> {
+	async storeBatchParticipant(participant: IParticipantAccountBatchMappingDto): Promise<void> {
 		if (participant === undefined) return Promise.resolve();
 		this.participants.push(participant);
 		return Promise.resolve();
 	}
 
-	async getAccountBy(participantId: string, batchId: string): Promise<IParticipantAccountDto | null> {
+	async getAccountBy(participantId: string, batchId: string): Promise<IParticipantAccountBatchMappingDto | null> {
 		if (participantId === undefined || batchId === undefined) return Promise.resolve(null);
 
 		for (const partIter of this.participants) {
@@ -57,7 +57,7 @@ export class ParticipantAccountRepoMock implements IParticipantAccountRepo {
 		return Promise.resolve(null);
 	}
 
-	async publishSettlementNotification(accounts: IParticipantAccountDto[]): Promise<void> {
+	async publishSettlementNotification(accounts: IParticipantAccountBatchMappingDto[]): Promise<void> {
 		//TODO publish to the external system:
 		return Promise.resolve();
 	}

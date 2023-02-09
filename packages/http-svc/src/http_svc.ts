@@ -34,7 +34,7 @@ import {
 	ISettlementConfigRepo,
 	ISettlementBatchRepo,
 	ISettlementBatchAccountRepo,
-	IParticipantAccountRepo,
+	IParticipantAccountBatchMappingRepo,
 	ISettlementTransferRepo,
 	Privileges
 } from "@mojaloop/settlements-bc-domain-lib";
@@ -109,7 +109,7 @@ let auditingClient: IAuditClient;
 let configRepo: ISettlementConfigRepo;
 let batchRepo: ISettlementBatchRepo;
 let accountRepo: ISettlementBatchAccountRepo;
-let partAccountRepo: IParticipantAccountRepo;
+let partAccountRepo: IParticipantAccountBatchMappingRepo;
 let transferRepo: ISettlementTransferRepo;
 
 let httpServer: ExpressHttpServer;
@@ -121,7 +121,7 @@ export async function startHttpService(
 	_configRepo?: ISettlementConfigRepo,
 	_batchRepo?: ISettlementBatchRepo,
 	_accountRepo?: ISettlementBatchAccountRepo,
-	_partAccountRepo?: IParticipantAccountRepo,
+	_partAccountRepo?: IParticipantAccountBatchMappingRepo,
 	_transferRepo?: ISettlementTransferRepo
 ): Promise<void> {
 	// Message producer options.

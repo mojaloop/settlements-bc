@@ -54,7 +54,7 @@ export interface ISettlementBatchAccountDto {
 	timestamp: number | null;
 }
 
-export interface IParticipantAccountDto {
+export interface IParticipantAccountBatchMappingDto {
 	participantId: string;
 	settlementBatchId: string;
 	settlementBatchAccountId: string;
@@ -73,8 +73,8 @@ export interface ISettlementTransferDto {
 	currencyCode: string;
 	currencyDecimals: number | null;
 	amount: string;
-	debitAccount: ISettlementBatchAccountDto;
-	creditAccount: ISettlementBatchAccountDto;
+	debitParticipantAccountId: string;
+	creditParticipantAccountId: string;
 	timestamp: number;
 	settlementModel: string;
 	batch?: ISettlementBatchDto | null;
