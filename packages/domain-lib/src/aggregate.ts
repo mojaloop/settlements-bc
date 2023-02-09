@@ -66,7 +66,7 @@ import {
 	ISettlementBatchDto,
 	ISettlementBatchAccountDto,
 	ISettlementTransferDto,
-	IParticipantAccountDto,
+	IParticipantAccountBatchMappingDto,
 	ISettlementMatrixDto,
 	SettlementBatchStatus,
 	ISettlementMatrixBatchDto
@@ -262,14 +262,13 @@ export class Aggregate {
 		this.enforcePrivilege(securityContext, Privileges.CREATE_SETTLEMENT_TRANSFER);
 
 		if (transferDto.timestamp === undefined || transferDto.timestamp === null || transferDto.timestamp < 1) throw new InvalidTimestampError();
-		if (transferDto.batch === undefined || transferDto.batch === null) throw new InvalidBatchDefinitionError();
 		if (transferDto.settlementModel === undefined ||
 			(transferDto.settlementModel === null || transferDto.settlementModel === "")) throw new InvalidBatchSettlementModelError();
 		if (transferDto.currencyCode === undefined || transferDto.currencyCode === "") throw new InvalidCurrencyCodeError();
 		if (transferDto.amount === undefined || transferDto.amount === "") throw new InvalidAmountError();
 		if (transferDto.externalId === undefined || transferDto.externalId === "") throw new InvalidExternalIdError();
-		if (transferDto.creditAccount === undefined) throw new InvalidCreditAccountError();
-		if (transferDto.debitAccount === undefined) throw new InvalidDebitAccountError();
+		if (transferDto.creditParticipantAccountId === undefined || transferDto.creditParticipantAccountId === "") throw new InvalidCreditAccountError();
+		if (transferDto.debitParticipantAccountId === undefined || transferDto.debitParticipantAccountId === undefined) throw new InvalidDebitAccountError();
 
 		const timestamp: number = transferDto.timestamp;
 
@@ -294,17 +293,14 @@ export class Aggregate {
 			transferDto.currencyCode,
 			currency.decimals,
 			amount,
-			transferDto.creditAccount.id!,
-			transferDto.debitAccount.id!,
+			transferDto.creditParticipantAccountId,
+			transferDto.debitParticipantAccountId,
 			null,
 			timestamp
 		);
 
-		// Assign the Batch:
-		const settlementModel: string = await this.obtainSettlementModel(transfer);
-
 		// Fetch or Create a Settlement Batch:
-		const batchDto = await this.obtainSettlementBatch(transfer, settlementModel, securityContext);
+		const batchDto = await this.obtainSettlementBatch(transfer, transferDto.settlementModel, securityContext);
 		transfer.batch = new SettlementBatch(
 			batchDto.id,
 			batchDto.timestamp,
@@ -319,10 +315,10 @@ export class Aggregate {
 		let debitedAccountDto: ISettlementBatchAccountDto | null;
 		try {
 			debitedAccountDto = await this.batchAccountRepo.getAccountById(
-				await this.obtainSettlementAccountId(transferDto.debitAccount.id!, transfer.batch.id)
+				await this.obtainSettlementAccountId(transferDto.debitParticipantAccountId, transfer.batch.id)
 			);
 			creditedAccountDto = await this.batchAccountRepo.getAccountById(
-				await this.obtainSettlementAccountId(transferDto.creditAccount.id!, transfer.batch.id));
+				await this.obtainSettlementAccountId(transferDto.creditParticipantAccountId, transfer.batch.id));
 		} catch (error: any) {
 			this.logger.error(error);
 			throw error;
@@ -331,7 +327,7 @@ export class Aggregate {
 		// Create the Debit/Credit accounts as required:
 		if (debitedAccountDto === null) {
 			debitedAccountDto = await this.createSettlementBatchAccountFromAccId(
-				transferDto.debitAccount.id!,
+				transferDto.debitParticipantAccountId,
 				transfer.id,
 				transferDto.settlementModel,
 				currency,
@@ -340,7 +336,7 @@ export class Aggregate {
 		}
 		if (creditedAccountDto === null) {
 			creditedAccountDto = await this.createSettlementBatchAccountFromAccId(
-				transferDto.creditAccount.id!,
+				transferDto.creditParticipantAccountId,
 				transfer.id,
 				transferDto.settlementModel,
 				currency,
@@ -369,8 +365,8 @@ export class Aggregate {
 
 		// Store the Transfer:
 		const formattedTransferDto: ISettlementTransferDto = transfer.toDto();
-		formattedTransferDto.debitAccount = debitedAccountDto;
-		formattedTransferDto.creditAccount = creditedAccountDto;
+		formattedTransferDto.debitParticipantAccountId = debitedAccountDto.id!;
+		formattedTransferDto.creditParticipantAccountId = creditedAccountDto.id!;
 
 		try {
 			await this.transfersRepo.storeNewSettlementTransfer(formattedTransferDto);
@@ -423,8 +419,8 @@ export class Aggregate {
 			currencyCode: transfer.currencyCode,
 			currencyDecimals: transfer.currencyDecimals,
 			amount: `${transfer.amount}`,
-			debitAccount: debitedAccountDto,
-			creditAccount: creditedAccountDto,
+			debitParticipantAccountId: debitedAccountDto.id!,
+			creditParticipantAccountId: creditedAccountDto.id!,
 			timestamp: timestamp,
 			settlementModel: transfer.batch.settlementModel,
 			batch: batchDto
@@ -660,19 +656,6 @@ export class Aggregate {
 		//TODO need to get max batch seq using criteria
 
 		return 1;
-	}
-
-	//TODO this will not be in settlements anymore:
-	async obtainSettlementModel(
-		transfer: SettlementTransfer
-	) : Promise<string> {
-		if (transfer == null) return 'DEFAULT';
-
-		return obtainSettlementModelFrom(
-			transfer.amount,
-			transfer.currencyCode,//TODO This will always result in default...
-			transfer.currencyCode
-		);
 	}
 
 	async getSettlementAccountsBy(

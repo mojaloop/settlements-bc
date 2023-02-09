@@ -67,26 +67,6 @@ export class SettlementTransfer {
 	toDto(): ISettlementTransferDto {
 		const amount: string = bigintToString(this.amount, this.currencyDecimals);
 		const batch: ISettlementBatchDto | null = this.batch === null ? null : this.batch.toDto();
-		const debitAcc: ISettlementBatchAccountDto = {
-			id: this.debitAccountId,
-			externalId: null,
-			settlementBatch: null,
-			currencyCode: "",
-			currencyDecimals: null,
-			creditBalance: "",
-			debitBalance: "",
-			timestamp: null
-		};
-		const creditAcc: ISettlementBatchAccountDto = {
-			id: this.creditAccountId,
-			externalId: null,
-			settlementBatch: null,
-			currencyCode: "",
-			currencyDecimals: null,
-			creditBalance: "",
-			debitBalance: "",
-			timestamp: null
-		};
 
 		const transferDto: ISettlementTransferDto = {
 			id: this.id,
@@ -94,8 +74,8 @@ export class SettlementTransfer {
 			currencyCode: this.currencyCode,
 			currencyDecimals: this.currencyDecimals,
 			amount: amount,
-			debitAccount: debitAcc,
-			creditAccount: creditAcc,
+			debitParticipantAccountId: this.debitAccountId,
+			creditParticipantAccountId: this.creditAccountId,
 			batch,
 			timestamp: this.timestamp,
 			settlementModel: batch === undefined ? '' : batch!.settlementModel

@@ -61,8 +61,8 @@ export class SettlementTransferRepoMock implements ISettlementTransferRepo {
 		if (accountId === undefined || accountId.trim() === '') return Promise.resolve(returnVal);
 
 		for (const transferIter of this.transfers) {
-			if (transferIter.creditAccount.id === accountId ||
-				transferIter.debitAccount.id === accountId) returnVal.push(transferIter);
+			if (transferIter.creditParticipantAccountId === accountId ||
+				transferIter.debitParticipantAccountId === accountId) returnVal.push(transferIter);
 		}
 
 		return Promise.resolve(returnVal);

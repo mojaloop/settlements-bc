@@ -64,7 +64,6 @@ export interface IParticipantAccountBatchMappingDto {
 export interface IParticipantSettlementNotificationDto {
 	debitBalance: string;
 	creditBalance: string;
-	//TODO settlementBatch: ISettlementBatchDto[];
 }
 
 export interface ISettlementTransferDto {
