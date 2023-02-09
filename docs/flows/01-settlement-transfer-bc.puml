@@ -45,7 +45,7 @@ end box
 group 1. Transfer completed - Transfers BC
 autonumber
     ext_transfers_bc -> ext_transfers_bc : Transfer fulfil occurred
-    ext_transfers_bc -> ext_transfers_bc : Include settlement model previously\nobtained using the //settlement-model-lib//\nduring the //transfer prepare// step
+    ext_transfers_bc -> ext_transfers_bc : Include settlement model previously\nobtained using the //settlement-model-lib//\nduring the //transfer prepare// step \nand payee timestamp
     ext_transfers_bc --> sbc_event : **TransferCommittedFulfiled** event is\npublished by the "Transfers BC" <&envelope-closed>
     sbc_event -> sbc_app_logic : Invoke\ndomain logic
 end
@@ -55,12 +55,12 @@ autonumber
     sbc_app_logic -> sbc_app_logic : **Validate** transfer settlement data (including model)
     sbc_app_logic -> platfconf_svc : **Fetch** & cache settlements BC **configurations** from the Platform Configuration BC
     sbc_app_logic <-> sbc_db : **Determine batch** using Settlement Transfer data.\n//Create new batch if no OPEN batch available//
-    sbc_app_logic <-> participants_svc : Obtain **Settlement accounts** from the Participant Accounts list
-    sbc_app_logic -> abbc_grpc : Create batch and participant settlement accounts, if non-existing
+'    sbc_app_logic <-> participants_svc : Obtain **Settlement accounts** from the Participant Accounts list (cacheable)
+    sbc_app_logic -> abbc_grpc : Create batch and respective batch accounts, if non-existing
     abbc_grpc -> abbc_tigerbeetle : Create accounts,if non-existing\n(internal A&B call)
     sbc_app_logic -> abbc_grpc: Create Settlement entries (DR payer & CR payee)
     abbc_grpc -> abbc_tigerbeetle: Create Settlement entries\n(internal A&B call)
-    sbc_app_logic -> sbc_db: Update settlement batch state
+
 end
 
 @enduml

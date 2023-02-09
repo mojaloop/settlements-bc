@@ -15,6 +15,7 @@ participant "vNext UI / API" as ext_transfers_bc
 
 box Settlements BC #F9FFF9
 	participant "Settlements BC\n**Rest API**" as sbc_rest #D5E8D4
+	participant "Settlements BC\n**Event Handler**" as sbc_event #D5E8D4
 	participant "Settlements BC\n**Domain Logic**" as sbc_app_logic #EDC54D
 	database "Settlements\n**Database**" as sbc_db #DAE8FC
 end box
@@ -32,24 +33,25 @@ box Accounts and Balances BC #FFFFF9
     end note
 end box
 
-group 1. Trigger Settlement Matrix - Central Ledger / Admin API
+group 1. Trigger Settlement Matrix - Admin API
 autonumber
-    ext_transfers_bc -> sbc_rest : Request settlement matrix
-    sbc_rest -> sbc_app_logic : Invoke\ndomain logic
+    ext_transfers_bc -> sbc_rest : Request settlement matrix generation \nIncluding filtering criteria
+	sbc_rest --> sbc_event: RequestMatrixGeneration event
+	sbc_rest -> ext_transfers_bc : response with future matrix id (async)
+    sbc_event -> sbc_app_logic : Invoke\ndomain logic
 end
 
-group 2. Settlement Matrix - Domain Logic
+group 2. Settlement Matrix - Initial Generation
 autonumber
-    sbc_app_logic -> sbc_app_logic: Settlement Matrix triggered with:\n-> **From Date** - From\n-> **To Date** - To\n-> **Settlement Model** - Model
+    sbc_app_logic -> sbc_app_logic : Create initial state of Matrix, Including Criteria \n(**From Date** - From -> **To Date** - To\n-> **Settlement Model** - Model)
     sbc_app_logic -> sbc_db : Fetch all batches that form part of the settlement criteria
-    sbc_app_logic -> sbc_db : Close //OPEN// settlement batches which forms part \nof the settlement matrix request criteria
+
     sbc_app_logic -> abbc_grpc : Obtain Debit/Credit **Settlement Accounts** based on batches\nSingle bulk/array call
-    abbc_grpc -> abbc_tigerbeetle: Fetch **Settlement Accounts**
-    abbc_grpc -> sbc_app_logic : Return **Settlement Accounts** based on batches
+    abbc_grpc -> abbc_tigerbeetle: Fetch **Batch Accounts**
+    abbc_grpc -> sbc_app_logic : Return **Batch Accounts** based on batches
     sbc_app_logic -> sbc_app_logic : Prepare the Settlement Matrix
     sbc_app_logic -> sbc_db : Persist the Settlement Matrix
-    sbc_app_logic -> sbc_rest : Return Settlement Matrix
-    sbc_rest -> ext_transfers_bc : Return Settlement Matrix for caller\n**//ISettlementMatrixDto//**
+    sbc_app_logic --> ext_transfers_bc : Publish SettlementMatrixGeneratedEvent
 end
 
 @enduml
