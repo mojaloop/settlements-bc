@@ -58,12 +58,6 @@ export interface IParticipantAccountBatchMappingDto {
 	participantId: string;
 	settlementBatchId: string;
 	settlementBatchAccountId: string;
-	settlementNotification?: IParticipantSettlementNotificationDto | null;
-}
-
-export interface IParticipantSettlementNotificationDto {
-	debitBalance: string;
-	creditBalance: string;
 }
 
 export interface ISettlementTransferDto {
@@ -79,7 +73,20 @@ export interface ISettlementTransferDto {
 	batch?: ISettlementBatchDto | null;
 }
 
-/* Settlement Matrix */
+/*******************
+* Settlement Matrix
+********************/
+/**Matrix Request**/
+export interface ISettlementMatrixRequestDto {
+	id: string;
+	timestamp: number;
+	dateFrom: number;
+	dateTo: number;
+	settlementModel: string;
+	batches: ISettlementBatchDto[];// Batches to include for the request.
+}
+
+/**Matrix**/
 export interface ISettlementMatrixSettlementBatchAccountDto {
 	id: string;
 	externalId: string;

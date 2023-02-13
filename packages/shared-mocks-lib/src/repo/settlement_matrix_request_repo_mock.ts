@@ -20,22 +20,29 @@
  optionally within square brackets <email>.
 
  * Coil
- *  - Jason Bruwer <jason.bruwer@coil.com>
+ * - Jason Bruwer <jason.bruwer@coil.com>
 
  --------------
  ******/
 
 "use strict";
 
-export enum Privileges {
-	CREATE_SETTLEMENT_BATCH_ACCOUNT = "CREATE_SETTLEMENT_BATCH_ACCOUNT",
-	CREATE_SETTLEMENT_BATCH = "CREATE_SETTLEMENT_BATCH",
-	CREATE_SETTLEMENT_TRANSFER = "CREATE_SETTLEMENT_TRANSFER",
-	REQUEST_SETTLEMENT_MATRIX = "REQUEST_SETTLEMENT_MATRIX",
-	EXECUTE_SETTLEMENT_MATRIX = "EXECUTE_SETTLEMENT_MATRIX",
+import {ISettlementMatrixRequestRepo} from "@mojaloop/settlements-bc-domain-lib";
+import {ISettlementMatrixRequestDto} from "@mojaloop/settlements-bc-public-types-lib";
+import console from "console";
+export class SettlementMatrixRequestRepoMock implements ISettlementMatrixRequestRepo {
+	matrixRequests: Array<ISettlementMatrixRequestDto> = [];
 
-	RETRIEVE_SETTLEMENT_BATCH = "RETRIEVE_SETTLEMENT_BATCH",
-	RETRIEVE_SETTLEMENT_BATCH_ACCOUNTS = "RETRIEVE_SETTLEMENT_BATCH_ACCOUNTS",
-	RETRIEVE_SETTLEMENT_TRANSFERS = "RETRIEVE_SETTLEMENT_TRANSFERS"
+	async init(): Promise<void> {
+		return Promise.resolve();
+	}
+	async destroy(): Promise<void>{
+		return Promise.resolve();
+	}
 
+	async storeNewSettlementMatrixRequest(matrixReq: ISettlementMatrixRequestDto): Promise<void> {
+		if (matrixReq === undefined) return Promise.resolve();
+		this.matrixRequests.push(matrixReq);
+		return Promise.resolve();
+	}
 }

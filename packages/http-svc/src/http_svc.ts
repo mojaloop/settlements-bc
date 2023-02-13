@@ -32,6 +32,7 @@ import {KafkaLogger} from "@mojaloop/logging-bc-client-lib";
 import {
 	Aggregate,
 	ISettlementConfigRepo,
+	ISettlementMatrixRequestRepo,
 	ISettlementBatchRepo,
 	ISettlementBatchAccountRepo,
 	IParticipantAccountBatchMappingRepo,
@@ -107,6 +108,7 @@ let logger: ILogger;
 let auditingClient: IAuditClient;
 
 let configRepo: ISettlementConfigRepo;
+let settlementMatrixReq: ISettlementMatrixRequestRepo;
 let batchRepo: ISettlementBatchRepo;
 let accountRepo: ISettlementBatchAccountRepo;
 let partAccountRepo: IParticipantAccountBatchMappingRepo;
@@ -122,7 +124,8 @@ export async function startHttpService(
 	_batchRepo?: ISettlementBatchRepo,
 	_accountRepo?: ISettlementBatchAccountRepo,
 	_partAccountRepo?: IParticipantAccountBatchMappingRepo,
-	_transferRepo?: ISettlementTransferRepo
+	_transferRepo?: ISettlementTransferRepo,
+	_settlementMatrixReq?: ISettlementMatrixRequestRepo,
 ): Promise<void> {
 	// Message producer options.
 	const kafkaProducerOptions: MLKafkaRawProducerOptions = {
@@ -255,6 +258,12 @@ export async function startHttpService(
 		// TODO Init the A+B BC for Transfers.
 	}
 
+	if (_settlementMatrixReq !== undefined) {
+		settlementMatrixReq = _settlementMatrixReq;
+	} else {
+		// TODO Init the A+B BC for Transfers.
+	}
+
 	// Aggregate:
 	const aggregate: Aggregate = new Aggregate(
 		logger,
@@ -264,7 +273,8 @@ export async function startHttpService(
 		accountRepo,
 		partAccountRepo,
 		transferRepo,
-		configRepo
+		configRepo,
+		settlementMatrixReq
 	);
 
 	// HTTP server.

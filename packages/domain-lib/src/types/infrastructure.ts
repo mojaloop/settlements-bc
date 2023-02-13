@@ -32,7 +32,8 @@ import {
 	ISettlementBatchDto,
 	ISettlementBatchAccountDto,
 	IParticipantAccountBatchMappingDto,
-	ISettlementTransferDto
+	ISettlementTransferDto,
+	ISettlementMatrixRequestDto
 } from "@mojaloop/settlements-bc-public-types-lib";
 
 export interface ISettlementConfigRepo {
@@ -50,6 +51,7 @@ export interface ISettlementBatchRepo {
 	batchExistsByBatchIdentifier(batchIdentifier: string): Promise<boolean>;
 	getSettlementBatchById(batchIdentifier: string): Promise<ISettlementBatchDto | null>;
 	getSettlementBatchesBy(fromDate: number, toDate: number, model?: string): Promise<ISettlementBatchDto[]>;
+	getSettlementBatchesBySettlementMatrixRequestId(settlementReqId : string): Promise<ISettlementBatchDto[]>;
 	getOpenSettlementBatch(fromDate: number, toDate: number, model: string): Promise<ISettlementBatchDto | null>;
 }
 
@@ -89,3 +91,11 @@ export interface ISettlementTransferRepo {
 	getSettlementTransfersByAccountId(accountId: string): Promise<ISettlementTransferDto[]>;
 	getSettlementTransfersByAccountIds(accountId: string[]): Promise<ISettlementTransferDto[]>;
 }
+
+export interface ISettlementMatrixRequestRepo {
+	init(): Promise<void>;
+	destroy(): Promise<void>;
+	storeNewSettlementMatrixRequest(req: ISettlementMatrixRequestDto): Promise<void>; // Throws if account.id is not unique.
+	getSettlementMatrixById(settlementMatrixReqId: string): Promise<ISettlementMatrixRequestDto | null>;
+}
+

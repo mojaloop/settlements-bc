@@ -19,10 +19,8 @@
  their names indented and be marked with a '-'. Email address can be added
  optionally within square brackets <email>.
 
- * Crosslake
- - Pedro Sousa Barreto <pedrob@crosslaketech.com>
-
- * Gonçalo Garcia <goncalogarcia99@gmail.com>
+ * Coil
+ * - Jason Bruwer <jason.bruwer@coil.com>
 
  --------------
  ******/
@@ -83,11 +81,15 @@ export class ExpressRoutes {
 		this._router.use(this.authenticate.bind(this)); // All requests require authentication.
 		// Posts:
 		this._router.post("/transfer", this.postSettlementTransfer.bind(this));
+
 		// Gets:
 		this._router.get("/settlement_batches", this.getSettlementBatches.bind(this));
 		this._router.get("/settlement_accounts", this.getSettlementBatchAccounts.bind(this));
 		this._router.get("/settlement_transfers", this.getSettlementBatchTransfers.bind(this));
-		this._router.get("/settlement_matrix", this.getSettlementMatrix.bind(this));
+
+		// Settlement Matrix:
+		this._router.get("/settlement_matrix_request", this.getSettlementMatrixRequest.bind(this));
+		this._router.get("/execute_settlement_matrix", this.getExecuteSettlementMatrix.bind(this));
 	}
 
 	get router(): Router {
@@ -186,13 +188,36 @@ export class ExpressRoutes {
 		}
 	}
 
-	private async getSettlementMatrix(req: Request, res: Response): Promise<void> {
+	private async getExecuteSettlementMatrix(req: Request, res: Response): Promise<void> {
 		try {
 			const settlementModel = req.query.settlementModel as string;
 			const fromDate = req.query.fromDate as string;
 			const toDate = req.query.fromDate as string;
 
-			const settlementMatrix: ISettlementMatrixDto = await this.aggregate.createSettlementMatrix(
+			const settlementMatrix: ISettlementMatrixDto = await this.aggregate.executeSettlementMatrix(
+				settlementModel,
+				Number(fromDate),
+				Number(toDate),
+				req.securityContext!
+			);
+			this.sendSuccessResponse(res, 200, settlementMatrix);// OK
+		} catch (error: unknown) {
+			this.logger.error(error);
+			if (error instanceof UnauthorizedError) {
+				this.sendErrorResponse(res, 403, "unauthorized"); // TODO: verify.
+			} else {
+				this.sendErrorResponse(res, 500, ExpressRoutes.UNKNOWN_ERROR_MESSAGE);
+			}
+		}
+	}
+
+	private async getSettlementMatrixRequest(req: Request, res: Response): Promise<void> {
+		try {
+			const settlementModel = req.query.settlementModel as string;
+			const fromDate = req.query.fromDate as string;
+			const toDate = req.query.fromDate as string;
+
+			const settlementMatrix: ISettlementMatrixDto = await this.aggregate.settlementMatrixRequest(
 				settlementModel,
 				Number(fromDate),
 				Number(toDate),

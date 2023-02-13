@@ -57,7 +57,8 @@ import {
 	ISettlementBatchAccountRepo,
 	IParticipantAccountBatchMappingRepo,
 	ISettlementTransferRepo,
-	ISettlementConfigRepo
+	ISettlementConfigRepo,
+	ISettlementMatrixRequestRepo
 } from "./types/infrastructure";
 import {SettlementBatch} from "./types/batch";
 import {SettlementBatchAccount} from "./types/account";
@@ -69,7 +70,8 @@ import {
 	IParticipantAccountBatchMappingDto,
 	ISettlementMatrixDto,
 	SettlementBatchStatus,
-	ISettlementMatrixBatchDto
+	ISettlementMatrixBatchDto,
+	ISettlementMatrixRequestDto
 } from "@mojaloop/settlements-bc-public-types-lib";
 import {obtainSettlementModelFrom} from "@mojaloop/settlements-bc-model-lib";
 import {IAuditClient, AuditSecurityContext} from "@mojaloop/auditing-bc-public-types-lib";
@@ -86,7 +88,8 @@ enum AuditingActions {
 	SETTLEMENT_BATCH_CREATED = "SETTLEMENT_BATCH_CREATED",
 	SETTLEMENT_BATCH_ACCOUNT_CREATED = "SETTLEMENT_BATCH_ACCOUNT_CREATED",
 	SETTLEMENT_TRANSFER_CREATED = "SETTLEMENT_TRANSFER_CREATED",
-	SETTLEMENT_MATRIX_CREATED = "SETTLEMENT_MATRIX_CREATED"
+	SETTLEMENT_MATRIX_EXECUTED = "SETTLEMENT_MATRIX_EXECUTED",
+	SETTLEMENT_MATRIX_REQUEST_CREATED = "SETTLEMENT_MATRIX_REQUEST_CREATED"
 }
 
 export class Aggregate {
@@ -99,6 +102,7 @@ export class Aggregate {
 	private readonly participantAccRepo: IParticipantAccountBatchMappingRepo;
 	private readonly transfersRepo: ISettlementTransferRepo;
 	private readonly configRepo: ISettlementConfigRepo;
+	private readonly settlementMatrixReqRepo: ISettlementMatrixRequestRepo;
 	private readonly currencies: ICurrency[];
 	// Other properties.
 	private static readonly CURRENCIES_FILE_NAME: string = "currencies.json";
@@ -111,7 +115,8 @@ export class Aggregate {
 		batchAccountRepo: ISettlementBatchAccountRepo,
 		participantAccRepo: IParticipantAccountBatchMappingRepo,
 		transfersRepo: ISettlementTransferRepo,
-		configRepo: ISettlementConfigRepo
+		configRepo: ISettlementConfigRepo,
+		settlementMatrixReqRepo: ISettlementMatrixRequestRepo
 	) {
 		this.logger = logger;
 		this.authorizationClient = authorizationClient;
@@ -121,6 +126,7 @@ export class Aggregate {
 		this.participantAccRepo = participantAccRepo;
 		this.transfersRepo = transfersRepo;
 		this.configRepo = configRepo;
+		this.settlementMatrixReqRepo = settlementMatrixReqRepo;
 
 		// TODO: @jason Need to obtain currencies from PlatForm config perhaps:
 		const currenciesFilePath: string = join(__dirname, Aggregate.CURRENCIES_FILE_NAME);
@@ -428,20 +434,56 @@ export class Aggregate {
 		return returnVal;
 	}
 
-	async createSettlementMatrix(
+	async settlementMatrixRequest(
 		settlementModel: string,
 		fromDate: number,
 		toDate: number,
 		securityContext: CallSecurityContext
-	): Promise<ISettlementMatrixDto> {
+	): Promise<ISettlementMatrixRequestDto> {
 		const timestamp: number = Date.now();
 
 		this.enforcePrivilege(securityContext, Privileges.REQUEST_SETTLEMENT_MATRIX);
 
-		const settBefore = await this.batchRepo.getSettlementBatchesBy(fromDate, toDate, settlementModel);
+		const batches : ISettlementBatchDto[] = await this.batchRepo.getSettlementBatchesBy(fromDate, toDate, settlementModel);
+
+		const returnVal : ISettlementMatrixRequestDto = {
+			id : randomUUID(),
+			timestamp: timestamp,
+			dateFrom: fromDate,
+			dateTo: toDate,
+			settlementModel: settlementModel,
+			batches: batches
+		};
+
+		await this.settlementMatrixReqRepo.storeNewSettlementMatrixRequest(returnVal);
+
+		// We perform an async audit:
+		this.auditingClient.audit(
+			AuditingActions.SETTLEMENT_MATRIX_REQUEST_CREATED,
+			true,
+			this.getAuditSecurityContext(securityContext), [{key: "settlementMatrixRequestId", value: returnVal.id}]
+		);
+
+		return returnVal;
+	}
+
+	async executeSettlementMatrix(
+		settlementMatrixReqId: string,
+		securityContext: CallSecurityContext
+	): Promise<ISettlementMatrixDto> {
+		const timestamp: number = Date.now();
+
+		this.enforcePrivilege(securityContext, Privileges.EXECUTE_SETTLEMENT_MATRIX);
+
+		const settlementMatrixReq : ISettlementMatrixRequestDto | null = await this.settlementMatrixReqRepo.getSettlementMatrixById(settlementMatrixReqId);
+		if (settlementMatrixReq == null) {
+			//TODO throw an error...
+		}
+		const batches = await this.batchRepo.getSettlementBatchesBySettlementMatrixRequestId(settlementMatrixReqId);
+
 		// CLOSE THE OPEN BATCH:
 		const closedBatches : ISettlementBatchDto[] = [];
-		for (const batch of settBefore) {
+		for (const batch of batches) {
 			if (SettlementBatchStatus.OPEN !== batch.batchStatus) continue;
 
 			await this.batchRepo.closeBatch(batch);
@@ -466,9 +508,9 @@ export class Aggregate {
 
 		// We perform an async audit:
 		this.auditingClient.audit(
-			AuditingActions.SETTLEMENT_MATRIX_CREATED,
+			AuditingActions.SETTLEMENT_MATRIX_EXECUTED,
 			true,
-			this.getAuditSecurityContext(securityContext), [{key: "settlementModel", value: settlementModel}]
+			this.getAuditSecurityContext(securityContext), [{key: "settlementModel", value: settlementMatrixReq.settlementModel}]
 		);
 		const matrixBatches : ISettlementMatrixBatchDto[] = [];
 		// TODO rather fetch the batches using the ids from the TOP, otherwise we may land up returning a WIP batch.
@@ -478,11 +520,10 @@ export class Aggregate {
 		//TODO Complete:
 		await this.participantAccRepo.publishSettlementNotification([]);
 
-
 		const returnVal : ISettlementMatrixDto = {
-			fromDate: fromDate,
-			toDate: toDate,
-			settlementModel: settlementModel,
+			fromDate: settlementMatrixReq.dateFrom,
+			toDate: settlementMatrixReq.dateFrom,
+			settlementModel: settlementMatrixReq.settlementModel,
 			generationDuration: (Date.now() - timestamp) * 1000,
 			batches: matrixBatches
 		};

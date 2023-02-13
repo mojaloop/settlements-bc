@@ -19,10 +19,8 @@
  their names indented and be marked with a '-'. Email address can be added
  optionally within square brackets <email>.
 
- * Crosslake
- - Pedro Sousa Barreto <pedrob@crosslaketech.com>
-
- * Gonçalo Garcia <goncalogarcia99@gmail.com>
+ * Coil
+ * - Jason Bruwer <jason.bruwer@coil.com>
 
  --------------
  ******/
