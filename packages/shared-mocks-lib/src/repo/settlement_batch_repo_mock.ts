@@ -84,7 +84,6 @@ export class SettlementBatchRepoMock implements ISettlementBatchRepo {
 				else if (batchIter.settlementModel === model) returnVal.push(batchIter);
 			}
 		});
-
 		return Promise.resolve(returnVal);
 	}
 

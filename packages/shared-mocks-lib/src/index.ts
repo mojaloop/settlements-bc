@@ -32,7 +32,8 @@ export * from "./authentication_service_mock";
 export * from "./authorization_client_mock";
 
 export * from "./repo/config_repo_mock";
-export * from "./repo/participant_account_repo_mock";
+export * from "./repo/participant_account_batch_mapping_repo_mock";
 export * from "./repo/settlement_batch_account_repo_mock";
 export * from "./repo/settlement_batch_repo_mock";
 export * from "./repo/settlement_transfer_repo_mock";
+export * from "./repo/settlement_matrix_request_repo_mock";

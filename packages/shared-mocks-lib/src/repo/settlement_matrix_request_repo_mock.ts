@@ -45,4 +45,15 @@ export class SettlementMatrixRequestRepoMock implements ISettlementMatrixRequest
 		this.matrixRequests.push(matrixReq);
 		return Promise.resolve();
 	}
+
+	async getSettlementMatrixById(settlementMatrixReqId: string): Promise<ISettlementMatrixRequestDto | null> {
+		if (settlementMatrixReqId === undefined) return Promise.resolve(null);
+
+		for (const matrixReqIter of this.matrixRequests) {
+			if (matrixReqIter.id === settlementMatrixReqId) {
+				return Promise.resolve(matrixReqIter);
+			}
+		}
+		return Promise.resolve(null);
+	}
 }

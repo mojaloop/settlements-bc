@@ -35,7 +35,7 @@ import {
   SettlementConfigRepoMock,
   SettlementBatchRepoMock,
   SettlementBatchAccountRepoMock,
-  ParticipantAccountRepoMock,
+  ParticipantAccountBatchMappingRepoMock,
   SettlementTransferRepoMock,
   SettlementMatrixRequestRepoMock
 } from "@mojaloop/settlements-bc-shared-mocks-lib";
@@ -56,7 +56,7 @@ export function startWithConditions(): void {
     const repoSettlementConfig = new SettlementConfigRepoMock();
     const repoSettlementBatch = new SettlementBatchRepoMock();
     const repoSettlementBatchAccount = new SettlementBatchAccountRepoMock();
-    const repoParticipantAccount = new ParticipantAccountRepoMock();
+    const repoParticipantAccount = new ParticipantAccountBatchMappingRepoMock();
     const repoTransfer = new SettlementTransferRepoMock();
     const settMatrixReq = new SettlementMatrixRequestRepoMock();
 

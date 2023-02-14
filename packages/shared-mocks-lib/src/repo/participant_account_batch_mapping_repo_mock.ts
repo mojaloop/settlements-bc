@@ -28,9 +28,9 @@
 "use strict";
 
 import {IParticipantAccountBatchMappingRepo} from "@mojaloop/settlements-bc-domain-lib";
-import {IParticipantAccountBatchMappingDto} from "@mojaloop/settlements-bc-public-types-lib";
+import {IParticipantAccountBatchMappingDto, ISettlementMatrixDto} from "@mojaloop/settlements-bc-public-types-lib";
 
-export class ParticipantAccountRepoMock implements IParticipantAccountBatchMappingRepo {
+export class ParticipantAccountBatchMappingRepoMock implements IParticipantAccountBatchMappingRepo {
 	participants: Array<IParticipantAccountBatchMappingDto> = [];
 
 	async init(): Promise<void> {
@@ -57,10 +57,8 @@ export class ParticipantAccountRepoMock implements IParticipantAccountBatchMappi
 		return Promise.resolve(null);
 	}
 
-	async publishSettlementNotification(accounts: IParticipantAccountBatchMappingDto[]): Promise<void> {
+	async publishSettlementMatrixExecuteEvent(matrix: ISettlementMatrixDto): Promise<void> {
 		//TODO publish to the external system:
 		return Promise.resolve();
 	}
-
-
 }

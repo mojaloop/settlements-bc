@@ -41,7 +41,7 @@ import {
 import {TokenHelper, CallSecurityContext} from "@mojaloop/security-bc-client-lib";
 import {
 	ISettlementTransferDto,
-	ISettlementMatrixDto
+	ISettlementMatrixDto, ISettlementMatrixRequestDto
 } from "@mojaloop/settlements-bc-public-types-lib";
 import {NextFunction, Request, Response, Router} from "express";
 
@@ -190,16 +190,10 @@ export class ExpressRoutes {
 
 	private async getExecuteSettlementMatrix(req: Request, res: Response): Promise<void> {
 		try {
-			const settlementModel = req.query.settlementModel as string;
-			const fromDate = req.query.fromDate as string;
-			const toDate = req.query.fromDate as string;
+			const settlementMatrixReqId = req.query.settlementMatrixReqId as string;
 
 			const settlementMatrix: ISettlementMatrixDto = await this.aggregate.executeSettlementMatrix(
-				settlementModel,
-				Number(fromDate),
-				Number(toDate),
-				req.securityContext!
-			);
+				settlementMatrixReqId, req.securityContext!);
 			this.sendSuccessResponse(res, 200, settlementMatrix);// OK
 		} catch (error: unknown) {
 			this.logger.error(error);
@@ -217,13 +211,13 @@ export class ExpressRoutes {
 			const fromDate = req.query.fromDate as string;
 			const toDate = req.query.fromDate as string;
 
-			const settlementMatrix: ISettlementMatrixDto = await this.aggregate.settlementMatrixRequest(
+			const settlementMatrixReq: ISettlementMatrixRequestDto = await this.aggregate.settlementMatrixRequest(
 				settlementModel,
 				Number(fromDate),
 				Number(toDate),
 				req.securityContext!
 			);
-			this.sendSuccessResponse(res, 200, settlementMatrix);// OK
+			this.sendSuccessResponse(res, 200, settlementMatrixReq);// OK
 		} catch (error: unknown) {
 			this.logger.error(error);
 			if (error instanceof UnauthorizedError) {

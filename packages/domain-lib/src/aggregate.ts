@@ -31,50 +31,45 @@ import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import {randomUUID} from "crypto";
 import {
 	AccountAlreadyExistsError,
-	InvalidExternalCategoryError,
-	InvalidExternalIdError,
-	InvalidTimestampError,
-	UnauthorizedError,
-	InvalidCurrencyCodeError,
-	InvalidCreditBalanceError,
-	InvalidDebitBalanceError,
-	InvalidCurrencyDecimalsError,
+	InvalidAmountError,
 	InvalidBatchIdentifierError,
 	InvalidBatchSettlementModelError,
-	SettlementBatchAlreadyExistsError,
-	InvalidAmountError,
-	NoSettlementConfig,
-	PositionAccountNotFoundError,
 	InvalidCreditAccountError,
+	InvalidCreditBalanceError,
+	InvalidCurrencyCodeError,
 	InvalidDebitAccountError,
+	InvalidDebitBalanceError,
+	InvalidExternalIdError,
 	InvalidIdError,
+	InvalidTimestampError,
+	NoSettlementConfig,
+	SettlementBatchAlreadyExistsError,
 	SettlementBatchNotFoundError,
-	InvalidBatchDefinitionError,
-	InvalidBatchSettlementAllocationError
+	SettlementMatrixRequestNotFoundError,
+	UnauthorizedError
 } from "./types/errors";
 import {
-	ISettlementBatchRepo,
-	ISettlementBatchAccountRepo,
 	IParticipantAccountBatchMappingRepo,
-	ISettlementTransferRepo,
+	ISettlementBatchAccountRepo,
+	ISettlementBatchRepo,
 	ISettlementConfigRepo,
-	ISettlementMatrixRequestRepo
+	ISettlementMatrixRequestRepo,
+	ISettlementTransferRepo
 } from "./types/infrastructure";
 import {SettlementBatch} from "./types/batch";
 import {SettlementBatchAccount} from "./types/account";
 import {SettlementTransfer} from "./types/transfer";
 import {
-	ISettlementBatchDto,
-	ISettlementBatchAccountDto,
-	ISettlementTransferDto,
 	IParticipantAccountBatchMappingDto,
-	ISettlementMatrixDto,
-	SettlementBatchStatus,
+	ISettlementBatchAccountDto,
+	ISettlementBatchDto,
 	ISettlementMatrixBatchDto,
-	ISettlementMatrixRequestDto
+	ISettlementMatrixDto,
+	ISettlementMatrixRequestDto, ISettlementMatrixSettlementBatchAccountDto,
+	ISettlementTransferDto,
+	SettlementBatchStatus
 } from "@mojaloop/settlements-bc-public-types-lib";
-import {obtainSettlementModelFrom} from "@mojaloop/settlements-bc-model-lib";
-import {IAuditClient, AuditSecurityContext} from "@mojaloop/auditing-bc-public-types-lib";
+import {AuditSecurityContext, IAuditClient} from "@mojaloop/auditing-bc-public-types-lib";
 import {CallSecurityContext} from "@mojaloop/security-bc-client-lib";
 import {IAuthorizationClient} from "@mojaloop/security-bc-public-types-lib";
 import {Privileges} from "./types/privileges";
@@ -472,18 +467,19 @@ export class Aggregate {
 		securityContext: CallSecurityContext
 	): Promise<ISettlementMatrixDto> {
 		const timestamp: number = Date.now();
-
 		this.enforcePrivilege(securityContext, Privileges.EXECUTE_SETTLEMENT_MATRIX);
 
 		const settlementMatrixReq : ISettlementMatrixRequestDto | null = await this.settlementMatrixReqRepo.getSettlementMatrixById(settlementMatrixReqId);
 		if (settlementMatrixReq == null) {
-			//TODO throw an error...
+			throw new SettlementMatrixRequestNotFoundError(`Unable to locate Settlement Matrix Request with identifier '${settlementMatrixReqId}'.`);
 		}
-		const batches = await this.batchRepo.getSettlementBatchesBySettlementMatrixRequestId(settlementMatrixReqId);
+		const batchesFromMatrixReq = settlementMatrixReq.batches;
 
 		// CLOSE THE OPEN BATCH:
 		const closedBatches : ISettlementBatchDto[] = [];
-		for (const batch of batches) {
+		for (const batchFromMatrixReq of batchesFromMatrixReq) {
+			const batch = await this.batchRepo.getSettlementBatchById(batchFromMatrixReq.id);
+			if (batch == null) throw new SettlementBatchNotFoundError(`Unable to locate batch for id '${batchFromMatrixReq.id}'.`);
 			if (SettlementBatchStatus.OPEN !== batch.batchStatus) continue;
 
 			await this.batchRepo.closeBatch(batch);
@@ -498,27 +494,61 @@ export class Aggregate {
 
 		//TODO 5. Send an event in order to update the external system position account for the batches where the account was not closed.
 
-		// Generate the Matrix!:
-		try {
-			//TODO await this.transfersRepo.storeNewSettlementTransfer(formattedTransferDto);
-		} catch (error: any) {
-			this.logger.error(error);
-			throw error;
-		}
-
 		// We perform an async audit:
 		this.auditingClient.audit(
 			AuditingActions.SETTLEMENT_MATRIX_EXECUTED,
 			true,
-			this.getAuditSecurityContext(securityContext), [{key: "settlementModel", value: settlementMatrixReq.settlementModel}]
+			this.getAuditSecurityContext(securityContext), [
+				{key: "settlementModel", value: settlementMatrixReq.settlementModel},
+				{key: "settlementMatrixReqId", value: settlementMatrixReqId}
+			]
 		);
 		const matrixBatches : ISettlementMatrixBatchDto[] = [];
-		// TODO rather fetch the batches using the ids from the TOP, otherwise we may land up returning a WIP batch.
-		const settBatches = await this.batchRepo.getSettlementBatchesBy(fromDate, toDate, settlementModel);
+		const settBatchesAfterClose : ISettlementBatchDto[] = [];
+		for (const batchFromMatrixReq of batchesFromMatrixReq) {
+			// Confirm if close now:
+			let isInClosed = false;
+			for (const closedNow of closedBatches) {
+				if (closedNow.id === batchFromMatrixReq.id) {
+					isInClosed = true;
+					break;
+				}
+			}
 
-		// TODO set and exec : IParticipantSettlementNotificationDto
-		//TODO Complete:
-		await this.participantAccRepo.publishSettlementNotification([]);
+			// Fetch a fresh copy of the batch:
+			const closedBatch = await this.batchRepo.getSettlementBatchById(batchFromMatrixReq.id);
+			if (closedBatch == null) throw new SettlementBatchNotFoundError(`Unable to locate batch for id '${batchFromMatrixReq.id}'.`);
+
+			const batchAccounts = await this.getSettlementBatchAccounts(closedBatch.id, securityContext);
+			const matrixBatchAccounts : ISettlementMatrixSettlementBatchAccountDto[] = [];
+			batchAccounts.forEach(batchAcc => {
+
+				const settBatchAcc : ISettlementMatrixSettlementBatchAccountDto = {
+					id: "",
+					participantAccountId: "",
+					currencyCode: "",
+					creditBalance: "",
+					debitBalance: ""
+				}
+
+				matrixBatchAccounts.push()
+			})
+
+
+
+			let debitBal, creditBal : bigint
+
+			const toAdd : ISettlementMatrixBatchDto = {
+				batchIdentifier: closedBatch.batchIdentifier!,
+				batchStatusBeforeExec: isInClosed ? SettlementBatchStatus.OPEN : SettlementBatchStatus.CLOSED,
+				batchStatusAfterExec: closedBatch.batchStatus!,
+				currencyCode: closedBatch.currency!,
+				creditBalance: ``,
+				debitBalance: ``,
+				batchAccounts: []
+			}
+			matrixBatches.push(toAdd);
+		}
 
 		const returnVal : ISettlementMatrixDto = {
 			fromDate: settlementMatrixReq.dateFrom,
@@ -527,6 +557,9 @@ export class Aggregate {
 			generationDuration: (Date.now() - timestamp) * 1000,
 			batches: matrixBatches
 		};
+
+		//TODO Complete:
+		await this.participantAccRepo.publishSettlementMatrixExecuteEvent(returnVal);
 		return returnVal;
 	}
 

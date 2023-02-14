@@ -89,16 +89,16 @@ export interface ISettlementMatrixRequestDto {
 /**Matrix**/
 export interface ISettlementMatrixSettlementBatchAccountDto {
 	id: string;
-	externalId: string;
+	participantAccountId: string;
 	currencyCode: string;
-	creditBalance: string;
 	debitBalance: string;
+	creditBalance: string;
 }
 
 export interface ISettlementMatrixBatchDto {
 	batchIdentifier: string;
-	batchStatus: SettlementBatchStatus;
-	batchStatusNew: SettlementBatchStatus;
+	batchStatusBeforeExec: SettlementBatchStatus;
+	batchStatusAfterExec: SettlementBatchStatus;
 	currencyCode: string;
 	creditBalance: string;
 	debitBalance: string;
