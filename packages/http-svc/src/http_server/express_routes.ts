@@ -209,7 +209,7 @@ export class ExpressRoutes {
 		try {
 			const settlementModel = req.query.settlementModel as string;
 			const fromDate = req.query.fromDate as string;
-			const toDate = req.query.fromDate as string;
+			const toDate = req.query.toDate as string;
 
 			const settlementMatrixReq: ISettlementMatrixRequestDto = await this.aggregate.settlementMatrixRequest(
 				settlementModel,
@@ -249,9 +249,16 @@ export class ExpressRoutes {
 
 	private async getSettlementBatchAccounts(req: Request, res: Response): Promise<void> {
 		const batchIdentifier = req.query.batchIdentifier as string;
+		const batchId = req.query.batchId as string;
 		try {
-			const settlementAccounts = await this.aggregate.getSettlementBatchAccounts(
-				batchIdentifier, req.securityContext!);
+			let settlementAccounts = [];
+			if (batchId !== null && batchId !== undefined && batchId.trim().length > 0) {
+				settlementAccounts = await this.aggregate.getSettlementBatchAccountsByBatchId(
+					batchId, req.securityContext!);
+			} else {
+				settlementAccounts = await this.aggregate.getSettlementBatchAccountsByBatchIdentifier(
+					batchIdentifier, req.securityContext!);
+			}
 			this.sendSuccessResponse(res, 200, settlementAccounts);// OK
 		} catch (error: any) {
 			this.logger.error(error);
@@ -264,10 +271,9 @@ export class ExpressRoutes {
 	}
 
 	private async getSettlementBatchTransfers(req: Request, res: Response): Promise<void> {
-		const batchIdentifier = req.query.batchIdentifier as string;
+		const batchId = req.query.batchId as string;
 		try {
-			const settlementBatches = await this.aggregate.getSettlementBatchTransfers(
-				batchIdentifier, req.securityContext!);
+			const settlementBatches = await this.aggregate.getSettlementBatchTransfers(batchId, req.securityContext!);
 			this.sendSuccessResponse(res, 200, settlementBatches);// OK
 		} catch (error: any) {
 			this.logger.error(error);

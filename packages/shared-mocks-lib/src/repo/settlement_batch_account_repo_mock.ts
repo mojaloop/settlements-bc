@@ -58,7 +58,6 @@ export class SettlementBatchAccountRepoMock implements ISettlementBatchAccountRe
 
 	async getAccountById(accountId: string): Promise<ISettlementBatchAccountDto | null> {
 		if (accountId === undefined || accountId.trim() === '') return Promise.resolve(null);
-
 		for (const batchAccIter of this.batchAccounts) {
 			if (batchAccIter.id === accountId) return Promise.resolve(batchAccIter);
 		}
@@ -66,12 +65,25 @@ export class SettlementBatchAccountRepoMock implements ISettlementBatchAccountRe
 		return Promise.resolve(null);
 	}
 
-	async getAccountsByExternalId(externalId: string): Promise<ISettlementBatchAccountDto[]> {
+	async getAccountByParticipantAccountAndBatchId(partAccId: string, batchId: string): Promise<ISettlementBatchAccountDto | null> {
+		if (partAccId === undefined || partAccId.trim() === '') return Promise.resolve(null);
+		if (batchId === undefined || batchId.trim() === '') return Promise.resolve(null);
+		for (const batchAccIter of this.batchAccounts) {
+			if (batchAccIter.settlementBatch === null || batchAccIter.settlementBatch === undefined) continue;
+			if (batchAccIter.participantAccountId === partAccId && batchAccIter.settlementBatch!.id === batchId) {
+				return Promise.resolve(batchAccIter);
+			}
+		}
+
+		return Promise.resolve(null);
+	}
+
+	async getAccountsByParticipantAccountId(participantAccountId: string): Promise<ISettlementBatchAccountDto[]> {
 		let returnVal : Array<ISettlementBatchAccountDto> = [];
-		if (externalId === undefined || externalId.trim() === '') return Promise.resolve(returnVal);
+		if (participantAccountId === undefined || participantAccountId.trim() === '') return Promise.resolve(returnVal);
 
 		for (const batchAccIter of this.batchAccounts) {
-			if (batchAccIter.externalId === externalId) returnVal.push(batchAccIter);
+			if (batchAccIter.participantAccountId === participantAccountId) returnVal.push(batchAccIter);
 		}
 
 		return Promise.resolve(returnVal);

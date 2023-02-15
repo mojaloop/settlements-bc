@@ -10,8 +10,8 @@ authorization: 123456
 {
   "id" : null,
   "transferId" : "{{$uuid}}",
-  "debitAccount" : {"id" :  "{{$uuid}}"},
-  "creditAccount" : {"id" :  "{{$uuid}}"},
+  "debitParticipantAccountId" : "{{$uuid}}",
+  "creditParticipantAccountId" : "{{$uuid}}",
   "currencyCode" : "USD",
   "amount" : "10000",
   "timestamp" : {{$timestamp}}000,
@@ -21,6 +21,7 @@ authorization: 123456
 > {%
     client.global.set("txn_resp_id", response.body.settlementTransferId);
     client.global.set("txn_batch_id", response.body.batchId);
+    client.global.set("txn_batch_identifier", response.body.batchIdentifier);
 %}
 
 ### Test - Get Settlement Batches:
@@ -29,14 +30,37 @@ Content-Type: application/json
 X-Correlation-ID: Manual-{{$uuid}}
 authorization: 123456
 
-### Test - Get Settlement Batch Accounts:
-GET http://localhost:1234/settlement_accounts?batchIdentifier={{txn_batch_id}}
+### Test - Get Settlement Batch Accounts - By Batch Id:
+GET http://localhost:1234/settlement_accounts?batchId={{txn_batch_id}}
+Content-Type: application/json
+X-Correlation-ID: Manual-{{$uuid}}
+authorization: 123456
+
+### Test - Get Settlement Batch Accounts - By Batch Identifier:
+GET http://localhost:1234/settlement_accounts?batchIdentifier={{txn_batch_identifier}}
 Content-Type: application/json
 X-Correlation-ID: Manual-{{$uuid}}
 authorization: 123456
 
 ### Test - Get Settlement Batch Transfers:
-GET http://localhost:1234/settlement_transfers?batchIdentifier={{txn_batch_id}}
+GET http://localhost:1234/settlement_transfers?batchId={{txn_batch_id}}
 Content-Type: application/json
 X-Correlation-ID: Manual-{{$uuid}}
 authorization: 123456
+
+### Test - Get Settlement Matrix Request:
+GET http://localhost:1234/settlement_matrix_request?fromDate=1674140933634&toDate={{$timestamp}}000
+Content-Type: application/json
+X-Correlation-ID: Manual-{{$uuid}}
+authorization: 123456
+
+> {%
+    client.global.set("matrix_req_id", response.body.id);
+%}
+
+### Test - Get Execute Settlement Matrix:
+GET http://localhost:1234/execute_settlement_matrix?settlementMatrixReqId={{matrix_req_id}}
+Content-Type: application/json
+X-Correlation-ID: Manual-{{$uuid}}
+authorization: 123456
+

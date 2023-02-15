@@ -27,13 +27,20 @@
 
 "use strict";
 
-export * from "./audit_client_mock";
-export * from "./authentication_service_mock";
-export * from "./authorization_client_mock";
+import {IParticipantAccountNotifier} from "@mojaloop/settlements-bc-domain-lib";
+import {ISettlementMatrixDto} from "@mojaloop/settlements-bc-public-types-lib";
 
-export * from "./repo/config_repo_mock";
-export * from "./repo/participant_account_notifier_mock";
-export * from "./repo/settlement_batch_account_repo_mock";
-export * from "./repo/settlement_batch_repo_mock";
-export * from "./repo/settlement_transfer_repo_mock";
-export * from "./repo/settlement_matrix_request_repo_mock";
+export class ParticipantAccountNotifierMock implements IParticipantAccountNotifier {
+
+	async init(): Promise<void> {
+		return Promise.resolve();
+	}
+	async destroy(): Promise<void>{
+		return Promise.resolve();
+	}
+
+	async publishSettlementMatrixExecuteEvent(matrix: ISettlementMatrixDto): Promise<void> {
+		//TODO publish to the external system:
+		return Promise.resolve();
+	}
+}

@@ -49,6 +49,7 @@ export class InsufficientBalanceError extends Error {}
 // Common.
 export class InvalidIdError extends Error {}
 export class InvalidExternalIdError extends Error {}
+export class InvalidTransferIdError extends Error {}
 export class InvalidCurrencyCodeError extends Error {}
 export class InvalidCurrencyDecimalsError extends Error {}
 export class InvalidTimestampError extends Error {}

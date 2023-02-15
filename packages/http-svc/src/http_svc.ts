@@ -35,7 +35,7 @@ import {
 	ISettlementMatrixRequestRepo,
 	ISettlementBatchRepo,
 	ISettlementBatchAccountRepo,
-	IParticipantAccountBatchMappingRepo,
+	IParticipantAccountNotifier,
 	ISettlementTransferRepo,
 	Privileges
 } from "@mojaloop/settlements-bc-domain-lib";
@@ -111,7 +111,7 @@ let configRepo: ISettlementConfigRepo;
 let settlementMatrixReq: ISettlementMatrixRequestRepo;
 let batchRepo: ISettlementBatchRepo;
 let accountRepo: ISettlementBatchAccountRepo;
-let partAccountRepo: IParticipantAccountBatchMappingRepo;
+let partAccountNotifier: IParticipantAccountNotifier;
 let transferRepo: ISettlementTransferRepo;
 
 let httpServer: ExpressHttpServer;
@@ -123,7 +123,7 @@ export async function startHttpService(
 	_configRepo?: ISettlementConfigRepo,
 	_batchRepo?: ISettlementBatchRepo,
 	_accountRepo?: ISettlementBatchAccountRepo,
-	_partAccountRepo?: IParticipantAccountBatchMappingRepo,
+	_partAccountNotifier?: IParticipantAccountNotifier,
 	_transferRepo?: ISettlementTransferRepo,
 	_settlementMatrixReq?: ISettlementMatrixRequestRepo,
 ): Promise<void> {
@@ -246,8 +246,8 @@ export async function startHttpService(
 		// TODO Init the A+B BC for Accounts.
 	}
 
-	if (_partAccountRepo !== undefined) {
-		partAccountRepo = _partAccountRepo;
+	if (_partAccountNotifier !== undefined) {
+		partAccountNotifier = _partAccountNotifier;
 	} else {
 		// TODO Init the part accounts.
 	}
@@ -271,7 +271,7 @@ export async function startHttpService(
 		auditingClient,
 		batchRepo,
 		accountRepo,
-		partAccountRepo,
+		partAccountNotifier,
 		transferRepo,
 		configRepo,
 		settlementMatrixReq

@@ -21,44 +21,48 @@
 
  * Coil
  * - Jason Bruwer <jason.bruwer@coil.com>
-
  --------------
  ******/
 
 "use strict";
 
-import {IParticipantAccountBatchMappingRepo} from "@mojaloop/settlements-bc-domain-lib";
-import {IParticipantAccountBatchMappingDto, ISettlementMatrixDto} from "@mojaloop/settlements-bc-public-types-lib";
+import axios, {AxiosError, AxiosInstance, AxiosResponse} from "axios";
+import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
+import {ISettlementTransferDto} from "@mojaloop/settlements-bc-public-types-lib";
 
-export class ParticipantAccountBatchMappingRepoMock implements IParticipantAccountBatchMappingRepo {
-	participants: Array<IParticipantAccountBatchMappingDto> = [];
+export class AuxiliarySettlementsHttpClient {
+	// Properties received through the constructor.
+	private readonly logger: ILogger;
+	// Other properties.
+	private readonly httpClient: AxiosInstance;
 
-	async init(): Promise<void> {
-		return Promise.resolve();
+	constructor(
+		logger: ILogger,
+		baseUrlHttpService: string,
+		timeoutMs: number,
+		accessToken: string
+	) {
+		this.logger = logger;
+
+		this.httpClient = axios.create({
+			baseURL: baseUrlHttpService,
+			timeout: timeoutMs
+		});
+		// "headers: {"Authorization": `Bearer ${accessToken}`}" could be passed to axios.create(), but that way, due
+		// to a bug, it wouldn't be possible to change the access token later.
+		this.setAccessToken(accessToken);
 	}
-	async destroy(): Promise<void>{
-		return Promise.resolve();
+
+	setAccessToken(accessToken: string): void {
+		this.httpClient.defaults.headers.common["Authorization"] = `Bearer ${accessToken}`;
 	}
 
-	async storeBatchParticipant(participant: IParticipantAccountBatchMappingDto): Promise<void> {
-		if (participant === undefined) return Promise.resolve();
-		this.participants.push(participant);
-		return Promise.resolve();
-	}
-
-	async getAccountBy(participantId: string, batchId: string): Promise<IParticipantAccountBatchMappingDto | null> {
-		if (participantId === undefined || batchId === undefined) return Promise.resolve(null);
-
-		for (const partIter of this.participants) {
-			if (partIter.participantId === participantId && batchId === partIter.settlementBatchId) {
-				return Promise.resolve(partIter);
-			}
+	async createSettlementTransfer(settleTransferDto: ISettlementTransferDto): Promise<number> {
+		try {
+			const axiosResponse: AxiosResponse = await this.httpClient.post("/transfer", settleTransferDto);
+			return axiosResponse.status;
+		} catch (error) {
+			return (error as AxiosError).response?.status ?? -1;
 		}
-		return Promise.resolve(null);
-	}
-
-	async publishSettlementMatrixExecuteEvent(matrix: ISettlementMatrixDto): Promise<void> {
-		//TODO publish to the external system:
-		return Promise.resolve();
 	}
 }

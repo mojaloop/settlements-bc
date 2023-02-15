@@ -32,7 +32,7 @@ import {bigintToString} from "../converters";
 
 export class SettlementBatchAccount {
 	id: string;
-	externalId: string | null;
+	participantAccountId: string | null;
 	currencyCode: string;
 	currencyDecimals: number;
 	creditBalance: bigint;
@@ -41,7 +41,7 @@ export class SettlementBatchAccount {
 
 	constructor(
 		id: string,
-		externalId: string,
+		participantAccountId: string,
 		currencyCode: string,
 		currencyDecimals: number,
 		creditBalance: bigint,
@@ -49,7 +49,7 @@ export class SettlementBatchAccount {
 		timestamp: number
 	) {
 		this.id = id;
-		this.externalId = externalId;
+		this.participantAccountId = participantAccountId;
 		this.currencyCode = currencyCode;
 		this.currencyDecimals = currencyDecimals;
 		this.creditBalance = creditBalance;
@@ -63,7 +63,7 @@ export class SettlementBatchAccount {
 
 		const accountDto: ISettlementBatchAccountDto = {
 			id: this.id,
-			externalId: this.externalId,
+			participantAccountId: this.participantAccountId,
 			settlementBatch: null,
 			currencyCode: this.currencyCode,
 			currencyDecimals: this.currencyDecimals,

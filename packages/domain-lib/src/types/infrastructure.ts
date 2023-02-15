@@ -31,7 +31,6 @@ import {
 	ISettlementConfigDto,
 	ISettlementBatchDto,
 	ISettlementBatchAccountDto,
-	IParticipantAccountBatchMappingDto,
 	ISettlementTransferDto,
 	ISettlementMatrixRequestDto,
 	ISettlementMatrixDto
@@ -50,7 +49,8 @@ export interface ISettlementBatchRepo {
 	closeBatch(batch: ISettlementBatchDto): Promise<void>;
 
 	batchExistsByBatchIdentifier(batchIdentifier: string): Promise<boolean>;
-	getSettlementBatchById(batchIdentifier: string): Promise<ISettlementBatchDto | null>;
+	getSettlementBatchById(id: string): Promise<ISettlementBatchDto | null>;
+	getSettlementBatchByBatchIdentifier(batchIdentifier: string): Promise<ISettlementBatchDto | null>;
 	getSettlementBatchesBy(fromDate: number, toDate: number, model?: string): Promise<ISettlementBatchDto[]>;
 	getOpenSettlementBatch(fromDate: number, toDate: number, model: string): Promise<ISettlementBatchDto | null>;
 }
@@ -61,7 +61,8 @@ export interface ISettlementBatchAccountRepo {
 	storeNewSettlementBatchAccount(account: ISettlementBatchAccountDto): Promise<void>; // Throws if account.id is not unique.
 	accountExistsById(accountId: string): Promise<boolean>;
 	getAccountById(accountId: string): Promise<ISettlementBatchAccountDto | null>;
-	getAccountsByExternalId(externalId: string): Promise<ISettlementBatchAccountDto[]>;
+	getAccountsByParticipantAccountId(partAccId: string): Promise<ISettlementBatchAccountDto[]>;
+	getAccountByParticipantAccountAndBatchId(partAccId: string, batchId: string): Promise<ISettlementBatchAccountDto | null>;
 	getAccountsByBatch(batch: ISettlementBatchDto): Promise<ISettlementBatchAccountDto[]>;
 	updateAccountCreditBalanceAndTimestampById(
 		accountId: string,
@@ -75,11 +76,9 @@ export interface ISettlementBatchAccountRepo {
 	): Promise<void>;
 }
 
-export interface IParticipantAccountBatchMappingRepo {
+export interface IParticipantAccountNotifier {
 	init(): Promise<void>;
 	destroy(): Promise<void>;
-	storeBatchParticipant(participant: IParticipantAccountBatchMappingDto): Promise<void>;
-	getAccountBy(participantId: string, batchId: string): Promise<IParticipantAccountBatchMappingDto | null>;
 	publishSettlementMatrixExecuteEvent(matrix: ISettlementMatrixDto): Promise<void>;
 }
 

@@ -59,14 +59,19 @@ export class SettlementBatchRepoMock implements ISettlementBatchRepo {
 		return Promise.resolve();
 	}
 
-	async getSettlementBatchById(batchIdentifier: string): Promise<ISettlementBatchDto | null> {
+	async getSettlementBatchByBatchIdentifier(batchIdentifier: string): Promise<ISettlementBatchDto | null> {
 		if (batchIdentifier === undefined || batchIdentifier.trim() === '') return Promise.resolve(null);
-
 		for (const batchIter of this.batches) {
-			if (batchIter.id === batchIdentifier) return Promise.resolve(batchIter);
-			else if (batchIter.batchIdentifier === batchIdentifier) return Promise.resolve(batchIter);
+			if (batchIter.batchIdentifier === batchIdentifier) return Promise.resolve(batchIter);
 		}
+		return Promise.resolve(null);
+	}
 
+	async getSettlementBatchById(id: string): Promise<ISettlementBatchDto | null> {
+		if (id === undefined || id.trim() === '') return Promise.resolve(null);
+		for (const batchIter of this.batches) {
+			if (batchIter.id === id) return Promise.resolve(batchIter);
+		}
 		return Promise.resolve(null);
 	}
 

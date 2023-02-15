@@ -63,7 +63,15 @@ export class AccountsAndBalancesBCSettlementBatchAccountRepo implements ISettlem
 		return Promise.resolve(null);
 	}
 
-	async getAccountsByExternalId(externalId: string): Promise<ISettlementBatchAccountDto[]> {
+	getAccountByParticipantAccountAndBatchId(partAccId: string, batchId: string): Promise<ISettlementBatchAccountDto | null> {
+		if (partAccId === undefined || partAccId.trim() === '') return Promise.resolve(null);
+
+		//TODO Complete this...
+
+		return Promise.resolve(null);
+	}
+
+	async getAccountsByParticipantAccountId(externalId: string): Promise<ISettlementBatchAccountDto[]> {
 		let returnVal : Array<ISettlementBatchAccountDto> = [];
 		if (externalId === undefined || externalId.trim() === '') return Promise.resolve(returnVal);
 
