@@ -31,7 +31,7 @@ import {
 	ISettlementConfigRepo,
 	ISettlementBatchRepo,
 	ISettlementBatchAccountRepo,
-	IParticipantAccountBatchMappingRepo,
+	IParticipantAccountNotifier,
 	ISettlementTransferRepo,
 	ISettlementMatrixRequestRepo
 } from "@mojaloop/settlements-bc-domain-lib";
@@ -47,7 +47,7 @@ import {
 	SettlementConfigRepoMock,
 	SettlementBatchRepoMock,
 	SettlementBatchAccountRepoMock,
-	ParticipantAccountBatchMappingRepoMock,
+	ParticipantAccountNotifierMock,
 	SettlementTransferRepoMock,
 	SettlementMatrixRequestRepoMock
 } from "@mojaloop/settlements-bc-shared-mocks-lib";
@@ -63,9 +63,9 @@ let authorizationClient: IAuthorizationClient;
 let configRepo: ISettlementConfigRepo;
 let settleBatchRepo: ISettlementBatchRepo;
 let settleBatchAccRepo: ISettlementBatchAccountRepo;
-let partAccBatchMappingRepo: IParticipantAccountBatchMappingRepo;
 let settleTransferRepo: ISettlementTransferRepo;
 let settleMatrixReqRepo: ISettlementMatrixRequestRepo;
+let partNotifier: IParticipantAccountNotifier;
 
 let auxiliarySettlementsHttpClient: AuxiliarySettlementsHttpClient;
 
@@ -81,9 +81,10 @@ describe("settlements http service - unit tests", () => {
 		configRepo = new SettlementConfigRepoMock();
 		settleBatchRepo = new SettlementBatchRepoMock();
 		settleBatchAccRepo = new SettlementBatchAccountRepoMock();
-		partAccBatchMappingRepo = new ParticipantAccountBatchMappingRepoMock();
 		settleTransferRepo = new SettlementTransferRepoMock();
 		settleMatrixReqRepo = new SettlementMatrixRequestRepoMock();
+
+		partNotifier = new ParticipantAccountNotifierMock();
 
 		// Start Service:
 		await startHttpService(
@@ -93,7 +94,7 @@ describe("settlements http service - unit tests", () => {
 			configRepo,
 			settleBatchRepo,
 			settleBatchAccRepo,
-			partAccBatchMappingRepo,
+			partNotifier,
 			settleTransferRepo,
 			settleMatrixReqRepo
 		);
@@ -116,7 +117,7 @@ describe("settlements http service - unit tests", () => {
 		const creditAcc: string = randomUUID();
 		const transferDto: ISettlementTransferDto = {
 			id: null,
-			externalId: transferId,
+			transferId: transferId,
 			currencyCode: 'EUR',
 			currencyDecimals: 2,
 			amount: "10000", //100 EURO

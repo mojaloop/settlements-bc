@@ -44,7 +44,7 @@ import {
 	InvalidTimestampError, InvalidTransferIdError,
 	NoSettlementConfig,
 	SettlementBatchAlreadyExistsError,
-	SettlementBatchNotFoundError,
+	SettlementBatchNotFoundError, SettlementMatrixRequestClosedError,
 	SettlementMatrixRequestNotFoundError,
 	UnauthorizedError
 } from "./types/errors";
@@ -67,7 +67,7 @@ import {
 	ISettlementMatrixRequestDto,
 	ISettlementMatrixSettlementBatchAccountDto,
 	ISettlementTransferDto,
-	SettlementBatchStatus
+	SettlementBatchStatus, SettlementMatrixRequestStatus
 } from "@mojaloop/settlements-bc-public-types-lib";
 import {AuditSecurityContext, IAuditClient} from "@mojaloop/auditing-bc-public-types-lib";
 import {CallSecurityContext} from "@mojaloop/security-bc-client-lib";
@@ -168,7 +168,7 @@ export class Aggregate {
 		if (batchDto.currency === null || batchDto.currency === "") throw new InvalidCurrencyCodeError();
 
 		// Generate a random UUID, if needed:
-		if (await this.batchRepo.batchExistsByBatchIdentifier(batchDto.batchIdentifier)) {
+		if (await this.batchRepo.batchExistsByBatchIdentifier(batchDto.batchIdentifier!)) {
 			throw new InvalidBatchIdentifierError(`Batch with identifier '${batchDto.batchIdentifier}' already created.`);
 		}
 
@@ -176,10 +176,10 @@ export class Aggregate {
 		const batch: SettlementBatch = new SettlementBatch(
 			batchDto.id,
 			timestamp,
-			batchDto.settlementModel,
-			batchDto.currency,
-			batchDto.batchSequence,
-			batchDto.batchIdentifier,
+			batchDto.settlementModel!,
+			batchDto.currency!,
+			batchDto.batchSequence!,
+			batchDto.batchIdentifier!,
 			batchDto.batchStatus === undefined ? SettlementBatchStatus.OPEN : batchDto.batchStatus!
 		);
 
@@ -304,10 +304,10 @@ export class Aggregate {
 		const batchDto = await this.obtainSettlementBatch(transfer, transferDto.settlementModel, securityContext);
 		transfer.batch = new SettlementBatch(
 			batchDto.id,
-			batchDto.timestamp,
+			batchDto.timestamp!,
 			batchDto.settlementModel!,
 			batchDto.currency!,
-			batchDto.batchSequence,
+			batchDto.batchSequence!,
 			batchDto.batchIdentifier!,
 			batchDto.batchStatus!
 		)
@@ -442,12 +442,13 @@ export class Aggregate {
 		const batches : ISettlementBatchDto[] = await this.batchRepo.getSettlementBatchesBy(fromDate, toDate, settlementModel);
 
 		const returnVal : ISettlementMatrixRequestDto = {
-			id : randomUUID(),
+			id: randomUUID(),
 			timestamp: timestamp,
 			dateFrom: fromDate,
 			dateTo: toDate,
 			settlementModel: settlementModel,
-			batches: batches
+			batches: batches,
+			matrixStatus: SettlementMatrixRequestStatus.OPEN
 		};
 
 		await this.settlementMatrixReqRepo.storeNewSettlementMatrixRequest(returnVal);
@@ -473,6 +474,9 @@ export class Aggregate {
 		if (settlementMatrixReq == null) {
 			throw new SettlementMatrixRequestNotFoundError(`Unable to locate Settlement Matrix Request with identifier '${settlementMatrixReqId}'.`);
 		}
+		if (settlementMatrixReq.matrixStatus === SettlementMatrixRequestStatus.CLOSED) {
+			throw new SettlementMatrixRequestClosedError(`Settlement Matrix Request with identifier '${settlementMatrixReqId}' already closed (Previously executed).`);
+		}
 		const batchesFromMatrixReq = settlementMatrixReq.batches;
 
 		// Close the open batches:
@@ -487,7 +491,6 @@ export class Aggregate {
 		}
 
 		const matrixBatches : ISettlementMatrixBatchDto[] = [];
-		const settBatchesAfterClose : ISettlementBatchDto[] = [];
 		for (const batchFromMatrixReq of batchesFromMatrixReq) {
 			// Confirm if close now:
 			let isInClosed = false;
@@ -537,12 +540,15 @@ export class Aggregate {
 			fromDate: settlementMatrixReq.dateFrom,
 			toDate: settlementMatrixReq.dateFrom,
 			settlementModel: settlementMatrixReq.settlementModel,
-			generationDuration: (Date.now() - timestamp) * 1000,
+			generationDuration: (Date.now() - timestamp),
 			batches: matrixBatches
 		};
 
 		//TODO Complete:
 		await this.participantAccNotifier.publishSettlementMatrixExecuteEvent(returnVal);
+
+		// Close the Matrix Request to prevent further execution:
+		await this.settlementMatrixReqRepo.closeSettlementMatrixRequest(settlementMatrixReq);
 
 		// We perform an async audit:
 		this.auditingClient.audit(
@@ -581,7 +587,7 @@ export class Aggregate {
 		const returnVal = await this.batchAccountRepo.getAccountsByBatch(batch)
 		// Cleanup the JSON:
 		returnVal.forEach(itm => {
-			//TODO delete itm.settlementBatch;
+			this.cleanBatchForResponse(itm.settlementBatch);
 		});
 		return returnVal;
 	}
@@ -600,12 +606,12 @@ export class Aggregate {
 		const returnVal = await this.batchAccountRepo.getAccountsByBatch(batch)
 		// Cleanup the JSON:
 		returnVal.forEach(itm => {
-			//TODO delete itm.settlementBatch;
+			this.cleanBatchForResponse(itm.settlementBatch);
 		});
 		return returnVal;
 	}
 
-	public async getSettlementBatchTransfers(
+	public async getSettlementBatchTransfersByBatchId(
 		batchId : string,
 		securityContext: CallSecurityContext
 	): Promise<ISettlementTransferDto[]> {
@@ -621,13 +627,45 @@ export class Aggregate {
 		settlementAccounts.forEach(itm => accIds.push(itm.id!));
 
 		const returnVal = await this.transfersRepo.getSettlementTransfersByAccountIds(accIds/*settlementAccounts.map(acc => acc.id)*/);
-
 		// Cleanup the JSON:
 		returnVal.forEach(itm => {
-			//TODO delete itm.batch
-		})
-
+			this.cleanBatchForResponse(itm.batch);
+		});
 		return returnVal;
+	}
+
+	public async getSettlementBatchTransfersByBatchIdentifier(
+		batchIdentifier : string,
+		securityContext: CallSecurityContext
+	): Promise<ISettlementTransferDto[]> {
+		this.enforcePrivilege(securityContext, Privileges.RETRIEVE_SETTLEMENT_TRANSFERS);
+
+		const batch = await this.batchRepo.getSettlementBatchByBatchIdentifier(batchIdentifier);
+		if (batch === null) {
+			throw new SettlementBatchNotFoundError(`Unable to locate Settlement Batch with 'Batch Identifier'' '${batchIdentifier}'.`);
+		}
+
+		const settlementAccounts = await this.batchAccountRepo.getAccountsByBatch(batch);
+		const accIds : string[] = [];
+		settlementAccounts.forEach(itm => accIds.push(itm.id!));
+
+		const returnVal = await this.transfersRepo.getSettlementTransfersByAccountIds(accIds);
+		// Cleanup the JSON:
+		returnVal.forEach(itm => {
+			this.cleanBatchForResponse(itm.batch);
+		});
+		return returnVal;
+	}
+
+	private cleanBatchForResponse(itm? : ISettlementBatchDto | null) : void {
+		if (itm === undefined || itm === null) return;
+
+		delete itm.currency
+		delete itm.timestamp
+		delete itm.settlementModel
+		delete itm.batchSequence
+		delete itm.batchIdentifier
+		delete itm.batchStatus
 	}
 
 	private async createSettlementBatchAccountFromAccId(
@@ -687,7 +725,8 @@ export class Aggregate {
 		const fromDate: number = config.calculateBatchFromDate(timestamp),
 			toDate: number = config.calculateBatchToDate(timestamp);
 
-		let settlementBatchDto : null | ISettlementBatchDto = await this.batchRepo.getOpenSettlementBatch(fromDate, toDate, model);
+		let settlementBatchDto : null | ISettlementBatchDto = await this.batchRepo.getOpenSettlementBatch(
+			fromDate, toDate, model, transfer.currencyCode);
 		if (settlementBatchDto === null) {
 			const nextBatchSeq = await this.nextBatchSequence(fromDate, toDate, model);
 			// Create a new Batch to store the transfer against:
@@ -730,7 +769,7 @@ export class Aggregate {
 		let maxBatchSeq = 1;
 		const batchesForCriteria = await this.batchRepo.getSettlementBatchesBy(fromDate, toDate, model);
 		for (const settlementBatch of batchesForCriteria) {
-			if (settlementBatch.batchSequence > maxBatchSeq) maxBatchSeq = settlementBatch.batchSequence;
+			if (settlementBatch.batchSequence! > maxBatchSeq) maxBatchSeq = settlementBatch.batchSequence!;
 		}
 		return maxBatchSeq;
 	}

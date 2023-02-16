@@ -40,6 +40,7 @@ export class UnableToGetSettlementConfigError extends Error {}
 export class PositionAccountNotFoundError extends Error {}
 export class SettlementBatchNotFoundError extends Error {}
 export class SettlementMatrixRequestNotFoundError extends Error {}
+export class SettlementMatrixRequestClosedError extends Error {}
 export class InvalidJournalEntryAmountError extends Error {}
 export class SameCreditedAndDebitedAccountsError extends Error {}
 export class NoSuchCreditedAccountError extends Error {}

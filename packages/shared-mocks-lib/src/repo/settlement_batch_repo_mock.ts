@@ -84,7 +84,7 @@ export class SettlementBatchRepoMock implements ISettlementBatchRepo {
 		let returnVal : Array<ISettlementBatchDto> = [];
 
 		this.batches.forEach(batchIter => {
-			if (batchIter.timestamp >= fromDate && batchIter.timestamp <= toDate) {
+			if (batchIter.timestamp! >= fromDate && batchIter.timestamp! <= toDate) {
 				if (model === undefined) returnVal.push(batchIter);
 				else if (batchIter.settlementModel === model) returnVal.push(batchIter);
 			}
@@ -92,10 +92,11 @@ export class SettlementBatchRepoMock implements ISettlementBatchRepo {
 		return Promise.resolve(returnVal);
 	}
 
-	async getOpenSettlementBatch(fromData: number, toDate: number, model: string): Promise<ISettlementBatchDto | null> {
+	async getOpenSettlementBatch(fromData: number, toDate: number, model: string, currency : string): Promise<ISettlementBatchDto | null> {
 		for (const batchIter of this.batches) {
-			if ((batchIter.timestamp >= fromData && batchIter.timestamp <= toDate) &&
-				(batchIter.settlementModel === model) && batchIter.batchStatus === SettlementBatchStatus.OPEN) {
+			if ((batchIter.timestamp! >= fromData && batchIter.timestamp! <= toDate) &&
+				((batchIter.settlementModel === model && batchIter.batchStatus === SettlementBatchStatus.OPEN) &&
+					batchIter.currency === currency)) {
 				return Promise.resolve(batchIter);
 			}
 		}

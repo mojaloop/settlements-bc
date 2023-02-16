@@ -28,7 +28,7 @@
 "use strict";
 
 import {ISettlementMatrixRequestRepo} from "@mojaloop/settlements-bc-domain-lib";
-import {ISettlementMatrixRequestDto} from "@mojaloop/settlements-bc-public-types-lib";
+import {ISettlementMatrixRequestDto, SettlementMatrixRequestStatus} from "@mojaloop/settlements-bc-public-types-lib";
 import console from "console";
 export class SettlementMatrixRequestRepoMock implements ISettlementMatrixRequestRepo {
 	matrixRequests: Array<ISettlementMatrixRequestDto> = [];
@@ -56,4 +56,18 @@ export class SettlementMatrixRequestRepoMock implements ISettlementMatrixRequest
 		}
 		return Promise.resolve(null);
 	}
+
+	async closeSettlementMatrixRequest(matrixReq: ISettlementMatrixRequestDto): Promise<void> {
+		if (matrixReq.id == null) return Promise.resolve();
+
+		for (const matrixReqIter of this.matrixRequests) {
+			if (matrixReqIter.id === matrixReq.id) {
+				matrixReqIter.matrixStatus = SettlementMatrixRequestStatus.CLOSED;
+				return Promise.resolve();
+			}
+		}
+
+		return Promise.resolve();
+	}
+
 }

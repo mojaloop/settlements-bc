@@ -52,7 +52,7 @@ export interface ISettlementBatchRepo {
 	getSettlementBatchById(id: string): Promise<ISettlementBatchDto | null>;
 	getSettlementBatchByBatchIdentifier(batchIdentifier: string): Promise<ISettlementBatchDto | null>;
 	getSettlementBatchesBy(fromDate: number, toDate: number, model?: string): Promise<ISettlementBatchDto[]>;
-	getOpenSettlementBatch(fromDate: number, toDate: number, model: string): Promise<ISettlementBatchDto | null>;
+	getOpenSettlementBatch(fromDate: number, toDate: number, model: string, currency: string): Promise<ISettlementBatchDto | null>;
 }
 
 export interface ISettlementBatchAccountRepo {
@@ -96,5 +96,7 @@ export interface ISettlementMatrixRequestRepo {
 	destroy(): Promise<void>;
 	storeNewSettlementMatrixRequest(req: ISettlementMatrixRequestDto): Promise<void>; // Throws if account.id is not unique.
 	getSettlementMatrixById(settlementMatrixReqId: string): Promise<ISettlementMatrixRequestDto | null>;
+
+	closeSettlementMatrixRequest(matrixReq: ISettlementMatrixRequestDto): Promise<void>;
 }
 

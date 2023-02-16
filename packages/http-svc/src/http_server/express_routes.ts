@@ -34,7 +34,7 @@ import {
 	InvalidCurrencyCodeError,
 	InvalidDebitAccountError,
 	InvalidExternalIdError, InvalidTimestampError,
-	SettlementBatchNotFoundError,
+	SettlementBatchNotFoundError, SettlementMatrixRequestClosedError,
 	UnableToGetAccountError,
 	UnauthorizedError
 } from "@mojaloop/settlements-bc-domain-lib";
@@ -195,13 +195,16 @@ export class ExpressRoutes {
 			const settlementMatrix: ISettlementMatrixDto = await this.aggregate.executeSettlementMatrix(
 				settlementMatrixReqId, req.securityContext!);
 			this.sendSuccessResponse(res, 200, settlementMatrix);// OK
-		} catch (error: unknown) {
+		} catch (error: any) {
 			this.logger.error(error);
-			if (error instanceof UnauthorizedError) {
+			if (error instanceof SettlementMatrixRequestClosedError) {
+				this.sendErrorResponse(res, 406, error.message);
+			} else if (error instanceof UnauthorizedError) {
 				this.sendErrorResponse(res, 403, "unauthorized"); // TODO: verify.
 			} else {
 				this.sendErrorResponse(res, 500, ExpressRoutes.UNKNOWN_ERROR_MESSAGE);
 			}
+
 		}
 	}
 
@@ -271,10 +274,18 @@ export class ExpressRoutes {
 	}
 
 	private async getSettlementBatchTransfers(req: Request, res: Response): Promise<void> {
+		const batchIdentifier = req.query.batchIdentifier as string;
 		const batchId = req.query.batchId as string;
 		try {
-			const settlementBatches = await this.aggregate.getSettlementBatchTransfers(batchId, req.securityContext!);
-			this.sendSuccessResponse(res, 200, settlementBatches);// OK
+			let settlementTransfers = [];
+			if (batchId !== null && batchId !== undefined && batchId.trim().length > 0) {
+				settlementTransfers = await this.aggregate.getSettlementBatchTransfersByBatchId(
+					batchId, req.securityContext!);
+			} else {
+				settlementTransfers = await this.aggregate.getSettlementBatchTransfersByBatchIdentifier(
+					batchIdentifier, req.securityContext!);
+			}
+			this.sendSuccessResponse(res, 200, settlementTransfers);// OK
 		} catch (error: any) {
 			this.logger.error(error);
 			if (error instanceof SettlementBatchNotFoundError) {

@@ -57,7 +57,7 @@ export function startWithConditions(): void {
     const repoSettlementBatch = new SettlementBatchRepoMock();
     const repoSettlementBatchAccount = new SettlementBatchAccountRepoMock();
     const repoTransfer = new SettlementTransferRepoMock();
-    const settMatrixReq = new SettlementMatrixRequestRepoMock();
+    const settleMatrixReq = new SettlementMatrixRequestRepoMock();
     // Events:
     const partNotifierMock = new ParticipantAccountNotifierMock();
 
@@ -70,7 +70,7 @@ export function startWithConditions(): void {
       repoSettlementBatchAccount,
       partNotifierMock,
       repoTransfer,
-      settMatrixReq
+      settleMatrixReq
     );
   } else startHttpService();
 }

@@ -35,12 +35,12 @@ export interface ISettlementConfigDto {
 
 export interface ISettlementBatchDto {
 	id: string;
-	timestamp: number;
-	settlementModel: string;
-	currency: string | null;
-	batchSequence: number;
-	batchIdentifier: string | null;// FX.XOF:RWF.2021.08.23.00.00.001
-	batchStatus: SettlementBatchStatus | null;
+	timestamp?: number;
+	settlementModel?: string;
+	currency?: string | null;
+	batchSequence?: number;
+	batchIdentifier?: string | null;// FX.XOF:RWF.2021.08.23.00.00.001
+	batchStatus?: SettlementBatchStatus | null;
 }
 
 export interface ISettlementBatchAccountDto {
@@ -78,6 +78,7 @@ export interface ISettlementMatrixRequestDto {
 	dateTo: number;
 	settlementModel: string;
 	batches: ISettlementBatchDto[];// Batches to include for the request.
+	matrixStatus: SettlementMatrixRequestStatus;
 }
 
 /**Matrix**/
@@ -108,6 +109,11 @@ export interface ISettlementMatrixDto {
 }
 
 export enum SettlementBatchStatus {
+	OPEN = "OPEN",
+	CLOSED = "CLOSED"
+}
+
+export enum SettlementMatrixRequestStatus {
 	OPEN = "OPEN",
 	CLOSED = "CLOSED"
 }
