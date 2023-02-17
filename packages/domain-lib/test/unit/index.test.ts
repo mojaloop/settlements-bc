@@ -153,6 +153,9 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 			rspTransferDto.batch!.batchIdentifier!, securityContext);
 		expect(transfersByBatchIdentifier).toBeDefined();
 		expect(transfersByBatchIdentifier.length).toEqual(2);
+
+		const transfersByAcc = await aggregate.getSettlementTransfersByAccountId(batchAccountsByBatchId[0].id!, securityContext);
+		expect(transfersByAcc).toBeDefined();
 	});
 
 	// Req and execute Matrix:

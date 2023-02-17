@@ -798,26 +798,6 @@ export class Aggregate {
 		return maxBatchSeq;
 	}
 
-	async getSettlementAccountsBy(
-		fromDate: number,
-		toDate: number,
-		securityContext: CallSecurityContext,
-		model?: string
-	): Promise<ISettlementBatchAccountDto | null> {
-		this.enforcePrivilege(securityContext, Privileges.RETRIEVE_SETTLEMENT_BATCH);
-		try {
-			// TODO first fetch all the batches....
-			// TODO fetch all the accounts for the batches...
-
-			// const accountDto: ISettlementBatchAccountDto[] | null = await this.batchAccountRepo.getAccountsByBatch();
-			//return accountDto;
-			return null;
-		} catch (error: unknown) {
-			this.logger.error(error);
-			throw error;
-		}
-	}
-
 	async getSettlementTransfersByAccountId(
 		accountId: string,
 		securityContext: CallSecurityContext
