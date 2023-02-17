@@ -29,8 +29,8 @@
 
 export function obtainSettlementModelFrom(
 	transferAmount: bigint,
-	debitAccountCurrency: string,
-	creditAccountCurrency: string
+	debitAccountCurrency: string | null,
+	creditAccountCurrency: string | null
 ) : Promise<string> {
 	if (debitAccountCurrency === null || creditAccountCurrency===null)
 		return Promise.resolve('DEFAULT');
