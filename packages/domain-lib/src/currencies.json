@@ -6,5 +6,9 @@
   {
 	"code": "USD",
 	"decimals": 2
+  },
+  {
+    "code": "ZAR",
+    "decimals": 2
   }
 ]

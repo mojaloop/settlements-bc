@@ -26,6 +26,7 @@
     "build": "tsc",
     "postbuild": "cp src/currencies.json dist/",
     "test:unit": "jest",
+    "test:unit:domain": "jest",
     "test:unit-single": "jest --coverage false -t"
   },
   "devDependencies": {

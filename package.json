@@ -21,6 +21,7 @@
     "lint": "npm -ws -p run lint",
     "build": "npm -ws run build",
     "test:unit": "npm -ws -p run test:unit",
+    "test:unit:domain": "npm -ws -p run test:unit:domain",
     "test:integration": "jest test/integration/",
     "test:integration-http": "jest test/integration/http.test.ts",
     "test:integration-grpc": "jest test/integration/grpc.test.ts",

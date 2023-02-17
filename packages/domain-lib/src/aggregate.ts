@@ -84,6 +84,7 @@ enum AuditingActions {
 	SETTLEMENT_BATCH_ACCOUNT_CREATED = "SETTLEMENT_BATCH_ACCOUNT_CREATED",
 	SETTLEMENT_TRANSFER_CREATED = "SETTLEMENT_TRANSFER_CREATED",
 	SETTLEMENT_MATRIX_EXECUTED = "SETTLEMENT_MATRIX_EXECUTED",
+	SETTLEMENT_MATRIX_REQUEST_FETCH = "SETTLEMENT_MATRIX_REQUEST_FETCH",
 	SETTLEMENT_MATRIX_REQUEST_CREATED = "SETTLEMENT_MATRIX_REQUEST_CREATED"
 }
 
@@ -134,7 +135,7 @@ export class Aggregate {
 	}
 
 	private enforcePrivilege(securityContext: CallSecurityContext, privilegeId: string): void {
-		if (securityContext === undefined) {
+		if (securityContext === undefined || securityContext === null) {
 			this.logger.warn(`No [CallSecurityContext]. Not enforcing privilege: ${privilegeId}`);
 			return;
 		}
@@ -419,7 +420,7 @@ export class Aggregate {
 			transferId: transfer.transferId,
 			currencyCode: transfer.currencyCode,
 			currencyDecimals: transfer.currencyDecimals,
-			amount: `${transfer.amount}`,
+			amount: bigintToString(transfer.amount, transfer.currencyDecimals),
 			debitParticipantAccountId: debitedAccountDto.id!,
 			creditParticipantAccountId: creditedAccountDto.id!,
 			timestamp: timestamp,
@@ -436,7 +437,6 @@ export class Aggregate {
 		securityContext: CallSecurityContext
 	): Promise<ISettlementMatrixRequestDto> {
 		const timestamp: number = Date.now();
-
 		this.enforcePrivilege(securityContext, Privileges.REQUEST_SETTLEMENT_MATRIX);
 
 		const batches : ISettlementBatchDto[] = await this.batchRepo.getSettlementBatchesBy(fromDate, toDate, settlementModel);
@@ -561,6 +561,30 @@ export class Aggregate {
 		);
 
 		return returnVal;
+	}
+
+	async getSettlementMatrixRequestById(
+		settlementMatrixReqId: string,
+		securityContext: CallSecurityContext
+	): Promise<ISettlementMatrixRequestDto> {
+		this.enforcePrivilege(securityContext, Privileges.GET_SETTLEMENT_MATRIX_REQUEST);
+
+		const settlementMatrixReq : ISettlementMatrixRequestDto | null = await this.settlementMatrixReqRepo.getSettlementMatrixById(settlementMatrixReqId);
+		if (settlementMatrixReq == null) {
+			throw new SettlementMatrixRequestNotFoundError(`Unable to locate Settlement Matrix Request with identifier '${settlementMatrixReqId}'.`);
+		}
+
+		// We perform an async audit:
+		this.auditingClient.audit(
+			AuditingActions.SETTLEMENT_MATRIX_REQUEST_FETCH,
+			true,
+			this.getAuditSecurityContext(securityContext), [
+				{key: "settlementModel", value: settlementMatrixReq.settlementModel},
+				{key: "settlementMatrixReqId", value: settlementMatrixReqId}
+			]
+		);
+
+		return settlementMatrixReq;
 	}
 
 	public async getSettlementBatches(

@@ -24,7 +24,8 @@
     "audit:fix": "npm audit fix",
     "lint": "eslint src/",
     "build": "tsc",
-    "test:unit": "echo \"infrastructure-lib doesn't have unit tests - it's only tested on the integration tests\""
+    "test:unit": "echo \"infrastructure-lib doesn't have unit tests - it's only tested on the integration tests\"",
+    "test:unit:domain": "echo 'skpping'"
   },
   "devDependencies": {
   },

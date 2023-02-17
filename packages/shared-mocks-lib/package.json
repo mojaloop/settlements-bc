@@ -24,7 +24,8 @@
     "audit:fix": "npm audit fix",
     "lint": "eslint src/",
     "build": "tsc",
-    "test:unit": "echo \"shared-mocks-lib doesn't have unit tests\""
+    "test:unit": "echo \"shared-mocks-lib doesn't have unit tests\"",
+    "test:unit:domain": "echo 'skpping'"
   },
   "devDependencies": {
   },
