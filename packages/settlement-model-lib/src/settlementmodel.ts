@@ -33,7 +33,7 @@ export function obtainSettlementModelFrom(
 	creditAccountCurrency: string
 ) : Promise<string> {
 	if (debitAccountCurrency === null || creditAccountCurrency===null)
-		return Promise.resolve('UNKNOWN');
+		return Promise.resolve('DEFAULT');
 	if (debitAccountCurrency !== creditAccountCurrency) {
 		return Promise.resolve('FX');
 	} else
