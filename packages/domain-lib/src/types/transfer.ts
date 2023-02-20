@@ -78,7 +78,7 @@ export class SettlementTransfer {
 			creditParticipantAccountId: this.creditAccountId,
 			batch,
 			timestamp: this.timestamp,
-			settlementModel: batch === undefined ? '' : batch!.settlementModel!
+			settlementModel: (batch === undefined || batch === null) ? '' : batch!.settlementModel!
 		};
 		return transferDto;
 	}

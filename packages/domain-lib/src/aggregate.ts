@@ -265,12 +265,12 @@ export class Aggregate {
 
 		if (transferDto.timestamp === undefined || transferDto.timestamp === null || transferDto.timestamp < 1) throw new InvalidTimestampError();
 		if (transferDto.settlementModel === undefined ||
-			(transferDto.settlementModel === null || transferDto.settlementModel === "")) throw new InvalidBatchSettlementModelError();
-		if (transferDto.currencyCode === undefined || transferDto.currencyCode === "") throw new InvalidCurrencyCodeError();
-		if (transferDto.amount === undefined || transferDto.amount === "") throw new InvalidAmountError();
-		if (transferDto.transferId === undefined || transferDto.transferId === "") throw new InvalidTransferIdError();
-		if (transferDto.debitParticipantAccountId === undefined || transferDto.debitParticipantAccountId === undefined) throw new InvalidDebitAccountError();
-		if (transferDto.creditParticipantAccountId === undefined || transferDto.creditParticipantAccountId === "") throw new InvalidCreditAccountError();
+			(transferDto.settlementModel === null || transferDto.settlementModel === '')) throw new InvalidBatchSettlementModelError();
+		if (transferDto.currencyCode === undefined || transferDto.currencyCode === '') throw new InvalidCurrencyCodeError();
+		if (transferDto.amount === undefined || transferDto.amount === '') throw new InvalidAmountError();
+		if (transferDto.transferId === undefined || transferDto.transferId === '') throw new InvalidTransferIdError();
+		if (transferDto.debitParticipantAccountId === undefined || transferDto.debitParticipantAccountId === '') throw new InvalidDebitAccountError();
+		if (transferDto.creditParticipantAccountId === undefined || transferDto.creditParticipantAccountId === '') throw new InvalidCreditAccountError();
 
 		const timestamp: number = transferDto.timestamp;
 
@@ -313,18 +313,13 @@ export class Aggregate {
 			batchDto.batchStatus!
 		)
 
-		let creditedAccountDto: ISettlementBatchAccountDto | null;
-		let debitedAccountDto: ISettlementBatchAccountDto | null;
-		try {
-			debitedAccountDto = await this.batchAccountRepo.getAccountById(
-				await this.obtainSettlementAccountId(transferDto.debitParticipantAccountId, transfer.batch.id)
-			);
-			creditedAccountDto = await this.batchAccountRepo.getAccountById(
-				await this.obtainSettlementAccountId(transferDto.creditParticipantAccountId, transfer.batch.id));
-		} catch (error: any) {
-			this.logger.error(error);
-			throw error;
-		}
+		// Create / Fetch Debit and Credit accounts:
+		let creditedAccountDto: ISettlementBatchAccountDto | null = await this.batchAccountRepo.getAccountById(
+			await this.obtainSettlementAccountId(transferDto.debitParticipantAccountId, transfer.batch.id)
+		);
+		let debitedAccountDto: ISettlementBatchAccountDto | null = await this.batchAccountRepo.getAccountById(
+			await this.obtainSettlementAccountId(transferDto.creditParticipantAccountId, transfer.batch.id)
+		);
 
 		// Create the Debit/Credit accounts as required (associated per settlement batch):
 		if (debitedAccountDto === null) {
@@ -370,44 +365,29 @@ export class Aggregate {
 		formattedTransferDto.debitParticipantAccountId = debitedAccountDto.id!;
 		formattedTransferDto.creditParticipantAccountId = creditedAccountDto.id!;
 
-		try {
-			await this.transfersRepo.storeNewSettlementTransfer(formattedTransferDto);
-		} catch (error: any) {
-			this.logger.error(error);
-			throw error;
-		}
+		await this.transfersRepo.storeNewSettlementTransfer(formattedTransferDto);
 
 		// Update the debited account's debit balance and timestamp:
 		const updatedDebitBalance: string = bigintToString(
 			debitedAccount.debitBalance + transfer.amount,
 			debitedAccount.currencyDecimals
 		);
-		try {
-			await this.batchAccountRepo.updateAccountDebitBalanceAndTimestampById(
-				debitedAccount.id,
-				updatedDebitBalance,
-				transfer.timestamp!
-			);
-		} catch (error: any) {
-			this.logger.error(error);
-			throw error;
-		}
+		await this.batchAccountRepo.updateAccountDebitBalanceAndTimestampById(
+			debitedAccount.id,
+			updatedDebitBalance,
+			transfer.timestamp!
+		);
 
 		// Update the credited account's credit balance and timestamp.
 		const updatedCreditBalance: string = bigintToString(
 			creditedAccount.creditBalance + transfer.amount,
 			creditedAccount.currencyDecimals
 		);
-		try {
-			await this.batchAccountRepo.updateAccountCreditBalanceAndTimestampById(
-				creditedAccount.id,
-				updatedCreditBalance,
-				transfer.timestamp!
-			);
-		} catch (error: any) {
-			this.logger.error(error);
-			throw error;
-		}
+		await this.batchAccountRepo.updateAccountCreditBalanceAndTimestampById(
+			creditedAccount.id,
+			updatedCreditBalance,
+			transfer.timestamp!
+		);
 
 		// We perform an async audit:
 		this.auditingClient.audit(
@@ -792,10 +772,12 @@ export class Aggregate {
 		//TODO add assertion here:
 		let maxBatchSeq = 1;
 		const batchesForCriteria = await this.batchRepo.getSettlementBatchesBy(fromDate, toDate, model);
+		if (batchesForCriteria.length === 0) return maxBatchSeq;
+
 		for (const settlementBatch of batchesForCriteria) {
 			if (settlementBatch.batchSequence! > maxBatchSeq) maxBatchSeq = settlementBatch.batchSequence!;
 		}
-		return maxBatchSeq;
+		return (maxBatchSeq + 1);
 	}
 
 	async getSettlementTransfersByAccountId(

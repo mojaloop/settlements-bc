@@ -38,9 +38,7 @@ export function stringToBigint(stringValue: string, decimals: number): bigint {
 	// Count the decimals on the received string.
 	const stringValueSplitted: string[] = stringValue.split(".");
 	const existingDecimals: number = stringValueSplitted[1]?.length ?? 0;
-	if (existingDecimals > decimals) {
-		throw new Error();
-	}
+	if (existingDecimals > decimals) throw new Error();
 
 	// Format the received string according to the decimals.
 	const stringValueFormatted: string =

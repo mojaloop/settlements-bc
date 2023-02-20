@@ -73,9 +73,4 @@ export class SettlementBatchAccount {
 		};
 		return accountDto;
 	}
-
-	calculateAvailableBalance(): bigint {
-		const balance: bigint = (this.creditBalance - this.debitBalance);
-		return balance;
-	}
 }
