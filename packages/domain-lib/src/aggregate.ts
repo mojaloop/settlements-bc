@@ -157,19 +157,19 @@ export class Aggregate {
 
 	async createSettlementBatch(batchDto: ISettlementBatchDto, securityContext: CallSecurityContext): Promise<string> {
 		const timestamp: number = Date.now();
-
 		this.enforcePrivilege(securityContext, Privileges.CREATE_SETTLEMENT_BATCH);
 
 		if (batchDto.settlementModel === null) throw new InvalidBatchSettlementModelError();
 		if (batchDto.timestamp === undefined) batchDto.timestamp = timestamp;
-		if (batchDto.batchIdentifier === null || batchDto.batchIdentifier === "") throw new InvalidBatchIdentifierError();
+		if ((batchDto.batchIdentifier === null || batchDto.batchIdentifier === undefined)
+			|| batchDto.batchIdentifier.trim().length === 0) throw new InvalidBatchIdentifierError();
 
 		// IDs:
 		if (batchDto.id === null || batchDto.id === "") throw new InvalidIdError();
 		if (batchDto.currency === null || batchDto.currency === "") throw new InvalidCurrencyCodeError();
 
 		// Generate a random UUID, if needed:
-		if (await this.batchRepo.batchExistsByBatchIdentifier(batchDto.batchIdentifier!)) {
+		if (await this.batchRepo.batchExistsByBatchIdentifier(batchDto.batchIdentifier)) {
 			throw new InvalidBatchIdentifierError(`Batch with identifier '${batchDto.batchIdentifier}' already created.`);
 		}
 

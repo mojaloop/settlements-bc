@@ -138,7 +138,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		expect(rspTransferDto.currencyCode).toEqual(reqTransferDto.currencyCode);
 		expect(rspTransferDto.amount).toEqual(reqTransferDto.amount);
 
-		// Batch:
+		// Batches:
 		expect(rspTransferDto.batch).toBeDefined();
 		expect(rspTransferDto.batch!.id).toBeDefined();
 		expect(rspTransferDto.batch!.batchIdentifier).toBeDefined();
