@@ -1,7 +1,7 @@
 /*****
  License
  --------------
- Copyright © 2017 Bill & Melinda Gates Foundation
+ Copyright © 2023 Bill & Melinda Gates Foundation
  The Mojaloop files are made available by the Bill & Melinda Gates Foundation under the Apache License, Version 2.0 (the "License") and you may not use these files except in compliance with the License. You may obtain a copy of the License at
 
  http://www.apache.org/licenses/LICENSE-2.0
@@ -182,7 +182,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 				debitParticipantAccountId: debPartAccId,
 				creditParticipantAccountId: credPartAccId,
 				timestamp: Date.now(),
-				settlementModel: 'DEFAULT',
+				settlementModel: 'DEF',
 				batch: null
 			}, securityContext
 		);
@@ -195,7 +195,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 				debitParticipantAccountId: debPartAccId,
 				creditParticipantAccountId: credPartAccId,
 				timestamp: Date.now(),
-				settlementModel: 'DEFAULT',
+				settlementModel: 'DEF',
 				batch: null
 			}, securityContext
 		);
@@ -208,7 +208,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 				debitParticipantAccountId: debPartAccId,
 				creditParticipantAccountId: credPartAccId,
 				timestamp: Date.now(),
-				settlementModel: 'DEFAULT',
+				settlementModel: 'DEF',
 				batch: null
 			}, securityContext
 		);
@@ -223,7 +223,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 				debitParticipantAccountId: debPartAccId,
 				creditParticipantAccountId: credPartAccId,
 				timestamp: Date.now(),
-				settlementModel: 'FX',
+				settlementModel: 'FRX',
 				batch: null
 			}, securityContext
 		);
@@ -237,10 +237,10 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		expect(txn1RspBatch1.batch!.id).toEqual(txn2RspBatch1.batch!.id);
 		expect(txn1RspBatch1.batch!.id).toEqual(txn3RspBatch1.batch!.id);
 
-		expect(txn1RspBatch1.batch!.settlementModel).toEqual('DEFAULT');
-		expect(txn2RspBatch1.batch!.settlementModel).toEqual('DEFAULT');
-		expect(txn3RspBatch1.batch!.settlementModel).toEqual('DEFAULT');
-		expect(txn4RspBatch2.batch!.settlementModel).toEqual('FX');
+		expect(txn1RspBatch1.batch!.settlementModel).toEqual('DEF');
+		expect(txn2RspBatch1.batch!.settlementModel).toEqual('DEF');
+		expect(txn3RspBatch1.batch!.settlementModel).toEqual('DEF');
+		expect(txn4RspBatch2.batch!.settlementModel).toEqual('FRX');
 
 		// Ensure we have one batch for model [DEFAULT]:
 		const batchModelDef = await aggregate.getSettlementBatches(
