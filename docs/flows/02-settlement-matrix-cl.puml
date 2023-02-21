@@ -27,15 +27,31 @@ box Accounts and Balances BC #FFFFF9
     end note
 end box
 
-group 1. Trigger Settlement Matrix - Central Ledger / Admin API
+group 1. Settlement Matrix Request - Central Ledger / Admin API
 autonumber
-    ext_cl -> sbc_rest : Request **Settlement Matrix**
+    ext_cl -> sbc_rest : **Settlement Matrix Request**\n(model, fromDate, toDate, currency)
     sbc_rest --> sbc_app_logic : Invoke the App layer
 end
 
-group 2. Settlement - App Logic
-    sbc_app_logic <--> sbc_app_logic: **Settlement Matrix** generation triggered with:\n-> **From Date** - From\n-> **To Date** - To\n-> **Settlement Model** - Model\n-> **TODO** - Add more
+group 2. Settlement Matrix Request - App Logic
+    sbc_app_logic <--> sbc_app_logic: **Settlement Matrix Request** generation triggered with:\n-> **From Date** - From\n-> **To Date** - To\n-> **Settlement Model** - Model\n-> **Currency** - Transfer currency
     sbc_app_logic <--> sbc_db : Fetch all batches that form part of the settlement criteria
+    sbc_app_logic <--> sbc_db : Associate the batches that for part of the selection \ncriteria with the **Settlement Matrix Request**
+    sbc_app_logic --> sbc_rest : **Settlement Matrix Request** id returned
+    sbc_rest -> ext_cl : Matrix id returned in response
+end
+
+||45||
+...At the time of Settlement Matrix Generation (Settlement) ...
+||45||
+
+group 3. Execute Settlement - Central Ledger / Admin API
+autonumber
+    ext_cl -> sbc_rest : Execute **Settlement Matrix Request**\n(settlementMatrixId)
+    sbc_rest --> sbc_app_logic : Invoke the App layer
+end
+
+group 4. Execute a Settlement - App Logic
     sbc_app_logic <--> sbc_db : Close //OPEN// settlement batches which forms part \nof the settlement matrix request criteria
     sbc_app_logic <-> abbc_grpc : Obtain Debit/Credit **Settlement Accounts** based on batches
     abbc_grpc <-> abbc_tigerbeetle: Fetch **Settlement Accounts**
