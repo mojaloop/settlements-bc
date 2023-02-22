@@ -65,6 +65,7 @@ export interface ISettlementTransferDto {
 	timestamp: number;
 	settlementModel: string;
 	batch?: ISettlementBatchDto | null;
+	batchAllocation?: string | null;
 }
 
 /*******************

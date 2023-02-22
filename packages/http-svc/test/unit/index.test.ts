@@ -74,7 +74,7 @@ describe("settlements http service - unit tests", () => {
 		// Cross Cutting:
 		const logger: ILogger = new ConsoleLogger();
 		const authenticationServiceMock: AuthenticationServiceMock = new AuthenticationServiceMock(logger);
-		authorizationClient = new AuthorizationClientMock(logger);
+		authorizationClient = new AuthorizationClientMock(logger, true);
 		const auditingClient: IAuditClient = new AuditClientMock(logger);
 
 		// Mock Repos:

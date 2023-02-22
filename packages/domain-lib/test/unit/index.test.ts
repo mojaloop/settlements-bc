@@ -42,11 +42,20 @@ import {
 	InvalidAmountError,
 	InvalidTransferIdError,
 	InvalidDebitAccountError,
-	InvalidCreditAccountError
+	InvalidCreditAccountError,
+	SettlementBatchNotFoundError,
+	UnauthorizedError,
+	InvalidBatchIdentifierError,
+	SettlementMatrixRequestNotFoundError,
+	InvalidIdError,
+	InvalidCreditBalanceError,
+	InvalidDebitBalanceError,
+	InvalidParticipantAccountIdError
 } from "../../src/index";
 import {ConsoleLogger, ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import {IAuditClient} from "@mojaloop/auditing-bc-public-types-lib";
 import {randomUUID} from "crypto";
+import {stringToBigint} from "../../src/converters";
 import {IAuthorizationClient} from "@mojaloop/security-bc-public-types-lib";
 import {
 	AuditClientMock,
@@ -66,6 +75,7 @@ import {SettlementConfig} from "../../src/types/settlement_config";
 import {SettlementTransfer} from "../../src/types/transfer";
 
 let authorizationClient: IAuthorizationClient;
+let authorizationClientNoAuth: IAuthorizationClient;
 let configRepo: ISettlementConfigRepo;
 let settleBatchRepo: ISettlementBatchRepo;
 let settleBatchAccRepo: ISettlementBatchAccountRepo;
@@ -75,12 +85,14 @@ let partNotifier: IParticipantAccountNotifier;
 
 describe("Settlements BC [Domain] - Unit Tests", () => {
 	let aggregate : Aggregate;
+	let aggregateNoAuth : Aggregate;
 	let securityContext : CallSecurityContext;
 
 	beforeAll(async () => {
 		// Cross Cutting:
 		const logger: ILogger = new ConsoleLogger();
-		authorizationClient = new AuthorizationClientMock(logger);
+		authorizationClient = new AuthorizationClientMock(logger, true);
+		authorizationClientNoAuth = new AuthorizationClientMock(logger, false);
 		const auditingClient: IAuditClient = new AuditClientMock(logger);
 
 		securityContext = {
@@ -103,6 +115,17 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		aggregate = new Aggregate(
 			logger,
 			authorizationClient,
+			auditingClient,
+			settleBatchRepo,
+			settleBatchAccRepo,
+			partNotifier,
+			settleTransferRepo,
+			configRepo,
+			settleMatrixReqRepo
+		);
+		aggregateNoAuth = new Aggregate(
+			logger,
+			authorizationClientNoAuth,
 			auditingClient,
 			settleBatchRepo,
 			settleBatchAccRepo,
@@ -163,6 +186,11 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 			rspTransferDto.batch!.batchIdentifier!, securityContext);
 		expect(transfersByBatchIdentifier).toBeDefined();
 		expect(transfersByBatchIdentifier.length).toEqual(2);
+
+		const transfersByBatchId = await aggregate.getSettlementBatchTransfersByBatchId(
+			rspTransferDto.batch!.id, securityContext);
+		expect(transfersByBatchId).toBeDefined();
+		expect(transfersByBatchId.length).toEqual(2);
 
 		const transfersByAcc = await aggregate.getSettlementTransfersByAccountId(batchAccountsByBatchId[0].id!, securityContext);
 		expect(transfersByAcc).toBeDefined();
@@ -656,6 +684,245 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		}
 	});
 
+	// Lookup error responses:
+	test("test exceptions/errors responses for lookups", async () => {
+		// No Batch Found:
+		try {
+			await aggregate.getSettlementBatchTransfersByBatchIdentifier('121212', securityContext);
+			fail('Expected to throw error!');
+		} catch (err) {
+			expect(err).toBeDefined();
+			expect(err instanceof SettlementBatchNotFoundError).toEqual(true);
+		}
+
+		try {
+			await aggregate.getSettlementBatchTransfersByBatchId('121212', securityContext);
+			fail('Expected to throw error!');
+		} catch (err) {
+			expect(err).toBeDefined();
+			expect(err instanceof SettlementBatchNotFoundError).toEqual(true);
+		}
+
+		try {
+			await aggregateNoAuth.getSettlementBatchTransfersByBatchId('121212', securityContext);
+			fail('Expected to throw error!');
+		} catch (err) {
+			expect(err).toBeDefined();
+			expect(err instanceof UnauthorizedError).toEqual(true);
+		}
+	});
+
+	test("test exceptions/errors responses for creates", async () => {
+		// No Batch Identifier when creating a batch:
+		try {
+			await aggregate.createSettlementBatch({
+				id: '',
+				settlementModel: 'MOD1',
+				batchIdentifier: null
+			}, securityContext);
+			fail('Expected to throw error!');
+		} catch (err) {
+			expect(err).toBeDefined();
+			expect(err instanceof InvalidBatchIdentifierError).toEqual(true);
+		}
+
+		// No Model for batch:
+		try {
+			await aggregate.createSettlementBatch({
+				id: ''
+			}, securityContext);
+			fail('Expected to throw error!');
+		} catch (err) {
+			expect(err).toBeDefined();
+			expect(err instanceof InvalidBatchSettlementModelError).toEqual(true);
+		}
+
+		// empty id for batch:
+		try {
+			await aggregate.createSettlementBatch({
+				id: '',
+				settlementModel: 'ERR-MOD',
+				batchIdentifier: 'ERR-BATCH-ID'
+			}, securityContext);
+			fail('Expected to throw error!');
+		} catch (err) {
+			expect(err).toBeDefined();
+			expect(err instanceof InvalidIdError).toEqual(true);
+		}
+
+		// empty currency for batch:
+		try {
+			await aggregate.createSettlementBatch({
+				id: randomUUID(),
+				settlementModel: 'ERR-MOD',
+				batchIdentifier: 'ERR-BATCH-ID'
+			}, securityContext);
+			fail('Expected to throw error!');
+		} catch (err) {
+			expect(err).toBeDefined();
+			expect(err instanceof InvalidCurrencyCodeError).toEqual(true);
+		}
+
+		// Duplicate Batch Identifier:
+		try {
+			const batchIdentifier = 'Batch001'
+			await aggregate.createSettlementBatch({
+				id: randomUUID(),
+				settlementModel: 'MOD1',
+				currency: 'ZAR',
+				batchIdentifier: batchIdentifier
+			}, securityContext);
+
+			await aggregate.createSettlementBatch({
+				id: randomUUID(),
+				settlementModel: 'MOD1',
+				currency: 'ZAR',
+				batchIdentifier: batchIdentifier
+			}, securityContext);
+			fail('Expected to throw error!');
+		} catch (err) {
+			expect(err).toBeDefined();
+			expect(err instanceof InvalidBatchIdentifierError).toEqual(true);
+		}
+
+		try {
+			await aggregate.executeSettlementMatrix(randomUUID(), securityContext);
+			fail('Expected to throw error!');
+		} catch (err) {
+			expect(err).toBeDefined();
+			expect(err instanceof SettlementMatrixRequestNotFoundError).toEqual(true);
+		}
+
+		try {
+			await aggregate.getSettlementMatrixRequestById(randomUUID(), securityContext);
+			fail('Expected to throw error!');
+		} catch (err) {
+			expect(err).toBeDefined();
+			expect(err instanceof SettlementMatrixRequestNotFoundError).toEqual(true);
+		}
+
+		try {
+			await aggregate.getSettlementBatchAccountsByBatchIdentifier(randomUUID(), securityContext);
+			fail('Expected to throw error!');
+		} catch (err) {
+			expect(err).toBeDefined();
+			expect(err instanceof SettlementBatchNotFoundError).toEqual(true);
+		}
+
+		try {
+			await aggregate.getSettlementBatchAccountsByBatchId(randomUUID(), securityContext);
+			fail('Expected to throw error!');
+		} catch (err) {
+			expect(err).toBeDefined();
+			expect(err instanceof SettlementBatchNotFoundError).toEqual(true);
+		}
+
+		// account invalid credit balance:
+		try {
+			await aggregate.createSettlementBatchAccount({
+				id: null,
+				participantAccountId: null,
+				currencyCode: "",
+				currencyDecimals: null,
+				creditBalance: "0",
+				debitBalance: "1",
+				timestamp: null
+			}, securityContext);
+			fail('Expected to throw error!');
+		} catch (err) {
+			expect(err).toBeDefined();
+			expect(err instanceof InvalidDebitBalanceError).toEqual(true);
+		}
+
+		// account invalid credit balance:
+		try {
+			await aggregate.createSettlementBatchAccount({
+				id: null,
+				participantAccountId: null,
+				currencyCode: "",
+				currencyDecimals: null,
+				creditBalance: "1",
+				debitBalance: "0",
+				timestamp: null
+			}, securityContext);
+			fail('Expected to throw error!');
+		} catch (err) {
+			expect(err).toBeDefined();
+			expect(err instanceof InvalidCreditBalanceError).toEqual(true);
+		}
+
+		// account invalid participant account:
+		try {
+			await aggregate.createSettlementBatchAccount({
+				id: null,
+				participantAccountId: '',
+				currencyCode: "",
+				currencyDecimals: null,
+				creditBalance: "0",
+				debitBalance: "0",
+				timestamp: null
+			}, securityContext);
+			fail('Expected to throw error!');
+		} catch (err) {
+			expect(err).toBeDefined();
+			expect(err instanceof InvalidParticipantAccountIdError).toEqual(true);
+		}
+
+		// account invalid currency account:
+		try {
+			await aggregate.createSettlementBatchAccount({
+				id: null,
+				participantAccountId: randomUUID(),
+				currencyCode: 'UNK',
+				currencyDecimals: null,
+				creditBalance: "0",
+				debitBalance: "0",
+				timestamp: null
+			}, securityContext);
+			fail('Expected to throw error!');
+		} catch (err) {
+			expect(err).toBeDefined();
+			expect(err instanceof InvalidCurrencyCodeError).toEqual(true);
+		}
+
+		// account invalid currency account:
+		await aggregate.createSettlementBatchAccount({
+			id: null,
+			participantAccountId: randomUUID(),
+			currencyCode: 'USD',
+			currencyDecimals: null,
+			creditBalance: "0",
+			debitBalance: "0",
+			timestamp: null
+		}, securityContext);
+	});
+
+	// Batch Allocation:
+	test("create a settlement batch with batch allocation", async () => {
+		const rspTransferDto: ISettlementTransferDto = await aggregate.createSettlementTransfer(
+			{
+				id: null,
+				transferId: randomUUID(),
+				currencyCode: 'EUR',
+				currencyDecimals: 2,
+				amount: "10000", //100 EURO
+				debitParticipantAccountId: randomUUID(),
+				creditParticipantAccountId: randomUUID(),
+				timestamp: Date.now(),
+				settlementModel: "MOD-ALLOC",
+				batch: null,
+				batchAllocation: 'jason-test'
+			}, securityContext);
+		expect(rspTransferDto).toBeDefined();
+		expect(rspTransferDto.batch).toBeDefined();
+		expect(rspTransferDto.batch!.batchIdentifier).toContain('MOD-ALLOC.EUR.jason-test.');
+	});
+
+	// :
+	test("send a settlement matrix request again, to show that the results are different from a previous matrix", async () => {
+		//TODO
+	});
+
 	// Complete Branch Coverage:
 	test("code [branch] coverage", async () => {
 		// Settlement Config:
@@ -665,5 +932,13 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		const transfer = new SettlementTransfer(
 			randomUUID(), randomUUID(), 'USD', 2, 300n, randomUUID(), randomUUID(), null, Date.now()).toDto();
 		expect(transfer).toBeDefined();
+
+		try {
+			stringToBigint('123.45.67', 2);
+			fail('Expected to throw error!');
+		} catch (err) {
+			expect(err).toBeDefined();
+			expect(err instanceof Error).toEqual(true);
+		}
 	});
 });

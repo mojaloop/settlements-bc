@@ -49,7 +49,7 @@ export function startWithConditions(): void {
     // Bootstrap:
     const logger = new ConsoleLogger();
     logger.setLogLevel(LogLevel.TRACE);
-    const authorizationClient = new AuthorizationClientMock(logger);
+    const authorizationClient = new AuthorizationClientMock(logger, true);
     const auditClient = new AuditClientMock(logger);
 
     // Repos:

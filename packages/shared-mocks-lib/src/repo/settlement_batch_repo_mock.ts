@@ -76,7 +76,7 @@ export class SettlementBatchRepoMock implements ISettlementBatchRepo {
 	}
 
 	async batchExistsByBatchIdentifier(batchIdentifier: string): Promise<boolean> {
-		const batchById = await this.getSettlementBatchById(batchIdentifier);
+		const batchById = await this.getSettlementBatchByBatchIdentifier(batchIdentifier);
 		return Promise.resolve(batchById !== null);
 	}
 

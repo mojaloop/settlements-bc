@@ -40,7 +40,7 @@ import {
 	InvalidDebitAccountError,
 	InvalidDebitBalanceError,
 	InvalidExternalIdError,
-	InvalidIdError,
+	InvalidIdError, InvalidParticipantAccountIdError,
 	InvalidTimestampError, InvalidTransferIdError,
 	NoSettlementConfig,
 	SettlementBatchAlreadyExistsError,
@@ -126,19 +126,10 @@ export class Aggregate {
 
 		// TODO: @jason Need to obtain currencies from PlatForm config perhaps:
 		const currenciesFilePath: string = join(__dirname, Aggregate.CURRENCIES_FILE_NAME);
-		try {
-			this.currencies = JSON.parse(readFileSync(currenciesFilePath, "utf-8"));
-		} catch (error: unknown) {
-			this.logger.error(error);
-			throw error;
-		}
+		this.currencies = JSON.parse(readFileSync(currenciesFilePath, "utf-8"));
 	}
 
 	private enforcePrivilege(securityContext: CallSecurityContext, privilegeId: string): void {
-		if (securityContext === undefined || securityContext === null) {
-			this.logger.warn(`No [CallSecurityContext]. Not enforcing privilege: ${privilegeId}`);
-			return;
-		}
 		for (const roleId of securityContext.rolesIds) {
 			if (this.authorizationClient.roleHasPrivilege(roleId, privilegeId)) return;
 		}
@@ -146,12 +137,10 @@ export class Aggregate {
 	}
 
 	private getAuditSecurityContext(securityContext: CallSecurityContext): AuditSecurityContext {
-		if (securityContext === undefined) return {userId: 'unknown', appId: 'settlement-bc', role: ''};
-
 		return {
 			userId: securityContext.username,
 			appId: securityContext.clientId,
-			role: "" // TODO: get role.
+			role: securityContext.rolesIds[0] // TODO: get role.
 		};
 	}
 
@@ -159,14 +148,14 @@ export class Aggregate {
 		const timestamp: number = Date.now();
 		this.enforcePrivilege(securityContext, Privileges.CREATE_SETTLEMENT_BATCH);
 
-		if (batchDto.settlementModel === null) throw new InvalidBatchSettlementModelError();
+		if (batchDto.settlementModel === null || batchDto.settlementModel === undefined) throw new InvalidBatchSettlementModelError();
 		if (batchDto.timestamp === undefined) batchDto.timestamp = timestamp;
 		if ((batchDto.batchIdentifier === null || batchDto.batchIdentifier === undefined)
 			|| batchDto.batchIdentifier.trim().length === 0) throw new InvalidBatchIdentifierError();
 
 		// IDs:
-		if (batchDto.id === null || batchDto.id === "") throw new InvalidIdError();
-		if (batchDto.currency === null || batchDto.currency === "") throw new InvalidCurrencyCodeError();
+		if ((batchDto.id === null || batchDto.id === undefined) || batchDto.id === '') throw new InvalidIdError();
+		if ((batchDto.currency === null || batchDto.currency === undefined) || batchDto.currency === '') throw new InvalidCurrencyCodeError();
 
 		// Generate a random UUID, if needed:
 		if (await this.batchRepo.batchExistsByBatchIdentifier(batchDto.batchIdentifier)) {
@@ -186,14 +175,7 @@ export class Aggregate {
 
 		// Store the account (accountDto can't be stored).
 		const formattedBatchDto: ISettlementBatchDto = batch.toDto();
-		try {
-			await this.batchRepo.storeNewBatch(formattedBatchDto);
-		} catch (error: unknown) {
-			if (!(error instanceof SettlementBatchAlreadyExistsError)) {
-				this.logger.error(error);
-			}
-			throw error;
-		}
+		await this.batchRepo.storeNewBatch(formattedBatchDto);
 
 		// We perform an async audit:
 		this.auditingClient.audit(
@@ -214,10 +196,12 @@ export class Aggregate {
 
 		this.enforcePrivilege(securityContext, Privileges.CREATE_SETTLEMENT_BATCH_ACCOUNT);
 
-		if (accountDto.timestamp === null) accountDto.timestamp = timestamp;
-		if (parseInt(accountDto.creditBalance) !== 0) throw new InvalidCreditBalanceError();
+		if (accountDto.timestamp === null || accountDto.timestamp === undefined) accountDto.timestamp = timestamp;
 		if (parseInt(accountDto.debitBalance) !== 0) throw new InvalidDebitBalanceError();
-		if (accountDto.participantAccountId === undefined || accountDto.participantAccountId === "") throw new InvalidExternalIdError();
+		if (parseInt(accountDto.creditBalance) !== 0) throw new InvalidCreditBalanceError();
+		if (accountDto.participantAccountId === undefined || accountDto.participantAccountId === '') {
+			throw new InvalidParticipantAccountIdError();
+		}
 
 		const currency: ICurrency | undefined = this.currencies.find(currency => {
 			return currency.code === accountDto.currencyCode;
@@ -225,7 +209,7 @@ export class Aggregate {
 		if (currency === undefined) throw new InvalidCurrencyCodeError();
 
 		const account: SettlementBatchAccount = new SettlementBatchAccount(
-			accountDto.id === null ? randomUUID() : accountDto.id,
+			accountDto.id === null || accountDto.id === undefined ? randomUUID() : accountDto.id,
 			accountDto.participantAccountId!,
 			accountDto.currencyCode,
 			currency.decimals,
@@ -237,14 +221,7 @@ export class Aggregate {
 		// Store the account (accountDto can't be stored).
 		const formattedBatchAccountDto: ISettlementBatchAccountDto = account.toDto();
 		formattedBatchAccountDto.settlementBatch = accountDto.settlementBatch;
-		try {
-			await this.batchAccountRepo.storeNewSettlementBatchAccount(formattedBatchAccountDto);
-		} catch (error: unknown) {
-			if (!(error instanceof AccountAlreadyExistsError)) {
-				this.logger.error(error);
-			}
-			throw error;
-		}
+		await this.batchAccountRepo.storeNewSettlementBatchAccount(formattedBatchAccountDto);
 
 		// We perform an async audit:
 		this.auditingClient.audit(
@@ -302,7 +279,8 @@ export class Aggregate {
 		);
 
 		// Fetch or Create a Settlement Batch:
-		const batchDto = await this.obtainSettlementBatch(transfer, transferDto.settlementModel, securityContext);
+		const batchDto = await this.obtainSettlementBatch(
+			transfer, transferDto.settlementModel, securityContext, transferDto.batchAllocation);
 		transfer.batch = new SettlementBatch(
 			batchDto.id,
 			batchDto.timestamp!,
@@ -715,7 +693,8 @@ export class Aggregate {
 	async obtainSettlementBatch(
 		transfer: SettlementTransfer,
 		model: string,
-		securityContext: CallSecurityContext
+		securityContext: CallSecurityContext,
+		batchAllocation?: string | null
 	) : Promise<ISettlementBatchDto> {
 		const timestamp = transfer.timestamp;
 
@@ -740,7 +719,7 @@ export class Aggregate {
 				model,
 				transfer.currencyCode,
 				nextBatchSeq,
-				this.generateBatchIdentifier(model, transfer, toDate, nextBatchSeq),
+				this.generateBatchIdentifier(model, transfer, toDate, nextBatchSeq, batchAllocation),
 				SettlementBatchStatus.OPEN
 			).toDto()
 			await this.createSettlementBatch(settlementBatchDto, securityContext);
@@ -753,7 +732,7 @@ export class Aggregate {
 		transfer: SettlementTransfer,
 		toDate: number,
 		batchSeq: number,
-		batchAllocation?: string//TODO Need to deal with the batch allocation
+		batchAllocation?: string | null
 	) : string {
 		//TODO add assertion here:
 		//FX.XOF:RWF.2021.08.23.00.00
@@ -785,13 +764,10 @@ export class Aggregate {
 		securityContext: CallSecurityContext
 	): Promise<ISettlementTransferDto[]> {
 		this.enforcePrivilege(securityContext, Privileges.RETRIEVE_SETTLEMENT_TRANSFERS);
-		try {
-			const transferDTOs: ISettlementTransferDto[] =
-				await this.transfersRepo.getSettlementTransfersByAccountId(accountId);
-			return transferDTOs;
-		} catch (error: unknown) {
-			this.logger.error(error);
-			throw error;
-		}
+
+		// All transfers for account:
+		const transferDTOs: ISettlementTransferDto[] =
+			await this.transfersRepo.getSettlementTransfersByAccountId(accountId);
+		return transferDTOs;
 	}
 }

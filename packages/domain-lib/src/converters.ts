@@ -38,7 +38,6 @@ export function stringToBigint(stringValue: string, decimals: number): bigint {
 	// Count the decimals on the received string.
 	const stringValueSplitted: string[] = stringValue.split(".");
 	const existingDecimals: number = stringValueSplitted[1]?.length ?? 0;
-	if (existingDecimals > decimals) throw new Error();
 
 	// Format the received string according to the decimals.
 	const stringValueFormatted: string =
@@ -51,9 +50,7 @@ export function stringToBigint(stringValue: string, decimals: number): bigint {
 
 // Can be optimized.
 export function bigintToString(bigintValue: bigint, decimals: number): string {
-	if (bigintValue === 0n) {
-		return "0";
-	}
+	if (bigintValue === 0n) return "0";
 
 	// Get the string corresponding to the bigint and insert a dot according to the decimals.
 	const bigintValueToString: string = bigintValue.toString();
