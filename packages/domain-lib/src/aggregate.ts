@@ -322,30 +322,12 @@ export class Aggregate {
 			);
 		}
 
-		const creditedAccount = new SettlementBatchAccount(
-			creditedAccountDto.id!,
-			creditedAccountDto.participantAccountId!,
-			creditedAccountDto.currencyCode,
-			creditedAccountDto.currencyDecimals!,
-			stringToBigint(creditedAccountDto.creditBalance, creditedAccountDto.currencyDecimals!),
-			stringToBigint(creditedAccountDto.debitBalance, creditedAccountDto.currencyDecimals!),
-			timestamp
-		);
-		const debitedAccount = new SettlementBatchAccount(
-			debitedAccountDto.id!,
-			debitedAccountDto.participantAccountId!,
-			debitedAccountDto.currencyCode,
-			debitedAccountDto.currencyDecimals!,
-			stringToBigint(debitedAccountDto.creditBalance, debitedAccountDto.currencyDecimals!),
-			stringToBigint(debitedAccountDto.debitBalance, debitedAccountDto.currencyDecimals!),
-			timestamp
-		);
-
 		// Store the Transfer:
 		const formattedTransferDto: ISettlementTransferDto = transfer.toDto();
 		formattedTransferDto.debitParticipantAccountId = debitedAccountDto.id!;
 		formattedTransferDto.creditParticipantAccountId = creditedAccountDto.id!;
 
+		// TODO @Pedro, perform the journal entry.
 		await this.transfersRepo.storeNewSettlementTransfer(formattedTransferDto);
 
 		// We perform an async audit:
