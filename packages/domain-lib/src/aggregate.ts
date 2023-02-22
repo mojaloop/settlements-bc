@@ -348,28 +348,6 @@ export class Aggregate {
 
 		await this.transfersRepo.storeNewSettlementTransfer(formattedTransferDto);
 
-		// Update the debited account's debit balance and timestamp:
-		const updatedDebitBalance: string = bigintToString(
-			debitedAccount.debitBalance + transfer.amount,
-			debitedAccount.currencyDecimals
-		);
-		await this.batchAccountRepo.updateAccountDebitBalanceAndTimestampById(
-			debitedAccount.id,
-			updatedDebitBalance,
-			transfer.timestamp!
-		);
-
-		// Update the credited account's credit balance and timestamp.
-		const updatedCreditBalance: string = bigintToString(
-			creditedAccount.creditBalance + transfer.amount,
-			creditedAccount.currencyDecimals
-		);
-		await this.batchAccountRepo.updateAccountCreditBalanceAndTimestampById(
-			creditedAccount.id,
-			updatedCreditBalance,
-			transfer.timestamp!
-		);
-
 		// We perform an async audit:
 		this.auditingClient.audit(
 			AuditingActions.SETTLEMENT_TRANSFER_CREATED,

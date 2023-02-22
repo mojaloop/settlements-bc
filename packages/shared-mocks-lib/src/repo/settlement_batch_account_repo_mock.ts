@@ -100,35 +100,4 @@ export class SettlementBatchAccountRepoMock implements ISettlementBatchAccountRe
 		return Promise.resolve(returnVal);
 	}
 
-	async updateAccountCreditBalanceAndTimestampById(
-		accountId: string,
-		creditBalance: string,
-		timeStamp: number
-	): Promise<void> {
-		if (accountId === undefined || creditBalance === undefined) return Promise.resolve();
-
-		const accById = await this.getAccountById(accountId);
-		if (accById == null) return Promise.resolve();
-
-		accById.timestamp = timeStamp;
-		accById.creditBalance = creditBalance;
-
-		return Promise.resolve();
-	}
-
-	async updateAccountDebitBalanceAndTimestampById(
-		accountId: string,
-		debitBalance: string,
-		timeStamp: number
-	): Promise<void> {
-		if (accountId === undefined || debitBalance === undefined) return Promise.resolve();
-
-		const accById = await this.getAccountById(accountId);
-		if (accById == null) return Promise.resolve();
-
-		accById.timestamp = timeStamp;
-		accById.debitBalance = debitBalance;
-
-		return Promise.resolve();
-	}
 }

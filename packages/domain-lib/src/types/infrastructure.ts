@@ -64,16 +64,6 @@ export interface ISettlementBatchAccountRepo {
 	getAccountsByParticipantAccountId(partAccId: string): Promise<ISettlementBatchAccountDto[]>;
 	getAccountByParticipantAccountAndBatchId(partAccId: string, batchId: string): Promise<ISettlementBatchAccountDto | null>;
 	getAccountsByBatch(batch: ISettlementBatchDto): Promise<ISettlementBatchAccountDto[]>;
-	updateAccountCreditBalanceAndTimestampById(
-		accountId: string,
-		creditBalance: string,
-		timeStampLastJournalEntry: number
-	): Promise<void>;
-	updateAccountDebitBalanceAndTimestampById(
-		accountId: string,
-		debitBalance: string,
-		timeStampLastJournalEntry: number
-	): Promise<void>;
 }
 
 export interface IParticipantAccountNotifier {
