@@ -130,6 +130,8 @@ export class Aggregate {
 	}
 
 	private enforcePrivilege(securityContext: CallSecurityContext, privilegeId: string): void {
+		if (securityContext === undefined || securityContext === null) return;
+		if (securityContext.rolesIds === undefined || securityContext.rolesIds === null) return;
 		for (const roleId of securityContext.rolesIds) {
 			if (this.authorizationClient.roleHasPrivilege(roleId, privilegeId)) return;
 		}
@@ -137,6 +139,7 @@ export class Aggregate {
 	}
 
 	private getAuditSecurityContext(securityContext: CallSecurityContext): AuditSecurityContext {
+		if (securityContext === undefined) return {userId: 'unknown', appId: 'settlement-bc', role: ''};
 		return {
 			userId: securityContext.username,
 			appId: securityContext.clientId,
