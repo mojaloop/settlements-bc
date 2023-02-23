@@ -19,8 +19,12 @@
  their names indented and be marked with a '-'. Email address can be added
  optionally within square brackets <email>.
 
+ Crosslake
+ - Pedro Sousa Barreto <pedrob@crosslaketech.com>
+ - Gonçalo Garcia <goncalogarcia99@gmail.com>
+
  * Coil
- * - Jason Bruwer <jason.bruwer@coil.com>
+ - Jason Bruwer <jason.bruwer@coil.com>
 
  --------------
  ******/
@@ -32,12 +36,15 @@ const REGEX: RegExp = /^([0]|([1-9][0-9]{0,17}))([.][0-9]{0,3}[1-9])?$/;
 // Can be optimized.
 export function stringToBigint(stringValue: string, decimals: number): bigint {
 	if (!REGEX.test(stringValue)) {
-		throw new Error();
+		throw new Error("stringToBigint() - regex test failed");
 	}
 
 	// Count the decimals on the received string.
 	const stringValueSplitted: string[] = stringValue.split(".");
 	const existingDecimals: number = stringValueSplitted[1]?.length ?? 0;
+	if (existingDecimals > decimals) {
+		throw new Error("stringToBigint() - existingDecimals > decimals");
+	}
 
 	// Format the received string according to the decimals.
 	const stringValueFormatted: string =
@@ -50,10 +57,17 @@ export function stringToBigint(stringValue: string, decimals: number): bigint {
 
 // Can be optimized.
 export function bigintToString(bigintValue: bigint, decimals: number): string {
-	if (bigintValue === 0n) return "0";
+	if (bigintValue===0n) {
+		return "0";
+	}
+	decimals = decimals || 0;
 
 	// Get the string corresponding to the bigint and insert a dot according to the decimals.
-	const bigintValueToString: string = bigintValue.toString();
+	let bigintValueToString: string = bigintValue.toString();
+	if (bigintValueToString.length <= decimals) {
+		bigintValueToString = "0".repeat(decimals - bigintValueToString.length + 1) + bigintValueToString;
+	}
+
 	const dotIdx: number = bigintValueToString.length - decimals;
 	const bigintValueToStringWithDot: string =
 		bigintValueToString.slice(0, dotIdx) + "." + bigintValueToString.slice(dotIdx);

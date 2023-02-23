@@ -18,7 +18,7 @@
   "scripts": {
     "clean:dist": "rm -fr dist/",
     "dep:check": "ncu -e 2",
-    "dep:upgrade": "ncu -u",
+    "dep:update": "ncu -u",
     "audit:check": "npm audit",
     "audit:fix": "npm audit fix",
     "lint": "eslint src/",

@@ -36,6 +36,31 @@ import {
 	ISettlementMatrixDto
 } from "@mojaloop/settlements-bc-public-types-lib";
 
+import {
+	AccountsAndBalancesAccount, AccountsAndBalancesAccountType
+} from "@mojaloop/accounts-and-balances-bc-public-types-lib";
+
+
+export interface IAccountsBalancesAdapter {
+	init(): Promise<void>;
+	destroy(): Promise<void>;
+
+	setToken(accessToken: string): void;
+	setUserCredentials(client_id: string, username: string, password: string): void;
+	setAppCredentials(client_id: string, client_secret: string): void;
+
+	createAccount(requestedId: string, ownerId: string, type: AccountsAndBalancesAccountType, currencyCode: string): Promise<string>;
+	getAccount(accountId: string): Promise<AccountsAndBalancesAccount | null>;
+	getAccounts(accountIds: string[]): Promise<AccountsAndBalancesAccount[]>;
+	getParticipantAccounts(participantId: string): Promise<AccountsAndBalancesAccount[]>;
+
+	createJournalEntry(
+		requestedId: string, ownerId: string, currencyCode: string,
+		amount: string, pending: boolean, debitedAccountId: string, creditedAccountId: string
+	): Promise<string>;
+}
+
+
 export interface ISettlementConfigRepo {
 	init(): Promise<void>;
 	destroy(): Promise<void>;
@@ -59,6 +84,7 @@ export interface ISettlementBatchAccountRepo {
 	init(): Promise<void>;
 	destroy(): Promise<void>;
 	storeNewSettlementBatchAccount(account: ISettlementBatchAccountDto): Promise<void>; // Throws if account.id is not unique.
+
 	accountExistsById(accountId: string): Promise<boolean>;
 	getAccountById(accountId: string): Promise<ISettlementBatchAccountDto | null>;
 	getAccountsByParticipantAccountId(partAccId: string): Promise<ISettlementBatchAccountDto[]>;
@@ -66,12 +92,14 @@ export interface ISettlementBatchAccountRepo {
 	getAccountsByBatch(batch: ISettlementBatchDto): Promise<ISettlementBatchAccountDto[]>;
 }
 
+
 export interface IParticipantAccountNotifier {
 	init(): Promise<void>;
 	destroy(): Promise<void>;
 	publishSettlementMatrixExecuteEvent(matrix: ISettlementMatrixDto): Promise<void>;
 }
 
+// This is not needed, was the jouural entry
 export interface ISettlementTransferRepo {
 	init(): Promise<void>;
 	destroy(): Promise<void>;

@@ -14,8 +14,8 @@
   "scripts": {
     "prepare": "husky install",
     "clean:dist": "rm -fr dist/ && npm -ws -p run clean:dist",
-    "dep:check": "ncu -e 2 && npm -ws -p run dep:check",
-    "dep:upgrade": "ncu -u && npm -ws -p run dep:upgrade",
+    "dep:check": "ncu -e 2; npm -ws run dep:check",
+    "dep:update": "ncu -e 2 -u; npm -ws run dep:update",
     "audit:check": "npm -ws -p run audit:check",
     "audit:fix": "npm -ws -p run audit:fix",
     "lint": "npm -ws -p run lint",
@@ -37,12 +37,13 @@
   },
   "devDependencies": {
     "@types/jest": "~29.4.0",
-    "@typescript-eslint/eslint-plugin": "~5.52.0",
-    "@typescript-eslint/parser": "~5.52.0",
+    "@types/node": "^18.14.0",
+    "@typescript-eslint/eslint-plugin": "~5.53.0",
+    "@typescript-eslint/parser": "~5.53.0",
     "eslint": "~8.34.0",
     "husky": "~8.0.3",
     "jest": "~29.4.3",
-    "npm-check-updates": "~16.7.5",
+    "npm-check-updates": "~16.7.9",
     "ts-jest": "~29.0.5",
     "typescript": "~4.9.5",
     "nyc": "^15.1.0"

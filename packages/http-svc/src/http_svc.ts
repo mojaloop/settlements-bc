@@ -155,10 +155,10 @@ export async function startHttpService(
 
 	// Token helper.
 	const tokenHelper: TokenHelper = new TokenHelper(
-		TOKEN_HELPER_ISSUER_NAME,
 		TOKEN_HELPER_JWKS_URL,
-		TOKEN_HELPER_AUDIENCE,
-		logger
+		logger,
+		TOKEN_HELPER_ISSUER_NAME,
+		TOKEN_HELPER_AUDIENCE
 	);
 	try {
 		// TODO Need to put back:

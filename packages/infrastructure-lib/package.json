@@ -19,7 +19,7 @@
   "scripts": {
     "clean:dist": "rm -fr dist/",
     "dep:check": "ncu -e 2",
-    "dep:upgrade": "ncu -u",
+    "dep:update": "ncu -u",
     "audit:check": "npm audit",
     "audit:fix": "npm audit fix",
     "lint": "eslint src/",
@@ -31,7 +31,11 @@
   },
   "dependencies": {
     "@mojaloop/settlements-bc-domain-lib": "~0.0.1",
-    "@mojaloop/logging-bc-public-types-lib": "~0.1.12",
-    "mongodb": "~4.10.0"
+    "@mojaloop/logging-bc-public-types-lib": "~0.1.14",
+    "@mojaloop/accounts-and-balances-bc-grpc-client-lib": "~0.1.3",
+    "@mojaloop/accounts-and-balances-bc-public-types-lib": "~0.1.2",
+    "@mojaloop/security-bc-client-lib": "~0.1.12",
+    "@mojaloop/security-bc-public-types-lib": "~0.1.12",
+    "mongodb": "~5.0.1"
   }
 }

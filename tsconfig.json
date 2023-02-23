@@ -1,6 +1,6 @@
 {
   "include": [
-	"src"
+	"**/src/**/*.ts"
   ],
   "exclude": [
 	"node_modules",
@@ -10,8 +10,14 @@
 	"coverage"
   ],
   "compilerOptions": {
+	"outDir": ".",
+	// prevents this tsconfig from compiling any files
 	"target": "es2020",
 	"module": "commonjs",
+	"types": [
+	  "node",
+	  "jest"
+	],
 	"lib": [
 	  "es2020"
 	],
@@ -31,6 +37,7 @@
 	"noImplicitReturns": true,
 	"noFallthroughCasesInSwitch": true,
 	"moduleResolution": "node",
+	"allowSyntheticDefaultImports": true,
 	"baseUrl": "./",
 	"paths": {
 	  "*": [
@@ -38,7 +45,6 @@
 		"node_modules/*"
 	  ]
 	},
-	"esModuleInterop": true,
-	"outDir": "./dist"
+	"esModuleInterop": true
   }
 }

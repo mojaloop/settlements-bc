@@ -346,6 +346,8 @@ export class Aggregate {
 		formattedTransferDto.debitParticipantAccountId = debitedAccountDto.id!;
 		formattedTransferDto.creditParticipantAccountId = creditedAccountDto.id!;
 
+		// TODO create and request journalEntry, then call the
+
 		await this.transfersRepo.storeNewSettlementTransfer(formattedTransferDto);
 
 		// We perform an async audit:
