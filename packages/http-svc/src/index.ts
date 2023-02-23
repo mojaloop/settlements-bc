@@ -37,7 +37,8 @@ import {
   SettlementBatchAccountRepoMock,
   ParticipantAccountNotifierMock,
   SettlementTransferRepoMock,
-  SettlementMatrixRequestRepoMock
+  SettlementMatrixRequestRepoMock,
+  AccountsBalancesAdapterMock
 } from "@mojaloop/settlements-bc-shared-mocks-lib";
 
 startWithConditions();
@@ -61,6 +62,9 @@ export function startWithConditions(): void {
     // Events:
     const partNotifierMock = new ParticipantAccountNotifierMock();
 
+    // Adapters:
+    const abAdapterMock = new AccountsBalancesAdapterMock();
+
     startHttpService(
       logger,
       authorizationClient,
@@ -70,7 +74,8 @@ export function startWithConditions(): void {
       repoSettlementBatchAccount,
       partNotifierMock,
       repoTransfer,
-      settleMatrixReq
+      settleMatrixReq,
+      abAdapterMock
     );
   } else startHttpService();
 }

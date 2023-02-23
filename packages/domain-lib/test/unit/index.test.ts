@@ -50,12 +50,12 @@ import {
 	InvalidIdError,
 	InvalidCreditBalanceError,
 	InvalidDebitBalanceError,
-	InvalidParticipantAccountIdError
+	InvalidParticipantAccountIdError, IAccountsBalancesAdapter
 } from "../../src/index";
 import {ConsoleLogger, ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import {IAuditClient} from "@mojaloop/auditing-bc-public-types-lib";
 import {randomUUID} from "crypto";
-import {stringToBigint} from "../../src/converters";
+import {stringToBigint, bigintToString} from "../../src/converters";
 import {IAuthorizationClient} from "@mojaloop/security-bc-public-types-lib";
 import {
 	AuditClientMock,
@@ -65,7 +65,7 @@ import {
 	SettlementBatchAccountRepoMock,
 	ParticipantAccountNotifierMock,
 	SettlementTransferRepoMock,
-	SettlementMatrixRequestRepoMock
+	SettlementMatrixRequestRepoMock, AccountsBalancesAdapterMock
 } from "@mojaloop/settlements-bc-shared-mocks-lib";
 import {
 	ISettlementTransferDto, SettlementBatchStatus, SettlementMatrixRequestStatus
@@ -82,6 +82,7 @@ let settleBatchAccRepo: ISettlementBatchAccountRepo;
 let settleTransferRepo: ISettlementTransferRepo;
 let settleMatrixReqRepo: ISettlementMatrixRequestRepo;
 let partNotifier: IParticipantAccountNotifier;
+let abAdapter: IAccountsBalancesAdapter;
 
 describe("Settlements BC [Domain] - Unit Tests", () => {
 	let aggregate : Aggregate;
@@ -111,6 +112,8 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 
 		partNotifier = new ParticipantAccountNotifierMock();
 
+		abAdapter = new AccountsBalancesAdapterMock();
+
 		// Aggregate:
 		aggregate = new Aggregate(
 			logger,
@@ -121,7 +124,8 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 			partNotifier,
 			settleTransferRepo,
 			configRepo,
-			settleMatrixReqRepo
+			settleMatrixReqRepo,
+			abAdapter
 		);
 		aggregateNoAuth = new Aggregate(
 			logger,
@@ -132,7 +136,8 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 			partNotifier,
 			settleTransferRepo,
 			configRepo,
-			settleMatrixReqRepo
+			settleMatrixReqRepo,
+			abAdapter
 		);
 	});
 
@@ -600,6 +605,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		expect(execResult).toBeDefined();
 		expect(execResult.batches).toBeDefined();
 		expect(execResult.batches.length).toEqual(1);
+		const batchExecutedIdentifier = execResult.batches[0].batchIdentifier
 
 		// Ensure the batch has been closed:
 		const matrixById = await aggregate.getSettlementMatrixRequestById(rspReq.id, securityContext);
@@ -627,6 +633,10 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 			if (batch.batchStatus === SettlementBatchStatus.CLOSED) continue;
 			// Ensure our seq was incremented:
 			expect(batch.batchSequence).toEqual(2);
+			const batchIdForOpen = batch.batchIdentifier!.substring(0, batch.batchIdentifier!.length - 3);
+			const toCompareTo = batchExecutedIdentifier.substring(0, batchExecutedIdentifier.length - 3);
+
+			expect(batchIdForOpen).toEqual(toCompareTo);
 		}
 	});
 
@@ -933,6 +943,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 			randomUUID(), randomUUID(), 'USD', 2, 300n, randomUUID(), randomUUID(), null, Date.now()).toDto();
 		expect(transfer).toBeDefined();
 
+		// Wrong number of [.]:
 		try {
 			stringToBigint('123.45.67', 2);
 			fail('Expected to throw error!');
@@ -940,5 +951,19 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 			expect(err).toBeDefined();
 			expect(err instanceof Error).toEqual(true);
 		}
+
+		// More fractions than allowed.
+		try {
+			stringToBigint('123.453', 2);
+			fail('Expected to throw error!');
+		} catch (err) {
+			expect(err).toBeDefined();
+			expect(err instanceof Error).toEqual(true);
+		}
+
+		// More fractions than allowed.
+		const amnt = bigintToString(5n, 3);
+		expect(amnt).toBeDefined();
+		expect(amnt).toEqual('0.005');
 	});
 });

@@ -83,7 +83,7 @@ export interface ISettlementBatchRepo {
 export interface ISettlementBatchAccountRepo {
 	init(): Promise<void>;
 	destroy(): Promise<void>;
-	storeNewSettlementBatchAccount(account: ISettlementBatchAccountDto): Promise<void>; // Throws if account.id is not unique.
+	storeNewSettlementBatchAccount(account: ISettlementBatchAccountDto, abAdapter: IAccountsBalancesAdapter): Promise<void>; // Throws if account.id is not unique.
 
 	accountExistsById(accountId: string): Promise<boolean>;
 	getAccountById(accountId: string): Promise<ISettlementBatchAccountDto | null>;
@@ -103,7 +103,7 @@ export interface IParticipantAccountNotifier {
 export interface ISettlementTransferRepo {
 	init(): Promise<void>;
 	destroy(): Promise<void>;
-	storeNewSettlementTransfer(transfer: ISettlementTransferDto): Promise<void>; // Throws if account.id is not unique.
+	storeNewSettlementTransfer(transfer: ISettlementTransferDto, abAdapter: IAccountsBalancesAdapter): Promise<void>; // Throws if account.id is not unique.
 	transferExistsById(id: string): Promise<boolean>;
 	getSettlementTransfersByAccountId(accountId: string): Promise<ISettlementTransferDto[]>;
 	getSettlementTransfersByAccountIds(accountId: string[]): Promise<ISettlementTransferDto[]>;

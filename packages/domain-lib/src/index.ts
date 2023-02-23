@@ -31,3 +31,4 @@ export * from "./aggregate";
 export * from "./types/errors";
 export * from "./types/infrastructure";
 export * from "./types/privileges";
+export * from "./converters";

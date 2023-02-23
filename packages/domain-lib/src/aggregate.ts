@@ -49,6 +49,7 @@ import {
 	UnauthorizedError
 } from "./types/errors";
 import {
+	IAccountsBalancesAdapter,
 	IParticipantAccountNotifier,
 	ISettlementBatchAccountRepo,
 	ISettlementBatchRepo,
@@ -99,6 +100,7 @@ export class Aggregate {
 	private readonly transfersRepo: ISettlementTransferRepo;
 	private readonly configRepo: ISettlementConfigRepo;
 	private readonly settlementMatrixReqRepo: ISettlementMatrixRequestRepo;
+	private readonly abAdapter: IAccountsBalancesAdapter;
 	private readonly currencies: ICurrency[];
 	// Other properties.
 	private static readonly CURRENCIES_FILE_NAME: string = "currencies.json";
@@ -112,7 +114,8 @@ export class Aggregate {
 		participantAccNotifier: IParticipantAccountNotifier,
 		transfersRepo: ISettlementTransferRepo,
 		configRepo: ISettlementConfigRepo,
-		settlementMatrixReqRepo: ISettlementMatrixRequestRepo
+		settlementMatrixReqRepo: ISettlementMatrixRequestRepo,
+		abAdapter: IAccountsBalancesAdapter
 	) {
 		this.logger = logger;
 		this.authorizationClient = authorizationClient;
@@ -123,6 +126,7 @@ export class Aggregate {
 		this.transfersRepo = transfersRepo;
 		this.configRepo = configRepo;
 		this.settlementMatrixReqRepo = settlementMatrixReqRepo;
+		this.abAdapter = abAdapter;
 
 		// TODO: @jason Need to obtain currencies from PlatForm config perhaps:
 		const currenciesFilePath: string = join(__dirname, Aggregate.CURRENCIES_FILE_NAME);
@@ -224,7 +228,7 @@ export class Aggregate {
 		// Store the account (accountDto can't be stored).
 		const formattedBatchAccountDto: ISettlementBatchAccountDto = account.toDto();
 		formattedBatchAccountDto.settlementBatch = accountDto.settlementBatch;
-		await this.batchAccountRepo.storeNewSettlementBatchAccount(formattedBatchAccountDto);
+		await this.batchAccountRepo.storeNewSettlementBatchAccount(formattedBatchAccountDto, this.abAdapter);
 
 		// We perform an async audit:
 		this.auditingClient.audit(
@@ -327,11 +331,7 @@ export class Aggregate {
 		formattedTransferDto.debitParticipantAccountId = debitedAccountDto.id!;
 		formattedTransferDto.creditParticipantAccountId = creditedAccountDto.id!;
 
-		// TODO create and request journalEntry, then call the
-		// TODO @Pedro, perform the journal entry.
-
-		await this.transfersRepo.storeNewSettlementTransfer(formattedTransferDto);
-
+		await this.transfersRepo.storeNewSettlementTransfer(formattedTransferDto, this.abAdapter);
 
 		// We perform an async audit:
 		this.auditingClient.audit(

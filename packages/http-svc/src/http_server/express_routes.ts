@@ -87,9 +87,11 @@ export class ExpressRoutes {
 		this._router.get("/settlement_accounts", this.getSettlementBatchAccounts.bind(this));
 		this._router.get("/settlement_transfers", this.getSettlementBatchTransfers.bind(this));
 
-		// Settlement Matrix:
 		this._router.get("/settlement_matrix_request", this.getSettlementMatrixRequest.bind(this));
-		this._router.get("/execute_settlement_matrix", this.getExecuteSettlementMatrix.bind(this));
+
+		// Settlement Matrix:
+		this._router.post("/settlement_matrix_request", this.postSettlementMatrixRequest.bind(this));
+		this._router.get("/execute_settlement_matrix", this.postExecuteSettlementMatrix.bind(this));
 	}
 
 	get router(): Router {
@@ -188,7 +190,7 @@ export class ExpressRoutes {
 		}
 	}
 
-	private async getExecuteSettlementMatrix(req: Request, res: Response): Promise<void> {
+	private async postExecuteSettlementMatrix(req: Request, res: Response): Promise<void> {
 		try {
 			const settlementMatrixReqId = req.query.settlementMatrixReqId as string;
 
@@ -208,7 +210,7 @@ export class ExpressRoutes {
 		}
 	}
 
-	private async getSettlementMatrixRequest(req: Request, res: Response): Promise<void> {
+	private async postSettlementMatrixRequest(req: Request, res: Response): Promise<void> {
 		try {
 			const settlementModel = req.query.settlementModel as string;
 			const fromDate = req.query.fromDate as string;
@@ -220,6 +222,23 @@ export class ExpressRoutes {
 				Number(toDate),
 				req.securityContext!
 			);
+			this.sendSuccessResponse(res, 200, settlementMatrixReq);// OK
+		} catch (error: unknown) {
+			this.logger.error(error);
+			if (error instanceof UnauthorizedError) {
+				this.sendErrorResponse(res, 403, "unauthorized"); // TODO: verify.
+			} else {
+				this.sendErrorResponse(res, 500, ExpressRoutes.UNKNOWN_ERROR_MESSAGE);
+			}
+		}
+	}
+
+	private async getSettlementMatrixRequest(req: Request, res: Response): Promise<void> {
+		try {
+			const settlementMatrixRequestId = req.query.settlementMatrixRequestId as string;
+
+			const settlementMatrixReq: ISettlementMatrixRequestDto = await this.aggregate.getSettlementMatrixRequestById(
+				settlementMatrixRequestId, req.securityContext!);
 			this.sendSuccessResponse(res, 200, settlementMatrixReq);// OK
 		} catch (error: unknown) {
 			this.logger.error(error);

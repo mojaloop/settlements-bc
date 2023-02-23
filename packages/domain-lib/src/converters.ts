@@ -57,9 +57,7 @@ export function stringToBigint(stringValue: string, decimals: number): bigint {
 
 // Can be optimized.
 export function bigintToString(bigintValue: bigint, decimals: number): string {
-	if (bigintValue===0n) {
-		return "0";
-	}
+	if (bigintValue === 0n) return "0";
 	decimals = decimals || 0;
 
 	// Get the string corresponding to the bigint and insert a dot according to the decimals.

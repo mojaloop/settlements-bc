@@ -27,9 +27,9 @@
 
 "use strict";
 
-import {ISettlementTransferRepo} from "@mojaloop/settlements-bc-domain-lib";
+import {IAccountsBalancesAdapter, ISettlementTransferRepo} from "@mojaloop/settlements-bc-domain-lib";
 import {ISettlementTransferDto} from "@mojaloop/settlements-bc-public-types-lib";
-import console from "console";
+
 export class SettlementTransferRepoMock implements ISettlementTransferRepo {
 	transfers: Array<ISettlementTransferDto> = [];
 
@@ -40,7 +40,7 @@ export class SettlementTransferRepoMock implements ISettlementTransferRepo {
 		return Promise.resolve();
 	}
 
-	async storeNewSettlementTransfer(transfer: ISettlementTransferDto): Promise<void> {
+	async storeNewSettlementTransfer(transfer: ISettlementTransferDto, abAdapter: IAccountsBalancesAdapter): Promise<void> {
 		if (transfer === undefined) return Promise.resolve();
 		this.transfers.push(transfer);
 		return Promise.resolve();

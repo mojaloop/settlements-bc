@@ -35,6 +35,7 @@
     "@mojaloop/auditing-bc-public-types-lib": "~0.0.10",
     "@mojaloop/logging-bc-public-types-lib": "~0.1.12",
     "@mojaloop/security-bc-public-types-lib": "~0.1.12",
+    "@mojaloop/accounts-and-balances-bc-public-types-lib": "~0.1.2",
     "nock": "~13.2.9"
   }
 }

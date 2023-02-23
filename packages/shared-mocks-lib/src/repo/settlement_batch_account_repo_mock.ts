@@ -27,9 +27,10 @@
 
 "use strict";
 
-import {ISettlementBatchAccountRepo} from "@mojaloop/settlements-bc-domain-lib";
+import {IAccountsBalancesAdapter, ISettlementBatchAccountRepo} from "@mojaloop/settlements-bc-domain-lib";
 import {ISettlementBatchAccountDto, ISettlementBatchDto} from "@mojaloop/settlements-bc-public-types-lib";
 import console from "console";
+import {AccountsAndBalancesAccountType} from "@mojaloop/accounts-and-balances-bc-public-types-lib";
 export class SettlementBatchAccountRepoMock implements ISettlementBatchAccountRepo {
 	batchAccounts: Array<ISettlementBatchAccountDto> = [];
 
@@ -40,8 +41,15 @@ export class SettlementBatchAccountRepoMock implements ISettlementBatchAccountRe
 		return Promise.resolve();
 	}
 
-	async storeNewSettlementBatchAccount(account: ISettlementBatchAccountDto): Promise<void> {
+	async storeNewSettlementBatchAccount(account: ISettlementBatchAccountDto, abAdapter: IAccountsBalancesAdapter): Promise<void> {
 		if (account === undefined) return Promise.resolve();
+
+		await abAdapter.createAccount(
+			account.id!,
+			account.participantAccountId!,
+			'SETTLEMENT',
+			account.currencyCode
+		);
 		this.batchAccounts.push(account);
 		return Promise.resolve();
 	}

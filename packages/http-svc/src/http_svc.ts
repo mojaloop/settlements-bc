@@ -37,7 +37,7 @@ import {
 	ISettlementBatchAccountRepo,
 	IParticipantAccountNotifier,
 	ISettlementTransferRepo,
-	Privileges
+	Privileges, IAccountsBalancesAdapter
 } from "@mojaloop/settlements-bc-domain-lib";
 import {MongoSettlementConfigRepo} from "@mojaloop/settlements-bc-infrastructure-lib";
 import {
@@ -114,6 +114,8 @@ let accountRepo: ISettlementBatchAccountRepo;
 let partAccountNotifier: IParticipantAccountNotifier;
 let transferRepo: ISettlementTransferRepo;
 
+let abAdapter: IAccountsBalancesAdapter;
+
 let httpServer: ExpressHttpServer;
 
 export async function startHttpService(
@@ -126,6 +128,7 @@ export async function startHttpService(
 	_partAccountNotifier?: IParticipantAccountNotifier,
 	_transferRepo?: ISettlementTransferRepo,
 	_settlementMatrixReq?: ISettlementMatrixRequestRepo,
+	_abAdapter?: IAccountsBalancesAdapter
 ): Promise<void> {
 	// Message producer options.
 	const kafkaProducerOptions: MLKafkaRawProducerOptions = {
@@ -156,9 +159,9 @@ export async function startHttpService(
 	// Token helper.
 	const tokenHelper: TokenHelper = new TokenHelper(
 		TOKEN_HELPER_JWKS_URL,
-		logger,
 		TOKEN_HELPER_ISSUER_NAME,
-		TOKEN_HELPER_AUDIENCE
+		TOKEN_HELPER_AUDIENCE,
+		logger
 	);
 	try {
 		// TODO Need to put back:
@@ -264,6 +267,12 @@ export async function startHttpService(
 		// TODO Init the A+B BC for Transfers.
 	}
 
+	if (_abAdapter !== undefined) {
+		abAdapter = _abAdapter;
+	} else {
+		// TODO Init the A+B BC for Transfers.
+	}
+
 	// Aggregate:
 	const aggregate: Aggregate = new Aggregate(
 		logger,
@@ -274,7 +283,8 @@ export async function startHttpService(
 		partAccountNotifier,
 		transferRepo,
 		configRepo,
-		settlementMatrixReq
+		settlementMatrixReq,
+		abAdapter
 	);
 
 	// HTTP server.

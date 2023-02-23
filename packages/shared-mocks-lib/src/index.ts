@@ -37,3 +37,5 @@ export * from "./repo/settlement_batch_account_repo_mock";
 export * from "./repo/settlement_batch_repo_mock";
 export * from "./repo/settlement_transfer_repo_mock";
 export * from "./repo/settlement_matrix_request_repo_mock";
+
+export * from "./adapter/accounts_balances_adapter_mock";
