@@ -532,7 +532,7 @@ export class Aggregate {
 		if (batch === null) {
 			throw new SettlementBatchNotFoundError(`Unable to locate Settlement Batch with 'Batch Identifier' '${batchIdentifier}'.`);
 		}
-		const returnVal = await this.batchAccountRepo.getAccountsByBatch(batch)
+		const returnVal = await this.batchAccountRepo.getAccountsByBatch(batch, this.abAdapter)
 		// Cleanup the JSON:
 		returnVal.forEach(itm => {
 			this.cleanBatchForResponse(itm.settlementBatch);
@@ -551,7 +551,7 @@ export class Aggregate {
 			throw new SettlementBatchNotFoundError(`Unable to locate Settlement Batch with 'Batch Id' '${batchId}'.`);
 		}
 
-		const returnVal = await this.batchAccountRepo.getAccountsByBatch(batch)
+		const returnVal = await this.batchAccountRepo.getAccountsByBatch(batch, this.abAdapter)
 		// Cleanup the JSON:
 		returnVal.forEach(itm => {
 			this.cleanBatchForResponse(itm.settlementBatch);
@@ -574,7 +574,7 @@ export class Aggregate {
 		const accIds : string[] = [];
 		settlementAccounts.forEach(itm => accIds.push(itm.id!));
 
-		const returnVal = await this.transfersRepo.getSettlementTransfersByAccountIds(accIds/*settlementAccounts.map(acc => acc.id)*/);
+		const returnVal = await this.transfersRepo.getSettlementTransfersByAccountIds(accIds, this.abAdapter);
 		// Cleanup the JSON:
 		returnVal.forEach(itm => {
 			this.cleanBatchForResponse(itm.batch);
@@ -597,7 +597,7 @@ export class Aggregate {
 		const accIds : string[] = [];
 		settlementAccounts.forEach(itm => accIds.push(itm.id!));
 
-		const returnVal = await this.transfersRepo.getSettlementTransfersByAccountIds(accIds);
+		const returnVal = await this.transfersRepo.getSettlementTransfersByAccountIds(accIds, this.abAdapter);
 		// Cleanup the JSON:
 		returnVal.forEach(itm => {
 			this.cleanBatchForResponse(itm.batch);
@@ -733,7 +733,7 @@ export class Aggregate {
 
 		// All transfers for account:
 		const transferDTOs: ISettlementTransferDto[] =
-			await this.transfersRepo.getSettlementTransfersByAccountId(accountId);
+			await this.transfersRepo.getSettlementTransfersByAccountId(accountId, this.abAdapter);
 		return transferDTOs;
 	}
 }

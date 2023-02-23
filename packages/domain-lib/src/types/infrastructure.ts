@@ -39,6 +39,7 @@ import {
 import {
 	AccountsAndBalancesAccount, AccountsAndBalancesAccountType
 } from "@mojaloop/accounts-and-balances-bc-public-types-lib";
+import {AccountsAndBalancesJournalEntry} from "@mojaloop/accounts-and-balances-bc-public-types-lib/dist/types";
 
 
 export interface IAccountsBalancesAdapter {
@@ -55,9 +56,16 @@ export interface IAccountsBalancesAdapter {
 	getParticipantAccounts(participantId: string): Promise<AccountsAndBalancesAccount[]>;
 
 	createJournalEntry(
-		requestedId: string, ownerId: string, currencyCode: string,
-		amount: string, pending: boolean, debitedAccountId: string, creditedAccountId: string
+		requestedId: string,
+		ownerId: string,
+		currencyCode: string,
+		amount: string,
+		pending: boolean,
+		debitedAccountId: string,
+		creditedAccountId: string
 	): Promise<string>;
+
+	getJournalEntriesByAccountId(accountId: string): Promise<AccountsAndBalancesJournalEntry[]>;
 }
 
 
@@ -86,10 +94,14 @@ export interface ISettlementBatchAccountRepo {
 	storeNewSettlementBatchAccount(account: ISettlementBatchAccountDto, abAdapter: IAccountsBalancesAdapter): Promise<void>; // Throws if account.id is not unique.
 
 	accountExistsById(accountId: string): Promise<boolean>;
-	getAccountById(accountId: string): Promise<ISettlementBatchAccountDto | null>;
-	getAccountsByParticipantAccountId(partAccId: string): Promise<ISettlementBatchAccountDto[]>;
-	getAccountByParticipantAccountAndBatchId(partAccId: string, batchId: string): Promise<ISettlementBatchAccountDto | null>;
-	getAccountsByBatch(batch: ISettlementBatchDto): Promise<ISettlementBatchAccountDto[]>;
+	getAccountById(accountId: string, abAdapter?: IAccountsBalancesAdapter): Promise<ISettlementBatchAccountDto | null>;
+	getAccountsByParticipantAccountId(partAccId: string, abAdapter?: IAccountsBalancesAdapter): Promise<ISettlementBatchAccountDto[]>;
+	getAccountByParticipantAccountAndBatchId(
+		partAccId: string,
+		batchId: string,
+		abAdapter?: IAccountsBalancesAdapter
+	): Promise<ISettlementBatchAccountDto | null>;
+	getAccountsByBatch(batch: ISettlementBatchDto, abAdapter?: IAccountsBalancesAdapter): Promise<ISettlementBatchAccountDto[]>;
 }
 
 
@@ -104,9 +116,8 @@ export interface ISettlementTransferRepo {
 	init(): Promise<void>;
 	destroy(): Promise<void>;
 	storeNewSettlementTransfer(transfer: ISettlementTransferDto, abAdapter: IAccountsBalancesAdapter): Promise<void>; // Throws if account.id is not unique.
-	transferExistsById(id: string): Promise<boolean>;
-	getSettlementTransfersByAccountId(accountId: string): Promise<ISettlementTransferDto[]>;
-	getSettlementTransfersByAccountIds(accountId: string[]): Promise<ISettlementTransferDto[]>;
+	getSettlementTransfersByAccountId(accountId: string, abAdapter: IAccountsBalancesAdapter): Promise<ISettlementTransferDto[]>;
+	getSettlementTransfersByAccountIds(accountId: string[], abAdapter: IAccountsBalancesAdapter): Promise<ISettlementTransferDto[]>;
 }
 
 export interface ISettlementMatrixRequestRepo {

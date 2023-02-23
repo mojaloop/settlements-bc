@@ -45,6 +45,7 @@ import {
     GrpcCreateAccountArray
 } from "@mojaloop/accounts-and-balances-bc-grpc-client-lib";
 import { UnauthorizedError } from "@mojaloop/security-bc-public-types-lib";
+import {AccountsAndBalancesJournalEntry} from "@mojaloop/accounts-and-balances-bc-public-types-lib/dist/types";
 
 export class GrpcAccountsAndBalancesAdapter implements IAccountsBalancesAdapter {
     private readonly _grpcUrl: string;
@@ -69,15 +70,18 @@ export class GrpcAccountsAndBalancesAdapter implements IAccountsBalancesAdapter 
     }
 
     setToken(accessToken: string): void {
-        this._loginHelper.setToken(accessToken);
+        //TODO @jason, put this back:
+        //TODO this._loginHelper.setToken(accessToken);
     }
 
     setUserCredentials(client_id: string, username: string, password: string): void {
-        this._loginHelper.setUserCredentials(client_id, username, password);
+        //TODO @jason, put this back:
+        //TODO this._loginHelper.setUserCredentials(client_id, username, password);
     }
 
     setAppCredentials(client_id: string, client_secret: string): void {
-        this._loginHelper.setAppCredentials(client_id, client_secret);
+        //TODO @jason, put this back:
+        //TODO this._loginHelper.setAppCredentials(client_id, client_secret);
     }
 
     async createAccount(requestedId: string, ownerId: string, type: AccountsAndBalancesAccountType, currencyCode: string): Promise<string> {
@@ -123,6 +127,11 @@ export class GrpcAccountsAndBalancesAdapter implements IAccountsBalancesAdapter 
             throw new Error("Could not create journalEntry in remote system: "+reason);
         });
         return createdId.grpcIdArray![0].grpcId!;
+    }
+
+    async getJournalEntriesByAccountId(accountId: string): Promise<AccountsAndBalancesJournalEntry[]> {
+        // TODO @pedro, please complete:
+        return Promise.resolve([]);
     }
 
     async getAccount(accId: string): Promise<AccountsAndBalancesAccount | null> {

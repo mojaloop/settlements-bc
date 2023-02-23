@@ -29,8 +29,7 @@
 
 import {IAccountsBalancesAdapter, ISettlementBatchAccountRepo} from "@mojaloop/settlements-bc-domain-lib";
 import {ISettlementBatchAccountDto, ISettlementBatchDto} from "@mojaloop/settlements-bc-public-types-lib";
-import console from "console";
-import {AccountsAndBalancesAccountType} from "@mojaloop/accounts-and-balances-bc-public-types-lib";
+
 export class SettlementBatchAccountRepoMock implements ISettlementBatchAccountRepo {
 	batchAccounts: Array<ISettlementBatchAccountDto> = [];
 
@@ -64,48 +63,93 @@ export class SettlementBatchAccountRepoMock implements ISettlementBatchAccountRe
 		return Promise.resolve(false);
 	}
 
-	async getAccountById(accountId: string): Promise<ISettlementBatchAccountDto | null> {
+	async getAccountById(accountId: string, abAdapter?: IAccountsBalancesAdapter): Promise<ISettlementBatchAccountDto | null> {
 		if (accountId === undefined || accountId.trim() === '') return Promise.resolve(null);
 		for (const batchAccIter of this.batchAccounts) {
-			if (batchAccIter.id === accountId) return Promise.resolve(batchAccIter);
-		}
-
-		return Promise.resolve(null);
-	}
-
-	async getAccountByParticipantAccountAndBatchId(partAccId: string, batchId: string): Promise<ISettlementBatchAccountDto | null> {
-		if (partAccId === undefined || partAccId.trim() === '') return Promise.resolve(null);
-		if (batchId === undefined || batchId.trim() === '') return Promise.resolve(null);
-		for (const batchAccIter of this.batchAccounts) {
-			if (batchAccIter.settlementBatch === null || batchAccIter.settlementBatch === undefined) continue;
-			if (batchAccIter.participantAccountId === partAccId && batchAccIter.settlementBatch!.id === batchId) {
-				return Promise.resolve(batchAccIter);
+			if (batchAccIter.id === accountId) {
+				return Promise.resolve(await this.addBalancesUsingABAdapter(batchAccIter));
 			}
 		}
 
 		return Promise.resolve(null);
 	}
 
-	async getAccountsByParticipantAccountId(participantAccountId: string): Promise<ISettlementBatchAccountDto[]> {
+	async getAccountByParticipantAccountAndBatchId(
+		partAccId: string,
+		batchId: string,
+		abAdapter?: IAccountsBalancesAdapter
+	): Promise<ISettlementBatchAccountDto | null> {
+		if (partAccId === undefined || partAccId.trim() === '') return Promise.resolve(null);
+		if (batchId === undefined || batchId.trim() === '') return Promise.resolve(null);
+		for (const batchAccIter of this.batchAccounts) {
+			if (batchAccIter.settlementBatch === null || batchAccIter.settlementBatch === undefined) continue;
+			if (batchAccIter.participantAccountId === partAccId && batchAccIter.settlementBatch!.id === batchId) {
+				return Promise.resolve(await this.addBalancesUsingABAdapter(batchAccIter));
+			}
+		}
+
+		return Promise.resolve(null);
+	}
+
+	async getAccountsByParticipantAccountId(
+		participantAccountId: string,
+		abAdapter?: IAccountsBalancesAdapter
+	): Promise<ISettlementBatchAccountDto[]> {
 		let returnVal : Array<ISettlementBatchAccountDto> = [];
 		if (participantAccountId === undefined || participantAccountId.trim() === '') return Promise.resolve(returnVal);
 
 		for (const batchAccIter of this.batchAccounts) {
-			if (batchAccIter.participantAccountId === participantAccountId) returnVal.push(batchAccIter);
+			if (batchAccIter.participantAccountId === participantAccountId) {
+				returnVal.push(await this.addBalancesUsingABAdapter(batchAccIter));
+			}
 		}
 
 		return Promise.resolve(returnVal);
 	}
 
-	async getAccountsByBatch(batch: ISettlementBatchDto): Promise<ISettlementBatchAccountDto[]> {
+	async getAccountsByBatch(
+		batch: ISettlementBatchDto,
+		abAdapter?: IAccountsBalancesAdapter
+	): Promise<ISettlementBatchAccountDto[]> {
 		let returnVal : Array<ISettlementBatchAccountDto> = [];
 		if (batch === undefined || batch.id === undefined) return Promise.resolve(returnVal);
 
 		for (const batchAccIter of this.batchAccounts) {
 			if (batchAccIter.settlementBatch === null) continue;
-			if (batch.id === batchAccIter.settlementBatch!.id) returnVal.push(batchAccIter);
+			if (batch.id === batchAccIter.settlementBatch!.id) {
+				returnVal.push(await this.addBalancesUsingABAdapter(batchAccIter));
+			}
 		}
 		return Promise.resolve(returnVal);
+	}
+
+	private async addBalancesUsingABAdapter(
+		returnVal : ISettlementBatchAccountDto,
+		abAdapter?: IAccountsBalancesAdapter
+	) : Promise<ISettlementBatchAccountDto> {
+		if (abAdapter === undefined || abAdapter === null) 	return Promise.resolve(returnVal);
+
+		const accFromAccBal = await abAdapter.getAccount(returnVal.id!);
+		let debitBal = returnVal.debitBalance;
+		let creditBal = returnVal.creditBalance;
+		if (accFromAccBal !== null && accFromAccBal !== undefined) {
+			if (accFromAccBal.postedDebitBalance !== null && accFromAccBal.postedDebitBalance !== undefined) {
+				debitBal = accFromAccBal.postedDebitBalance;
+			}
+			if (accFromAccBal.postedCreditBalance !== null && accFromAccBal.postedCreditBalance !== undefined) {
+				creditBal = accFromAccBal.postedCreditBalance;
+			}
+		}
+
+		return Promise.resolve({
+			id: returnVal.id,
+			participantAccountId: returnVal.participantAccountId,
+			currencyCode: returnVal.currencyCode,
+			currencyDecimals: returnVal.currencyDecimals,
+			creditBalance: creditBal,
+			debitBalance: debitBal,
+			timestamp: returnVal.timestamp
+		});
 	}
 
 }

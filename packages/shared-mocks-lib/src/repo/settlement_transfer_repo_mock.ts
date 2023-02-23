@@ -31,7 +31,6 @@ import {IAccountsBalancesAdapter, ISettlementTransferRepo} from "@mojaloop/settl
 import {ISettlementTransferDto} from "@mojaloop/settlements-bc-public-types-lib";
 
 export class SettlementTransferRepoMock implements ISettlementTransferRepo {
-	transfers: Array<ISettlementTransferDto> = [];
 
 	async init(): Promise<void> {
 		return Promise.resolve();
@@ -42,38 +41,48 @@ export class SettlementTransferRepoMock implements ISettlementTransferRepo {
 
 	async storeNewSettlementTransfer(transfer: ISettlementTransferDto, abAdapter: IAccountsBalancesAdapter): Promise<void> {
 		if (transfer === undefined) return Promise.resolve();
-		this.transfers.push(transfer);
+
+		await abAdapter.createJournalEntry(
+			transfer.id!,
+			transfer.transferId!,
+			transfer.currencyCode,
+			transfer.amount,
+			false,
+			transfer.debitParticipantAccountId,
+			transfer.creditParticipantAccountId
+		);
+
 		return Promise.resolve();
 	}
 
-	async transferExistsById(id: string): Promise<boolean> {
-		if (id === undefined || id.trim() === '') return Promise.resolve(false);
-
-		for (const transferIter of this.transfers) {
-			if (transferIter.id === id) return Promise.resolve(true);
-		}
-
-		return Promise.resolve(false);
-	}
-
-	async getSettlementTransfersByAccountId(accountId: string): Promise<ISettlementTransferDto[]> {
+	async getSettlementTransfersByAccountId(accountId: string, abAdapter: IAccountsBalancesAdapter): Promise<ISettlementTransferDto[]> {
 		let returnVal : Array<ISettlementTransferDto> = [];
 		if (accountId === undefined || accountId.trim() === '') return Promise.resolve(returnVal);
 
-		for (const transferIter of this.transfers) {
-			if (transferIter.creditParticipantAccountId === accountId ||
-				transferIter.debitParticipantAccountId === accountId) returnVal.push(transferIter);
-		}
+		const jourEntries = await abAdapter.getJournalEntriesByAccountId(accountId);
 
+		for (const transferIter of jourEntries) {
+			returnVal.push({
+				id: transferIter.id,
+				transferId: transferIter.ownerId,
+				currencyCode: transferIter.currencyCode,
+				currencyDecimals: 2,
+				amount: transferIter.amount,
+				debitParticipantAccountId: transferIter.debitedAccountId,
+				creditParticipantAccountId: transferIter.creditedAccountId,
+				timestamp: transferIter.timestamp!,
+				settlementModel: ''
+			});
+		}
 		return Promise.resolve(returnVal);
 	}
 
-	async getSettlementTransfersByAccountIds(accountIds: string[]): Promise<ISettlementTransferDto[]> {
+	async getSettlementTransfersByAccountIds(accountIds: string[], abAdapter: IAccountsBalancesAdapter): Promise<ISettlementTransferDto[]> {
 		let returnVal : Array<ISettlementTransferDto> = [];
 		if (accountIds === undefined || accountIds.length === 0) return Promise.resolve(returnVal);
 
 		for (const accId of accountIds) {
-			const results = await this.getSettlementTransfersByAccountId(accId);
+			const results = await this.getSettlementTransfersByAccountId(accId, abAdapter);
 			results.forEach(itm => returnVal.push(itm));
 		}
 

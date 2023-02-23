@@ -32,6 +32,7 @@ import {
 	AccountsAndBalancesAccount,
 	AccountsAndBalancesAccountType
 } from "@mojaloop/accounts-and-balances-bc-public-types-lib";
+import {AccountsAndBalancesJournalEntry} from "@mojaloop/accounts-and-balances-bc-public-types-lib/dist/types";
 
 class ABAccount {
 	requestedId: string;
@@ -133,6 +134,16 @@ export class AccountsBalancesAdapterMock implements IAccountsBalancesAdapter {
 		return Promise.resolve(returnVal);
 	}
 
+	async getJournalEntriesByAccountId(accountId: string): Promise<AccountsAndBalancesJournalEntry[]> {
+		const returnVal :AccountsAndBalancesJournalEntry[] = [];
+		for (const je of this.abJournals) {
+			if (je.creditedAccountId === accountId || je.debitedAccountId === accountId) {
+				returnVal.push(this.convertJE(je));
+			}
+		}
+		return Promise.resolve(returnVal);
+	}
+
 	async createJournalEntry(
 		requestedId: string,
 		ownerId: string,
@@ -154,10 +165,13 @@ export class AccountsBalancesAdapterMock implements IAccountsBalancesAdapter {
 			creditedAccountId)
 		);
 		for (const acc of this.abAccounts) {
+			if (acc.postedDebitBal === undefined) acc.postedDebitBal = 0n;
+			if (acc.postedCreditBal === undefined) acc.postedCreditBal = 0n;
+
 			if (acc.requestedId === debitedAccountId) {
-				acc.postedDebitBal += amntAsBigInt;
+				acc.postedDebitBal += BigInt(amntAsBigInt);
 			} else if (acc.requestedId === creditedAccountId) {
-				acc.postedCreditBal += amntAsBigInt;
+				acc.postedCreditBal += BigInt(amntAsBigInt);
 			}
 		}
 		return Promise.resolve(requestedId);
@@ -176,6 +190,20 @@ export class AccountsBalancesAdapterMock implements IAccountsBalancesAdapter {
 			pendingCreditBalance: bigintToString(toConvert.pendingCreditBal, 2),
 			balance: '',
 			timestampLastJournalEntry: Date.now()
+		};
+		return returnVal;
+	}
+
+	private convertJE(toConvert: ABJournal) : AccountsAndBalancesJournalEntry {
+		const returnVal : AccountsAndBalancesJournalEntry = {
+			id: toConvert.requestedId,
+			ownerId: toConvert.ownerId,
+			currencyCode: toConvert.currencyCode,
+			amount: toConvert.amount,
+			pending: false,
+			debitedAccountId: toConvert.debitedAccountId,
+			creditedAccountId: toConvert.creditedAccountId,
+			timestamp: Date.now()
 		};
 		return returnVal;
 	}
