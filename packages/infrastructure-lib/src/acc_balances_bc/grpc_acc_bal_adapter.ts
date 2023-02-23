@@ -71,17 +71,17 @@ export class GrpcAccountsAndBalancesAdapter implements IAccountsBalancesAdapter 
 
     setToken(accessToken: string): void {
         //TODO @jason, put this back:
-        //TODO this._loginHelper.setToken(accessToken);
+        this._loginHelper.setToken(accessToken);
     }
 
     setUserCredentials(client_id: string, username: string, password: string): void {
         //TODO @jason, put this back:
-        //TODO this._loginHelper.setUserCredentials(client_id, username, password);
+        this._loginHelper.setUserCredentials(client_id, username, password);
     }
 
     setAppCredentials(client_id: string, client_secret: string): void {
         //TODO @jason, put this back:
-        //TODO this._loginHelper.setAppCredentials(client_id, client_secret);
+        this._loginHelper.setAppCredentials(client_id, client_secret);
     }
 
     async createAccount(requestedId: string, ownerId: string, type: AccountsAndBalancesAccountType, currencyCode: string): Promise<string> {
