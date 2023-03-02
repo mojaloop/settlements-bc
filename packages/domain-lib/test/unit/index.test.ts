@@ -34,7 +34,7 @@ import {
 	IParticipantAccountNotifier,
 	ISettlementTransferRepo,
 	ISettlementMatrixRequestRepo,
-	Aggregate,
+	SettlementsAggregate,
 	SettlementMatrixRequestClosedError,
 	InvalidTimestampError,
 	InvalidBatchSettlementModelError,
@@ -56,7 +56,7 @@ import {ConsoleLogger, ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import {IAuditClient} from "@mojaloop/auditing-bc-public-types-lib";
 import {randomUUID} from "crypto";
 import {stringToBigint, bigintToString} from "../../src/converters";
-import {IAuthorizationClient} from "@mojaloop/security-bc-public-types-lib";
+import {IAuthorizationClient, CallSecurityContext} from "@mojaloop/security-bc-public-types-lib";
 import {
 	AuditClientMock,
 	AuthorizationClientMock,
@@ -70,7 +70,6 @@ import {
 import {
 	ISettlementTransferDto, SettlementBatchStatus, SettlementMatrixRequestStatus
 } from "@mojaloop/settlements-bc-public-types-lib";
-import {CallSecurityContext} from "@mojaloop/security-bc-client-lib";
 import {SettlementConfig} from "../../src/types/settlement_config";
 import {SettlementTransfer} from "../../src/types/transfer";
 
@@ -85,8 +84,8 @@ let partNotifier: IParticipantAccountNotifier;
 let abAdapter: IAccountsBalancesAdapter;
 
 describe("Settlements BC [Domain] - Unit Tests", () => {
-	let aggregate : Aggregate;
-	let aggregateNoAuth : Aggregate;
+	let aggregate : SettlementsAggregate;
+	let aggregateNoAuth : SettlementsAggregate;
 	let securityContext : CallSecurityContext;
 
 	beforeAll(async () => {
@@ -115,7 +114,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		abAdapter = new AccountsBalancesAdapterMock();
 
 		// Aggregate:
-		aggregate = new Aggregate(
+		aggregate = new SettlementsAggregate(
 			logger,
 			authorizationClient,
 			auditingClient,
@@ -127,7 +126,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 			settleMatrixReqRepo,
 			abAdapter
 		);
-		aggregateNoAuth = new Aggregate(
+		aggregateNoAuth = new SettlementsAggregate(
 			logger,
 			authorizationClientNoAuth,
 			auditingClient,
@@ -159,7 +158,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 			settlementModel: "DEFAULT",
 			batch: null
 		};
-		const rspTransferDto: ISettlementTransferDto = await aggregate.createSettlementTransfer(reqTransferDto, securityContext);
+		const rspTransferDto: ISettlementTransferDto = await aggregate.handleTransfer(reqTransferDto, securityContext);
 		expect(rspTransferDto).toBeDefined();
 		expect(rspTransferDto.id).toBeDefined();
 		expect(rspTransferDto.transferId).toEqual(reqTransferDto.transferId);
@@ -171,7 +170,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		expect(rspTransferDto.batch!.id).toBeDefined();
 		expect(rspTransferDto.batch!.batchIdentifier).toBeDefined();
 
-		const batches = await aggregate.getSettlementBatches(reqTransferDto.settlementModel, Date.now() - 5000, Date.now(), securityContext);
+		const batches = await aggregate.getSettlementBatchesByCriteria(reqTransferDto.settlementModel, Date.now() - 5000, Date.now(), securityContext);
 		expect(batches).toBeDefined();
 		expect(batches.length).toBeGreaterThan(0);
 		expect(batches[0].id).toEqual(rspTransferDto.batch!.id);
@@ -181,7 +180,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		expect(batchAccountsByBatchId).toBeDefined();
 		expect(batchAccountsByBatchId.length).toEqual(2);
 
-		const batchAccountsByBatchIdentifier = await aggregate.getSettlementBatchAccountsByBatchIdentifier(
+		const batchAccountsByBatchIdentifier = await aggregate.getSettlementBatch(
 			rspTransferDto.batch!.batchIdentifier!, securityContext);
 		expect(batchAccountsByBatchIdentifier).toBeDefined();
 		expect(batchAccountsByBatchIdentifier.length).toEqual(2);
@@ -206,7 +205,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		const debPartAccId = randomUUID();
 		const credPartAccId = randomUUID();
 
-		const txn1RspBatch1 = await aggregate.createSettlementTransfer({
+		const txn1RspBatch1 = await aggregate.handleTransfer({
 				id: null,
 				transferId: randomUUID(),
 				currencyCode: 'EUR',
@@ -219,7 +218,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 				batch: null
 			}, securityContext
 		);
-		const txn2RspBatch1 = await aggregate.createSettlementTransfer({
+		const txn2RspBatch1 = await aggregate.handleTransfer({
 				id: null,
 				transferId: randomUUID(),
 				currencyCode: 'EUR',
@@ -232,7 +231,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 				batch: null
 			}, securityContext
 		);
-		const txn3RspBatch1 = await aggregate.createSettlementTransfer({
+		const txn3RspBatch1 = await aggregate.handleTransfer({
 				id: null,
 				transferId: randomUUID(),
 				currencyCode: 'EUR',
@@ -247,7 +246,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		);
 
 		// Now we have a new settlement model:
-		const txn4RspBatch2 = await aggregate.createSettlementTransfer({
+		const txn4RspBatch2 = await aggregate.handleTransfer({
 				id: null,
 				transferId: randomUUID(),
 				currencyCode: 'EUR',
@@ -276,13 +275,13 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		expect(txn4RspBatch2.batch!.settlementModel).toEqual('FRX');
 
 		// Ensure we have one batch for model [DEFAULT]:
-		const batchModelDef = await aggregate.getSettlementBatches(
+		const batchModelDef = await aggregate.getSettlementBatchesByCriteria(
 			txn1RspBatch1.batch!.settlementModel!, Date.now() - 15000, Date.now(), securityContext);
 		expect(batchModelDef).toBeDefined();
 		expect(batchModelDef.length).toEqual(1);
 
 		// Ensure we have one batch for model [FX]:
-		const batchModelFx = await aggregate.getSettlementBatches(
+		const batchModelFx = await aggregate.getSettlementBatchesByCriteria(
 			txn1RspBatch1.batch!.settlementModel!, Date.now() - 15000, Date.now(), securityContext);
 		expect(batchModelFx).toBeDefined();
 		expect(batchModelFx.length).toEqual(1);
@@ -302,22 +301,22 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 			settlementModel: "FX",
 			batch: null
 		};
-		await aggregate.createSettlementTransfer(reqTransferDto, securityContext);
+		await aggregate.handleTransfer(reqTransferDto, securityContext);
 
 		// Request a Settlement Matrix, which will be used to execute the matrix on.
-		const rspReq = await aggregate.settlementMatrixRequest(reqTransferDto.settlementModel, Date.now() - 5000, Date.now(), securityContext);
+		const rspReq = await aggregate.createSettlementMatrix(reqTransferDto.settlementModel, Date.now() - 5000, Date.now(), securityContext);
 		expect(rspReq).toBeDefined();
 		expect(rspReq.id).toBeDefined();
 		expect(rspReq.matrixStatus).toEqual(SettlementMatrixRequestStatus.OPEN);
 
 		// Execute the matrix:
-		const execResult = await aggregate.executeSettlementMatrix(rspReq.id, securityContext);
+		const execResult = await aggregate.closeSettlementMatrix(rspReq.id, securityContext);
 		expect(execResult).toBeDefined();
 		expect(execResult.batches).toBeDefined();
 		expect(execResult.batches.length).toEqual(1);
 
 		// Ensure the batch has been closed:
-		const matrixById = await aggregate.getSettlementMatrixRequestById(rspReq.id, securityContext);
+		const matrixById = await aggregate.getSettlementMatrix(rspReq.id, securityContext);
 		expect(matrixById).toBeDefined();
 		expect(matrixById.timestamp).toBeDefined();
 		expect(matrixById.dateFrom).toBeDefined();
@@ -331,7 +330,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 	test("test exceptions/errors responses for create transfer (validations)", async () => {
 		// Timestamp:
 		try {
-			await aggregate.createSettlementTransfer(
+			await aggregate.handleTransfer(
 				{
 					id: null,
 					transferId: randomUUID(),
@@ -352,7 +351,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 
 		// Settlement Model:
 		try {
-			await aggregate.createSettlementTransfer(
+			await aggregate.handleTransfer(
 				{
 					id: null,
 					transferId: randomUUID(),
@@ -373,7 +372,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 
 		// Currency Code:
 		try {
-			await aggregate.createSettlementTransfer(
+			await aggregate.handleTransfer(
 				{
 					id: null,
 					transferId: randomUUID(),
@@ -394,7 +393,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 
 		// Amount:
 		try {
-			await aggregate.createSettlementTransfer(
+			await aggregate.handleTransfer(
 				{
 					id: null,
 					transferId: randomUUID(),
@@ -415,7 +414,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 
 		// Transfer ID:
 		try {
-			await aggregate.createSettlementTransfer(
+			await aggregate.handleTransfer(
 				{
 					id: null,
 					transferId: '',
@@ -436,7 +435,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 
 		// Debit Account ID:
 		try {
-			await aggregate.createSettlementTransfer(
+			await aggregate.handleTransfer(
 				{
 					id: null,
 					transferId: randomUUID(),
@@ -457,7 +456,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 
 		// Credit Account ID:
 		try {
-			await aggregate.createSettlementTransfer(
+			await aggregate.handleTransfer(
 				{
 					id: null,
 					transferId: randomUUID(),
@@ -478,7 +477,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 
 		// Invalid Currency ID (not mapped):
 		try {
-			await aggregate.createSettlementTransfer(
+			await aggregate.handleTransfer(
 				{
 					id: null,
 					transferId: randomUUID(),
@@ -499,7 +498,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 
 		// Invalid Amount (non decimal):
 		try {
-			await aggregate.createSettlementTransfer(
+			await aggregate.handleTransfer(
 				{
 					id: null,
 					transferId: randomUUID(),
@@ -520,7 +519,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 
 		// Invalid Amount (0):
 		try {
-			await aggregate.createSettlementTransfer(
+			await aggregate.handleTransfer(
 				{
 					id: null,
 					transferId: randomUUID(),
@@ -554,23 +553,23 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 			settlementModel: "REMITTANCE",
 			batch: null
 		};
-		await aggregate.createSettlementTransfer(reqTransferDto, securityContext);
+		await aggregate.handleTransfer(reqTransferDto, securityContext);
 
 		// Request a Settlement Matrix, which will be used to execute the matrix on.
-		const rspReq = await aggregate.settlementMatrixRequest(reqTransferDto.settlementModel, Date.now() - 5000, Date.now(), securityContext);
+		const rspReq = await aggregate.createSettlementMatrix(reqTransferDto.settlementModel, Date.now() - 5000, Date.now(), securityContext);
 		expect(rspReq).toBeDefined();
 		expect(rspReq.id).toBeDefined();
 		expect(rspReq.matrixStatus).toEqual(SettlementMatrixRequestStatus.OPEN);
 
 		// Execute the matrix:
-		const execResult = await aggregate.executeSettlementMatrix(rspReq.id, securityContext);
+		const execResult = await aggregate.closeSettlementMatrix(rspReq.id, securityContext);
 		expect(execResult).toBeDefined();
 		expect(execResult.batches).toBeDefined();
 		expect(execResult.batches.length).toEqual(1);
 
 		// Ensure the 2nd execute generates an error (SettlementMatrixRequestClosedError):
 		try {
-			await aggregate.executeSettlementMatrix(rspReq.id, securityContext);
+			await aggregate.closeSettlementMatrix(rspReq.id, securityContext);
 			fail('Expected to throw error!');
 		} catch (err) {
 			expect(err).toBeDefined();
@@ -592,23 +591,23 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 			settlementModel: 'SEQ_TEST',
 			batch: null
 		};
-		const ornTransfer = await aggregate.createSettlementTransfer(reqTransferDto, securityContext);
+		const ornTransfer = await aggregate.handleTransfer(reqTransferDto, securityContext);
 
 		// Request a Settlement Matrix, which will be used to execute the matrix on.
-		const rspReq = await aggregate.settlementMatrixRequest(reqTransferDto.settlementModel, Date.now() - 5000, Date.now(), securityContext);
+		const rspReq = await aggregate.createSettlementMatrix(reqTransferDto.settlementModel, Date.now() - 5000, Date.now(), securityContext);
 		expect(rspReq).toBeDefined();
 		expect(rspReq.id).toBeDefined();
 		expect(rspReq.matrixStatus).toEqual(SettlementMatrixRequestStatus.OPEN);
 
 		// Execute the matrix:
-		const execResult = await aggregate.executeSettlementMatrix(rspReq.id, securityContext);
+		const execResult = await aggregate.closeSettlementMatrix(rspReq.id, securityContext);
 		expect(execResult).toBeDefined();
 		expect(execResult.batches).toBeDefined();
 		expect(execResult.batches.length).toEqual(1);
 		const batchExecutedIdentifier = execResult.batches[0].batchIdentifier
 
 		// Ensure the batch has been closed:
-		const matrixById = await aggregate.getSettlementMatrixRequestById(rspReq.id, securityContext);
+		const matrixById = await aggregate.getSettlementMatrix(rspReq.id, securityContext);
 		expect(matrixById).toBeDefined();
 		expect(matrixById.timestamp).toBeDefined();
 		expect(matrixById.dateFrom).toBeDefined();
@@ -618,12 +617,12 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		expect(rspReq.matrixStatus).toEqual(SettlementMatrixRequestStatus.CLOSED);
 
 		// Create another Transfer:
-		const newBatchTransfer = await aggregate.createSettlementTransfer(reqTransferDto, securityContext);
+		const newBatchTransfer = await aggregate.handleTransfer(reqTransferDto, securityContext);
 		expect(newBatchTransfer).toBeDefined();
 		expect(newBatchTransfer.batch!.id === ornTransfer.batch!.id).toEqual(false);
 
 		// Retrieve the Batch:
-		const batches = await aggregate.getSettlementBatches(reqTransferDto.settlementModel, Date.now() - 15000, Date.now(), securityContext);
+		const batches = await aggregate.getSettlementBatchesByCriteria(reqTransferDto.settlementModel, Date.now() - 15000, Date.now(), securityContext);
 		expect(batches).toBeDefined();
 		// We expect at least 2 batches:
 		expect(batches.length).toEqual(2);
@@ -643,7 +642,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 	// Unique Accounts Per Batch:
 	test("batch accounts unique per batch and participant-id", async () => {
 		const settleModel = 'PAR_ACC';
-		const txnBatch1 = await aggregate.createSettlementTransfer(
+		const txnBatch1 = await aggregate.handleTransfer(
 			{
 				id: null,
 				transferId: randomUUID(),
@@ -657,11 +656,11 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 				batch: null
 			}, securityContext
 		);
-		const rspReq = await aggregate.settlementMatrixRequest(settleModel, Date.now() - 5000, Date.now(), securityContext);
-		await aggregate.executeSettlementMatrix(rspReq.id, securityContext);
+		const rspReq = await aggregate.createSettlementMatrix(settleModel, Date.now() - 5000, Date.now(), securityContext);
+		await aggregate.closeSettlementMatrix(rspReq.id, securityContext);
 
 		// New Transfer under a new batch:
-		const txnBatch2 = await aggregate.createSettlementTransfer(
+		const txnBatch2 = await aggregate.handleTransfer(
 			{
 				id: null,
 				transferId: randomUUID(),
@@ -796,7 +795,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		}
 
 		try {
-			await aggregate.executeSettlementMatrix(randomUUID(), securityContext);
+			await aggregate.closeSettlementMatrix(randomUUID(), securityContext);
 			fail('Expected to throw error!');
 		} catch (err) {
 			expect(err).toBeDefined();
@@ -804,7 +803,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		}
 
 		try {
-			await aggregate.getSettlementMatrixRequestById(randomUUID(), securityContext);
+			await aggregate.getSettlementMatrix(randomUUID(), securityContext);
 			fail('Expected to throw error!');
 		} catch (err) {
 			expect(err).toBeDefined();
@@ -812,7 +811,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		}
 
 		try {
-			await aggregate.getSettlementBatchAccountsByBatchIdentifier(randomUUID(), securityContext);
+			await aggregate.getSettlementBatch(randomUUID(), securityContext);
 			fail('Expected to throw error!');
 		} catch (err) {
 			expect(err).toBeDefined();
@@ -909,7 +908,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 
 	// Batch Allocation:
 	test("create a settlement batch with batch allocation", async () => {
-		const rspTransferDto: ISettlementTransferDto = await aggregate.createSettlementTransfer(
+		const rspTransferDto: ISettlementTransferDto = await aggregate.handleTransfer(
 			{
 				id: null,
 				transferId: randomUUID(),

@@ -30,5 +30,6 @@
 export * from "./aggregate";
 export * from "./types/errors";
 export * from "./types/infrastructure";
-export * from "./types/privileges";
+export * from "./privileges";
 export * from "./converters";
+export * from "./types/matrix"; // BC private matrix interfaces for infra and mocks

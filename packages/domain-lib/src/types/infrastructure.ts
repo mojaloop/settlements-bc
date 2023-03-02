@@ -28,18 +28,13 @@
 "use strict";
 
 import {
-	ISettlementConfigDto,
-	ISettlementBatchDto,
-	ISettlementBatchAccountDto,
-	ISettlementTransferDto,
-	ISettlementMatrixRequestDto,
-	ISettlementMatrixDto
+	ISettlementConfig,
+	ISettlementBatch, ISettlementBatchTransfer, ISettlementMatrix
 } from "@mojaloop/settlements-bc-public-types-lib";
 
 import {
-	AccountsAndBalancesAccount, AccountsAndBalancesAccountType
+	AccountsAndBalancesAccount, AccountsAndBalancesAccountType,AccountsAndBalancesJournalEntry
 } from "@mojaloop/accounts-and-balances-bc-public-types-lib";
-import {AccountsAndBalancesJournalEntry} from "@mojaloop/accounts-and-balances-bc-public-types-lib/dist/types";
 
 
 export interface IAccountsBalancesAdapter {
@@ -68,64 +63,68 @@ export interface IAccountsBalancesAdapter {
 	getJournalEntriesByAccountId(accountId: string): Promise<AccountsAndBalancesJournalEntry[]>;
 }
 
-
 export interface ISettlementConfigRepo {
 	init(): Promise<void>;
 	destroy(): Promise<void>;
-	getSettlementConfigByModel(model: string): Promise<ISettlementConfigDto | null>;
+	storeConfig(config: ISettlementConfig):Promise<void>;
+	getSettlementConfigByModel(model: string): Promise<ISettlementConfig | null>;
 }
+
 
 export interface ISettlementBatchRepo {
 	init(): Promise<void>;
 	destroy(): Promise<void>;
-	storeNewBatch(batch: ISettlementBatchDto): Promise<void>; // Throws if account.id is not unique.
-	closeBatch(batch: ISettlementBatchDto): Promise<void>;
 
-	batchExistsByBatchIdentifier(batchIdentifier: string): Promise<boolean>;
-	getSettlementBatchById(id: string): Promise<ISettlementBatchDto | null>;
-	getSettlementBatchByBatchIdentifier(batchIdentifier: string): Promise<ISettlementBatchDto | null>;
-	getSettlementBatchesBy(fromDate: number, toDate: number, model?: string): Promise<ISettlementBatchDto[]>;
-	getOpenSettlementBatch(fromDate: number, toDate: number, model: string, currency: string): Promise<ISettlementBatchDto | null>;
+	storeNewBatch(batch: ISettlementBatch): Promise<void>;
+	updateBatch(batch: ISettlementBatch): Promise<void>;
+
+	//get by full identifier = batch name + batch sequence number
+	getBatch(id: string): Promise<ISettlementBatch | null>;
+
+	// there can be only one open with the same name (excludes sequence number)
+	getOpenBatchByName(batchName: string): Promise<ISettlementBatch | null>;
+
+	// there can be multiple batches with the same name (excludes sequence number)
+	getBatchesByName(batchName: string): Promise<ISettlementBatch[]>;
+
+	// there can be multiple batches with the same name (excludes sequence number)
+	getBatchesByNames(batchNames: string[]): Promise<ISettlementBatch[]>;
+
+	getBatchesByCriteria(fromDate: number, toDate: number, currencyCode:string, model: string): Promise<ISettlementBatch[]>;
 }
 
-export interface ISettlementBatchAccountRepo {
+export interface ISettlementBatchTransferRepo {
 	init(): Promise<void>;
 	destroy(): Promise<void>;
-	storeNewSettlementBatchAccount(account: ISettlementBatchAccountDto, abAdapter: IAccountsBalancesAdapter): Promise<void>; // Throws if account.id is not unique.
-
-	accountExistsById(accountId: string): Promise<boolean>;
-	getAccountById(accountId: string, abAdapter?: IAccountsBalancesAdapter): Promise<ISettlementBatchAccountDto | null>;
-	getAccountsByParticipantAccountId(partAccId: string, abAdapter?: IAccountsBalancesAdapter): Promise<ISettlementBatchAccountDto[]>;
-	getAccountByParticipantAccountAndBatchId(
-		partAccId: string,
-		batchId: string,
-		abAdapter?: IAccountsBalancesAdapter
-	): Promise<ISettlementBatchAccountDto | null>;
-	getAccountsByBatch(batch: ISettlementBatchDto, abAdapter?: IAccountsBalancesAdapter): Promise<ISettlementBatchAccountDto[]>;
+	storeBatchTransfer(batchTransfer: ISettlementBatchTransfer): Promise<void>;
+	getBatchTransfersByBatchId(batchId: string): Promise<ISettlementBatchTransfer[]>;
+	getBatchTransfersByBatchName(batchName: string): Promise<ISettlementBatchTransfer[]>;
 }
+
+
+/*
+* OLD ones
+* */
+
+
+
+
 
 
 export interface IParticipantAccountNotifier {
 	init(): Promise<void>;
 	destroy(): Promise<void>;
-	publishSettlementMatrixExecuteEvent(matrix: ISettlementMatrixDto): Promise<void>;
+	publishSettlementMatrixExecuteEvent(matrix: any): Promise<void>;
 }
 
-// This is not needed, was the jouural entry
-export interface ISettlementTransferRepo {
-	init(): Promise<void>;
-	destroy(): Promise<void>;
-	storeNewSettlementTransfer(transfer: ISettlementTransferDto, abAdapter: IAccountsBalancesAdapter): Promise<void>; // Throws if account.id is not unique.
-	getSettlementTransfersByAccountId(accountId: string, abAdapter: IAccountsBalancesAdapter): Promise<ISettlementTransferDto[]>;
-	getSettlementTransfersByAccountIds(accountId: string[], abAdapter: IAccountsBalancesAdapter): Promise<ISettlementTransferDto[]>;
-}
 
 export interface ISettlementMatrixRequestRepo {
 	init(): Promise<void>;
 	destroy(): Promise<void>;
-	storeNewSettlementMatrixRequest(req: ISettlementMatrixRequestDto): Promise<void>; // Throws if account.id is not unique.
-	getSettlementMatrixById(settlementMatrixReqId: string): Promise<ISettlementMatrixRequestDto | null>;
+	storeMatrix(matrix: ISettlementMatrix): Promise<void>; // Throws if account.id is not unique.
+	getMatrixById(id: string): Promise<ISettlementMatrix | null>;
 
-	closeSettlementMatrixRequest(matrixReq: ISettlementMatrixRequestDto): Promise<void>;
+// this is not the job of a repo, should be at aggregate level
+//	closeSettlementMatrixRequest(matrixReq: ISettlementMatrixRequestDto): Promise<void>;
 }
 

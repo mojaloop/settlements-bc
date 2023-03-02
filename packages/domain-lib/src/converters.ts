@@ -31,7 +31,7 @@
 
 "use strict";
 
-const REGEX: RegExp = /^([0]|([1-9][0-9]{0,17}))([.][0-9]{0,3}[1-9])?$/;
+const REGEX: RegExp = /^(-{0,1})([0]|([1-9][0-9]{0,17}))([.][0-9]{0,3}[1-9])?$/;
 
 // Can be optimized.
 export function stringToBigint(stringValue: string, decimals: number): bigint {
@@ -57,7 +57,9 @@ export function stringToBigint(stringValue: string, decimals: number): bigint {
 
 // Can be optimized.
 export function bigintToString(bigintValue: bigint, decimals: number): string {
-	if (bigintValue === 0n) return "0";
+	if (bigintValue===0n) {
+		return "0";
+	}
 	decimals = decimals || 0;
 
 	// Get the string corresponding to the bigint and insert a dot according to the decimals.

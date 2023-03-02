@@ -30,7 +30,6 @@
 import {IAuthorizationClient} from "@mojaloop/security-bc-public-types-lib";
 import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 
-// TODO: should anything by logged?
 export class AuthorizationClientMock implements IAuthorizationClient {
 	// Properties received through the constructor.
 	private readonly logger: ILogger;
@@ -54,8 +53,10 @@ export class AuthorizationClientMock implements IAuthorizationClient {
 	}
 
 	addPrivilege(privId: string, labelName: string, description: string): void {
+		// mock
 	}
 
 	addPrivilegesArray(privsArray: { privId: string; labelName: string; description: string }[]): void {
+		// mock
 	}
 }

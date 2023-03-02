@@ -18,7 +18,7 @@
   "scripts": {
     "clean:dist": "rm -fr dist/",
     "dep:check": "ncu -e 2",
-    "dep:update": "ncu -u",
+    "dep:update": "ncu -e 2 -u",
     "audit:check": "npm audit",
     "audit:fix": "npm audit fix",
     "lint": "eslint src/",
@@ -28,5 +28,7 @@
     "pub": "npm version patch && npm publish --tag latest --access public"
   },
   "devDependencies": {},
-  "dependencies": {}
+  "dependencies": {
+    "tslib": "~2.5.0"
+  }
 }

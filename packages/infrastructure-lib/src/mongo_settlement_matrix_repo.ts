@@ -19,8 +19,8 @@
  their names indented and be marked with a '-'. Email address can be added
  optionally within square brackets <email>.
 
- * Coil
- *  - Jason Bruwer <jason.bruwer@coil.com>
+ * Crosslake
+ *  - Pedro Sousa Barreto <pedrob@crosslaketech.com>
 
  --------------
  ******/
@@ -30,22 +30,19 @@
 import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import {MongoClient, Collection} from "mongodb";
 import {
-	ISettlementConfigRepo,
-	UnableToGetSettlementConfigError,
+	ISettlementMatrixRequestRepo,
 	UnableToInitRepoError
 } from "@mojaloop/settlements-bc-domain-lib";
-import {ISettlementConfig} from "@mojaloop/settlements-bc-public-types-lib";
+import {ISettlementMatrix} from "@mojaloop/settlements-bc-public-types-lib";
 
 
-export class MongoSettlementConfigRepo implements ISettlementConfigRepo {
-	// Properties received through the constructor.
-	private readonly logger: ILogger;
-	private readonly DB_URL: string;
-	private readonly DB_NAME: string;
-	private readonly COLLECTION_NAME: string;
-	// Other properties.
+export class MongoSettlementMatrixRepo implements ISettlementMatrixRequestRepo {
+	private readonly _logger: ILogger;
+	private readonly _dbUrl: string;
+	private readonly _dbName: string;
+	private readonly _collectionName: string;
 	private readonly mongoClient: MongoClient;
-	private configsCollection: Collection;
+	private _collection: Collection;
 
 	constructor(
 		logger: ILogger,
@@ -53,12 +50,12 @@ export class MongoSettlementConfigRepo implements ISettlementConfigRepo {
 		dbName: string,
 		collectionName: string
 	) {
-		this.logger = logger;
-		this.DB_URL = dbUrl;
-		this.DB_NAME = dbName;
-		this.COLLECTION_NAME = collectionName;
+		this._logger = logger;
+		this._dbUrl = dbUrl;
+		this._dbName = dbName;
+		this._collectionName = collectionName;
 
-		this.mongoClient = new MongoClient(this.DB_URL, {
+		this.mongoClient = new MongoClient(this._dbUrl, {
 			connectTimeoutMS: 5_000,
 			socketTimeoutMS: 5_000
 		});
@@ -68,19 +65,19 @@ export class MongoSettlementConfigRepo implements ISettlementConfigRepo {
 		try {
 			await this.mongoClient.connect(); // Throws if the repo is unreachable.
 
-			const db = this.mongoClient.db(this.DB_NAME);
+			const db = this.mongoClient.db(this._dbName);
 			const collections = await db.listCollections().toArray();
 
 			// Check if the Participants collection already exists or create.
-			if (collections.find(col => col.name === this.COLLECTION_NAME)) {
-				this.configsCollection = db.collection(this.COLLECTION_NAME);
+			if (collections.find(col => col.name === this._collectionName)) {
+				this._collection = db.collection(this._collectionName);
 			} else {
-				this.configsCollection = await db.createCollection(this.COLLECTION_NAME);
-				await this.configsCollection.createIndex({"id": 1}, {unique: true});
+				this._collection = await db.createCollection(this._collectionName);
+				await this._collection.createIndex({"id": 1}, {unique: true});
 			}
-			this.logger.info("MongoSettlementConfigRepo - initialised");
+			this._logger.info("MongoSettlementMatrixRepo - initialised");
 		} catch (error: unknown) {
-			this.logger.error(error, "MongoSettlementConfigRepo - initialisation failed");
+			this._logger.error(error, "MongoSettlementMatrixRepo - initialisation failed");
 			throw new UnableToInitRepoError((error as any)?.message);
 		}
 
@@ -90,16 +87,18 @@ export class MongoSettlementConfigRepo implements ISettlementConfigRepo {
 		await this.mongoClient.close(); // Doesn't throw if the repo is unreachable.
 	}
 
-	async storeConfig(config: ISettlementConfig): Promise<void>{
-		await this.configsCollection.insertOne(config);
+	// Throws if account.id is not unique.
+	async storeMatrix(req: ISettlementMatrix): Promise<void>{
+		await this._collection.updateOne({id: req.id}, {$set: req}, {upsert: true});
 	}
 
-	async getSettlementConfigByModel(model: string): Promise<ISettlementConfig | null> {
+	async getMatrixById(id: string): Promise<ISettlementMatrix | null>{
 		try {
-			const config = await this.configsCollection.findOne({settlementModel: model}, {projection: {_id: 0}});
-			return config as (ISettlementConfig | null);
-		} catch (error: unknown) {
-			throw new UnableToGetSettlementConfigError((error as any)?.message);
+			const batch = await this._collection.findOne({id: id}, {projection: {_id: 0}});
+			return batch as (ISettlementMatrix | null);
+		} catch (error: any) {
+			throw new Error("Unable to get matrix from repo - msg: " + error.message);
 		}
 	}
+
 }

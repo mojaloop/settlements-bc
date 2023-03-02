@@ -30,55 +30,54 @@
 import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import {randomUUID} from "crypto";
 import {
-	AccountAlreadyExistsError,
 	InvalidAmountError,
-	InvalidBatchIdentifierError,
 	InvalidBatchSettlementModelError,
 	InvalidCreditAccountError,
-	InvalidCreditBalanceError,
 	InvalidCurrencyCodeError,
 	InvalidDebitAccountError,
-	InvalidDebitBalanceError,
-	InvalidExternalIdError,
-	InvalidIdError, InvalidParticipantAccountIdError,
-	InvalidTimestampError, InvalidTransferIdError,
+	InvalidIdError,
+	InvalidTimestampError,
+	InvalidTransferIdError,
 	NoSettlementConfig,
-	SettlementBatchAlreadyExistsError,
-	SettlementBatchNotFoundError, SettlementMatrixRequestClosedError,
-	SettlementMatrixRequestNotFoundError,
-	UnauthorizedError
+	SettlementBatchNotFoundError,
+	SettlementMatrixIsBusyError,
+	SettlementMatrixIsClosedError,
+	SettlementMatrixNotFoundError,
+
 } from "./types/errors";
 import {
 	IAccountsBalancesAdapter,
 	IParticipantAccountNotifier,
-	ISettlementBatchAccountRepo,
 	ISettlementBatchRepo,
+	ISettlementBatchTransferRepo,
 	ISettlementConfigRepo,
 	ISettlementMatrixRequestRepo,
-	ISettlementTransferRepo
 } from "./types/infrastructure";
 import {SettlementBatch} from "./types/batch";
-import {SettlementBatchAccount} from "./types/account";
-import {SettlementTransfer} from "./types/transfer";
+
 import {
-	ISettlementBatchAccountDto,
-	ISettlementBatchDto,
-	ISettlementMatrixBatchDto,
-	ISettlementMatrixDto,
-	ISettlementMatrixRequestDto,
-	ISettlementMatrixSettlementBatchAccountDto,
-	ISettlementTransferDto,
-	SettlementBatchStatus, SettlementMatrixRequestStatus
+	ISettlementBatch,
+	ISettlementBatchTransfer,
+	ISettlementMatrix, ISettlementMatrixBatch,
+	ITransferDto,
 } from "@mojaloop/settlements-bc-public-types-lib";
 import {AuditSecurityContext, IAuditClient} from "@mojaloop/auditing-bc-public-types-lib";
-import {CallSecurityContext} from "@mojaloop/security-bc-client-lib";
-import {IAuthorizationClient} from "@mojaloop/security-bc-public-types-lib";
-import {Privileges} from "./types/privileges";
+
+import {CallSecurityContext, ForbiddenError, IAuthorizationClient} from "@mojaloop/security-bc-public-types-lib";
+import {Privileges} from "./privileges";
 import {join} from "path";
 import {readFileSync} from "fs";
 import {ICurrency} from "./types/currency";
 import {bigintToString, stringToBigint} from "./converters";
 import {SettlementConfig} from "./types/settlement_config";
+import {AccountsAndBalancesAccountType} from "@mojaloop/accounts-and-balances-bc-public-types-lib";
+import {SettlementBatchTransfer} from "./types/transfer";
+import {SettlementMatrix} from "./types/matrix";
+
+
+const CURRENCIES_FILE_NAME: string = "currencies.json";
+const SEQUENCE_STR_LENGTH = 3;
+const BATCH_ACCOUNT_TYPE_IN_ACCOUNTS_AND_BALANCES: AccountsAndBalancesAccountType = "SETTLEMENT";
 
 enum AuditingActions {
 	SETTLEMENT_BATCH_CREATED = "SETTLEMENT_BATCH_CREATED",
@@ -89,651 +88,659 @@ enum AuditingActions {
 	SETTLEMENT_MATRIX_REQUEST_CREATED = "SETTLEMENT_MATRIX_REQUEST_CREATED"
 }
 
-export class Aggregate {
+export class SettlementsAggregate {
 	// Properties received through the constructor.
-	private readonly logger: ILogger;
-	private readonly authorizationClient: IAuthorizationClient;
-	private readonly auditingClient: IAuditClient;
-	private readonly batchRepo: ISettlementBatchRepo;
-	private readonly batchAccountRepo: ISettlementBatchAccountRepo;
-	private readonly participantAccNotifier: IParticipantAccountNotifier;
-	private readonly transfersRepo: ISettlementTransferRepo;
-	private readonly configRepo: ISettlementConfigRepo;
-	private readonly settlementMatrixReqRepo: ISettlementMatrixRequestRepo;
-	private readonly abAdapter: IAccountsBalancesAdapter;
-	private readonly currencies: ICurrency[];
-	// Other properties.
-	private static readonly CURRENCIES_FILE_NAME: string = "currencies.json";
+	private readonly _logger: ILogger;
+	private readonly _authorizationClient: IAuthorizationClient;
+	private readonly _auditingClient: IAuditClient;
+	private readonly _batchRepo: ISettlementBatchRepo;
+	private readonly _participantAccNotifier: IParticipantAccountNotifier;
+	private readonly _batchTransferRepo: ISettlementBatchTransferRepo;
+	private readonly _configRepo: ISettlementConfigRepo;
+	private readonly _settlementMatrixReqRepo: ISettlementMatrixRequestRepo;
+	private readonly _abAdapter: IAccountsBalancesAdapter;
+	private readonly _currencies: ICurrency[];
 
 	constructor(
 		logger: ILogger,
 		authorizationClient: IAuthorizationClient,
 		auditingClient: IAuditClient,
 		batchRepo: ISettlementBatchRepo,
-		batchAccountRepo: ISettlementBatchAccountRepo,
-		participantAccNotifier: IParticipantAccountNotifier,
-		transfersRepo: ISettlementTransferRepo,
+		batchTransferRepo: ISettlementBatchTransferRepo,
 		configRepo: ISettlementConfigRepo,
 		settlementMatrixReqRepo: ISettlementMatrixRequestRepo,
+		participantAccNotifier: IParticipantAccountNotifier,
 		abAdapter: IAccountsBalancesAdapter
 	) {
-		this.logger = logger;
-		this.authorizationClient = authorizationClient;
-		this.auditingClient = auditingClient;
-		this.batchRepo = batchRepo;
-		this.batchAccountRepo = batchAccountRepo;
-		this.participantAccNotifier = participantAccNotifier;
-		this.transfersRepo = transfersRepo;
-		this.configRepo = configRepo;
-		this.settlementMatrixReqRepo = settlementMatrixReqRepo;
-		this.abAdapter = abAdapter;
+		this._logger = logger;
+		this._authorizationClient = authorizationClient;
+		this._auditingClient = auditingClient;
+		this._batchRepo = batchRepo;
+		this._participantAccNotifier = participantAccNotifier;
+		this._batchTransferRepo = batchTransferRepo;
+		this._configRepo = configRepo;
+		this._settlementMatrixReqRepo = settlementMatrixReqRepo;
+		this._abAdapter = abAdapter;
 
 		// TODO: @jason Need to obtain currencies from PlatForm config perhaps:
-		const currenciesFilePath: string = join(__dirname, Aggregate.CURRENCIES_FILE_NAME);
-		this.currencies = JSON.parse(readFileSync(currenciesFilePath, "utf-8"));
+		const currenciesFilePath: string = join(__dirname, CURRENCIES_FILE_NAME);
+		this._currencies = JSON.parse(readFileSync(currenciesFilePath, "utf-8"));
 	}
 
-	private enforcePrivilege(securityContext: CallSecurityContext, privilegeId: string): void {
-		if (securityContext === undefined || securityContext === null) return;
-		if (securityContext.rolesIds === undefined || securityContext.rolesIds === null) return;
-		for (const roleId of securityContext.rolesIds) {
-			if (this.authorizationClient.roleHasPrivilege(roleId, privilegeId)) return;
+	private _enforcePrivilege(secCtx: CallSecurityContext, privName: string): void {
+		for (const roleId of secCtx.rolesIds) {
+			if (this._authorizationClient.roleHasPrivilege(roleId, privName)) return;
 		}
-		throw new UnauthorizedError();
+		throw new ForbiddenError(`Required privilege "${privName}" not held by caller`);
 	}
 
-	private getAuditSecurityContext(securityContext: CallSecurityContext): AuditSecurityContext {
-		if (securityContext === undefined) return {userId: 'unknown', appId: 'settlement-bc', role: ''};
+	private _getAuditSecurityContext(secCtx: CallSecurityContext): AuditSecurityContext {
+		if (secCtx === undefined) return {userId: 'unknown', appId: 'settlement-bc', role: ""};
 		return {
-			userId: securityContext.username,
-			appId: securityContext.clientId,
-			role: securityContext.rolesIds[0] // TODO: get role.
+			userId: secCtx.username,
+			appId: secCtx.clientId,
+			role: secCtx.rolesIds[0] // TODO: get role.
 		};
 	}
 
-	async createSettlementBatch(batchDto: ISettlementBatchDto, securityContext: CallSecurityContext): Promise<string> {
-		const timestamp: number = Date.now();
-		this.enforcePrivilege(securityContext, Privileges.CREATE_SETTLEMENT_BATCH);
+	private _getCurrencyOrThrow(currencyCode: string): { code: string, decimals: number } {
+		// Validate the currency code and get the currency.
+		const currency: { code: string, decimals: number } | undefined
+			= this._currencies.find((value) => value.code===currencyCode);
+		if (!currency) {
+			throw new InvalidCurrencyCodeError(`Currency code: ${currencyCode} not found`);
+		}
+		return currency;
+	}
 
-		if (batchDto.settlementModel === null || batchDto.settlementModel === undefined) throw new InvalidBatchSettlementModelError();
-		if (batchDto.timestamp === undefined) batchDto.timestamp = timestamp;
-		if ((batchDto.batchIdentifier === null || batchDto.batchIdentifier === undefined)
-			|| batchDto.batchIdentifier.trim().length === 0) throw new InvalidBatchIdentifierError();
+	async handleTransfer(secCtx: CallSecurityContext, transferDto: ITransferDto): Promise<string> {
+		this._enforcePrivilege(secCtx, Privileges.CREATE_SETTLEMENT_TRANSFER);
 
-		// IDs:
-		if ((batchDto.id === null || batchDto.id === undefined) || batchDto.id === '') throw new InvalidIdError();
-		if ((batchDto.currency === null || batchDto.currency === undefined) || batchDto.currency === '') throw new InvalidCurrencyCodeError();
+		if (!transferDto.timestamp || transferDto.timestamp < 1) throw new InvalidTimestampError();
+		if (!transferDto.settlementModel) throw new InvalidBatchSettlementModelError();
+		if (!transferDto.currencyCode) throw new InvalidCurrencyCodeError();
+		if (!transferDto.amount) throw new InvalidAmountError();
+		if (!transferDto.transferId) throw new InvalidTransferIdError();
+		if (!transferDto.payerFspId) throw new InvalidIdError("Invalid payerFspId in transfer");
+		if (!transferDto.payeeFspId) throw new InvalidIdError("Invalid payeeFspId in transfer");
+		if (!transferDto.debitParticipantAccountId) throw new InvalidDebitAccountError();
+		if (!transferDto.creditParticipantAccountId) throw new InvalidCreditAccountError();
 
-		// Generate a random UUID, if needed:
-		if (await this.batchRepo.batchExistsByBatchIdentifier(batchDto.batchIdentifier)) {
-			throw new InvalidBatchIdentifierError(`Batch with identifier '${batchDto.batchIdentifier}' already created.`);
+		// Verify the currency code (and get the corresponding currency decimals).
+		const currency = this._getCurrencyOrThrow(transferDto.currencyCode);
+
+		const configDto = await this._configRepo.getSettlementConfigByModel(transferDto.settlementModel);
+		if (!configDto) {
+			throw new NoSettlementConfig(`No settlement config for model '${transferDto.settlementModel}'.`);
+		}
+		const config = SettlementConfig.fromDto(configDto);
+
+		//const fromDate: number = config.calculateBatchFromDate(timestamp);
+		// const toDate: number = config.calculateBatchToDate(transferDto.timestamp);
+		const batchStartDate: number = config.calculateBatchStartTimestamp(transferDto.timestamp);
+
+		// get or create a batch
+		const resp = await this._getOrCreateBatch(transferDto.settlementModel, currency.code, new Date(batchStartDate));
+		let batchWasChanged = resp.created;
+		const batch = resp.batch;
+
+		// Find payee batch account
+		let creditedAccountExtId;
+		const creditedAccount = batch.getAccount(transferDto.payeeFspId, currency.code);
+		if (creditedAccount) {
+			creditedAccountExtId = creditedAccount.accountExtId;
+		} else {
+			creditedAccountExtId = randomUUID(); // this might not be respected
+			creditedAccountExtId = await this._abAdapter.createAccount(
+				creditedAccountExtId,
+				batch.id, // account owner is the batch
+				BATCH_ACCOUNT_TYPE_IN_ACCOUNTS_AND_BALANCES,
+				currency.code
+			);
+			batch.addAccount(creditedAccountExtId, transferDto.payeeFspId, currency.code);
+			batchWasChanged = true;
 		}
 
-		// The Domain Batch:
-		const batch: SettlementBatch = new SettlementBatch(
-			batchDto.id,
-			timestamp,
-			batchDto.settlementModel!,
-			batchDto.currency!,
-			batchDto.batchSequence!,
-			batchDto.batchIdentifier!,
-			batchDto.batchStatus === undefined ? SettlementBatchStatus.OPEN : batchDto.batchStatus!
+		// find payer batch account
+		let debitedAccountExtId;
+		const debitedAccount = batch.getAccount(transferDto.payerFspId, currency.code);
+		if (debitedAccount) {
+			debitedAccountExtId = debitedAccount.accountExtId;
+		} else {
+			debitedAccountExtId = randomUUID(); // this might not be respected
+			debitedAccountExtId = await this._abAdapter.createAccount(
+				debitedAccountExtId,
+				batch.id, // account owner is the batch
+				BATCH_ACCOUNT_TYPE_IN_ACCOUNTS_AND_BALANCES,
+				currency.code
+			);
+			batch.addAccount(debitedAccountExtId, transferDto.payerFspId, currency.code);
+			batchWasChanged = true;
+		}
+
+		// create the journal entry
+		const journalEntryId = await this._abAdapter.createJournalEntry(
+			randomUUID(),
+			batch.id,
+			currency.code,
+			transferDto.amount,
+			false,
+			debitedAccountExtId,
+			creditedAccountExtId
 		);
 
-		// Store the account (accountDto can't be stored).
-		const formattedBatchDto: ISettlementBatchDto = batch.toDto();
-		await this.batchRepo.storeNewBatch(formattedBatchDto);
+
+		// add the transfer record to the batch and persist the batch changes
+		const batchTransfer = new SettlementBatchTransfer(
+			transferDto.transferId,
+			transferDto.timestamp,
+			transferDto.payerFspId,
+			transferDto.payeeFspId,
+			transferDto.currencyCode,
+			transferDto.amount,
+			batch.id,
+			batch.batchName,
+			journalEntryId
+		);
+		await this._batchTransferRepo.storeBatchTransfer(batchTransfer);
+
+		// persist the batch changes
+		if(resp.created){
+			await this._batchRepo.storeNewBatch(batch);
+		}else{
+			await this._batchRepo.updateBatch(batch);
+		}
+
+
+		if(resp.created){
+			// We perform an async audit:
+			await this._auditingClient.audit(
+				AuditingActions.SETTLEMENT_BATCH_CREATED,
+				true,
+				this._getAuditSecurityContext(secCtx),
+				[
+					{key: "settlementBatchIdIdentifier", value: batch.id}
+				]
+			);
+		}
 
 		// We perform an async audit:
-		this.auditingClient.audit(
-			AuditingActions.SETTLEMENT_BATCH_CREATED,
+		this._auditingClient.audit(
+			AuditingActions.SETTLEMENT_TRANSFER_CREATED,
 			true,
-			this.getAuditSecurityContext(securityContext),
-			[
-				{key: "settlementBatchId", value: batch.id},
-				{key: "settlementBatchIdIdentifier", value: batch.batchIdentifier}
-			]
+			this._getAuditSecurityContext(secCtx), [{key: "settlementTransferId", value: transferDto.transferId}]
 		);
+
 		return batch.id;
 	}
 
-	async createSettlementBatchAccount(accountDto: ISettlementBatchAccountDto, securityContext: CallSecurityContext): Promise<string> {
-		const timestamp: number = Date.now();
-		this.logger.debug(`Creating Batch Account: ${JSON.stringify(accountDto)}`);
-
-		this.enforcePrivilege(securityContext, Privileges.CREATE_SETTLEMENT_BATCH_ACCOUNT);
-
-		if (accountDto.timestamp === null || accountDto.timestamp === undefined) accountDto.timestamp = timestamp;
-		if (parseInt(accountDto.debitBalance) !== 0) throw new InvalidDebitBalanceError();
-		if (parseInt(accountDto.creditBalance) !== 0) throw new InvalidCreditBalanceError();
-		if (accountDto.participantAccountId === undefined || accountDto.participantAccountId === '') {
-			throw new InvalidParticipantAccountIdError();
-		}
-
-		const currency: ICurrency | undefined = this.currencies.find(currency => {
-			return currency.code === accountDto.currencyCode;
-		});
-		if (currency === undefined) throw new InvalidCurrencyCodeError();
-
-		const account: SettlementBatchAccount = new SettlementBatchAccount(
-			accountDto.id === null || accountDto.id === undefined ? randomUUID() : accountDto.id,
-			accountDto.participantAccountId!,
-			accountDto.currencyCode,
-			currency.decimals,
-			0n,
-			0n,
-			timestamp
-		);
-
-		// Store the account (accountDto can't be stored).
-		const formattedBatchAccountDto: ISettlementBatchAccountDto = account.toDto();
-		formattedBatchAccountDto.settlementBatch = accountDto.settlementBatch;
-		await this.batchAccountRepo.storeNewSettlementBatchAccount(formattedBatchAccountDto, this.abAdapter);
-
-		// We perform an async audit:
-		this.auditingClient.audit(
-			AuditingActions.SETTLEMENT_BATCH_ACCOUNT_CREATED,
-			true,
-			this.getAuditSecurityContext(securityContext),
-			[
-				{key: "accountId", value: account.id},
-				{key: "participantAccountId", value: account.participantAccountId!}
-			]
-		);
-
-		return account.id;
-	}
-
-	async createSettlementTransfer(transferDto: ISettlementTransferDto, securityContext: CallSecurityContext): Promise<ISettlementTransferDto> {
-		this.enforcePrivilege(securityContext, Privileges.CREATE_SETTLEMENT_TRANSFER);
-
-		if (transferDto.timestamp === undefined || transferDto.timestamp === null || transferDto.timestamp < 1) throw new InvalidTimestampError();
-		if (transferDto.settlementModel === undefined ||
-			(transferDto.settlementModel === null || transferDto.settlementModel === '')) throw new InvalidBatchSettlementModelError();
-		if (transferDto.currencyCode === undefined || transferDto.currencyCode === '') throw new InvalidCurrencyCodeError();
-		if (transferDto.amount === undefined || transferDto.amount === '') throw new InvalidAmountError();
-		if (transferDto.transferId === undefined || transferDto.transferId === '') throw new InvalidTransferIdError();
-		if (transferDto.debitParticipantAccountId === undefined || transferDto.debitParticipantAccountId === '') throw new InvalidDebitAccountError();
-		if (transferDto.creditParticipantAccountId === undefined || transferDto.creditParticipantAccountId === '') throw new InvalidCreditAccountError();
-
-		const timestamp: number = transferDto.timestamp;
-
-		// Verify the currency code (and get the corresponding currency decimals).
-		const currency: ICurrency | undefined = this.currencies.find(currency => {
-			return currency.code === transferDto.currencyCode;
-		});
-		if (currency === undefined) throw new InvalidCurrencyCodeError();
-
-		// Convert the amount and check if it's valid.
-		let amount: bigint;
-		try {
-			amount = stringToBigint(transferDto.amount, currency.decimals);
-		} catch (error: any) {
-			throw new InvalidAmountError();
-		}
-		if (amount <= 0n) throw new InvalidAmountError();
-
-		const transfer: SettlementTransfer = new SettlementTransfer(
-			randomUUID(),
-			transferDto.transferId!,
-			transferDto.currencyCode,
-			currency.decimals,
-			amount,
-			transferDto.creditParticipantAccountId,
-			transferDto.debitParticipantAccountId,
-			null,
-			timestamp
-		);
-
-		// Fetch or Create a Settlement Batch:
-		const batchDto = await this.obtainSettlementBatch(
-			transfer, transferDto.settlementModel, securityContext, transferDto.batchAllocation);
-		transfer.batch = new SettlementBatch(
-			batchDto.id,
-			batchDto.timestamp!,
-			batchDto.settlementModel!,
-			batchDto.currency!,
-			batchDto.batchSequence!,
-			batchDto.batchIdentifier!,
-			batchDto.batchStatus!
-		)
-
-		// Create / Fetch Debit and Credit accounts:
-		let creditedAccountDto: ISettlementBatchAccountDto | null = await this.batchAccountRepo.getAccountById(
-			await this.obtainSettlementAccountId(transferDto.debitParticipantAccountId, transfer.batch.id)
-		);
-		let debitedAccountDto: ISettlementBatchAccountDto | null = await this.batchAccountRepo.getAccountById(
-			await this.obtainSettlementAccountId(transferDto.creditParticipantAccountId, transfer.batch.id)
-		);
-
-		// Create the Debit/Credit accounts as required (associated per settlement batch):
-		if (debitedAccountDto === null) {
-			debitedAccountDto = await this.createSettlementBatchAccountFromAccId(
-				transferDto.debitParticipantAccountId,
-				transfer.batch.id,
-				transferDto.settlementModel,
-				currency,
-				securityContext
-			);
-		}
-		if (creditedAccountDto === null) {
-			creditedAccountDto = await this.createSettlementBatchAccountFromAccId(
-				transferDto.creditParticipantAccountId,
-				transfer.batch.id,
-				transferDto.settlementModel,
-				currency,
-				securityContext
-			);
-		}
-
-		// Store the Transfer:
-		const formattedTransferDto: ISettlementTransferDto = transfer.toDto();
-		formattedTransferDto.debitParticipantAccountId = debitedAccountDto.id!;
-		formattedTransferDto.creditParticipantAccountId = creditedAccountDto.id!;
-
-		await this.transfersRepo.storeNewSettlementTransfer(formattedTransferDto, this.abAdapter);
-
-		// We perform an async audit:
-		this.auditingClient.audit(
-			AuditingActions.SETTLEMENT_TRANSFER_CREATED,
-			true,
-			this.getAuditSecurityContext(securityContext), [{key: "settlementTransferId", value: transfer.id}]
-		);
-		const returnVal : ISettlementTransferDto = {
-			id: transfer.id,
-			transferId: transfer.transferId,
-			currencyCode: transfer.currencyCode,
-			currencyDecimals: transfer.currencyDecimals,
-			amount: bigintToString(transfer.amount, transfer.currencyDecimals),
-			debitParticipantAccountId: debitedAccountDto.id!,
-			creditParticipantAccountId: creditedAccountDto.id!,
-			timestamp: timestamp,
-			settlementModel: transfer.batch.settlementModel,
-			batch: batchDto
-		}
-		return returnVal;
-	}
-
-	async settlementMatrixRequest(
+	async createSettlementMatrix(
+		secCtx: CallSecurityContext,
 		settlementModel: string,
+		currencyCode: string,
 		fromDate: number,
-		toDate: number,
-		securityContext: CallSecurityContext
-	): Promise<ISettlementMatrixRequestDto> {
-		const timestamp: number = Date.now();
-		this.enforcePrivilege(securityContext, Privileges.REQUEST_SETTLEMENT_MATRIX);
+		toDate: number
+	): Promise<string> {
+		this._enforcePrivilege(secCtx, Privileges.REQUEST_SETTLEMENT_MATRIX);
 
-		const batches : ISettlementBatchDto[] = await this.batchRepo.getSettlementBatchesBy(fromDate, toDate, settlementModel);
+		const newMatrix = new SettlementMatrix(
+			fromDate,
+			toDate,
+			currencyCode,
+			settlementModel
+		);
 
-		const returnVal : ISettlementMatrixRequestDto = {
-			id: randomUUID(),
-			timestamp: timestamp,
-			dateFrom: fromDate,
-			dateTo: toDate,
-			settlementModel: settlementModel,
-			batches: batches,
-			matrixStatus: SettlementMatrixRequestStatus.OPEN
-		};
+		const startTimestamp = Date.now();
 
-		await this.settlementMatrixReqRepo.storeNewSettlementMatrixRequest(returnVal);
+		newMatrix.state = "CALCULATING";
+		await this._settlementMatrixReqRepo.storeMatrix(newMatrix);
+
+		await this._recalculateMatrix(newMatrix);
+
+		newMatrix.state = "IDLE";
+		newMatrix.updatedAt = Date.now();
+		newMatrix.generationDurationSecs = Math.floor((newMatrix.updatedAt - startTimestamp) / 1000);
+		await this._settlementMatrixReqRepo.storeMatrix(newMatrix);
+
 
 		// We perform an async audit:
-		this.auditingClient.audit(
+		this._auditingClient.audit(
 			AuditingActions.SETTLEMENT_MATRIX_REQUEST_CREATED,
 			true,
-			this.getAuditSecurityContext(securityContext), [{key: "settlementMatrixRequestId", value: returnVal.id}]
+			this._getAuditSecurityContext(secCtx), [{key: "settlementMatrixRequestId", value: newMatrix.id}]
 		);
 
-		return returnVal;
+		return newMatrix.id;
 	}
 
-	async executeSettlementMatrix(
-		settlementMatrixReqId: string,
-		securityContext: CallSecurityContext
-	): Promise<ISettlementMatrixDto> {
-		const timestamp: number = Date.now();
-		this.enforcePrivilege(securityContext, Privileges.EXECUTE_SETTLEMENT_MATRIX);
 
-		const settlementMatrixReq : ISettlementMatrixRequestDto | null = await this.settlementMatrixReqRepo.getSettlementMatrixById(settlementMatrixReqId);
-		if (settlementMatrixReq == null) {
-			throw new SettlementMatrixRequestNotFoundError(`Unable to locate Settlement Matrix Request with identifier '${settlementMatrixReqId}'.`);
-		}
-		if (settlementMatrixReq.matrixStatus === SettlementMatrixRequestStatus.CLOSED) {
-			throw new SettlementMatrixRequestClosedError(`Settlement Matrix Request with identifier '${settlementMatrixReqId}' already closed (Previously executed).`);
-		}
-		const batchesFromMatrixReq = settlementMatrixReq.batches;
+	async getSettlementMatrix(secCtx: CallSecurityContext, id: string): Promise<ISettlementMatrix | null> {
+		this._enforcePrivilege(secCtx, Privileges.GET_SETTLEMENT_MATRIX_REQUEST);
 
-		// Close the open batches:
-		const closedBatches : ISettlementBatchDto[] = [];
-		for (const batchFromMatrixReq of batchesFromMatrixReq) {
-			const batch = await this.batchRepo.getSettlementBatchById(batchFromMatrixReq.id);
-			if (batch == null) throw new SettlementBatchNotFoundError(`Unable to locate batch for id '${batchFromMatrixReq.id}'.`);
-			if (SettlementBatchStatus.OPEN !== batch.batchStatus) continue;
-
-			await this.batchRepo.closeBatch(batch);
-			closedBatches.push(batch);
+		const matrixDto = await this._settlementMatrixReqRepo.getMatrixById(id);
+		if (!matrixDto) {
+			const err = new SettlementMatrixNotFoundError(`Matrix with id: ${id} not found`);
+			this._logger.warn(err.message);
+			throw err; // not found
 		}
 
-		const matrixBatches : ISettlementMatrixBatchDto[] = [];
-		for (const batchFromMatrixReq of batchesFromMatrixReq) {
-			// Confirm if close now:
-			let isInClosed = false;
-			for (const closedNow of closedBatches) {
-				if (closedNow.id === batchFromMatrixReq.id) {
-					isInClosed = true;
-					break;
-				}
-			}
-
-			// Fetch a fresh copy of the batch:
-			const closedBatch = await this.batchRepo.getSettlementBatchById(batchFromMatrixReq.id);
-			if (closedBatch == null) throw new SettlementBatchNotFoundError(`Unable to locate batch for id '${batchFromMatrixReq.id}'.`);
-
-			// TODO add assertion here to confirm batch is indeed closed...
-
-			const batchAccounts = await this.getSettlementBatchAccountsByBatchId(closedBatch.id, securityContext);
-			const matrixBatchAccounts : ISettlementMatrixSettlementBatchAccountDto[] = [];
-			let debitBal = 0n, creditBal = 0n
-			batchAccounts.forEach(batchAcc => {
-				const settBatchAcc : ISettlementMatrixSettlementBatchAccountDto = {
-					id: batchAcc.id!,
-					participantAccountId: batchAcc.participantAccountId!,
-					currencyCode: batchAcc.currencyCode,
-					debitBalance: batchAcc.debitBalance,
-					creditBalance: batchAcc.creditBalance
-				}
-
-				debitBal += stringToBigint(batchAcc.debitBalance, 0);
-				creditBal += stringToBigint(batchAcc.creditBalance, 0);
-				matrixBatchAccounts.push(settBatchAcc);
-			})
-
-			const toAdd : ISettlementMatrixBatchDto = {
-				batchIdentifier: closedBatch.batchIdentifier!,
-				batchStatusBeforeExec: isInClosed ? SettlementBatchStatus.OPEN : SettlementBatchStatus.CLOSED,
-				batchStatusAfterExec: closedBatch.batchStatus!,
-				currencyCode: closedBatch.currency!,
-				debitBalance: `${debitBal}`,
-				creditBalance: `${creditBal}`,
-				batchAccounts: matrixBatchAccounts
-			}
-			matrixBatches.push(toAdd);
-		}
-
-		const returnVal : ISettlementMatrixDto = {
-			fromDate: settlementMatrixReq.dateFrom,
-			toDate: settlementMatrixReq.dateFrom,
-			settlementModel: settlementMatrixReq.settlementModel,
-			generationDuration: (Date.now() - timestamp),
-			batches: matrixBatches
-		};
-
-		//TODO Complete:
-		await this.participantAccNotifier.publishSettlementMatrixExecuteEvent(returnVal);
-
-		// Close the Matrix Request to prevent further execution:
-		await this.settlementMatrixReqRepo.closeSettlementMatrixRequest(settlementMatrixReq);
+		// TODO attach accounts to batches before returning
 
 		// We perform an async audit:
-		this.auditingClient.audit(
-			AuditingActions.SETTLEMENT_MATRIX_EXECUTED,
-			true,
-			this.getAuditSecurityContext(securityContext), [
-				{key: "settlementModel", value: settlementMatrixReq.settlementModel},
-				{key: "settlementMatrixReqId", value: settlementMatrixReqId}
-			]
-		);
-
-		return returnVal;
-	}
-
-	async getSettlementMatrixRequestById(
-		settlementMatrixReqId: string,
-		securityContext: CallSecurityContext
-	): Promise<ISettlementMatrixRequestDto> {
-		this.enforcePrivilege(securityContext, Privileges.GET_SETTLEMENT_MATRIX_REQUEST);
-
-		const settlementMatrixReq : ISettlementMatrixRequestDto | null = await this.settlementMatrixReqRepo.getSettlementMatrixById(settlementMatrixReqId);
-		if (settlementMatrixReq == null) {
-			throw new SettlementMatrixRequestNotFoundError(`Unable to locate Settlement Matrix Request with identifier '${settlementMatrixReqId}'.`);
-		}
-
-		// We perform an async audit:
-		this.auditingClient.audit(
+		this._auditingClient.audit(
 			AuditingActions.SETTLEMENT_MATRIX_REQUEST_FETCH,
 			true,
-			this.getAuditSecurityContext(securityContext), [
-				{key: "settlementModel", value: settlementMatrixReq.settlementModel},
-				{key: "settlementMatrixReqId", value: settlementMatrixReqId}
+			this._getAuditSecurityContext(secCtx), [
+				{key: "settlementModel", value: matrixDto.settlementModel},
+				{key: "settlementMatrixReqId", value: id}
 			]
 		);
 
-		return settlementMatrixReq;
+		return matrixDto;
 	}
 
-	public async getSettlementBatches(
+	async recalculateSettlementMatrix(secCtx: CallSecurityContext, id: string): Promise<void> {
+		this._enforcePrivilege(secCtx, Privileges.GET_SETTLEMENT_MATRIX_REQUEST);
+
+		const matrixDto = await this._settlementMatrixReqRepo.getMatrixById(id);
+		if (!matrixDto) {
+			const err = new SettlementMatrixNotFoundError(`Matrix with id: ${id} not found`);
+			this._logger.warn(err.message);
+			throw err; // not found
+		}
+
+		if (matrixDto.state==="CLOSED") {
+			const err = new SettlementMatrixIsClosedError("Cannot recalculate a closed matrix");
+			this._logger.warn(err.message);
+			throw err;
+		}
+		if (matrixDto.state==="CALCULATING" || matrixDto.state==="CLOSING") {
+			const err = new SettlementMatrixIsBusyError("Matrix already being calculated or closed");
+			this._logger.warn(err.message);
+			throw err;
+		}
+
+		const matrix = SettlementMatrix.FromDto(matrixDto);
+
+		const startTimestamp = Date.now();
+
+		matrix.state = "CALCULATING";
+		await this._settlementMatrixReqRepo.storeMatrix(matrix);
+
+		await this._recalculateMatrix(matrix);
+
+		matrix.state = "IDLE";
+		matrix.updatedAt = Date.now();
+		matrix.generationDurationSecs = Math.floor((matrix.updatedAt - startTimestamp) / 1000);
+		await this._settlementMatrixReqRepo.storeMatrix(matrix);
+
+		// We perform an async audit:
+		this._auditingClient.audit(
+			AuditingActions.SETTLEMENT_MATRIX_REQUEST_FETCH,
+			true,
+			this._getAuditSecurityContext(secCtx), [
+				{key: "settlementModel", value: matrix.settlementModel},
+				{key: "settlementMatrixReqId", value: id}
+			]
+		);
+
+		return;
+	}
+
+	async closeSettlementMatrix(secCtx: CallSecurityContext, id: string): Promise<void> {
+		this._enforcePrivilege(secCtx, Privileges.EXECUTE_SETTLEMENT_MATRIX);
+
+		const matrixDto = await this._settlementMatrixReqRepo.getMatrixById(id);
+		if (!matrixDto) {
+			const err = new SettlementMatrixNotFoundError(`Matrix with id: ${id} not found`);
+			this._logger.warn(err.message);
+			throw err; // not found
+		}
+
+		if (matrixDto.state === "CLOSED") {
+			const err = new SettlementMatrixIsClosedError("Cannot execute a closed matrix");
+			this._logger.warn(err.message);
+			throw err;
+		}
+		if (matrixDto.state === "CALCULATING" || matrixDto.state === "CLOSING") {
+			const err = new SettlementMatrixIsBusyError("Matrix already being calculated or closed");
+			this._logger.warn(err.message);
+			throw err;
+		}
+
+		const matrix = SettlementMatrix.FromDto(matrixDto);
+
+		const startTimestamp = Date.now();
+
+		matrix.state = "CLOSING";
+		await this._settlementMatrixReqRepo.storeMatrix(matrix);
+
+		// recalculate the matrix, without getting new batches in
+		await this._recalculateMatrix(matrix, true);
+
+		// first pass - close the open batches:
+		const previouslyClosedBatches : ISettlementBatch[] = [];
+		const batchesClosedNow: ISettlementBatch[] = [];
+
+		for (const matrixBatch of matrix.batches) {
+			const batch = await this._batchRepo.getBatch(matrixBatch.id);
+			if (!batch)
+				throw new SettlementBatchNotFoundError(`Unable to locate batch for id '${matrixBatch.id}'.`);
+
+			if (batch.isClosed){
+				previouslyClosedBatches.push(batch);
+				continue;
+			}
+
+			batch.isClosed = matrixBatch.isClosed = true;
+			await this._batchRepo.updateBatch(batch);
+			batchesClosedNow.push(batch);
+		}
+
+		// TODO: close batch accounts in Accounts&Balances
+		// TODO send matrix executed event:
+		//await this._participantAccNotifier.publishSettlementMatrixExecuteEvent(returnVal);
+
+		// Close the Matrix Request to prevent further execution:
+		matrix.state = "CLOSED";
+		matrix.updatedAt = Date.now();
+		matrix.generationDurationSecs = Math.floor((matrix.updatedAt - startTimestamp) / 1000);
+		await this._settlementMatrixReqRepo.storeMatrix(matrix);
+
+		// We perform an async audit:
+		this._auditingClient.audit(
+			AuditingActions.SETTLEMENT_MATRIX_EXECUTED,
+			true,
+			this._getAuditSecurityContext(secCtx), [
+				{key: "settlementModel", value: matrix.settlementModel},
+				{key: "settlementMatrixReqId", value: id}
+			]
+		);
+
+		return;
+	}
+
+	private async _recalculateMatrix(matrix: SettlementMatrix, close:boolean=false): Promise<void> {
+		const currency = this._getCurrencyOrThrow(matrix.currencyCode);
+
+		// start by cleaning the batches
+
+		let batches:ISettlementBatch[];
+		if (close) {
+			// this will make sure we only include the batches already in the matrix (by name)
+			// guarantees operator closes what was shown
+			const batchNames = matrix.batches.map(value => value.name);
+			batches = await this._batchRepo.getBatchesByNames(batchNames);
+		} else {
+			// this will pickup any new batches
+			batches = await this._batchRepo.getBatchesByCriteria(matrix.dateFrom, matrix.dateTo, matrix.currencyCode, matrix.settlementModel);
+		}
+
+		// remove batches and zero totals
+		matrix.clear();
+
+		// summaries
+		let totalDebit = 0n, totalCredit = 0n;
+		const participantBalances:Map<string, {cr: bigint, dr:bigint}> = new Map<string, {cr: bigint; dr: bigint}>();
+
+		if (batches && batches.length > 0) {
+			await this._updateBatchAccountBalances(batches);
+
+			for (const batch of batches) {
+				// skip closed batches
+				if(batch.isClosed) continue;
+
+				let batchDebitBalance = 0n;
+				let batchCreditBalance = 0n;
+
+				// TODO make sure the currencies all match - accounts->batches->matrix
+
+				batch.accounts.forEach(acc => {
+					const debit = stringToBigint(acc.debitBalance, currency.decimals);
+					const credit = stringToBigint(acc.creditBalance, currency.decimals);
+					batchDebitBalance += debit;
+					batchCreditBalance += credit;
+
+					// update per participant balances
+					const partBal = participantBalances.get(acc.participantId);
+					if(!partBal){
+						participantBalances.set(acc.participantId, {dr:debit, cr: credit});
+					}else{
+						participantBalances.set(acc.participantId, {dr: partBal.dr + debit, cr: partBal.cr + credit});
+					}
+				});
+
+				const batchTransfers = await this._batchTransferRepo.getBatchTransfersByBatchId(batch.id);
+				matrix.addBatch(
+					batch,
+					bigintToString(batchDebitBalance, currency.decimals),
+					bigintToString(batchCreditBalance, currency.decimals),
+					batchTransfers.length ?? 0
+				);
+
+				totalDebit = totalDebit + batchDebitBalance;
+				totalCredit = totalCredit + batchCreditBalance;
+			}
+		}
+		// update main balances
+		matrix.totalDebitBalance = bigintToString(totalDebit, currency.decimals);
+		matrix.totalCreditBalance = bigintToString(totalCredit, currency.decimals);
+
+		// put per participant balances in the matrix
+		participantBalances.forEach((value, key) => {
+			matrix.participantBalances.push({
+				participantId: key,
+				debitBalance: bigintToString(value.dr, currency.decimals),
+				creditBalance: bigintToString(value.cr, currency.decimals)
+			});
+		});
+	}
+
+	private async _updateBatchAccountBalances(batches: ISettlementBatch[]): Promise<void>{
+		const extAccountIds: string[] = batches.flatMap(value => value.accounts).map(value => value.accountExtId);
+
+		const abAccounts = await this._abAdapter.getAccounts(extAccountIds);
+		if (!abAccounts || abAccounts.length !== extAccountIds.length) {
+			const err = new Error("Could not get all accounts from accounts and balances on getSettlementBatches");
+			this._logger.error(err);
+			throw err;
+		}
+
+		for (const batch of batches) {
+			for (const batchAccount of batch.accounts) {
+				const abAccount = abAccounts.find(value => value.id===batchAccount.accountExtId);
+				if (!abAccount) {
+					const err = new Error("Could not get all accounts from accounts and balances on getSettlementBatches");
+					this._logger.error(err);
+					throw err;
+				}
+				batchAccount.creditBalance = abAccount.postedCreditBalance || "0"; // should always come valid
+				batchAccount.debitBalance = abAccount.postedDebitBalance || "0"; // should always come valid
+			}
+		}
+	}
+
+
+	async getSettlementBatchesByCriteria(
+		secCtx: CallSecurityContext,
 		settlementModel: string,
+		currencyCode: string,
 		fromDate: number,
-		toDate: number,
-		securityContext: CallSecurityContext
-	): Promise<ISettlementBatchDto[]> {
-		this.enforcePrivilege(securityContext, Privileges.RETRIEVE_SETTLEMENT_BATCH);
+		toDate: number
+	): Promise<ISettlementBatch[]> {
+		this._enforcePrivilege(secCtx, Privileges.RETRIEVE_SETTLEMENT_BATCH);
 
-		return await this.batchRepo.getSettlementBatchesBy(fromDate, toDate, settlementModel)
+		const batches = await this._batchRepo.getBatchesByCriteria(fromDate, toDate, currencyCode, settlementModel);
+		if(!batches || batches.length <=0 ){
+			return [];
+		}
+
+		await this._updateBatchAccountBalances(batches);
+		return batches;
 	}
 
-	public async getSettlementBatchAccountsByBatchIdentifier(
+	async getSettlementBatch(
+		secCtx: CallSecurityContext,
 		batchIdentifier : string,
-		securityContext: CallSecurityContext
-	): Promise<ISettlementBatchAccountDto[]> {
-		this.enforcePrivilege(securityContext, Privileges.RETRIEVE_SETTLEMENT_BATCH_ACCOUNTS);
+	): Promise<ISettlementBatch | null> {
+		this._enforcePrivilege(secCtx, Privileges.RETRIEVE_SETTLEMENT_BATCH_ACCOUNTS);
 
-		const batch = await this.batchRepo.getSettlementBatchByBatchIdentifier(batchIdentifier);
+		const batch = await this._batchRepo.getBatch(batchIdentifier);
+		if (!batch) {
+			return null;
+		}
+		await this._updateBatchAccountBalances([batch]);
+		return batch;
+	}
+
+	async getSettlementBatchesByName(secCtx: CallSecurityContext,batchName: string): Promise<ISettlementBatch[]> {
+		this._enforcePrivilege(secCtx, Privileges.RETRIEVE_SETTLEMENT_BATCH_ACCOUNTS);
+
+		const batches = await this._batchRepo.getBatchesByName(batchName);
+		if (!batches || batches.length <= 0) {
+			return [];
+		}
+
+		await this._updateBatchAccountBalances(batches);
+		return batches;
+	}
+
+	async getSettlementBatchTransfersByBatchId(secCtx: CallSecurityContext, batchId : string): Promise<ISettlementBatchTransfer[]> {
+		this._enforcePrivilege(secCtx, Privileges.RETRIEVE_SETTLEMENT_TRANSFERS);
+
+		const batch = await this._batchRepo.getBatch(batchId);
 		if (batch === null) {
-			throw new SettlementBatchNotFoundError(`Unable to locate Settlement Batch with 'Batch Identifier' '${batchIdentifier}'.`);
-		}
-		const returnVal = await this.batchAccountRepo.getAccountsByBatch(batch, this.abAdapter)
-		// Cleanup the JSON:
-		returnVal.forEach(itm => {
-			this.cleanBatchForResponse(itm.settlementBatch);
-		});
-		return returnVal;
-	}
-
-	public async getSettlementBatchAccountsByBatchId(
-		batchId : string,
-		securityContext: CallSecurityContext
-	): Promise<ISettlementBatchAccountDto[]> {
-		this.enforcePrivilege(securityContext, Privileges.RETRIEVE_SETTLEMENT_BATCH_ACCOUNTS);
-
-		const batch = await this.batchRepo.getSettlementBatchById(batchId);
-		if (batch === null) {
-			throw new SettlementBatchNotFoundError(`Unable to locate Settlement Batch with 'Batch Id' '${batchId}'.`);
+			throw new SettlementBatchNotFoundError(`Unable to locate Settlement Batch with 'Batch Id"" '${batchId}'.`);
 		}
 
-		const returnVal = await this.batchAccountRepo.getAccountsByBatch(batch, this.abAdapter)
-		// Cleanup the JSON:
-		returnVal.forEach(itm => {
-			this.cleanBatchForResponse(itm.settlementBatch);
-		});
-		return returnVal;
+		const ISettlementBatchTransfer = await this._batchTransferRepo.getBatchTransfersByBatchId(batchId);
+
+		return ISettlementBatchTransfer;
 	}
 
-	public async getSettlementBatchTransfersByBatchId(
-		batchId : string,
-		securityContext: CallSecurityContext
-	): Promise<ISettlementTransferDto[]> {
-		this.enforcePrivilege(securityContext, Privileges.RETRIEVE_SETTLEMENT_TRANSFERS);
+	async getSettlementBatchTransfersByBatchName(secCtx: CallSecurityContext, batchName: string): Promise<ISettlementBatchTransfer[]> {
+		this._enforcePrivilege(secCtx, Privileges.RETRIEVE_SETTLEMENT_TRANSFERS);
 
-		const batch = await this.batchRepo.getSettlementBatchById(batchId);
-		if (batch === null) {
-			throw new SettlementBatchNotFoundError(`Unable to locate Settlement Batch with 'Batch Id'' '${batchId}'.`);
+		const batches = await this._batchRepo.getBatchesByName(batchName);
+		if (!batches || batches.length<=0) {
+			return [];
 		}
 
-		const settlementAccounts = await this.batchAccountRepo.getAccountsByBatch(batch);
-		const accIds : string[] = [];
-		settlementAccounts.forEach(itm => accIds.push(itm.id!));
+		const ret: ISettlementBatchTransfer[] = [];
 
-		const returnVal = await this.transfersRepo.getSettlementTransfersByAccountIds(accIds, this.abAdapter);
-		// Cleanup the JSON:
-		returnVal.forEach(itm => {
-			this.cleanBatchForResponse(itm.batch);
-		});
-		return returnVal;
-	}
-
-	public async getSettlementBatchTransfersByBatchIdentifier(
-		batchIdentifier : string,
-		securityContext: CallSecurityContext
-	): Promise<ISettlementTransferDto[]> {
-		this.enforcePrivilege(securityContext, Privileges.RETRIEVE_SETTLEMENT_TRANSFERS);
-
-		const batch = await this.batchRepo.getSettlementBatchByBatchIdentifier(batchIdentifier);
-		if (batch === null) {
-			throw new SettlementBatchNotFoundError(`Unable to locate Settlement Batch with 'Batch Identifier'' '${batchIdentifier}'.`);
+		for(const batch of batches){
+			const transfers = await this._batchTransferRepo.getBatchTransfersByBatchId(batch.id);
+			ret.push(...transfers);
 		}
 
-		const settlementAccounts = await this.batchAccountRepo.getAccountsByBatch(batch);
-		const accIds : string[] = [];
-		settlementAccounts.forEach(itm => accIds.push(itm.id!));
 
-		const returnVal = await this.transfersRepo.getSettlementTransfersByAccountIds(accIds, this.abAdapter);
-		// Cleanup the JSON:
-		returnVal.forEach(itm => {
-			this.cleanBatchForResponse(itm.batch);
-		});
-		return returnVal;
+		return ret;
 	}
 
-	private cleanBatchForResponse(itm? : ISettlementBatchDto | null) : void {
-		if (itm === undefined || itm === null) return;
-
-		delete itm.currency
-		delete itm.timestamp
-		delete itm.settlementModel
-		delete itm.batchSequence
-		delete itm.batchIdentifier
-		delete itm.batchStatus
-	}
-
-	private async createSettlementBatchAccountFromAccId(
-		participantAccId: string,
-		batchId: string,
-		settlementModel: string,
-		currency: ICurrency,
-		securityContext: CallSecurityContext
-	): Promise<ISettlementBatchAccountDto> {
-		const timestamp: number = Date.now();
-		const settleAccId = randomUUID();
-		const settlementBatch : ISettlementBatchDto = {
-			id: batchId,
-			timestamp: 0,
-			settlementModel: settlementModel,
-			currency: null,
-			batchSequence: 0,
-			batchIdentifier: null,
-			batchStatus: null
-		}
-
-		const accountDto : ISettlementBatchAccountDto = {
-			id: settleAccId,
-			participantAccountId: participantAccId,
-			settlementBatch: settlementBatch,
-			currencyCode: currency.code,
-			currencyDecimals: currency.decimals,
-			creditBalance: "0",
-			debitBalance: "0",
-			timestamp: timestamp
-		};
-		const accIdNew = await this.createSettlementBatchAccount(accountDto, securityContext);
-		accountDto.id = accIdNew;
-		return accountDto;
-	}
-
-	async obtainSettlementAccountId(partAccId: string, batchId: string): Promise<string> {
-		const partAcc = await this.batchAccountRepo.getAccountByParticipantAccountAndBatchId(partAccId, batchId);
-		if (partAcc == null || partAcc.id == null) return ""
-		return partAcc.id;
-	}
-
-	async obtainSettlementBatch(
-		transfer: SettlementTransfer,
+	private _generateBatchName(
 		model: string,
-		securityContext: CallSecurityContext,
-		batchAllocation?: string | null
-	) : Promise<ISettlementBatchDto> {
-		const timestamp = transfer.timestamp;
+		currencyCode: string,
+		toDate: Date,
+		batchAllocation?: string
+	): string {
+		//TODO add assertion here:
+		//FX.XOF:RWF.2021.08.23.00.00
+		const month = (toDate.getUTCMonth() + 1).toString().padStart(2,"0");
+		const day = (toDate.getUTCDate()).toString().padStart(2, "0");
+		const hours = (toDate.getUTCHours()).toString().padStart(2, "0");
+		const minutes = (toDate.getUTCMinutes()).toString().padStart(2, "0");
+		const formatTimestamp = `${toDate.getUTCFullYear()}.${month}.${day}.${hours}.${minutes}`;
 
-		const configDto = await this.configRepo.getSettlementConfigByModel(model);
-		if (configDto == null) throw new NoSettlementConfig(`No settlement config for model '${model}'.`);
-		const config = new SettlementConfig(
-			configDto.id,
-			configDto.settlementModel,
-			configDto.batchCreateInterval
-		)
-		const fromDate: number = config.calculateBatchFromDate(timestamp),
-			toDate: number = config.calculateBatchToDate(timestamp);
+		// if (batchAllocation) {
+		// 	return `${model}.${currencyCode}.${batchAllocation}.${formatTimestamp}`;
+		// }
 
-		let settlementBatchDto : null | ISettlementBatchDto = await this.batchRepo.getOpenSettlementBatch(
-			fromDate, toDate, model, transfer.currencyCode);
-		if (settlementBatchDto === null) {
-			const nextBatchSeq = await this.nextBatchSequence(fromDate, toDate, model);
-			// Create a new Batch to store the transfer against:
-			settlementBatchDto = new SettlementBatch(
-				randomUUID(),
-				timestamp,
-				model,
-				transfer.currencyCode,
-				nextBatchSeq,
-				this.generateBatchIdentifier(model, transfer, toDate, nextBatchSeq, batchAllocation),
-				SettlementBatchStatus.OPEN
-			).toDto()
-			await this.createSettlementBatch(settlementBatchDto, securityContext);
-		}
-		return settlementBatchDto;
+		return `${model}.${currencyCode}.${formatTimestamp}`;
 	}
 
-	private generateBatchIdentifier(
+	private _generateBatchIdentifier(
+		batchName:string,
+		batchSeq: number,
+	): string {
+		const batchSeqTxt = batchSeq.toString().padStart(SEQUENCE_STR_LENGTH, "0");
+		const batchId = `${batchName}.${batchSeqTxt}`;
+
+		return batchId;
+	}
+
+	/*private _generateBatchIdentifierFromParams(
 		model: string,
-		transfer: SettlementTransfer,
-		toDate: number,
+		currencyCode: string,
+		toDate: Date,
 		batchSeq: number,
 		batchAllocation?: string | null
 	) : string {
 		//TODO add assertion here:
 		//FX.XOF:RWF.2021.08.23.00.00
-		const toDateDate = new Date(toDate);
-		const formatTimestamp = `${toDateDate.getUTCFullYear()}.${toDateDate.getUTCMonth()+1}.${toDateDate.getUTCDate()}.${toDateDate.getUTCHours()}.${toDateDate.getUTCMinutes()}`;
 
-		let batchSeqTxt = `00${batchSeq}`;
-		batchSeqTxt = batchSeqTxt.substr(batchSeqTxt.length - 3);
+		const batchName = this._generateBatchName(model, currencyCode, toDate, batchAllocation);
+		const batchId = this._generateBatchIdentifier(batchName, batchSeq);
 
-		if ((batchAllocation === undefined || batchAllocation === null) || batchAllocation.trim().length === 0) {
-			return `${model}.${transfer.currencyCode}.${formatTimestamp}.${batchSeqTxt}`;
-		} else return `${model}.${transfer.currencyCode}.${batchAllocation}.${formatTimestamp}.${batchSeqTxt}`;
-	}
+		return batchId;
+	}*/
 
-	async nextBatchSequence(fromDate: number, toDate: number, model: string) : Promise<number> {
-		//TODO add assertion here:
-		let maxBatchSeq = 1;
-		const batchesForCriteria = await this.batchRepo.getSettlementBatchesBy(fromDate, toDate, model);
-		if (batchesForCriteria.length === 0) return maxBatchSeq;
+	private async _getOrCreateBatch(
+		model: string,
+		currencyCode: string,
+		toDate: Date
+	):Promise<{batch: SettlementBatch, created:boolean}>{
+		const batchName = this._generateBatchName(model, currencyCode, toDate);
+		const existingBatches = await this._batchRepo.getBatchesByName(batchName);
 
-		for (const settlementBatch of batchesForCriteria) {
-			if (settlementBatch.batchSequence! > maxBatchSeq) maxBatchSeq = settlementBatch.batchSequence!;
+		if(!existingBatches || existingBatches.length<=0){
+			// no batch exists with that name, let's create a new with seq number 1
+			const newBatchId = this._generateBatchIdentifier(batchName, 1);
+			const newBatch  = new SettlementBatch(
+				newBatchId,
+				Date.now(),
+				model,
+				currencyCode,
+				1,
+				batchName,
+				false
+			);
+			return Promise.resolve({batch:newBatch, created: true});
 		}
-		return (maxBatchSeq + 1);
+
+		// let's find the highest seq open batch
+		// sort in decreasing order
+		const sortedBatches = existingBatches.sort((a, b) => b.batchSequence - a.batchSequence);
+		if(!sortedBatches[0].isClosed){
+			// highest seq is open, return it
+			const batchDto = sortedBatches[0];
+			const batch = new SettlementBatch(
+				batchDto.id,
+				batchDto.timestamp,
+				batchDto.settlementModel,
+				batchDto.currencyCode,
+				batchDto.batchSequence,
+				batchDto.batchName,
+				batchDto.isClosed,
+				batchDto.accounts
+			);
+			return Promise.resolve({batch: batch, created: false});
+		}
+
+		// if we got here, there is no open batch, let's open a new one
+		const nextSeq = sortedBatches[0].batchSequence + 1;
+
+		const newBatchId = this._generateBatchIdentifier(batchName, nextSeq);
+		const newBatch = new SettlementBatch(
+			newBatchId,
+			Date.now(),
+			model,
+			currencyCode,
+			nextSeq,
+			batchName,
+			false
+		);
+		return Promise.resolve({batch: newBatch, created: true});
 	}
 
-	async getSettlementTransfersByAccountId(
-		accountId: string,
-		securityContext: CallSecurityContext
-	): Promise<ISettlementTransferDto[]> {
-		this.enforcePrivilege(securityContext, Privileges.RETRIEVE_SETTLEMENT_TRANSFERS);
 
-		// All transfers for account:
-		const transferDTOs: ISettlementTransferDto[] =
-			await this.transfersRepo.getSettlementTransfersByAccountId(accountId, this.abAdapter);
-		return transferDTOs;
-	}
 }

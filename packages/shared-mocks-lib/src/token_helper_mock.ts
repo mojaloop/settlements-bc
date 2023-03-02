@@ -27,29 +27,28 @@
 
 "use strict";
 
-import {IAccountsBalancesAdapter, ISettlementBatchTransferRepo} from "@mojaloop/settlements-bc-domain-lib";
-import { ISettlementBatchTransfer } from "@mojaloop/settlements-bc-public-types-lib";
 
-export class SettlementTransferRepoMock implements ISettlementBatchTransferRepo {
-	private _list: ISettlementBatchTransfer[] = [];
+import {ITokenHelper} from "@mojaloop/security-bc-public-types-lib";
 
-	async init(): Promise<void> {
-		return Promise.resolve();
-	}
-	async destroy(): Promise<void>{
-		return Promise.resolve();
-	}
+export class TokenHelperMock implements ITokenHelper{
+	// private _logger: any;
+	// private _jwksUrl: string;
+	// private _issuerName: string | null;
+	// private _audience: string | null;
+	// private _jwksClient: any;
 
-	async storeBatchTransfer(batchTransfer: ISettlementBatchTransfer): Promise<void> {
-		this._list.push(batchTransfer);
-		return Promise.resolve();
+	async init(): Promise<void>{
+		return;
 	}
 
-	async getBatchTransfersByBatchId(batchId: string): Promise<ISettlementBatchTransfer[]>{
-		return this._list.filter(value => value.batchId === batchId);
+	decodeToken(accessToken: string): any | null{
+		return {
+			sub: "app::transfers-bc-api-svc",
+			roles: ["settlement-role"]
+		};
 	}
 
-	async getBatchTransfersByBatchName(batchName: string): Promise<ISettlementBatchTransfer[]> {
-		return this._list.filter(value => value.batchName===batchName);
+	async verifyToken(accessToken: string): Promise<boolean>{
+		return true;
 	}
 }

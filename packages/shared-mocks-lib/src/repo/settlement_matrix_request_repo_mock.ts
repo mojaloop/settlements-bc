@@ -40,13 +40,13 @@ export class SettlementMatrixRequestRepoMock implements ISettlementMatrixRequest
 		return Promise.resolve();
 	}
 
-	async storeNewSettlementMatrixRequest(matrixReq: ISettlementMatrixRequestDto): Promise<void> {
+	async storeMatrix(matrixReq: ISettlementMatrixRequestDto): Promise<void> {
 		if (matrixReq === undefined) return Promise.resolve();
 		this.matrixRequests.push(matrixReq);
 		return Promise.resolve();
 	}
 
-	async getSettlementMatrixById(settlementMatrixReqId: string): Promise<ISettlementMatrixRequestDto | null> {
+	async getMatrixById(settlementMatrixReqId: string): Promise<ISettlementMatrixRequestDto | null> {
 		if (settlementMatrixReqId === undefined) return Promise.resolve(null);
 
 		for (const matrixReqIter of this.matrixRequests) {
@@ -57,7 +57,7 @@ export class SettlementMatrixRequestRepoMock implements ISettlementMatrixRequest
 		return Promise.resolve(null);
 	}
 
-	async closeSettlementMatrixRequest(matrixReq: ISettlementMatrixRequestDto): Promise<void> {
+	/*async closeSettlementMatrixRequest(matrixReq: ISettlementMatrixRequestDto): Promise<void> {
 		if (matrixReq.id == null) return Promise.resolve();
 
 		for (const matrixReqIter of this.matrixRequests) {
@@ -68,6 +68,6 @@ export class SettlementMatrixRequestRepoMock implements ISettlementMatrixRequest
 		}
 
 		return Promise.resolve();
-	}
+	}*/
 
 }

@@ -19,7 +19,7 @@
   "scripts": {
     "clean:dist": "rm -fr dist/",
     "dep:check": "ncu -e 2",
-    "dep:update": "ncu -u",
+    "dep:update": "ncu -e 2 -u",
     "audit:check": "npm audit",
     "audit:fix": "npm audit fix",
     "lint": "eslint src/",
@@ -29,13 +29,9 @@
     "test:unit-single": "jest --coverage false -t"
   },
   "devDependencies": {
-    "@mojaloop/settlements-bc-shared-mocks-lib": "~0.0.1"
+
   },
   "dependencies": {
-    "@mojaloop/settlements-bc-public-types-lib": "~0.0.1",
-    "@mojaloop/auditing-bc-public-types-lib": "~0.0.12",
-    "@mojaloop/logging-bc-public-types-lib": "~0.1.14",
-    "@mojaloop/security-bc-client-lib": "~0.1.12",
-    "@mojaloop/security-bc-public-types-lib": "~0.1.12"
+    "tslib": "~2.5.0"
   }
 }

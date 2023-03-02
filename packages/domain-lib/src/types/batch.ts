@@ -27,45 +27,60 @@
 
 "use strict";
 
-import {SettlementBatchStatus, ISettlementBatchDto} from "@mojaloop/settlements-bc-public-types-lib";
+import {
+	ISettlementBatch,
+	ISettlementBatchAccount,
+	ISettlementBatchTransfer
+} from "@mojaloop/settlements-bc-public-types-lib";
 
-export class SettlementBatch {
-	id: string;
+
+
+export class SettlementBatch implements ISettlementBatch{
+	id: string; // FX.XOF:RWF.2021.08.23.00.00.001
 	timestamp: number;
 	settlementModel: string;
-	currency: string;
-	batchSequence: number;
-	batchIdentifier: string;// FX.XOF:RWF.2021.08.23.00.00.001
-	batchStatus: SettlementBatchStatus;
+	currencyCode: string;
+	batchName: string; // FX.XOF:RWF.2021.08.23.00.00 (minus seq)
+	batchSequence: number; // 1 (seq only)
+	isClosed: boolean;
+
+	accounts: ISettlementBatchAccount[];
 
 	constructor(
 		id: string,
 		timestamp: number,
 		settlementModel: string,
-		currency: string,
+		currencyCode: string,
 		batchSequence: number,
-		batchIdentifier: string,
-		batchStatus: SettlementBatchStatus
+		batchName: string,
+		isClosed: boolean,
+		accounts?: ISettlementBatchAccount[],
 	) {
 		this.id = id;
 		this.timestamp = timestamp;
 		this.settlementModel = settlementModel;
-		this.currency = currency;
+		this.currencyCode = currencyCode;
+		this.batchName = batchName;
 		this.batchSequence = batchSequence;
-		this.batchIdentifier = batchIdentifier;
-		this.batchStatus = batchStatus;
+		this.isClosed = isClosed;
+		this.accounts = accounts ?? [];
 	}
 
-	toDto(): ISettlementBatchDto {
-		const batchDto: ISettlementBatchDto = {
-			id: this.id,
-			timestamp: this.timestamp,
-			settlementModel: this.settlementModel,
-			currency: this.currency,
-			batchSequence: this.batchSequence,
-			batchIdentifier: this.batchIdentifier,
-			batchStatus: this.batchStatus
-		};
-		return batchDto;
+	addAccount(accountExtId: string, participantId:string, currencyCode:string){
+		this.accounts.push({
+			accountExtId: accountExtId,
+			participantId: participantId,
+			currencyCode: currencyCode,
+			debitBalance: "0",
+			creditBalance: "0",
+		});
 	}
+
+	getAccount(participantId:string, currencyCode:string): ISettlementBatchAccount | null{
+		if(!participantId || !participantId)
+			throw new Error("invalid participantId or currencyCode in SettlementBatch.getAccount()");
+		const found = this.accounts.find(value => value.participantId===participantId && value.currencyCode === currencyCode);
+		return found || null;
+	}
+
 }

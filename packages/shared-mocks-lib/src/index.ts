@@ -29,13 +29,14 @@
 
 export * from "./audit_client_mock";
 export * from "./authentication_service_mock";
-export * from "./authorization_client_mock";
+export * from "./token_helper_mock";
 
+export * from "./authorization_client_mock";
 export * from "./repo/config_repo_mock";
 export * from "./repo/participant_account_notifier_mock";
-export * from "./repo/settlement_batch_account_repo_mock";
+
 export * from "./repo/settlement_batch_repo_mock";
 export * from "./repo/settlement_transfer_repo_mock";
-export * from "./repo/settlement_matrix_request_repo_mock";
 
+export * from "./repo/settlement_matrix_request_repo_mock";
 export * from "./adapter/accounts_balances_adapter_mock";
