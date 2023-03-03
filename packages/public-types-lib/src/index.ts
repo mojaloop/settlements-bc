@@ -34,10 +34,10 @@ export interface ITransferDto {
 	payerFspId: string;
 	payeeFspId: string;
 	currencyCode: string;
-	currencyDecimals: number | null;
+	//currencyDecimals: number | null;
 	amount: string;
-	debitParticipantAccountId: string;
-	creditParticipantAccountId: string;
+	//debitParticipantAccountId: string;
+	//creditParticipantAccountId: string;
 	timestamp: number;
 	settlementModel: string;
 	// batch?: ISettlementBatch | null; // this is forbidden, only thing that is allocated from the transfers is the model (from the lib)

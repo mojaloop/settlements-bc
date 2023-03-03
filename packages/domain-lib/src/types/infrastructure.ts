@@ -88,7 +88,7 @@ export interface ISettlementBatchRepo {
 	getBatchesByName(batchName: string): Promise<ISettlementBatch[]>;
 
 	// there can be multiple batches with the same name (excludes sequence number)
-	getBatchesByNames(batchNames: string[]): Promise<ISettlementBatch[]>;
+	getBatchesByIds(batchIds: string[]): Promise<ISettlementBatch[]>;
 
 	getBatchesByCriteria(fromDate: number, toDate: number, currencyCode:string, model: string): Promise<ISettlementBatch[]>;
 }

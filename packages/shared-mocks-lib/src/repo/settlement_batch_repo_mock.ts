@@ -31,6 +31,7 @@ import {ISettlementBatchRepo} from "@mojaloop/settlements-bc-domain-lib";
 import {ISettlementBatch} from "@mojaloop/settlements-bc-public-types-lib";
 
 export class SettlementBatchRepoMock implements ISettlementBatchRepo {
+
 	batches: Array<ISettlementBatch> = [];
 
 	async init(): Promise<void> {
@@ -40,8 +41,11 @@ export class SettlementBatchRepoMock implements ISettlementBatchRepo {
 		return Promise.resolve();
 	}
 
+	async storeNewBatch(batch: ISettlementBatch): Promise<void> {
+		return this.updateBatch(batch);
+	}
 
-	async storeBatch(batch: ISettlementBatch): Promise<void> {
+	async updateBatch(batch: ISettlementBatch): Promise<void> {
 		if (batch === undefined) return Promise.resolve();
 		this.batches.push(batch);
 		return Promise.resolve();
@@ -58,7 +62,13 @@ export class SettlementBatchRepoMock implements ISettlementBatchRepo {
 	}
 
 	async getBatchesByName(batchName: string): Promise<ISettlementBatch[]> {
-		const returnVal: Array<ISettlementBatch> = this.batches.filter(value => value.batchName === batchName);
+		const returnVal: Array<ISettlementBatch> = this.batches.filter(value => batchName == value.batchName);
+
+		return Promise.resolve(returnVal);
+	}
+
+	async getBatchesByIds(ids: string[]): Promise<ISettlementBatch[]> {
+		const returnVal: Array<ISettlementBatch> = this.batches.filter(value => ids.includes(value.id) );
 
 		return Promise.resolve(returnVal);
 	}

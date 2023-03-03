@@ -19,18 +19,19 @@
  their names indented and be marked with a '-'. Email address can be added
  optionally within square brackets <email>.
 
- Coil
- - Jason Bruwer <jason.bruwer@coil.com>
+ * Gates Foundation
+ - Name Surname <name.surname@gatesfoundation.com>
+
+ * Crosslake
+ - Pedro Sousa Barreto <pedrob@crosslaketech.com>
 
  --------------
  ******/
 
 "use strict";
 
-export * from "./aggregate";
-export * from "./types/errors";
-export * from "./types/infrastructure";
-export * from "./privileges";
-export * from "./converters";
-export * from "./commands";
-export * from "./types/matrix";  // BC private matrix interfaces for infra and mocks
+import {Service} from "./service";
+
+Service.start().then(() => {
+    console.log("Service start complete");
+});

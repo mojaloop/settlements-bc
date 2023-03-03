@@ -28,10 +28,10 @@
 "use strict";
 
 import {ISettlementMatrixRequestRepo} from "@mojaloop/settlements-bc-domain-lib";
-import {ISettlementMatrixRequestDto, SettlementMatrixRequestStatus} from "@mojaloop/settlements-bc-public-types-lib";
-import console from "console";
+import {ISettlementMatrix} from "@mojaloop/settlements-bc-public-types-lib";
+
 export class SettlementMatrixRequestRepoMock implements ISettlementMatrixRequestRepo {
-	matrixRequests: Array<ISettlementMatrixRequestDto> = [];
+	matrixRequests: Array<ISettlementMatrix> = [];
 
 	async init(): Promise<void> {
 		return Promise.resolve();
@@ -40,13 +40,13 @@ export class SettlementMatrixRequestRepoMock implements ISettlementMatrixRequest
 		return Promise.resolve();
 	}
 
-	async storeMatrix(matrixReq: ISettlementMatrixRequestDto): Promise<void> {
+	async storeMatrix(matrixReq: ISettlementMatrix): Promise<void> {
 		if (matrixReq === undefined) return Promise.resolve();
 		this.matrixRequests.push(matrixReq);
 		return Promise.resolve();
 	}
 
-	async getMatrixById(settlementMatrixReqId: string): Promise<ISettlementMatrixRequestDto | null> {
+	async getMatrixById(settlementMatrixReqId: string): Promise<ISettlementMatrix | null> {
 		if (settlementMatrixReqId === undefined) return Promise.resolve(null);
 
 		for (const matrixReqIter of this.matrixRequests) {

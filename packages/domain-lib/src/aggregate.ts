@@ -73,6 +73,8 @@ import {SettlementConfig} from "./types/settlement_config";
 import {AccountsAndBalancesAccountType} from "@mojaloop/accounts-and-balances-bc-public-types-lib";
 import {SettlementBatchTransfer} from "./types/transfer";
 import {SettlementMatrix} from "./types/matrix";
+import {ProcessTransferCmd} from "./commands";
+import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib/dist/index";
 
 
 const CURRENCIES_FILE_NAME: string = "currencies.json";
@@ -99,6 +101,7 @@ export class SettlementsAggregate {
 	private readonly _configRepo: ISettlementConfigRepo;
 	private readonly _settlementMatrixReqRepo: ISettlementMatrixRequestRepo;
 	private readonly _abAdapter: IAccountsBalancesAdapter;
+	private readonly _msgProducer: IMessageProducer;
 	private readonly _currencies: ICurrency[];
 
 	constructor(
@@ -110,7 +113,8 @@ export class SettlementsAggregate {
 		configRepo: ISettlementConfigRepo,
 		settlementMatrixReqRepo: ISettlementMatrixRequestRepo,
 		participantAccNotifier: IParticipantAccountNotifier,
-		abAdapter: IAccountsBalancesAdapter
+		abAdapter: IAccountsBalancesAdapter,
+		msgProducer: IMessageProducer
 	) {
 		this._logger = logger;
 		this._authorizationClient = authorizationClient;
@@ -121,6 +125,7 @@ export class SettlementsAggregate {
 		this._configRepo = configRepo;
 		this._settlementMatrixReqRepo = settlementMatrixReqRepo;
 		this._abAdapter = abAdapter;
+		this._msgProducer = msgProducer;
 
 		// TODO: @jason Need to obtain currencies from PlatForm config perhaps:
 		const currenciesFilePath: string = join(__dirname, CURRENCIES_FILE_NAME);
@@ -153,18 +158,33 @@ export class SettlementsAggregate {
 		return currency;
 	}
 
+	async processTransferCmd(secCtx: CallSecurityContext, processTransferCmd: ProcessTransferCmd): Promise<string> {
+		// TODO this should the other way around, the rest API should send a command
+		const transferDto: ITransferDto = {
+			id: null,
+			transferId: processTransferCmd.payload.transferId,
+			currencyCode: processTransferCmd.payload.currencyCode,
+			amount: processTransferCmd.payload.amount,
+			timestamp: new Date(processTransferCmd.payload.completedTimestamp).valueOf(),
+			payeeFspId: processTransferCmd.payload.payeeFspId,
+			payerFspId: processTransferCmd.payload.payerFspId,
+			settlementModel: processTransferCmd.payload.settlementModel
+		};
+
+		return this.handleTransfer(secCtx, transferDto);
+	}
+
+
 	async handleTransfer(secCtx: CallSecurityContext, transferDto: ITransferDto): Promise<string> {
 		this._enforcePrivilege(secCtx, Privileges.CREATE_SETTLEMENT_TRANSFER);
 
-		if (!transferDto.timestamp || transferDto.timestamp < 1) throw new InvalidTimestampError();
+		if (!transferDto.timestamp || !(typeof(transferDto.timestamp) === "number" ) || transferDto.timestamp < 1 ) throw new InvalidTimestampError();
 		if (!transferDto.settlementModel) throw new InvalidBatchSettlementModelError();
 		if (!transferDto.currencyCode) throw new InvalidCurrencyCodeError();
 		if (!transferDto.amount) throw new InvalidAmountError();
 		if (!transferDto.transferId) throw new InvalidTransferIdError();
 		if (!transferDto.payerFspId) throw new InvalidIdError("Invalid payerFspId in transfer");
 		if (!transferDto.payeeFspId) throw new InvalidIdError("Invalid payeeFspId in transfer");
-		if (!transferDto.debitParticipantAccountId) throw new InvalidDebitAccountError();
-		if (!transferDto.creditParticipantAccountId) throw new InvalidCreditAccountError();
 
 		// Verify the currency code (and get the corresponding currency decimals).
 		const currency = this._getCurrencyOrThrow(transferDto.currencyCode);
@@ -181,7 +201,6 @@ export class SettlementsAggregate {
 
 		// get or create a batch
 		const resp = await this._getOrCreateBatch(transferDto.settlementModel, currency.code, new Date(batchStartDate));
-		let batchWasChanged = resp.created;
 		const batch = resp.batch;
 
 		// Find payee batch account
@@ -198,7 +217,6 @@ export class SettlementsAggregate {
 				currency.code
 			);
 			batch.addAccount(creditedAccountExtId, transferDto.payeeFspId, currency.code);
-			batchWasChanged = true;
 		}
 
 		// find payer batch account
@@ -215,7 +233,6 @@ export class SettlementsAggregate {
 				currency.code
 			);
 			batch.addAccount(debitedAccountExtId, transferDto.payerFspId, currency.code);
-			batchWasChanged = true;
 		}
 
 		// create the journal entry
@@ -467,10 +484,10 @@ export class SettlementsAggregate {
 
 		let batches:ISettlementBatch[];
 		if (close) {
-			// this will make sure we only include the batches already in the matrix (by name)
-			// guarantees operator closes what was shown
-			const batchNames = matrix.batches.map(value => value.name);
-			batches = await this._batchRepo.getBatchesByNames(batchNames);
+			// this should never change the already included batches
+			// get by batchIds
+			const batchIds = matrix.batches.map(value => value.id);
+			batches = await this._batchRepo.getBatchesByIds(batchIds);
 		} else {
 			// this will pickup any new batches
 			batches = await this._batchRepo.getBatchesByCriteria(matrix.dateFrom, matrix.dateTo, matrix.currencyCode, matrix.settlementModel);

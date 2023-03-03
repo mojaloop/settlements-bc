@@ -58,6 +58,8 @@ export class SettlementConfig implements ISettlementConfig{
 		// eg: if seconds are 18 and interval is 10 will be 10
 		// eg: if seconds are 31 and interval is 30 will be 30
 		// eg: if seconds are 31 and interval is 60 will be 00
+		if(!(typeof (timestamp)==="number"))
+			throw new Error("Invalid timestamp in calculateBatchStartTimestamp");
 		return Math.floor(timestamp / 1000 / this.batchCreateInterval) * this.batchCreateInterval * 1000;
 	}
 

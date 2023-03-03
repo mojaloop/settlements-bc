@@ -38,12 +38,12 @@ import {
 	UnableToGetAccountError,
 	UnauthorizedError, SettlementMatrixNotFoundError, SettlementMatrixIsBusyError, SettlementMatrixIsClosedError
 } from "@mojaloop/settlements-bc-domain-lib";
-import {CallSecurityContext} from "@mojaloop/security-bc-client-lib";
+import {CallSecurityContext} from "@mojaloop/security-bc-public-types-lib";
 import {
 ISettlementBatchTransfer,
 } from "@mojaloop/settlements-bc-public-types-lib";
 import express from "express";
-import {ITokenHelper} from "@mojaloop/security-bc-public-types-lib/dist/index";
+import {ITokenHelper} from "@mojaloop/security-bc-public-types-lib";
 
 // Extend express request to include our security fields.
 declare module "express-serve-static-core" {

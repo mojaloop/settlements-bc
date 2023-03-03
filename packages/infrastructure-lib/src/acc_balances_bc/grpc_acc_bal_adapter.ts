@@ -33,7 +33,6 @@
 import {GrpcCreateJournalEntryArray} from "@mojaloop/accounts-and-balances-bc-grpc-client-lib";
 import {AccountsAndBalancesAccountType} from "@mojaloop/accounts-and-balances-bc-public-types-lib";
 import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
-import {LoginHelper} from "@mojaloop/security-bc-client-lib";
 import {IAccountsBalancesAdapter} from "@mojaloop/settlements-bc-domain-lib";
 
 import {
@@ -44,16 +43,16 @@ import {
     AccountsAndBalancesGrpcClient,
     GrpcCreateAccountArray
 } from "@mojaloop/accounts-and-balances-bc-grpc-client-lib";
-import { UnauthorizedError } from "@mojaloop/security-bc-public-types-lib";
+import {ILoginHelper, UnauthorizedError } from "@mojaloop/security-bc-public-types-lib";
 import {AccountsAndBalancesJournalEntry} from "@mojaloop/accounts-and-balances-bc-public-types-lib/dist/types";
 
 export class GrpcAccountsAndBalancesAdapter implements IAccountsBalancesAdapter {
     private readonly _grpcUrl: string;
     private _logger: ILogger;
     private _client: AccountsAndBalancesGrpcClient;
-    private _loginHelper: LoginHelper;
+    private _loginHelper: ILoginHelper;
 
-    constructor(grpcUrl: string, loginHelper: LoginHelper, logger: ILogger) {
+    constructor(grpcUrl: string, loginHelper: ILoginHelper, logger: ILogger) {
         this._grpcUrl = grpcUrl;
         this._logger = logger.createChild(this.constructor.name);
         this._loginHelper = loginHelper;
@@ -69,7 +68,7 @@ export class GrpcAccountsAndBalancesAdapter implements IAccountsBalancesAdapter 
         this._logger.info("GrpcAccountsAndBalancesAdapter initialised successfully");
     }
 
-    setToken(accessToken: string): void {
+     setToken(accessToken: string): void {
         //TODO @jason, put this back:
         this._loginHelper.setToken(accessToken);
     }

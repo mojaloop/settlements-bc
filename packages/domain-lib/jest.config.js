@@ -1,5 +1,7 @@
+"use strict";
+
 const { name } = require("./package.json");
-let packageName = name.replace("@mojaloop", "");
+let packageName = name.replace("@mojaloop", "") || "unknown_package_name";
 
 module.exports = {
   preset: "ts-jest",

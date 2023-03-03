@@ -85,7 +85,7 @@ X-Correlation-ID: Manual-{{$uuid}}
 Authorization: Bearer {{access_token}}
 
 {
-  "fromDate": 1677771333000,
+  "fromDate": 1677852484806,
   "toDate": 9677771547000,
   "settlementModel": "DEFAULT",
   "currencyCode": "USD"
@@ -101,11 +101,17 @@ Content-Type: application/json
 X-Correlation-ID: Manual-{{$uuid}}
 Authorization: Bearer {{access_token}}
 
+// TODO add a new post to recalculate the trasnfers but not inclde any new batches (no criteria re-search)
+
 ### Test - [Request settlement matrix recalculation - new batches that match criteria, will be included]:
 POST http://localhost:3600/matrix/{{matrix_id}}/recalculate
 Content-Type: application/json
 X-Correlation-ID: Manual-{{$uuid}}
 Authorization: Bearer {{access_token}}
+
+{
+  "includeNewBatches": true
+}
 
 ### Test - [Close settlement matrix - no new batches will be included]:
 POST http://localhost:3600/matrix/{{matrix_id}}/close

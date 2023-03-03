@@ -1,6 +1,6 @@
 {
   "name": "@mojaloop/settlements-bc-settlements-api-svc",
-  "version": "0.0.4",
+  "version": "0.1.0",
   "description": "Settlements BC - HTTP Service",
   "license": "Apache-2.0",
   "homepage": "https://github.com/mojaloop/settlements-bc/tree/main/packages/http-svc",
@@ -43,9 +43,9 @@
     "@mojaloop/auditing-bc-public-types-lib": "~0.0.12",
     "@mojaloop/logging-bc-client-lib": "~0.1.18",
     "@mojaloop/logging-bc-public-types-lib": "~0.1.15",
-    "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib": "~0.3.32",
-    "@mojaloop/security-bc-client-lib": "~0.1.14",
-    "@mojaloop/security-bc-public-types-lib": "~0.1.14",
+    "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib": "~0.3.34",
+    "@mojaloop/security-bc-client-lib": "~0.1.15",
+    "@mojaloop/security-bc-public-types-lib": "~0.1.15",
     "express": "~4.18.2"
   }
 }

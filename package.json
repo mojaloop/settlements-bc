@@ -33,7 +33,9 @@
     "coverage:merge": "nyc merge ./coverage/ ./coverage/coverage.json",
     "coverage:gen-report": "nyc report --reporter=lcov --temp-dir=./coverage",
     "test": "npm run test:unit",
-    "start-http": "npm -w @mojaloop/settlements-bc-http-svc run start"
+    "start:api-svc": "npm -w @mojaloop/settlements-bc-settlements-api-svc run start",
+    "start:command-handler-svc": "npm -w packages/command-handler-svc run start",
+    "start:event-handler-svc": "npm -w packages/event-handler-svc run start"
   },
   "devDependencies": {
     "@types/jest": "~29.4.0",
@@ -54,6 +56,8 @@
     "packages/domain-lib",
     "packages/infrastructure-lib",
     "packages/shared-mocks-lib",
+    "packages/event-handler-svc",
+    "packages/command-handler-svc",
     "packages/*"
   ]
 }

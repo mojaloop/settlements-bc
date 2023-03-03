@@ -28,7 +28,7 @@
 "use strict";
 
 import {IParticipantAccountNotifier} from "@mojaloop/settlements-bc-domain-lib";
-import {ISettlementMatrixDto} from "@mojaloop/settlements-bc-public-types-lib";
+import {ISettlementMatrix} from "@mojaloop/settlements-bc-public-types-lib";
 
 export class ParticipantAccountNotifierMock implements IParticipantAccountNotifier {
 
@@ -39,7 +39,7 @@ export class ParticipantAccountNotifierMock implements IParticipantAccountNotifi
 		return Promise.resolve();
 	}
 
-	async publishSettlementMatrixExecuteEvent(matrix: ISettlementMatrixDto): Promise<void> {
+	async publishSettlementMatrixExecuteEvent(matrix: ISettlementMatrix): Promise<void> {
 		//TODO publish to the external system:
 		return Promise.resolve();
 	}

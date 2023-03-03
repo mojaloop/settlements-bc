@@ -19,18 +19,51 @@
  their names indented and be marked with a '-'. Email address can be added
  optionally within square brackets <email>.
 
- Coil
- - Jason Bruwer <jason.bruwer@coil.com>
+ * Gates Foundation
+ - Name Surname <name.surname@gatesfoundation.com>
+
+ * Crosslake
+ - Pedro Sousa Barreto <pedrob@crosslaketech.com>
 
  --------------
  ******/
 
 "use strict";
 
-export * from "./aggregate";
-export * from "./types/errors";
-export * from "./types/infrastructure";
-export * from "./privileges";
-export * from "./converters";
-export * from "./commands";
-export * from "./types/matrix";  // BC private matrix interfaces for infra and mocks
+import {CommandMsg} from "@mojaloop/platform-shared-lib-messaging-types-lib";
+import {
+	SETTLEMENTS_BOUNDED_CONTEXT_NAME,
+	SETTLEMENTS_AGGREGATE_NAME,
+	SettlementsBCTopics
+} from "@mojaloop/platform-shared-lib-public-messages-lib";
+
+
+export type ProcessTransferCmdPayload = {
+	transferId: string;
+	amount: string;
+	currencyCode: string;
+	payerFspId: string;
+	payeeFspId: string;
+	completedTimestamp: number;
+	settlementModel: string;
+}
+
+export class ProcessTransferCmd extends CommandMsg {
+	boundedContextName: string = SETTLEMENTS_BOUNDED_CONTEXT_NAME;
+	aggregateId: string;
+	aggregateName: string = SETTLEMENTS_AGGREGATE_NAME;
+	msgKey: string;
+	msgTopic: string = SettlementsBCTopics.DomainRequests;
+	payload: ProcessTransferCmdPayload;
+
+	constructor(payload: ProcessTransferCmdPayload) {
+		super();
+
+		this.aggregateId = this.msgKey = payload.transferId;
+		this.payload = payload;
+	}
+
+	validatePayload(): void {
+		// TODO
+	}
+}

@@ -19,18 +19,47 @@
  their names indented and be marked with a '-'. Email address can be added
  optionally within square brackets <email>.
 
- Coil
- - Jason Bruwer <jason.bruwer@coil.com>
+ * Gates Foundation
+ - Name Surname <name.surname@gatesfoundation.com>
+
+ * Crosslake
+ - Pedro Sousa Barreto <pedrob@crosslaketech.com>
 
  --------------
  ******/
 
 "use strict";
 
-export * from "./aggregate";
-export * from "./types/errors";
-export * from "./types/infrastructure";
-export * from "./privileges";
-export * from "./converters";
-export * from "./commands";
-export * from "./types/matrix";  // BC private matrix interfaces for infra and mocks
+import {
+    ConfigurationClient,
+    DefaultConfigProvider
+} from "@mojaloop/platform-configuration-bc-client-lib";
+// import { ConfigParameterTypes } from "@mojaloop/platform-configuration-bc-public-types-lib";
+
+// configs - constants / code dependent
+const BC_NAME = "settlements-bc";
+const APP_NAME = "command-handler-svc";
+const APP_VERSION = process.env.npm_package_version || "0.0.0";
+const CONFIGSET_VERSION = "0.0.1";
+
+// configs - non-constants
+const ENV_NAME = process.env["ENV_NAME"] || "dev";
+
+// use default url from PLATFORM_CONFIG_CENTRAL_URL env var
+const defaultConfigProvider: DefaultConfigProvider = new DefaultConfigProvider();
+
+const configClient = new ConfigurationClient(ENV_NAME, BC_NAME, APP_NAME, APP_VERSION, CONFIGSET_VERSION, defaultConfigProvider);
+
+/*
+* Add application parameters here
+* */
+
+// configClient.appConfigs.addNewParam(
+//         "PARAM_NAME",
+//         ConfigParameterTypes.BOOL,
+//         true,
+//         "param description"
+// );
+
+export = configClient;
+

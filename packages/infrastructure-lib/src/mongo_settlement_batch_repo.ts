@@ -125,12 +125,12 @@ export class MongoSettlementBatchRepo implements ISettlementBatchRepo {
 		}
 	}
 
-	async getBatchesByNames(batchNames: string[]): Promise<ISettlementBatch[]>{
+	async getBatchesByIds(batchIds: string[]): Promise<ISettlementBatch[]>{
 		try {
-			const batches = await this._collection.find({batchName: {$in: batchNames}}).project({_id: 0}).toArray();
+			const batches = await this._collection.find({id: {$in: batchIds}}).project({_id: 0}).toArray();
 			return batches as ISettlementBatch[];
 		} catch (error: any) {
-			throw new Error("Unable to get batches by name from repo - msg: " + error.message);
+			throw new Error("Unable to get batches by ids from repo - msg: " + error.message);
 		}
 	}
 
