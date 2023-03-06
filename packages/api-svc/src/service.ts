@@ -126,7 +126,7 @@ export class Service {
 	static participantAccountNotifier: IParticipantAccountNotifier;
 	static batchTransferRepo: ISettlementBatchTransferRepo;
 	static matrixRepo: ISettlementMatrixRequestRepo;
-	static messageProducer?: IMessageProducer;
+	static messageProducer: IMessageProducer;
 	static aggregate: SettlementsAggregate;
 
 	static async start(
@@ -275,7 +275,7 @@ export class Service {
 		}
 		this.messageProducer = messageProducer;
 
-
+/*
 		// Aggregate:
 		this.aggregate = new SettlementsAggregate(
 			this.logger,
@@ -289,6 +289,7 @@ export class Service {
 			this.accountsAndBalancesAdapter,
 			this.messageProducer
 		);
+*/
 
 		await this.setupExpress();
 	}
@@ -299,7 +300,15 @@ export class Service {
 			this.app.use(express.json()); // for parsing application/json
 			this.app.use(express.urlencoded({extended: true})); // for parsing application/x-www-form-urlencoded
 
-			const routes = new ExpressRoutes(this.logger, this.tokenHelper, this.aggregate);
+			const routes = new ExpressRoutes(
+				this.logger,
+				this.tokenHelper,
+				this.batchRepo,
+				this.batchTransferRepo,
+				this.matrixRepo,
+				this.messageProducer,
+				// this.aggregate
+			);
 
 			this.app.use("/", routes.MainRouter);
 

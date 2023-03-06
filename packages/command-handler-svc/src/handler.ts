@@ -34,7 +34,13 @@ import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import {IMessage,IMessageConsumer, CommandMsg} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import {SettlementsBCTopics} from "@mojaloop/platform-shared-lib-public-messages-lib";
 
-import {ProcessTransferCmd, SettlementsAggregate} from "@mojaloop/settlements-bc-domain-lib";
+import {
+	CloseMatrixCmd, CloseMatrixCmdPayload,
+	CreateMatrixCmd,
+	CreateMatrixCmdPayload,
+	ProcessTransferCmd, RecalculateMatrixCmd, RecalculateMatrixCmdPayload,
+	SettlementsAggregate
+} from "@mojaloop/settlements-bc-domain-lib";
 import {CallSecurityContext} from "@mojaloop/security-bc-public-types-lib/dist/index";
 import {MLKafkaJsonConsumer} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib/dist/rdkafka_json_consumer";
 import {ILoginHelper, ITokenHelper, UnauthorizedError} from "@mojaloop/security-bc-public-types-lib";
@@ -78,10 +84,38 @@ export class SettlementsCommandHandler{
 			try {
 				const sectCtx = await this._getServiceSecContext();
 
-
 				switch (message.msgName) {
 					case ProcessTransferCmd.name:
 						await this._settlementsAgg.processTransferCmd(sectCtx, message as ProcessTransferCmd);
+						break;
+					case CreateMatrixCmd.name:
+						// eslint-disable-next-line no-case-declarations
+						const createPayload = message.payload as CreateMatrixCmdPayload;
+						await this._settlementsAgg.createSettlementMatrix(
+							sectCtx,
+							createPayload.matrixId,
+							createPayload.settlementModel,
+							createPayload.currencyCode,
+							createPayload.fromDate,
+							createPayload.toDate
+						);
+						break;
+					case RecalculateMatrixCmd.name:
+						// eslint-disable-next-line no-case-declarations
+						const recalcPayload = message.payload as RecalculateMatrixCmdPayload;
+						await this._settlementsAgg.recalculateSettlementMatrix(
+							sectCtx,
+							recalcPayload.matrixId,
+							//recalcPayload.includeNewBatches
+						);
+						break;
+					case CloseMatrixCmd.name:
+						// eslint-disable-next-line no-case-declarations
+						const closePayload = message.payload as CloseMatrixCmdPayload;
+						await this._settlementsAgg.closeSettlementMatrix(
+							sectCtx,
+							closePayload.matrixId
+						);
 						break;
 					default: {
 						this._logger.isWarnEnabled() && this._logger.warn(`TransfersCommandHandler - unknown command - msgName: ${message?.msgName} msgKey: ${message?.msgKey} msgId: ${message?.msgId}`);

@@ -39,7 +39,7 @@ import {
 	InvalidTimestampError,
 	InvalidTransferIdError,
 	NoSettlementConfig,
-	SettlementBatchNotFoundError,
+	SettlementBatchNotFoundError, SettlementMatrixAlreadyExistsError,
 	SettlementMatrixIsBusyError,
 	SettlementMatrixIsClosedError,
 	SettlementMatrixNotFoundError,
@@ -293,6 +293,7 @@ export class SettlementsAggregate {
 
 	async createSettlementMatrix(
 		secCtx: CallSecurityContext,
+		matrixId: string,
 		settlementModel: string,
 		currencyCode: string,
 		fromDate: number,
@@ -306,6 +307,16 @@ export class SettlementsAggregate {
 			currencyCode,
 			settlementModel
 		);
+
+		if(matrixId){
+			const existing = await this._settlementMatrixReqRepo.getMatrixById(matrixId);
+			if(existing){
+				const err = new SettlementMatrixAlreadyExistsError("Matrix with the same id already exists");
+				this._logger.warn(err.message);
+				throw err;
+			}
+			newMatrix.id = matrixId;
+		}
 
 		const startTimestamp = Date.now();
 

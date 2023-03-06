@@ -67,3 +67,84 @@ export class ProcessTransferCmd extends CommandMsg {
 		// TODO
 	}
 }
+
+export type CreateMatrixCmdPayload = {
+	matrixId: string;
+	fromDate: number;
+	toDate: number;
+	currencyCode: string;
+	settlementModel: string;
+}
+
+
+export class CreateMatrixCmd extends CommandMsg {
+	boundedContextName: string = SETTLEMENTS_BOUNDED_CONTEXT_NAME;
+	aggregateId: string;
+	aggregateName: string = SETTLEMENTS_AGGREGATE_NAME;
+	msgKey: string;
+	msgTopic: string = SettlementsBCTopics.DomainRequests;
+	payload: CreateMatrixCmdPayload;
+
+	constructor(payload: CreateMatrixCmdPayload) {
+		super();
+
+		this.aggregateId = this.msgKey = payload.matrixId;
+		this.payload = payload;
+	}
+
+	validatePayload(): void {
+		// TODO
+	}
+}
+
+
+export type RecalculateMatrixCmdPayload = {
+	matrixId: string;
+	includeNewBatches:boolean;
+}
+
+export class RecalculateMatrixCmd extends CommandMsg {
+	boundedContextName: string = SETTLEMENTS_BOUNDED_CONTEXT_NAME;
+	aggregateId: string;
+	aggregateName: string = SETTLEMENTS_AGGREGATE_NAME;
+	msgKey: string;
+	msgTopic: string = SettlementsBCTopics.DomainRequests;
+	payload: RecalculateMatrixCmdPayload;
+
+	constructor(payload: RecalculateMatrixCmdPayload) {
+		super();
+
+		this.aggregateId = this.msgKey = payload.matrixId;
+		this.payload = payload;
+	}
+
+	validatePayload(): void {
+		// TODO
+	}
+}
+
+
+
+export type CloseMatrixCmdPayload = {
+	matrixId: string;
+}
+
+export class CloseMatrixCmd extends CommandMsg {
+	boundedContextName: string = SETTLEMENTS_BOUNDED_CONTEXT_NAME;
+	aggregateId: string;
+	aggregateName: string = SETTLEMENTS_AGGREGATE_NAME;
+	msgKey: string;
+	msgTopic: string = SettlementsBCTopics.DomainRequests;
+	payload: CloseMatrixCmdPayload;
+
+	constructor(payload: CloseMatrixCmdPayload) {
+		super();
+
+		this.aggregateId = this.msgKey = payload.matrixId;
+		this.payload = payload;
+	}
+
+	validatePayload(): void {
+		// TODO
+	}
+}

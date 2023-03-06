@@ -57,6 +57,17 @@ export class SettlementMatrixRequestRepoMock implements ISettlementMatrixRequest
 		return Promise.resolve(null);
 	}
 
+	async getMatrices(state?:string): Promise<ISettlementMatrix[]>{
+		const ret: ISettlementMatrix[] = [];
+
+		for (const matrixReqIter of this.matrixRequests) {
+			if (!state || matrixReqIter.state.toUpperCase() !== state.toUpperCase()) {
+				ret.push(matrixReqIter);
+			}
+		}
+		return Promise.resolve(ret);
+	}
+
 	/*async closeSettlementMatrixRequest(matrixReq: ISettlementMatrixRequestDto): Promise<void> {
 		if (matrixReq.id == null) return Promise.resolve();
 

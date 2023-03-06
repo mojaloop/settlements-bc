@@ -33,10 +33,18 @@ import {
 	InvalidCreditAccountError,
 	InvalidCurrencyCodeError,
 	InvalidDebitAccountError,
-	InvalidExternalIdError, InvalidTimestampError,
+	InvalidExternalIdError,
+	InvalidTimestampError,
 	SettlementBatchNotFoundError,
 	UnableToGetAccountError,
-	UnauthorizedError, SettlementMatrixNotFoundError, SettlementMatrixIsBusyError, SettlementMatrixIsClosedError
+	UnauthorizedError,
+	SettlementMatrixNotFoundError,
+	SettlementMatrixIsBusyError,
+	SettlementMatrixIsClosedError,
+	ISettlementBatchRepo,
+	ISettlementMatrixRequestRepo,
+	ISettlementBatchTransferRepo,
+	CreateMatrixCmd, CreateMatrixCmdPayload, RecalculateMatrixCmd, CloseMatrixCmd
 } from "@mojaloop/settlements-bc-domain-lib";
 import {CallSecurityContext} from "@mojaloop/security-bc-public-types-lib";
 import {
@@ -44,6 +52,8 @@ ISettlementBatchTransfer,
 } from "@mojaloop/settlements-bc-public-types-lib";
 import express from "express";
 import {ITokenHelper} from "@mojaloop/security-bc-public-types-lib";
+import {randomUUID} from "crypto";
+import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib/dist/index";
 
 // Extend express request to include our security fields.
 declare module "express-serve-static-core" {
@@ -55,18 +65,30 @@ declare module "express-serve-static-core" {
 export class ExpressRoutes {
 	private readonly _logger: ILogger;
 	private readonly _tokenHelper: ITokenHelper;
-	private readonly _aggregate: SettlementsAggregate;
+	// private readonly _aggregate: SettlementsAggregate;
+	private readonly _batchRepo: ISettlementBatchRepo;
+	private readonly _batchTransferRepo: ISettlementBatchTransferRepo;
+	private readonly _matrixRepo: ISettlementMatrixRequestRepo;
+	private readonly _messageProducer: IMessageProducer;
 	private static readonly UNKNOWN_ERROR_MESSAGE: string = "unknown error";
 	private readonly _router: express.Router;
 
 	constructor(
 		logger: ILogger,
 		tokenHelper: ITokenHelper,
-		aggregate: SettlementsAggregate
+		batchRepo: ISettlementBatchRepo,
+		batchTransferRepo: ISettlementBatchTransferRepo,
+		matrixRepo: ISettlementMatrixRequestRepo,
+		messageProducer: IMessageProducer,
+		// aggregate: SettlementsAggregate
 	) {
 		this._logger = logger.createChild(this.constructor.name);
 		this._tokenHelper = tokenHelper;
-		this._aggregate = aggregate;
+		this._batchRepo = batchRepo;
+		this._batchTransferRepo = batchTransferRepo;
+		this._matrixRepo = matrixRepo;
+		this._messageProducer = messageProducer;
+		// this._aggregate = aggregate;
 
 		this._router = express.Router();
 
@@ -77,7 +99,7 @@ export class ExpressRoutes {
 		
 		// transfer inject
 		// this is for tests only, normal path is though events (event/command handler)
-		this._router.post("/transfer", this.postHandleTransfer.bind(this));
+		// this._router.post("/transfer", this.postHandleTransfer.bind(this));
 
 		// Batches
 		this._router.get("/batches/:id", this.getSettlementBatch.bind(this));
@@ -97,6 +119,8 @@ export class ExpressRoutes {
 		this._router.post("/matrix/:id/close", this.postCloseSettlementMatrix.bind(this));
 		// get matrix by id - static get, no recalculate
 		this._router.get("/matrix/:id", this.getSettlementMatrix.bind(this));
+		// get matrices - static get, no recalculate
+		this._router.get("/matrix", this.getSettlementMatrices.bind(this));
 	}
 
 
@@ -146,6 +170,7 @@ export class ExpressRoutes {
 		return this._router;
 	}
 
+	/*
 	// this is for tests only, normal path is though events (event/command handler)
 	private async postHandleTransfer(req: express.Request, res: express.Response): Promise<void> {
 		try {
@@ -174,12 +199,15 @@ export class ExpressRoutes {
 			}
 		}
 	}
+	*/
 
 	private async getSettlementBatch(req: express.Request, res: express.Response): Promise<void> {
+		// TODO enforce privileges
+
 		const batchId = req.params.id as string;
 		try {
-			this._logger.debug(`Got getSettlementBatch request for bathchId: ${batchId}`);
-			const settlementBatch = await this._aggregate.getSettlementBatch(req.securityContext!, batchId);
+			this._logger.debug(`Got getSettlementBatch request for batchId: ${batchId}`);
+			const settlementBatch = await this._batchRepo.getBatch(batchId);
 			if(!settlementBatch){
 				res.sendStatus(404);
 				return;
@@ -197,11 +225,12 @@ export class ExpressRoutes {
 		const currencyCode = req.query.currencyCode as string;
 		const fromDate = req.query.fromDate as string;
 		const toDate = req.query.toDate as string;
+
+		// TODO enforce privileges
+
 		try {
 			if(batchName){
-				this._logger.debug(`got getSettlementBatches request - batchName: ${batchName}`);
-				const settlementBatches = await this._aggregate.getSettlementBatchesByName(
-					req.securityContext!,
+				const settlementBatches = await this._batchRepo.getBatchesByName(
 					batchName
 				);
 				if (!settlementBatches || settlementBatches.length<=0) {
@@ -211,12 +240,12 @@ export class ExpressRoutes {
 				this.sendSuccessResponse(res, 200, settlementBatches);// OK
 			}else{
 				this._logger.debug(`got getSettlementBatches request - Now is [${Date.now()}] Settlement Batches from [${new Date(Number(fromDate))}] to [${new Date(Number(toDate))}] on [${settlementModel}].`);
-				const settlementBatches = await this._aggregate.getSettlementBatchesByCriteria(
-					req.securityContext!,
-					settlementModel,
-					currencyCode,
+
+				const settlementBatches = await this._batchRepo.getBatchesByCriteria(
 					Number(fromDate),
-					Number(toDate)
+					Number(toDate),
+					currencyCode,
+					settlementModel
 				);
 				if (!settlementBatches || settlementBatches.length <= 0) {
 					res.sendStatus(404);
@@ -231,18 +260,15 @@ export class ExpressRoutes {
 	}
 
 	private async getSettlementBatchTransfers(req: express.Request, res: express.Response): Promise<void> {
+		// TODO enforce privileges
 		const batchId = req.query.batchId as string || req.query.batchid as string;
 		const batchName = req.query.batchName as string || req.query.batchname as string;
 		try {
 			let settlementTransfers:ISettlementBatchTransfer[];
 			if(batchId){
-				settlementTransfers = await this._aggregate.getSettlementBatchTransfersByBatchId(
-					req.securityContext!, batchId
-				);
+				settlementTransfers = await this._batchTransferRepo.getBatchTransfersByBatchId(batchId);
 			}else if(batchName){
-				settlementTransfers = await this._aggregate.getSettlementBatchTransfersByBatchName(
-					req.securityContext!, batchName
-				);
+				settlementTransfers = await this._batchTransferRepo.getBatchTransfersByBatchName(batchName);
 			}else{
 				settlementTransfers = [];
 			}
@@ -263,20 +289,32 @@ export class ExpressRoutes {
 	}
 
 	private async postCreateMatrix(req: express.Request, res: express.Response): Promise<void> {
+		// TODO enforce privileges
+
 		try {
+			const matrixId = req.body.matrixiId || randomUUID();
 			const currencyCode = req.body.currencyCode;
 			const settlementModel = req.body.settlementModel;
 			const fromDate = req.body.fromDate;
 			const toDate = req.body.toDate;
 
-			const matrixId = await this._aggregate.createSettlementMatrix(
-				req.securityContext!,
-				settlementModel,
-				currencyCode,
-				Number(fromDate),
-				Number(toDate)
-			);
-			this.sendSuccessResponse(res, 202, matrixId);
+			const matrix = await this._matrixRepo.getMatrixById(matrixId);
+			if(matrix){
+				return this.sendErrorResponse(res,400, "Matrix with the same id already exists");
+			}
+
+			const cmdPayload:CreateMatrixCmdPayload = {
+				matrixId: matrixId,
+				fromDate: fromDate,
+				toDate: toDate,
+				currencyCode: currencyCode,
+				settlementModel: settlementModel
+			};
+			const cmd = new CreateMatrixCmd(cmdPayload);
+
+			await this._messageProducer.send(cmd);
+
+			this.sendSuccessResponse(res, 202, {id: matrixId});
 		} catch (error: any) {
 			this._logger.error(error);
 			if (error instanceof UnauthorizedError) {
@@ -290,9 +328,20 @@ export class ExpressRoutes {
 	private async postRecalculateMatrix(req: express.Request, res: express.Response): Promise<void> {
 		try {
 			const matrixId = req.params.id as string;
-			await this._aggregate.recalculateSettlementMatrix(req.securityContext!, matrixId);
+			const includeNewBatches = req.body.includeNewBatches as string;
 
-			this.sendSuccessResponse(res, 202, matrixId);
+			const matrix = await this._matrixRepo.getMatrixById(matrixId);
+			if(!matrix){
+				return this.sendErrorResponse(res,404, "Matrix not found");
+			}
+
+			const cmd = new RecalculateMatrixCmd({
+				matrixId:matrixId,
+				includeNewBatches: Boolean(includeNewBatches) || true
+			});
+			await this._messageProducer.send(cmd);
+
+			this.sendSuccessResponse(res, 202, {id: matrixId});
 		} catch (error: any) {
 			this._logger.error(error);
 			if (error instanceof SettlementMatrixIsClosedError || error instanceof SettlementMatrixIsBusyError) {
@@ -308,15 +357,21 @@ export class ExpressRoutes {
 	}
 
 
-	/*
-	* Old below
-	* */
 
 	private async postCloseSettlementMatrix(req: express.Request, res: express.Response): Promise<void> {
 		try {
-			const id = req.params.id as string;
-			await this._aggregate.closeSettlementMatrix(req.securityContext!, id);
-			this.sendSuccessResponse(res, 202, null);
+			const matrixId = req.params.id as string;
+
+			const matrix = await this._matrixRepo.getMatrixById(matrixId);
+			if(!matrix){
+				return this.sendErrorResponse(res,404, "Matrix not found");
+			}
+
+			const cmd = new CloseMatrixCmd({matrixId:matrixId});
+			await this._messageProducer.send(cmd);
+
+
+			this.sendSuccessResponse(res, 202, {id: matrixId});
 		} catch (error: any) {
 			this._logger.error(error);
 			if (error instanceof SettlementMatrixIsClosedError || error instanceof SettlementMatrixIsBusyError) {
@@ -332,10 +387,15 @@ export class ExpressRoutes {
 	}
 
 	private async getSettlementMatrix(req: express.Request, res: express.Response): Promise<void> {
+		// TODO enforce privileges
+
 		try {
 			const id = req.params.id as string;
 
-			const resp = await this._aggregate.getSettlementMatrix(req.securityContext!, id);
+			const resp = await this._matrixRepo.getMatrixById(id);
+			if(!resp){
+				return this.sendErrorResponse(res, 404, "Matrix not found");
+			}
 			this.sendSuccessResponse(res, 200, resp);// OK
 		} catch (error: any) {
 			this._logger.error(error);
@@ -349,30 +409,29 @@ export class ExpressRoutes {
 		}
 	}
 
+	private async getSettlementMatrices(req: express.Request, res: express.Response): Promise<void> {
+		// TODO enforce privileges
 
-
-/*	private async getSettlementBatchAccounts(req: express.Request, res: express.Response): Promise<void> {
-		const batchIdentifier = req.query.batchIdentifier as string;
-		const batchId = req.query.batchId as string;
 		try {
-			let settlementAccounts = [];
-			if (batchId !== null && batchId !== undefined && batchId.trim().length > 0) {
-				settlementAccounts = await this._aggregate.getSettlementBatch(
-					batchId, req.securityContext!);
-			} else {
-				settlementAccounts = await this._aggregate.getSettlementBatchAccountsByBatchIdentifier(
-					batchIdentifier, req.securityContext!);
+			const state = req.params.state as string;
+
+			const resp = await this._matrixRepo.getMatrices(state ?? null);
+
+			if(!resp || resp.length<=0){
+				return this.sendErrorResponse(res, 404, "No matrices found");
 			}
-			this.sendSuccessResponse(res, 200, settlementAccounts);// OK
+			this.sendSuccessResponse(res, 200, resp);// OK
 		} catch (error: any) {
 			this._logger.error(error);
-			if (error instanceof SettlementBatchNotFoundError) {
-				this.sendErrorResponse(res, 400, error.message);
+			if (error instanceof UnauthorizedError) {
+				this.sendErrorResponse(res, 403, "unauthorized"); // TODO: verify.
+			} else if (error instanceof SettlementMatrixNotFoundError) {
+				this.sendErrorResponse(res, 404, error.message);
 			} else {
 				this.sendErrorResponse(res, 500, error.message || ExpressRoutes.UNKNOWN_ERROR_MESSAGE);
 			}
 		}
-	}*/
+	}
 
 
 	private sendErrorResponse(res: express.Response, statusCode: number, message: string) {

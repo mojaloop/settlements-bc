@@ -30,7 +30,7 @@
 
 "use strict";
 
-
+import {randomUUID} from "crypto";
 import {existsSync} from "fs";
 import {IAuditClient} from "@mojaloop/auditing-bc-public-types-lib";
 import {ILogger, LogLevel} from "@mojaloop/logging-bc-public-types-lib";
@@ -255,6 +255,18 @@ export class Service {
 				SETTLEMENT_CONFIGS_COLLECTION_NAME
 			);
 			await configRepo.init();
+
+			if (!PRODUCTION_MODE){
+				const defaultModel = await configRepo.getSettlementConfigByModel("DEFAULT");
+				if(!defaultModel){
+					// create default model with 5 mins
+					await configRepo.storeConfig({
+						id: randomUUID(),
+						settlementModel: "DEFAULT",
+						batchCreateInterval: 300
+					});
+				}
+			}
 		}
 		this.configRepo = configRepo;
 

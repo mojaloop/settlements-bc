@@ -101,4 +101,18 @@ export class MongoSettlementMatrixRepo implements ISettlementMatrixRequestRepo {
 		}
 	}
 
+	async getMatrices(state?:string): Promise<ISettlementMatrix[]>{
+		try {
+			let resp;
+			if(state){
+				resp = await this._collection.find({state: state}).project({_id: 0}).toArray();
+			}else{
+				resp = await this._collection.find().project({_id: 0}).toArray();
+			}
+			return resp as (ISettlementMatrix[]);
+		} catch (error: any) {
+			throw new Error("Unable to getMatrices from repo - msg: " + error.message);
+		}
+	}
+
 }
