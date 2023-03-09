@@ -88,24 +88,41 @@ export class MongoSettlementTransferRepo implements ISettlementBatchTransferRepo
 	}
 
 	async storeBatchTransfer(batchTransfer: ISettlementBatchTransfer): Promise<void>{
-		await this._collection.insertOne(batchTransfer);
+		await this._collection.updateOne({transferId: batchTransfer.transferId}, {$set: batchTransfer}, {upsert: true});
 	}
 
-	async getBatchTransfersByBatchId(batchId: string): Promise<ISettlementBatchTransfer[]> {
+	async getBatchTransfersByTransferId(transferId: string): Promise<ISettlementBatchTransfer[]> {
 		try {
-			const batches = await this._collection.find({batchId: batchId}).project({_id: 0}).toArray();
+			const batches = await this._collection.find({transferId: transferId}).project({_id: 0}).toArray();
 			return batches as ISettlementBatchTransfer[];
 		} catch (error: any) {
-			throw new Error("Unable to get transfers by batchId from repo - msg: " + error.message);
+			throw new Error("Unable to get transfers by transferId from repo - msg: " + error.message);
 		}
 	}
 
-	async getBatchTransfersByBatchName(batchName: string): Promise<ISettlementBatchTransfer[]> {
+	async getBatchTransfersByBatchIds(batchIds: string[]): Promise<ISettlementBatchTransfer[]> {
 		try {
-			const batches = await this._collection.find({batchId: batchName}).project({_id: 0}).toArray();
+			const batches = await this._collection.find({batchId: {$in: batchIds}}).project({_id: 0}).toArray();
 			return batches as ISettlementBatchTransfer[];
 		} catch (error: any) {
-			throw new Error("Unable to get transfers by batchName from repo - msg: " + error.message);
+			throw new Error("Unable to get transfers by batchIds from repo - msg: " + error.message);
+		}
+	}
+
+	async getBatchTransfersByBatchNames(batchNames: string[]): Promise<ISettlementBatchTransfer[]> {
+		try {
+			const batches = await this._collection.find({batchName: {$in: batchNames}}).project({_id: 0}).toArray();
+			return batches as ISettlementBatchTransfer[];
+		} catch (error: any) {
+			throw new Error("Unable to get transfers by batchNames from repo - msg: " + error.message);
+		}
+	}
+	async getBatchTransfers(): Promise<ISettlementBatchTransfer[]> {
+		try {
+			const batches = await this._collection.find({}).project({_id: 0}).toArray();
+			return batches as ISettlementBatchTransfer[];
+		} catch (error: any) {
+			throw new Error("Unable to get transfers from repo - msg: " + error.message);
 		}
 	}
 }

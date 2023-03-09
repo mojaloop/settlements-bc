@@ -257,7 +257,8 @@ export class SettlementsAggregate {
 			transferDto.amount,
 			batch.id,
 			batch.batchName,
-			journalEntryId
+			journalEntryId,
+			false
 		);
 		await this._batchTransferRepo.storeBatchTransfer(batchTransfer);
 
@@ -492,7 +493,6 @@ export class SettlementsAggregate {
 		const currency = this._getCurrencyOrThrow(matrix.currencyCode);
 
 		// start by cleaning the batches
-
 		let batches:ISettlementBatch[];
 		if (close) {
 			// this should never change the already included batches
@@ -510,6 +510,8 @@ export class SettlementsAggregate {
 		// summaries
 		let totalDebit = 0n, totalCredit = 0n;
 		const participantBalances:Map<string, {cr: bigint, dr:bigint}> = new Map<string, {cr: bigint; dr: bigint}>();
+
+		const settledTransfers: ISettlementBatchTransfer[] = [];
 
 		if (batches && batches.length > 0) {
 			await this._updateBatchAccountBalances(batches);
@@ -538,7 +540,9 @@ export class SettlementsAggregate {
 					}
 				});
 
-				const batchTransfers = await this._batchTransferRepo.getBatchTransfersByBatchId(batch.id);
+				const batchTransfers = await this._batchTransferRepo.getBatchTransfersByBatchIds([batch.id]);
+				settledTransfers.push(...batchTransfers);
+
 				matrix.addBatch(
 					batch,
 					bigintToString(batchDebitBalance, currency.decimals),
@@ -553,6 +557,15 @@ export class SettlementsAggregate {
 		// update main balances
 		matrix.totalDebitBalance = bigintToString(totalDebit, currency.decimals);
 		matrix.totalCreditBalance = bigintToString(totalCredit, currency.decimals);
+
+		// if closing, mark transfers as settled by this matrix
+		if(close) {
+			for (const transfer of settledTransfers) {
+				transfer.settled = true;
+				transfer.matrixId = matrix.id;
+				await this._batchTransferRepo.storeBatchTransfer(transfer);
+			}
+		}
 
 		// put per participant balances in the matrix
 		participantBalances.forEach((value, key) => {
@@ -641,7 +654,7 @@ export class SettlementsAggregate {
 			throw new SettlementBatchNotFoundError(`Unable to locate Settlement Batch with 'Batch Id"" '${batchId}'.`);
 		}
 
-		const ISettlementBatchTransfer = await this._batchTransferRepo.getBatchTransfersByBatchId(batchId);
+		const ISettlementBatchTransfer = await this._batchTransferRepo.getBatchTransfersByBatchIds([batchId]);
 
 		return ISettlementBatchTransfer;
 	}
@@ -654,22 +667,16 @@ export class SettlementsAggregate {
 			return [];
 		}
 
-		const ret: ISettlementBatchTransfer[] = [];
+		const batchIds = batches.map(value => value.id);
+		const transfers = await this._batchTransferRepo.getBatchTransfersByBatchIds(batchIds);
 
-		for(const batch of batches){
-			const transfers = await this._batchTransferRepo.getBatchTransfersByBatchId(batch.id);
-			ret.push(...transfers);
-		}
-
-
-		return ret;
+		return transfers;
 	}
 
 	private _generateBatchName(
 		model: string,
 		currencyCode: string,
 		toDate: Date,
-		batchAllocation?: string
 	): string {
 		//TODO add assertion here:
 		//FX.XOF:RWF.2021.08.23.00.00

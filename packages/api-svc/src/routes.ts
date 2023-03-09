@@ -263,14 +263,26 @@ export class ExpressRoutes {
 		// TODO enforce privileges
 		const batchId = req.query.batchId as string || req.query.batchid as string;
 		const batchName = req.query.batchName as string || req.query.batchname as string;
+		const transferId = req.query.transferId as string || req.query.transferid as string;
+		const matrixId = req.query.matrixId as string || req.query.matrixid as string;
 		try {
 			let settlementTransfers:ISettlementBatchTransfer[];
 			if(batchId){
-				settlementTransfers = await this._batchTransferRepo.getBatchTransfersByBatchId(batchId);
+				settlementTransfers = await this._batchTransferRepo.getBatchTransfersByBatchIds([batchId]);
 			}else if(batchName){
-				settlementTransfers = await this._batchTransferRepo.getBatchTransfersByBatchName(batchName);
+				settlementTransfers = await this._batchTransferRepo.getBatchTransfersByBatchNames([batchName]);
+			}else if(transferId){
+				settlementTransfers = await this._batchTransferRepo.getBatchTransfersByTransferId(transferId);
+			}else if(matrixId){
+				const matrix = await this._matrixRepo.getMatrixById(matrixId);
+				if(!matrix){
+					res.status(404).json({message: "matrix not found"});
+					return;
+				}
+				const batchIds = matrix.batches.map(item => item.id);
+				settlementTransfers = await this._batchTransferRepo.getBatchTransfersByBatchIds(batchIds);
 			}else{
-				settlementTransfers = [];
+				settlementTransfers = await this._batchTransferRepo.getBatchTransfers();
 			}
 
 			if (!settlementTransfers || settlementTransfers.length <= 0) {
@@ -355,7 +367,6 @@ export class ExpressRoutes {
 			}
 		}
 	}
-
 
 
 	private async postCloseSettlementMatrix(req: express.Request, res: express.Response): Promise<void> {

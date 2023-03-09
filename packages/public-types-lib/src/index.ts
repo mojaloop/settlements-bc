@@ -82,6 +82,8 @@ export interface ISettlementBatchTransfer{
 	batchId: string;
 	batchName: string;
 	journalEntryId: string;
+	settled:boolean;
+	matrixId: string | null;
 }
 
 

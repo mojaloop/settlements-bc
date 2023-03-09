@@ -97,8 +97,10 @@ export interface ISettlementBatchTransferRepo {
 	init(): Promise<void>;
 	destroy(): Promise<void>;
 	storeBatchTransfer(batchTransfer: ISettlementBatchTransfer): Promise<void>;
-	getBatchTransfersByBatchId(batchId: string): Promise<ISettlementBatchTransfer[]>;
-	getBatchTransfersByBatchName(batchName: string): Promise<ISettlementBatchTransfer[]>;
+	getBatchTransfersByBatchIds(batchIds: string[]): Promise<ISettlementBatchTransfer[]>;
+	getBatchTransfersByBatchNames(batchNames: string[]): Promise<ISettlementBatchTransfer[]>;
+	getBatchTransfersByTransferId(transferId: string): Promise<ISettlementBatchTransfer[]>;
+	getBatchTransfers(): Promise<ISettlementBatchTransfer[]>;
 }
 
 

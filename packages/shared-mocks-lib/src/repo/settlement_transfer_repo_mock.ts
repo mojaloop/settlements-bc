@@ -45,11 +45,17 @@ export class SettlementTransferRepoMock implements ISettlementBatchTransferRepo 
 		return Promise.resolve();
 	}
 
-	async getBatchTransfersByBatchId(batchId: string): Promise<ISettlementBatchTransfer[]>{
-		return this._list.filter(value => value.batchId === batchId);
+	async getBatchTransfersByBatchIds(batchIds: string[]): Promise<ISettlementBatchTransfer[]>{
+		return this._list.filter(value => batchIds.includes(value.batchId));
 	}
 
-	async getBatchTransfersByBatchName(batchName: string): Promise<ISettlementBatchTransfer[]> {
-		return this._list.filter(value => value.batchName===batchName);
+	async getBatchTransfersByBatchNames(batchNames: string[]): Promise<ISettlementBatchTransfer[]> {
+		return this._list.filter(value => batchNames.includes(value.batchName));
+	}
+	async getBatchTransfersByTransferId(transferId: string): Promise<ISettlementBatchTransfer[]> {
+		return this._list.filter(value => value.transferId===transferId);
+	}
+	async getBatchTransfers(): Promise<ISettlementBatchTransfer[]>{
+		return this._list;
 	}
 }
