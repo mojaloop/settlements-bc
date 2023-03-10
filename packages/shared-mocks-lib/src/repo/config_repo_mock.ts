@@ -28,21 +28,27 @@
 "use strict";
 
 import {ISettlementConfigRepo} from "@mojaloop/settlements-bc-domain-lib";
-import {ISettlementConfigDto} from "@mojaloop/settlements-bc-public-types-lib";
+import {ISettlementConfig} from "@mojaloop/settlements-bc-public-types-lib";
 
 export class SettlementConfigRepoMock implements ISettlementConfigRepo {
+
 	async init(): Promise<void> {
 		return Promise.resolve();
 	}
 	async destroy(): Promise<void>{
 		return Promise.resolve();
 	}
-	async getSettlementConfigByModel(model: string): Promise<ISettlementConfigDto | null> {
-		const returnVal : ISettlementConfigDto = {
+
+	storeConfig(config: ISettlementConfig): Promise<void>{
+		throw new Error("not implemented");
+	}
+
+	async getSettlementConfigByModel(model: string): Promise<ISettlementConfig | null> {
+		const returnVal : ISettlementConfig = {
 			id: "1",
 			settlementModel: model,
 			batchCreateInterval: 5000
-		}
+		};
 		return Promise.resolve(returnVal);
 	}
 }

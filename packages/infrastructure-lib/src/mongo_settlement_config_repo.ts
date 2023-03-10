@@ -28,13 +28,14 @@
 "use strict";
 
 import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
-import {MongoClient, Collection, UpdateResult} from "mongodb";
+import {MongoClient, Collection} from "mongodb";
 import {
 	ISettlementConfigRepo,
 	UnableToGetSettlementConfigError,
 	UnableToInitRepoError
 } from "@mojaloop/settlements-bc-domain-lib";
-import {ISettlementConfigDto} from "@mojaloop/settlements-bc-public-types-lib";
+import {ISettlementConfig} from "@mojaloop/settlements-bc-public-types-lib";
+
 
 export class MongoSettlementConfigRepo implements ISettlementConfigRepo {
 	// Properties received through the constructor.
@@ -44,7 +45,7 @@ export class MongoSettlementConfigRepo implements ISettlementConfigRepo {
 	private readonly COLLECTION_NAME: string;
 	// Other properties.
 	private readonly mongoClient: MongoClient;
-	private configs: Collection;
+	private configsCollection: Collection;
 
 	constructor(
 		logger: ILogger,
@@ -66,22 +67,37 @@ export class MongoSettlementConfigRepo implements ISettlementConfigRepo {
 	async init(): Promise<void> {
 		try {
 			await this.mongoClient.connect(); // Throws if the repo is unreachable.
+
+			const db = this.mongoClient.db(this.DB_NAME);
+			const collections = await db.listCollections().toArray();
+
+			// Check if the Participants collection already exists or create.
+			if (collections.find(col => col.name === this.COLLECTION_NAME)) {
+				this.configsCollection = db.collection(this.COLLECTION_NAME);
+			} else {
+				this.configsCollection = await db.createCollection(this.COLLECTION_NAME);
+				await this.configsCollection.createIndex({"id": 1}, {unique: true});
+			}
+			this.logger.info("MongoSettlementConfigRepo - initialised");
 		} catch (error: unknown) {
+			this.logger.error(error, "MongoSettlementConfigRepo - initialisation failed");
 			throw new UnableToInitRepoError((error as any)?.message);
 		}
-		// The following doesn't throw if the repo is unreachable, nor if the db or collection don't exist.
-		this.configs = this.mongoClient.db(this.DB_NAME).collection(this.COLLECTION_NAME);
+
 	}
 
 	async destroy(): Promise<void> {
 		await this.mongoClient.close(); // Doesn't throw if the repo is unreachable.
 	}
 
-	async getSettlementConfigByModel(model: string): Promise<ISettlementConfigDto | null> {
+	async storeConfig(config: ISettlementConfig): Promise<void>{
+		await this.configsCollection.insertOne(config);
+	}
+
+	async getSettlementConfigByModel(model: string): Promise<ISettlementConfig | null> {
 		try {
-			// findOne() doesn't throw if no item is found - null is returned.
-			const config: ISettlementConfigDto | null = null;//TODO FIX: await this.configs.findOne({settlementModel: model});
-			return config;
+			const config = await this.configsCollection.findOne({settlementModel: model}, {projection: {_id: 0}});
+			return config as (ISettlementConfig | null);
 		} catch (error: unknown) {
 			throw new UnableToGetSettlementConfigError((error as any)?.message);
 		}

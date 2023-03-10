@@ -31,6 +31,14 @@
 export class InvalidCreditBalanceError extends Error {}
 export class InvalidDebitBalanceError extends Error {}
 // JournalEntry.
+
+
+export class SettlementMatrixIsClosedError extends Error {}
+export class SettlementMatrixIsBusyError extends Error {}
+export class SettlementMatrixNotFoundError extends Error {}
+export class SettlementMatrixAlreadyExistsError extends Error {}
+
+// old
 export class InvalidExternalCategoryError extends Error {}
 export class InvalidCreditAccountError extends Error {}
 export class InvalidDebitAccountError extends Error {}
@@ -39,8 +47,9 @@ export class NoSettlementConfig extends Error {}
 export class UnableToGetSettlementConfigError extends Error {}
 export class PositionAccountNotFoundError extends Error {}
 export class SettlementBatchNotFoundError extends Error {}
-export class SettlementMatrixRequestNotFoundError extends Error {}
-export class SettlementMatrixRequestClosedError extends Error {}
+
+
+
 export class InvalidJournalEntryAmountError extends Error {}
 export class SameCreditedAndDebitedAccountsError extends Error {}
 export class NoSuchCreditedAccountError extends Error {}

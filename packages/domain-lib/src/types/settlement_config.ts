@@ -27,13 +27,11 @@
 
 "use strict";
 
-import {ISettlementConfigDto} from "@mojaloop/settlements-bc-public-types-lib";
-import {bigintToString} from "../converters";
-import {SettlementBatch} from "./batch";
+import {ISettlementConfig} from "@mojaloop/settlements-bc-public-types-lib";
 
-export class SettlementConfig {
+export class SettlementConfig implements ISettlementConfig{
 	id: string;
-	model: string;
+	settlementModel: string;
 	batchCreateInterval: number;// [seconds]
 
 	constructor(
@@ -42,26 +40,33 @@ export class SettlementConfig {
 		batchCreateInterval: number
 	) {
 		this.id = id;
-		this.model = model;
+		this.settlementModel = model;
 		this.batchCreateInterval = batchCreateInterval;
 	}
-	private batchIntervalMillis() : number {
-		return (this.batchCreateInterval * 1000);
+
+	static fromDto(dto: ISettlementConfig): SettlementConfig{
+		return new SettlementConfig(
+			dto.id,
+			dto.settlementModel,
+			dto.batchCreateInterval
+		);
 	}
 
-	calculateBatchFromDate(timestamp : number) : number {
-		//const date = new Date(timestamp);
-		return (timestamp - this.batchIntervalMillis());
+	calculateBatchStartTimestamp(timestamp:number):number{
+		// this will round down to the batchCreateInterval in seconds (removing the remainder)
+		// returns in milliseconds format
+		// eg: if seconds are 18 and interval is 10 will be 10
+		// eg: if seconds are 31 and interval is 30 will be 30
+		// eg: if seconds are 31 and interval is 60 will be 00
+		if(!(typeof (timestamp)==="number"))
+			throw new Error("Invalid timestamp in calculateBatchStartTimestamp");
+		return Math.floor(timestamp / 1000 / this.batchCreateInterval) * this.batchCreateInterval * 1000;
 	}
 
-	calculateBatchToDate(timestamp : number) : number {
-		return (timestamp + this.batchIntervalMillis());
-	}
-
-	toDto(): ISettlementConfigDto {
-		const configDto: ISettlementConfigDto = {
+	toDto(): ISettlementConfig {
+		const configDto: ISettlementConfig = {
 			id: this.id,
-			settlementModel: this.model,
+			settlementModel: this.settlementModel,
 			batchCreateInterval: this.batchCreateInterval,
 		};
 		return configDto;

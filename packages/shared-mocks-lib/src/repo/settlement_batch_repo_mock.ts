@@ -28,11 +28,11 @@
 "use strict";
 
 import {ISettlementBatchRepo} from "@mojaloop/settlements-bc-domain-lib";
-import {SettlementBatchStatus, ISettlementBatchDto} from "@mojaloop/settlements-bc-public-types-lib";
-import * as console from "console";
+import {ISettlementBatch} from "@mojaloop/settlements-bc-public-types-lib";
 
 export class SettlementBatchRepoMock implements ISettlementBatchRepo {
-	batches: Array<ISettlementBatchDto> = [];
+
+	batches: Array<ISettlementBatch> = [];
 
 	async init(): Promise<void> {
 		return Promise.resolve();
@@ -41,65 +41,45 @@ export class SettlementBatchRepoMock implements ISettlementBatchRepo {
 		return Promise.resolve();
 	}
 
-	async storeNewBatch(batch: ISettlementBatchDto): Promise<void> {
+	async storeNewBatch(batch: ISettlementBatch): Promise<void> {
+		return this.updateBatch(batch);
+	}
+
+	async updateBatch(batch: ISettlementBatch): Promise<void> {
 		if (batch === undefined) return Promise.resolve();
 		this.batches.push(batch);
 		return Promise.resolve();
 	}
 
-	async closeBatch(batch: ISettlementBatchDto): Promise<void> {
-		if (batch === undefined) return Promise.resolve();
-
-		this.batches.forEach(batchIter => {
-			if (batch.id === batchIter.id) {
-				batchIter.batchStatus = SettlementBatchStatus.CLOSED;
-				batchIter.timestamp = Date.now();
-			}
-		});
-		return Promise.resolve();
+	async getBatch(batchIdentifier: string): Promise<ISettlementBatch | null> {
+		const returnVal = this.batches.find(value => value.id === batchIdentifier);
+		return Promise.resolve(returnVal || null);
 	}
 
-	async getSettlementBatchByBatchIdentifier(batchIdentifier: string): Promise<ISettlementBatchDto | null> {
-		if (batchIdentifier === undefined || batchIdentifier.trim() === '') return Promise.resolve(null);
-		for (const batchIter of this.batches) {
-			if (batchIter.batchIdentifier === batchIdentifier) return Promise.resolve(batchIter);
-		}
-		return Promise.resolve(null);
+	async getOpenBatchByName(batchName: string): Promise<ISettlementBatch | null> {
+		const returnVal = this.batches.find(value => value.id===batchName || !value.isClosed);
+		return Promise.resolve(returnVal || null);
 	}
 
-	async getSettlementBatchById(id: string): Promise<ISettlementBatchDto | null> {
-		if (id === undefined || id.trim() === '') return Promise.resolve(null);
-		for (const batchIter of this.batches) {
-			if (batchIter.id === id) return Promise.resolve(batchIter);
-		}
-		return Promise.resolve(null);
-	}
+	async getBatchesByName(batchName: string): Promise<ISettlementBatch[]> {
+		const returnVal: Array<ISettlementBatch> = this.batches.filter(value => batchName == value.batchName);
 
-	async batchExistsByBatchIdentifier(batchIdentifier: string): Promise<boolean> {
-		const batchById = await this.getSettlementBatchByBatchIdentifier(batchIdentifier);
-		return Promise.resolve(batchById !== null);
-	}
-
-	async getSettlementBatchesBy(fromDate: number, toDate: number, model?: string): Promise<ISettlementBatchDto[]> {
-		let returnVal : Array<ISettlementBatchDto> = [];
-
-		this.batches.forEach(batchIter => {
-			if (batchIter.timestamp! >= fromDate && batchIter.timestamp! <= toDate) {
-				if (model === undefined) returnVal.push(batchIter);
-				else if (batchIter.settlementModel === model) returnVal.push(batchIter);
-			}
-		});
 		return Promise.resolve(returnVal);
 	}
 
-	async getOpenSettlementBatch(fromData: number, toDate: number, model: string, currency : string): Promise<ISettlementBatchDto | null> {
-		for (const batchIter of this.batches) {
-			if ((batchIter.timestamp! >= fromData && batchIter.timestamp! <= toDate) &&
-				((batchIter.settlementModel === model && batchIter.batchStatus === SettlementBatchStatus.OPEN) &&
-					batchIter.currency === currency)) {
-				return Promise.resolve(batchIter);
-			}
-		}
-		return Promise.resolve(null);
+	async getBatchesByIds(ids: string[]): Promise<ISettlementBatch[]> {
+		const returnVal: Array<ISettlementBatch> = this.batches.filter(value => ids.includes(value.id) );
+
+		return Promise.resolve(returnVal);
 	}
+
+
+	async getBatchesByCriteria(fromDate: number, toDate: number, model?: string): Promise<ISettlementBatch[]> {
+		const returnVal: Array<ISettlementBatch> = this.batches.filter(value => {
+			return (value.timestamp>=fromDate && value.timestamp <= toDate) && (!model || value.settlementModel === model);
+		});
+
+		return Promise.resolve(returnVal);
+	}
+
 }

@@ -22,7 +22,7 @@ Infrastructure library.
 
 ### `settlements-bc-http-svc`
 HTTP service for Settlements BC.
-[README](./packages/http-svc/README.md)
+[README](packages/api-svc/README.md)
 
 ### `settlement-model-lib`
 Settlement library used to determine the settlement model for a settlement transfer.

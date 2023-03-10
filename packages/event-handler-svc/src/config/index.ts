@@ -19,24 +19,47 @@
  their names indented and be marked with a '-'. Email address can be added
  optionally within square brackets <email>.
 
- * Coil
- *  - Jason Bruwer <jason.bruwer@coil.com>
+ * Gates Foundation
+ - Name Surname <name.surname@gatesfoundation.com>
+
+ * Crosslake
+ - Pedro Sousa Barreto <pedrob@crosslaketech.com>
 
  --------------
  ******/
 
 "use strict";
 
-export enum Privileges {
-	CREATE_SETTLEMENT_BATCH_ACCOUNT = "CREATE_SETTLEMENT_BATCH_ACCOUNT",
-	CREATE_SETTLEMENT_BATCH = "CREATE_SETTLEMENT_BATCH",
-	CREATE_SETTLEMENT_TRANSFER = "CREATE_SETTLEMENT_TRANSFER",
-	REQUEST_SETTLEMENT_MATRIX = "REQUEST_SETTLEMENT_MATRIX",
-	EXECUTE_SETTLEMENT_MATRIX = "EXECUTE_SETTLEMENT_MATRIX",
-	GET_SETTLEMENT_MATRIX_REQUEST = "GET_SETTLEMENT_MATRIX_REQUEST",
+import {
+    ConfigurationClient,
+    DefaultConfigProvider
+} from "@mojaloop/platform-configuration-bc-client-lib";
+// import { ConfigParameterTypes } from "@mojaloop/platform-configuration-bc-public-types-lib";
 
-	RETRIEVE_SETTLEMENT_BATCH = "RETRIEVE_SETTLEMENT_BATCH",
-	RETRIEVE_SETTLEMENT_BATCH_ACCOUNTS = "RETRIEVE_SETTLEMENT_BATCH_ACCOUNTS",
-	RETRIEVE_SETTLEMENT_TRANSFERS = "RETRIEVE_SETTLEMENT_TRANSFERS"
+// configs - constants / code dependent
+const BC_NAME = "settlements-bc";
+const APP_NAME = "event-handler-svc";
+const APP_VERSION = process.env.npm_package_version || "0.0.1";
+const CONFIGSET_VERSION = "0.0.1";
 
-}
+// configs - non-constants
+const ENV_NAME = process.env["ENV_NAME"] || "dev";
+
+// use default url from PLATFORM_CONFIG_CENTRAL_URL env var
+const defaultConfigProvider: DefaultConfigProvider = new DefaultConfigProvider();
+
+const configClient = new ConfigurationClient(ENV_NAME, BC_NAME, APP_NAME, APP_VERSION, CONFIGSET_VERSION, defaultConfigProvider);
+
+/*
+* Add application parameters here
+* */
+
+// configClient.appConfigs.addNewParam(
+//         "PARAM_NAME",
+//         ConfigParameterTypes.BOOL,
+//         true,
+//         "param description"
+// );
+
+export = configClient;
+

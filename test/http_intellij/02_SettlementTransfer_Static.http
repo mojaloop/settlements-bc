@@ -1,12 +1,26 @@
+### Authorization by token, part 1. Retrieve and save token.
+POST localhost:3201/token
+Content-Type: application/json
+
+{
+  "grant_type": "password",
+  "username": "admin",
+  "password": "superMegaPass",
+  "client_id": "security-bc-ui"
+}
+> {% client.global.set("access_token", response.body.access_token); %}
+
 ### Test - [Settlement Transfer - Model = USD]:
-POST http://localhost:1234/transfer
+POST http://localhost:3600/transfer
 Content-Type: application/json
 X-Correlation-ID: Manual-{{$uuid}}
-authorization: 123456
+Authorization: Bearer {{access_token}}
 
 {
   "id" : null,
   "transferId" : "{{$uuid}}",
+  "payerFspId": "payer",
+  "payeeFspId": "payee",
   "debitParticipantAccountId" : "deb-acc",
   "creditParticipantAccountId" : "credit-acc",
   "currencyCode" : "USD",
@@ -16,72 +30,91 @@ authorization: 123456
 }
 
 > {%
-    client.global.set("txn_resp_id", response.body.settlementTransferId);
-    client.global.set("txn_batch_id", response.body.batchId);
-    client.global.set("txn_batch_identifier", response.body.batchIdentifier);
+    client.global.set("txn_batch_id", response.body);
+	client.global.set("txn_batch_name", response.body.substring(0, response.body.length-4));
 %}
 
-### Test - [Settlement Transfer - Model = EUR]:
-POST http://localhost:1234/transfer
+########################################
+#### Query Batches
+########################################
+
+### Test - [Get settlement batches by id (incs seq)]:
+GET http://localhost:3600/batches/{{txn_batch_id}}
+#GET http://localhost:3600/batches/DEFAULT.USD.2023.03.01.15.19.001
 Content-Type: application/json
 X-Correlation-ID: Manual-{{$uuid}}
-authorization: 123456
+Authorization: Bearer {{access_token}}
+
+### Test - [Get settlement batches by name (excl seq)]:
+GET http://localhost:3600/batches?batchname={{txn_batch_name}}
+#GET http://localhost:3600/batches/DEFAULT.USD.2023.03.01.15.19
+Content-Type: application/json
+X-Correlation-ID: Manual-{{$uuid}}
+Authorization: Bearer {{access_token}}
+
+### Test - [Get settlement batches by criteria]:
+GET http://localhost:3600/batches?currencyCode=USD&settlementModel=DEFAULT&fromDate=1674140933634&toDate={{$timestamp}}000
+Content-Type: application/json
+X-Correlation-ID: Manual-{{$uuid}}
+Authorization: Bearer {{access_token}}
+
+########################################
+#### Query Transfers
+########################################
+
+### Test - [Get settlement transfers by batch id]:
+GET http://localhost:3600/transfers?batchId={{txn_batch_id}}
+Content-Type: application/json
+X-Correlation-ID: Manual-{{$uuid}}
+Authorization: Bearer {{access_token}}
+
+### Test - [Get settlement transfers by batch name]:
+GET http://localhost:3600/transfers?batchName={{txn_batch_name}}
+Content-Type: application/json
+X-Correlation-ID: Manual-{{$uuid}}
+Authorization: Bearer {{access_token}}
+
+########################################
+#### Settlement Matrices
+########################################
+
+### Test - [Create settlement matrix (will return id)]:
+POST http://localhost:3600/matrix
+Content-Type: application/json
+X-Correlation-ID: Manual-{{$uuid}}
+Authorization: Bearer {{access_token}}
 
 {
-  "id" : null,
-  "transferId" : "{{$uuid}}",
-  "debitParticipantAccountId" : "deb-acc",
-  "creditParticipantAccountId" : "credit-acc",
-  "currencyCode" : "EUR",
-  "amount" : "15000",
-  "timestamp" : {{$timestamp}}000,
-  "settlementModel" :  "DEFAULT"
+  "fromDate": 1677852484806,
+  "toDate": 9677771547000,
+  "settlementModel": "DEFAULT",
+  "currencyCode": "USD"
 }
 
 > {%
-    client.global.set("txn_resp_id", response.body.settlementTransferId);
-    client.global.set("txn_batch_id", response.body.batchId);
-    client.global.set("txn_batch_identifier", response.body.batchIdentifier);
+    client.global.set("matrix_id", response.body);
 %}
 
-### Test - [Settlement Batches]:
-GET http://localhost:1234/settlement_batches?fromDate=1674140933634&toDate={{$timestamp}}000
-#GET http://localhost:1234/settlement_batches?settlementModel=DEFAULT&fromDate=1674140933634&toDate={{$timestamp}}000
+### Test - [Get settlement matrix - doesn't change the matrix or recalculate]:
+GET http://localhost:3600/matrix/{{matrix_id}}
 Content-Type: application/json
 X-Correlation-ID: Manual-{{$uuid}}
-authorization: 123456
+Authorization: Bearer {{access_token}}
 
-### Test - [Settlement Batch Accounts - By Batch Id]:
-GET http://localhost:1234/settlement_accounts?batchId={{txn_batch_id}}
+// TODO add a new post to recalculate the trasnfers but not inclde any new batches (no criteria re-search)
+
+### Test - [Request settlement matrix recalculation - new batches that match criteria, will be included]:
+POST http://localhost:3600/matrix/{{matrix_id}}/recalculate
 Content-Type: application/json
 X-Correlation-ID: Manual-{{$uuid}}
-authorization: 123456
+Authorization: Bearer {{access_token}}
 
-### Test - [Settlement Batch Accounts - By Batch Identifier]:
-GET http://localhost:1234/settlement_accounts?batchIdentifier={{txn_batch_identifier}}
+{
+  "includeNewBatches": true
+}
+
+### Test - [Close settlement matrix - no new batches will be included]:
+POST http://localhost:3600/matrix/{{matrix_id}}/close
 Content-Type: application/json
 X-Correlation-ID: Manual-{{$uuid}}
-authorization: 123456
-
-### Test - [Settlement Batch Transfers]:
-GET http://localhost:1234/settlement_transfers?batchId={{txn_batch_id}}
-Content-Type: application/json
-X-Correlation-ID: Manual-{{$uuid}}
-authorization: 123456
-
-### Test - [Settlement Matrix Request]:
-GET http://localhost:1234/settlement_matrix_request?fromDate=1674140933634&toDate={{$timestamp}}000
-Content-Type: application/json
-X-Correlation-ID: Manual-{{$uuid}}
-authorization: 123456
-
-> {%
-    client.global.set("matrix_req_id", response.body.id);
-%}
-
-### Test - [Execute Settlement Matrix]:
-GET http://localhost:1234/execute_settlement_matrix?settlementMatrixReqId={{matrix_req_id}}
-Content-Type: application/json
-X-Correlation-ID: Manual-{{$uuid}}
-authorization: 123456
-
+Authorization: Bearer {{access_token}}

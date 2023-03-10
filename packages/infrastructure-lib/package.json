@@ -1,6 +1,6 @@
 {
   "name": "@mojaloop/settlements-bc-infrastructure-lib",
-  "version": "0.0.1",
+  "version": "0.1.1",
   "description": "Settlements BC - Infrastructure Library",
   "license": "Apache-2.0",
   "homepage": "https://github.com/mojaloop/settlements-bc/tree/main/packages/infrastructure-lib",
@@ -19,7 +19,7 @@
   "scripts": {
     "clean:dist": "rm -fr dist/",
     "dep:check": "ncu -e 2",
-    "dep:update": "ncu -u",
+    "dep:update": "ncu -e2 -u",
     "audit:check": "npm audit",
     "audit:fix": "npm audit fix",
     "lint": "eslint src/",
@@ -30,12 +30,13 @@
   "devDependencies": {
   },
   "dependencies": {
-    "@mojaloop/settlements-bc-domain-lib": "~0.0.1",
-    "@mojaloop/logging-bc-public-types-lib": "~0.1.14",
-    "@mojaloop/accounts-and-balances-bc-grpc-client-lib": "~0.1.3",
+    "@mojaloop/settlements-bc-domain-lib": "*",
+    "@mojaloop/logging-bc-public-types-lib": "~0.1.15",
+    "@mojaloop/accounts-and-balances-bc-grpc-client-lib": "~0.1.4",
     "@mojaloop/accounts-and-balances-bc-public-types-lib": "~0.1.2",
-    "@mojaloop/security-bc-client-lib": "~0.1.12",
-    "@mojaloop/security-bc-public-types-lib": "~0.1.12",
-    "mongodb": "~5.0.1"
+    "@mojaloop/security-bc-client-lib": "~0.1.15",
+    "@mojaloop/security-bc-public-types-lib": "~0.1.15",
+    "tslib": "~2.5.0",
+    "mongodb": "~5.1.0"
   }
 }

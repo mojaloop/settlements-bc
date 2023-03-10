@@ -27,59 +27,44 @@
 
 "use strict";
 
-import {ISettlementTransferDto, ISettlementBatchDto, ISettlementBatchAccountDto} from "@mojaloop/settlements-bc-public-types-lib";
-import {bigintToString} from "../converters";
-import {SettlementBatch} from "./batch";
+import {ISettlementBatchTransfer} from "@mojaloop/settlements-bc-public-types-lib";
 
-export class SettlementTransfer {
-	id: string;
+export class SettlementBatchTransfer implements ISettlementBatchTransfer{
 	transferId: string;
+	transferTimestamp: number;
+	payerFspId: string;
+	payeeFspId: string;
 	currencyCode: string;
-	currencyDecimals: number;
-	amount: bigint;
-	debitAccountId: string;
-	creditAccountId: string;
-	batch: SettlementBatch | null;
-	timestamp: number;
+	amount: string;
+	batchId: string;
+	batchName: string;
+	journalEntryId: string;
+	settled:boolean;
+	matrixId: string | null;
 
 	constructor(
-		id: string,
 		transferId: string,
+		transferTimestamp: number,
+		payerFspId: string,
+		payeeFspId: string,
 		currencyCode: string,
-		currencyDecimals: number,
-		amount: bigint,
-		creditAccountId: string,
-		debitAccountId: string,
-		batch: SettlementBatch | null,
-		timestamp: number
+		amount: string,
+		batchId: string,
+		batchName: string,
+		journalEntryId: string,
+		settled:boolean,
+		matrixId: string | null = null
 	) {
-		this.id = id;
 		this.transferId = transferId;
+		this.transferTimestamp = transferTimestamp;
+		this.payerFspId = payerFspId;
+		this.payeeFspId = payeeFspId;
 		this.currencyCode = currencyCode;
-		this.currencyDecimals = currencyDecimals;
 		this.amount = amount;
-		this.debitAccountId = debitAccountId;
-		this.creditAccountId = creditAccountId;
-		this.batch = batch;
-		this.timestamp = timestamp;
-	}
-
-	toDto(): ISettlementTransferDto {
-		const amount: string = bigintToString(this.amount, this.currencyDecimals);
-		const batch: ISettlementBatchDto | null = this.batch === null ? null : this.batch.toDto();
-
-		const transferDto: ISettlementTransferDto = {
-			id: this.id,
-			transferId: this.transferId,
-			currencyCode: this.currencyCode,
-			currencyDecimals: this.currencyDecimals,
-			amount: amount,
-			debitParticipantAccountId: this.debitAccountId,
-			creditParticipantAccountId: this.creditAccountId,
-			batch,
-			timestamp: this.timestamp,
-			settlementModel: (batch === undefined || batch === null) ? '' : batch!.settlementModel!
-		};
-		return transferDto;
+		this.batchId = batchId;
+		this.batchName = batchName;
+		this.journalEntryId = journalEntryId;
+		this.settled = settled;
+		this.matrixId = matrixId
 	}
 }

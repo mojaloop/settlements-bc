@@ -49,14 +49,15 @@ import {
 	SettlementBatchAccountRepoMock,
 	ParticipantAccountNotifierMock,
 	SettlementTransferRepoMock,
-	SettlementMatrixRequestRepoMock
+	SettlementMatrixRequestRepoMock, TokenHelperMock
 } from "@mojaloop/settlements-bc-shared-mocks-lib";
-import {startHttpService, stopHttpService} from "../../src/http_svc";
+import {Service} from "../../src/service";
 import {
 	ISettlementTransferDto
 } from "@mojaloop/settlements-bc-public-types-lib";
+import {TokenHelper} from "@mojaloop/security-bc-client-lib";
 
-const BASE_URL_SETTLEMENTS_HTTP_SERVICE: string = "http://localhost:1234";
+const BASE_URL_SETTLEMENTS_HTTP_SERVICE: string = "http://localhost:3600";
 const TIMEOUT_MS_SETTLEMENTS_HTTP_CLIENT: number = 5_000;
 
 let authorizationClient: IAuthorizationClient;
@@ -76,6 +77,7 @@ describe("settlements http service - unit tests", () => {
 		const authenticationServiceMock: AuthenticationServiceMock = new AuthenticationServiceMock(logger);
 		authorizationClient = new AuthorizationClientMock(logger, true);
 		const auditingClient: IAuditClient = new AuditClientMock(logger);
+		const tokenHelper = new TokenHelperMock();
 
 		// Mock Repos:
 		configRepo = new SettlementConfigRepoMock();
@@ -87,10 +89,12 @@ describe("settlements http service - unit tests", () => {
 		partNotifier = new ParticipantAccountNotifierMock();
 
 		// Start Service:
-		await startHttpService(
+		await Service.start(
 			logger,
+			tokenHelper as any,
 			authorizationClient,
 			auditingClient,
+			undefined,
 			configRepo,
 			settleBatchRepo,
 			settleBatchAccRepo,
@@ -98,6 +102,7 @@ describe("settlements http service - unit tests", () => {
 			settleTransferRepo,
 			settleMatrixReqRepo
 		);
+
 		auxiliarySettlementsHttpClient = new AuxiliarySettlementsHttpClient(
 			logger,
 			BASE_URL_SETTLEMENTS_HTTP_SERVICE,
@@ -107,7 +112,7 @@ describe("settlements http service - unit tests", () => {
 	});
 
 	afterAll(async () => {
-		await stopHttpService();
+		await Service.stop();
 	});
 
 	// Create Settlement Transfer.

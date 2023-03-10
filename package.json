@@ -33,26 +33,31 @@
     "coverage:merge": "nyc merge ./coverage/ ./coverage/coverage.json",
     "coverage:gen-report": "nyc report --reporter=lcov --temp-dir=./coverage",
     "test": "npm run test:unit",
-    "start-http": "npm -w @mojaloop/settlements-bc-http-svc run start"
+    "start:api-svc": "npm -w @mojaloop/settlements-bc-settlements-api-svc run start",
+    "start:command-handler-svc": "npm -w packages/command-handler-svc run start",
+    "start:event-handler-svc": "npm -w packages/event-handler-svc run start"
   },
   "devDependencies": {
     "@types/jest": "~29.4.0",
-    "@types/node": "^18.14.0",
-    "@typescript-eslint/eslint-plugin": "~5.53.0",
-    "@typescript-eslint/parser": "~5.53.0",
-    "eslint": "~8.34.0",
+    "@types/node": "^18.14.2",
+    "@typescript-eslint/eslint-plugin": "~5.54.0",
+    "@typescript-eslint/parser": "~5.54.0",
+    "eslint": "~8.35.0",
     "husky": "~8.0.3",
     "jest": "~29.4.3",
-    "npm-check-updates": "~16.7.9",
+    "npm-check-updates": "~16.7.10",
     "ts-jest": "~29.0.5",
     "typescript": "~4.9.5",
-    "nyc": "^15.1.0"
+    "nyc": "^15.1.0",
+    "tslib": "~2.5.0"
   },
   "workspaces": [
     "packages/public-types-lib",
     "packages/domain-lib",
     "packages/infrastructure-lib",
     "packages/shared-mocks-lib",
+    "packages/event-handler-svc",
+    "packages/command-handler-svc",
     "packages/*"
   ]
 }

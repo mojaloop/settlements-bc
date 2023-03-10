@@ -93,11 +93,17 @@ export class AccountsBalancesAdapterMock implements IAccountsBalancesAdapter {
 		return Promise.resolve();
 	}
 
-	setToken(accessToken: string): void {}
+	setToken(accessToken: string): void {
+		// mock
+	}
 
-	setUserCredentials(client_id: string, username: string, password: string): void {}
+	setUserCredentials(client_id: string, username: string, password: string): void {
+		// mock
+	}
 
-	setAppCredentials(client_id: string, client_secret: string): void {}
+	setAppCredentials(client_id: string, client_secret: string): void {
+		// mock
+	}
 
 	async createAccount(requestedId: string, ownerId: string, type: AccountsAndBalancesAccountType, currencyCode: string): Promise<string> {
 		this.abAccounts.push(new ABAccount(requestedId, ownerId, type, currencyCode));

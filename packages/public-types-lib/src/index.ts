@@ -27,94 +27,121 @@
 
 "use strict";
 
-export interface ISettlementConfigDto {
+// to be replaced by the TransferCommitFulfiledEvt, sent by transfers
+export interface ITransferDto {
+	id: string | null;
+	transferId: string | null;
+	payerFspId: string;
+	payeeFspId: string;
+	currencyCode: string;
+	//currencyDecimals: number | null;
+	amount: string;
+	//debitParticipantAccountId: string;
+	//creditParticipantAccountId: string;
+	timestamp: number;
+	settlementModel: string;
+	// batch?: ISettlementBatch | null; // this is forbidden, only thing that is allocated from the transfers is the model (from the lib)
+	// batchAllocation?: string | null; // this is forbidden, only thing that is allocated from the transfers is the model (from the lib)
+}
+
+
+export interface ISettlementConfig {
 	id: string;
 	settlementModel: string;
 	batchCreateInterval: number;
 }
 
-export interface ISettlementBatchDto {
-	id: string;
-	timestamp?: number;
-	settlementModel?: string;
-	currency?: string | null;
-	batchSequence?: number;
-	batchIdentifier?: string | null;// FX.XOF:RWF.2021.08.23.00.00.001
-	batchStatus?: SettlementBatchStatus | null;
-}
-
-export interface ISettlementBatchAccountDto {
-	id: string | null;
-	participantAccountId: string | null;
-	settlementBatch?: ISettlementBatchDto | null;
-	currencyCode: string;
-	currencyDecimals: number | null;
-	creditBalance: string;
-	debitBalance: string;
-	timestamp: number | null;
-}
-
-export interface ISettlementTransferDto {
-	id: string | null;
-	transferId: string | null;
-	currencyCode: string;
-	currencyDecimals: number | null;
-	amount: string;
-	debitParticipantAccountId: string;
-	creditParticipantAccountId: string;
+export interface ISettlementBatch {
+	id: string; // FX.XOF:RWF.2021.08.23.00.00.001
 	timestamp: number;
 	settlementModel: string;
-	batch?: ISettlementBatchDto | null;
-	batchAllocation?: string | null;
+	currencyCode: string;
+	batchName: string; // FX.XOF:RWF.2021.08.23.00.00 (minus seq)
+	batchSequence: number; // 1 (seq only)
+	isClosed: boolean;
+
+	accounts: ISettlementBatchAccount[];
 }
+
+ // for use inside a ISettlementBatch
+export interface ISettlementBatchAccount {
+	accountExtId: string;
+	participantId:string;
+	currencyCode: string;
+	creditBalance: string;
+	debitBalance: string;
+}
+
+export interface ISettlementBatchTransfer{
+	transferId: string;
+	transferTimestamp: number;
+	payerFspId: string;
+	payeeFspId: string;
+	currencyCode: string;
+	amount: string;
+	batchId: string;
+	batchName: string;
+	journalEntryId: string;
+	settled:boolean;
+	matrixId: string | null;
+}
+
 
 /*******************
 * Settlement Matrix
 ********************/
-/**Matrix Request**/
-export interface ISettlementMatrixRequestDto {
+
+
+export interface ISettlementMatrix {
 	id: string;
-	timestamp: number;
+	createdAt: number;
+	updatedAt: number;
+
+	// criteria
 	dateFrom: number;
 	dateTo: number;
+	currencyCode: string;
 	settlementModel: string;
-	batches: ISettlementBatchDto[];// Batches to include for the request.
-	matrixStatus: SettlementMatrixRequestStatus;
+
+	batches: ISettlementMatrixBatch[];
+	participantBalances: ISettlementMatrixParticipantBalance[];
+
+	state: "IDLE" | "CALCULATING" | "CLOSING" | "CLOSED";
+
+	generationDurationSecs: number | null;
+	totalDebitBalance: string;
+	totalCreditBalance: string;
+	totalTransferCount: number;
 }
 
-/**Matrix**/
-export interface ISettlementMatrixSettlementBatchAccountDto {
+export interface ISettlementMatrixParticipantBalance{
+	participantId: string;
+	debitBalance: string;
+	creditBalance: string;
+}
+
+export interface ISettlementMatrixBatch {
 	id: string;
-	participantAccountId: string;
-	currencyCode: string;
+	name: string;
+
+	batchDebitBalance: string;
+	batchCreditBalance: string;
+	batchTransferCount: number;
+
+	isClosed: boolean;
+	//batchWasClosedBeforeExec: boolean;
+
+	// not persisted - only populated on output - for api responses
+	batchAccounts?: ISettlementMatrixBatchAccount[];
+}
+
+export interface ISettlementMatrixBatchAccount {
+	id: string;
+	participantId: string;
+	accountExtId: string;
 	debitBalance: string;
 	creditBalance: string;
 }
 
-export interface ISettlementMatrixBatchDto {
-	batchIdentifier: string;
-	batchStatusBeforeExec: SettlementBatchStatus;
-	batchStatusAfterExec: SettlementBatchStatus;
-	currencyCode: string;
-	debitBalance: string;
-	creditBalance: string;
-	batchAccounts: ISettlementMatrixSettlementBatchAccountDto[];
-}
 
-export interface ISettlementMatrixDto {
-	fromDate: number;
-	toDate: number;
-	settlementModel: string;
-	generationDuration: number
-	batches: ISettlementMatrixBatchDto[];
-}
 
-export enum SettlementBatchStatus {
-	OPEN = "OPEN",
-	CLOSED = "CLOSED"
-}
-
-export enum SettlementMatrixRequestStatus {
-	OPEN = "OPEN",
-	CLOSED = "CLOSED"
-}

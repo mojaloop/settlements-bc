@@ -27,50 +27,16 @@
 
 "use strict";
 
-import {ISettlementBatchAccountDto} from "@mojaloop/settlements-bc-public-types-lib";
-import {bigintToString} from "../converters";
+export enum Privileges {
+	CREATE_SETTLEMENT_BATCH_ACCOUNT = "SETTLEMENTS_CREATE_BATCH_ACCOUNT",
+	CREATE_SETTLEMENT_BATCH = "SETTLEMENTS_CREATE_BATCH",
+	CREATE_SETTLEMENT_TRANSFER = "SETTLEMENTS_CREATE_TRANSFER",
+	REQUEST_SETTLEMENT_MATRIX = "SETTLEMENTS_REQUEST_MATRIX",
+	EXECUTE_SETTLEMENT_MATRIX = "SETTLEMENTS_EXECUTE_MATRIX",
+	GET_SETTLEMENT_MATRIX_REQUEST = "SETTLEMENTS_GET_MATRIX_REQUEST",
 
-export class SettlementBatchAccount {
-	id: string;
-	participantAccountId: string | null;
-	currencyCode: string;
-	currencyDecimals: number;
-	creditBalance: bigint;
-	debitBalance: bigint;
-	timestamp: number;
+	RETRIEVE_SETTLEMENT_BATCH = "SETTLEMENTS_RETRIEVE_BATCH",
+	RETRIEVE_SETTLEMENT_BATCH_ACCOUNTS = "SETTLEMENTS_RETRIEVE_BATCH_ACCOUNTS",
+	RETRIEVE_SETTLEMENT_TRANSFERS = "SETTLEMENTS_RETRIEVE_TRANSFERS"
 
-	constructor(
-		id: string,
-		participantAccountId: string,
-		currencyCode: string,
-		currencyDecimals: number,
-		creditBalance: bigint,
-		debitBalance: bigint,
-		timestamp: number
-	) {
-		this.id = id;
-		this.participantAccountId = participantAccountId;
-		this.currencyCode = currencyCode;
-		this.currencyDecimals = currencyDecimals;
-		this.creditBalance = creditBalance;
-		this.debitBalance = debitBalance;
-		this.timestamp = timestamp;
-	}
-
-	toDto(): ISettlementBatchAccountDto {
-		const creditBalance: string = bigintToString(this.creditBalance, this.currencyDecimals);
-		const debitBalance: string = bigintToString(this.debitBalance, this.currencyDecimals);
-
-		const accountDto: ISettlementBatchAccountDto = {
-			id: this.id,
-			participantAccountId: this.participantAccountId,
-			settlementBatch: null,
-			currencyCode: this.currencyCode,
-			currencyDecimals: this.currencyDecimals,
-			creditBalance: creditBalance,
-			debitBalance: debitBalance,
-			timestamp: this.timestamp
-		};
-		return accountDto;
-	}
 }
