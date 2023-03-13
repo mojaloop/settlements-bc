@@ -76,7 +76,7 @@ export class SettlementsEventHandler{
 					case TransferCommittedFulfiledEvt.name:
 						// TODO make sure transferState === COMPLETED (should always be the case in a TransferCommittedFulfiledEvt
 						// eslint-disable-next-line no-case-declarations
-						const msgPayload = message.payload as TransferCommittedFulfiledEvtPayload;
+						//const msgPayload = message.payload as TransferCommittedFulfiledEvtPayload;
 						// eslint-disable-next-line no-case-declarations
 						settlementsCmd = this._TransferCommittedFulfiledEvtToProcessTransfCmd(message as TransferCommittedFulfiledEvt);
 						break;

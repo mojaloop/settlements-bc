@@ -48,6 +48,7 @@ export interface ITransferDto {
 export interface ISettlementConfig {
 	id: string;
 	settlementModel: string;
+	//currencyCode: string | null; // TODO enable currency code in  ISettlementConfig - nullable
 	batchCreateInterval: number;
 }
 
