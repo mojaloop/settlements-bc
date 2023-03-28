@@ -17,6 +17,7 @@
     "/dist"
   ],
   "scripts": {
+    "clean:dist": "rm -fr dist/",
     "start": "npm run service",
     "start:dev": "npm run build && AUDIT_KEY_FILE_PATH=./dist/tmp_audit_key_file npm run service",
     "service": "node dist/index.js",

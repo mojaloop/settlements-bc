@@ -57,7 +57,7 @@ export class SettlementBatchRepoMock implements ISettlementBatchRepo {
 	}
 
 	async getOpenBatchByName(batchName: string): Promise<ISettlementBatch | null> {
-		const returnVal = this.batches.find(value => value.id===batchName || !value.isClosed);
+		const returnVal = this.batches.find(value => value.id === batchName || value.state === 'OPEN');
 		return Promise.resolve(returnVal || null);
 	}
 
@@ -74,9 +74,9 @@ export class SettlementBatchRepoMock implements ISettlementBatchRepo {
 	}
 
 
-	async getBatchesByCriteria(fromDate: number, toDate: number, model?: string): Promise<ISettlementBatch[]> {
+	async getBatchesByCriteria(fromDate: number, toDate: number, currencyCode: string, model: string): Promise<ISettlementBatch[]> {
 		const returnVal: Array<ISettlementBatch> = this.batches.filter(value => {
-			return (value.timestamp>=fromDate && value.timestamp <= toDate) && (!model || value.settlementModel === model);
+			return (value.timestamp >= fromDate && value.timestamp <= toDate) && (!model || value.settlementModel === model);
 		});
 
 		return Promise.resolve(returnVal);

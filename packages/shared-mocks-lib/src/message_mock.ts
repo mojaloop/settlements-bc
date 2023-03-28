@@ -27,35 +27,55 @@
 
 "use strict";
 
-import {IAccountsBalancesAdapter, ISettlementBatchTransferRepo} from "@mojaloop/settlements-bc-domain-lib";
-import { ISettlementBatchTransfer } from "@mojaloop/settlements-bc-public-types-lib";
+import {IMessage, IMessageConsumer, IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
+import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 
-export class SettlementTransferRepoMock implements ISettlementBatchTransferRepo {
-	private _list: ISettlementBatchTransfer[] = [];
+export class MessageProducerMock implements IMessageProducer {
+	// Properties received through the constructor.
+	private readonly logger: ILogger;
+	private readonly cache: MessageCache;
 
-	async init(): Promise<void> {
-		return Promise.resolve();
-	}
-	async destroy(): Promise<void>{
-		return Promise.resolve();
-	}
-
-	async storeBatchTransfer(batchTransfer: ISettlementBatchTransfer): Promise<void> {
-		this._list.push(batchTransfer);
-		return Promise.resolve();
+	constructor(logger: ILogger, cache : MessageCache) {
+		this.logger = logger;
+		this.cache = cache;
 	}
 
-	async getBatchTransfersByBatchIds(batchIds: string[]): Promise<ISettlementBatchTransfer[]>{
-		return this._list.filter(value => batchIds.includes(value.batchId));
+	async connect(): Promise<void> {
+		return;
 	}
 
-	async getBatchTransfersByBatchNames(batchNames: string[]): Promise<ISettlementBatchTransfer[]> {
-		return this._list.filter(value => batchNames.includes(value.batchName));
+	async disconnect(): Promise<void> {
+		return;
 	}
-	async getBatchTransfersByTransferId(transferId: string): Promise<ISettlementBatchTransfer[]> {
-		return this._list.filter(value => value.transferId===transferId);
+
+	async destroy(): Promise<void> {
+		return;
 	}
-	async getBatchTransfers(): Promise<ISettlementBatchTransfer[]>{
-		return this._list;
+
+	async send(message: IMessage | IMessage[]): Promise<void> {
+		const newMessages = [];
+		const inputMsgs = Array.isArray(message) ? [...message] : [message];
+		for (const msg of inputMsgs) {
+			newMessages.push({
+				topic: msg.msgTopic,
+				key: msg.msgKey,
+				timestamp: msg.msgTimestamp,
+				headers: [],
+				value: msg,
+				offset: null,
+				partition: msg.msgPartition || null
+			});
+		}
+		await this.cache.addToCache(inputMsgs);
+		return;
+	}
+}
+
+export class MessageCache {
+	_cache: Array<IMessage> = [];
+
+	async addToCache(messages: IMessage[]): Promise<void> {
+		for (const msg of messages) this._cache.push(msg);
+		return;
 	}
 }

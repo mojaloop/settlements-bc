@@ -90,7 +90,6 @@ export class SettlementMatrix implements ISettlementMatrix{
 	generationDurationSecs: number | null;
 	totalDebitBalance: string;
 	totalCreditBalance: string;
-	totalTransferCount: number;
 
 	constructor(
 		dateFrom: number,
@@ -109,28 +108,23 @@ export class SettlementMatrix implements ISettlementMatrix{
 
 		this.batches  = [];
 		this.participantBalances = [];
-		this.totalTransferCount = 0;
 		this.totalDebitBalance = "0";
 		this.totalCreditBalance = "0";
 	}
 
-	addBatch(batch:ISettlementBatch, debitBalance: string, creditBalance: string, transferCount: number):void{
+	addBatch(batch: ISettlementBatch, debitBalance: string, creditBalance: string):void{
 		this.batches.push({
 			id: batch.id,
 			name: batch.batchName,
 			batchDebitBalance: debitBalance,
 			batchCreditBalance: creditBalance,
-			batchTransferCount: transferCount,
-			isClosed: batch.isClosed,
+			state: batch.state,
 		});
-
-		this.totalTransferCount += transferCount;
 	}
 
 	clear(){
 		this.batches = [];
 		this.participantBalances = [];
-		this.totalTransferCount = 0;
 		this.totalDebitBalance = "0";
 		this.totalCreditBalance = "0";
 	}
@@ -147,7 +141,6 @@ export class SettlementMatrix implements ISettlementMatrix{
 		newInstance.participantBalances = dto.participantBalances;
 
 		newInstance.generationDurationSecs = dto.generationDurationSecs;
-		newInstance.totalTransferCount = dto.totalTransferCount;
 		newInstance.totalDebitBalance = dto.totalDebitBalance;
 		newInstance.totalCreditBalance = dto.totalCreditBalance;
 

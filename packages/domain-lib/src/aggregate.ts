@@ -246,7 +246,6 @@ export class SettlementsAggregate {
 			creditedAccountExtId
 		);
 
-
 		// add the transfer record to the batch and persist the batch changes
 		const batchTransfer = new SettlementBatchTransfer(
 			transferDto.transferId,
@@ -257,8 +256,7 @@ export class SettlementsAggregate {
 			transferDto.amount,
 			batch.id,
 			batch.batchName,
-			journalEntryId,
-			false
+			journalEntryId
 		);
 		await this._batchTransferRepo.storeBatchTransfer(batchTransfer);
 
@@ -269,8 +267,7 @@ export class SettlementsAggregate {
 			await this._batchRepo.updateBatch(batch);
 		}
 
-
-		if(resp.created){
+		if (resp.created) {
 			// We perform an async audit:
 			await this._auditingClient.audit(
 				AuditingActions.SETTLEMENT_BATCH_CREATED,
@@ -448,7 +445,7 @@ export class SettlementsAggregate {
 		await this._recalculateMatrix(matrix, true);
 
 		// first pass - close the open batches:
-		const previouslyClosedBatches : ISettlementBatch[] = [];
+		const previouslySettledBatches : ISettlementBatch[] = [];
 		const batchesClosedNow: ISettlementBatch[] = [];
 
 		for (const matrixBatch of matrix.batches) {
@@ -456,12 +453,12 @@ export class SettlementsAggregate {
 			if (!batch)
 				throw new SettlementBatchNotFoundError(`Unable to locate batch for id '${matrixBatch.id}'.`);
 
-			if (batch.isClosed){
-				previouslyClosedBatches.push(batch);
+			if (batch.state === 'SETTLED') {
+				previouslySettledBatches.push(batch);
 				continue;
 			}
 
-			batch.isClosed = matrixBatch.isClosed = true;
+			batch.state = matrixBatch.state = 'SETTLED';
 			await this._batchRepo.updateBatch(batch);
 			batchesClosedNow.push(batch);
 		}
@@ -511,14 +508,14 @@ export class SettlementsAggregate {
 		let totalDebit = 0n, totalCredit = 0n;
 		const participantBalances:Map<string, {cr: bigint, dr:bigint}> = new Map<string, {cr: bigint; dr: bigint}>();
 
-		const settledTransfers: ISettlementBatchTransfer[] = [];
+		//const settledTransfers: ISettlementBatchTransfer[] = [];
 
 		if (batches && batches.length > 0) {
 			await this._updateBatchAccountBalances(batches);
 
 			for (const batch of batches) {
 				// skip closed batches
-				if(batch.isClosed) continue;
+				if (batch.state !== 'OPEN') continue;
 
 				let batchDebitBalance = 0n;
 				let batchCreditBalance = 0n;
@@ -540,14 +537,13 @@ export class SettlementsAggregate {
 					}
 				});
 
-				const batchTransfers = await this._batchTransferRepo.getBatchTransfersByBatchIds([batch.id]);
-				settledTransfers.push(...batchTransfers);
+				//const batchTransfers = await this._batchTransferRepo.getBatchTransfersByBatchIds([batch.id]);
+				//settledTransfers.push(...batchTransfers);
 
 				matrix.addBatch(
 					batch,
 					bigintToString(batchDebitBalance, currency.decimals),
-					bigintToString(batchCreditBalance, currency.decimals),
-					batchTransfers.length ?? 0
+					bigintToString(batchCreditBalance, currency.decimals)
 				);
 
 				totalDebit = totalDebit + batchDebitBalance;
@@ -559,13 +555,12 @@ export class SettlementsAggregate {
 		matrix.totalCreditBalance = bigintToString(totalCredit, currency.decimals);
 
 		// if closing, mark transfers as settled by this matrix
-		if(close) {
+		/*if(close) {
 			for (const transfer of settledTransfers) {
-				transfer.settled = true;
 				transfer.matrixId = matrix.id;
 				await this._batchTransferRepo.storeBatchTransfer(transfer);
 			}
-		}
+		}*/
 
 		// put per participant balances in the matrix
 		participantBalances.forEach((value, key) => {
@@ -612,9 +607,7 @@ export class SettlementsAggregate {
 		this._enforcePrivilege(secCtx, Privileges.RETRIEVE_SETTLEMENT_BATCH);
 
 		const batches = await this._batchRepo.getBatchesByCriteria(fromDate, toDate, currencyCode, settlementModel);
-		if(!batches || batches.length <=0 ){
-			return [];
-		}
+		if(!batches || batches.length <=0 ) return [];
 
 		await this._updateBatchAccountBalances(batches);
 		return batches;
@@ -627,9 +620,8 @@ export class SettlementsAggregate {
 		this._enforcePrivilege(secCtx, Privileges.RETRIEVE_SETTLEMENT_BATCH_ACCOUNTS);
 
 		const batch = await this._batchRepo.getBatch(batchIdentifier);
-		if (!batch) {
-			return null;
-		}
+		if (!batch) return null;
+
 		await this._updateBatchAccountBalances([batch]);
 		return batch;
 	}
@@ -727,7 +719,7 @@ export class SettlementsAggregate {
 		const batchName = this._generateBatchName(model, currencyCode, toDate);
 		const existingBatches = await this._batchRepo.getBatchesByName(batchName);
 
-		if(!existingBatches || existingBatches.length<=0){
+		if (!existingBatches || existingBatches.length<=0) {
 			// no batch exists with that name, let's create a new with seq number 1
 			const newBatchId = this._generateBatchIdentifier(batchName, 1);
 			const newBatch  = new SettlementBatch(
@@ -737,7 +729,7 @@ export class SettlementsAggregate {
 				currencyCode,
 				1,
 				batchName,
-				false
+				'OPEN'
 			);
 			return Promise.resolve({batch:newBatch, created: true});
 		}
@@ -745,7 +737,7 @@ export class SettlementsAggregate {
 		// let's find the highest seq open batch
 		// sort in decreasing order
 		const sortedBatches = existingBatches.sort((a, b) => b.batchSequence - a.batchSequence);
-		if(!sortedBatches[0].isClosed){
+		if(sortedBatches[0].state === 'OPEN'){
 			// highest seq is open, return it
 			const batchDto = sortedBatches[0];
 			const batch = new SettlementBatch(
@@ -755,7 +747,7 @@ export class SettlementsAggregate {
 				batchDto.currencyCode,
 				batchDto.batchSequence,
 				batchDto.batchName,
-				batchDto.isClosed,
+				'OPEN',
 				batchDto.accounts
 			);
 			return Promise.resolve({batch: batch, created: false});
@@ -772,7 +764,7 @@ export class SettlementsAggregate {
 			currencyCode,
 			nextSeq,
 			batchName,
-			false
+			'OPEN'
 		);
 		return Promise.resolve({batch: newBatch, created: true});
 	}
