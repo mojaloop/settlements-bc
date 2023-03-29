@@ -42,7 +42,10 @@ export class SettlementMatrixRequestRepoMock implements ISettlementMatrixRequest
 
 	async storeMatrix(matrixReq: ISettlementMatrix): Promise<void> {
 		if (matrixReq === undefined) return Promise.resolve();
-		this.matrixRequests.push(matrixReq);
+
+		const newArray: Array<ISettlementMatrix> = this.matrixRequests.filter(value => value.id !== matrixReq.id);
+		newArray.push(matrixReq)
+		this.matrixRequests = newArray;
 		return Promise.resolve();
 	}
 

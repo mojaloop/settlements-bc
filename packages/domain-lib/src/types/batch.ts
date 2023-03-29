@@ -85,10 +85,10 @@ export class SettlementBatch implements ISettlementBatch{
 		});
 	}
 
-	getAccount(participantId:string, currencyCode:string): ISettlementBatchAccount | null{
-		if(!participantId || !participantId)
+	getAccount(participantId : string, currencyCode : string): ISettlementBatchAccount | null {
+		if (!participantId || !participantId)
 			throw new Error("invalid participantId or currencyCode in SettlementBatch.getAccount()");
-		const found = this.accounts.find(value => value.participantId===participantId && value.currencyCode === currencyCode);
+		const found = this.accounts.find(value => value.participantId === participantId && value.currencyCode === currencyCode);
 		return found || null;
 	}
 

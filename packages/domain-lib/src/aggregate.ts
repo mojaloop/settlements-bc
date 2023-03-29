@@ -186,7 +186,7 @@ export class SettlementsAggregate {
 		if (!transferDto.payerFspId) throw new InvalidIdError("Invalid payerFspId in transfer");
 		if (!transferDto.payeeFspId) throw new InvalidIdError("Invalid payeeFspId in transfer");
 
-		// Verify the currency code (and get the corresponding currency decimals).
+		// verify the currency code (and get the corresponding currency decimals).
 		const currency = this._getCurrencyOrThrow(transferDto.currencyCode);
 
 		const configDto = await this._configRepo.getSettlementConfigByModel(transferDto.settlementModel);
@@ -195,53 +195,51 @@ export class SettlementsAggregate {
 		}
 		const config = SettlementConfig.fromDto(configDto);
 
-		//const fromDate: number = config.calculateBatchFromDate(timestamp);
-		// const toDate: number = config.calculateBatchToDate(transferDto.timestamp);
 		const batchStartDate: number = config.calculateBatchStartTimestamp(transferDto.timestamp);
 
 		// get or create a batch
 		const resp = await this._getOrCreateBatch(transferDto.settlementModel, currency.code, new Date(batchStartDate));
 		const batch = resp.batch;
 
-		// Find payee batch account
-		let creditedAccountExtId;
-		const creditedAccount = batch.getAccount(transferDto.payeeFspId, currency.code);
-		if (creditedAccount) {
-			creditedAccountExtId = creditedAccount.accountExtId;
-		} else {
-			creditedAccountExtId = randomUUID(); // this might not be respected
-			creditedAccountExtId = await this._abAdapter.createAccount(
-				creditedAccountExtId,
-				batch.id, // account owner is the batch
-				BATCH_ACCOUNT_TYPE_IN_ACCOUNTS_AND_BALANCES,
-				currency.code
-			);
-			batch.addAccount(creditedAccountExtId, transferDto.payeeFspId, currency.code);
-		}
-
-		// find payer batch account
+		// find payer batch account (debit):
 		let debitedAccountExtId;
 		const debitedAccount = batch.getAccount(transferDto.payerFspId, currency.code);
 		if (debitedAccount) {
 			debitedAccountExtId = debitedAccount.accountExtId;
 		} else {
-			debitedAccountExtId = randomUUID(); // this might not be respected
+			debitedAccountExtId = randomUUID();
 			debitedAccountExtId = await this._abAdapter.createAccount(
 				debitedAccountExtId,
-				batch.id, // account owner is the batch
+				transferDto.payerFspId, // account owner is the participantId
 				BATCH_ACCOUNT_TYPE_IN_ACCOUNTS_AND_BALANCES,
 				currency.code
 			);
 			batch.addAccount(debitedAccountExtId, transferDto.payerFspId, currency.code);
 		}
 
+		// find payee batch account (credit):
+		let creditedAccountExtId;
+		const creditedAccount = batch.getAccount(transferDto.payeeFspId, currency.code);
+		if (creditedAccount) {
+			creditedAccountExtId = creditedAccount.accountExtId;
+		} else {
+			creditedAccountExtId = randomUUID();
+			creditedAccountExtId = await this._abAdapter.createAccount(
+				creditedAccountExtId,
+				transferDto.payeeFspId, // account owner is the participantId
+				BATCH_ACCOUNT_TYPE_IN_ACCOUNTS_AND_BALANCES,
+				currency.code
+			);
+			batch.addAccount(creditedAccountExtId, transferDto.payeeFspId, currency.code);
+		}
+
 		// create the journal entry
 		const journalEntryId = await this._abAdapter.createJournalEntry(
 			randomUUID(),
-			batch.id,
+			batch.id, // allows us to segment transfers for batches easily.
 			currency.code,
 			transferDto.amount,
-			false,
+			false, // not a 2-phase transfer.
 			debitedAccountExtId,
 			creditedAccountExtId
 		);
@@ -291,7 +289,7 @@ export class SettlementsAggregate {
 
 	async createSettlementMatrix(
 		secCtx: CallSecurityContext,
-		matrixId: string,
+		matrixId: string | null,
 		settlementModel: string,
 		currencyCode: string,
 		fromDate: number,
@@ -306,9 +304,9 @@ export class SettlementsAggregate {
 			settlementModel
 		);
 
-		if(matrixId){
+		if (matrixId) {
 			const existing = await this._settlementMatrixReqRepo.getMatrixById(matrixId);
-			if(existing){
+			if (existing) {
 				const err = new SettlementMatrixAlreadyExistsError("Matrix with the same id already exists");
 				this._logger.warn(err.message);
 				throw err;

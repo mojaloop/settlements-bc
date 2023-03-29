@@ -52,9 +52,11 @@ export class SettlementBatchTransferRepoMock implements ISettlementBatchTransfer
 	async getBatchTransfersByBatchNames(batchNames: string[]): Promise<ISettlementBatchTransfer[]> {
 		return this._list.filter(value => batchNames.includes(value.batchName));
 	}
+
 	async getBatchTransfersByTransferId(transferId: string): Promise<ISettlementBatchTransfer[]> {
 		return this._list.filter(value => value.transferId===transferId);
 	}
+
 	async getBatchTransfers(): Promise<ISettlementBatchTransfer[]>{
 		return this._list;
 	}
