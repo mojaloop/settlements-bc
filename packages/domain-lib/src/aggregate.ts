@@ -506,8 +506,6 @@ export class SettlementsAggregate {
 		let totalDebit = 0n, totalCredit = 0n;
 		const participantBalances:Map<string, {cr: bigint, dr:bigint}> = new Map<string, {cr: bigint; dr: bigint}>();
 
-		//const settledTransfers: ISettlementBatchTransfer[] = [];
-
 		if (batches && batches.length > 0) {
 			await this._updateBatchAccountBalances(batches);
 
@@ -535,9 +533,6 @@ export class SettlementsAggregate {
 					}
 				});
 
-				//const batchTransfers = await this._batchTransferRepo.getBatchTransfersByBatchIds([batch.id]);
-				//settledTransfers.push(...batchTransfers);
-
 				matrix.addBatch(
 					batch,
 					bigintToString(batchDebitBalance, currency.decimals),
@@ -548,19 +543,11 @@ export class SettlementsAggregate {
 				totalCredit = totalCredit + batchCreditBalance;
 			}
 		}
-		// update main balances
+		// update main balances:
 		matrix.totalDebitBalance = bigintToString(totalDebit, currency.decimals);
 		matrix.totalCreditBalance = bigintToString(totalCredit, currency.decimals);
 
-		// if closing, mark transfers as settled by this matrix
-		/*if(close) {
-			for (const transfer of settledTransfers) {
-				transfer.matrixId = matrix.id;
-				await this._batchTransferRepo.storeBatchTransfer(transfer);
-			}
-		}*/
-
-		// put per participant balances in the matrix
+		// put per participant balances in the matrix:
 		participantBalances.forEach((value, key) => {
 			matrix.participantBalances.push({
 				participantId: key,
@@ -575,7 +562,7 @@ export class SettlementsAggregate {
 
 		const abAccounts = await this._abAdapter.getAccounts(extAccountIds);
 		if (!abAccounts || abAccounts.length !== extAccountIds.length) {
-			const err = new Error("Could not get all accounts from accounts and balances on getSettlementBatches");
+			const err = new Error("Could not get all accounts from accounts and balances on [getSettlementBatches]");
 			this._logger.error(err);
 			throw err;
 		}
@@ -584,7 +571,7 @@ export class SettlementsAggregate {
 			for (const batchAccount of batch.accounts) {
 				const abAccount = abAccounts.find(value => value.id===batchAccount.accountExtId);
 				if (!abAccount) {
-					const err = new Error("Could not get all accounts from accounts and balances on getSettlementBatches");
+					const err = new Error("Could not get all accounts from accounts and balances on [getSettlementBatches]");
 					this._logger.error(err);
 					throw err;
 				}
