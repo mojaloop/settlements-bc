@@ -555,7 +555,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		);
 		expect(matrixId).toBeDefined();
 
-		// Not allowed to create matrix using the same id.
+		// not allowed to create matrix using the same id.
 		try {
 			await aggregate.createSettlementMatrix(
 				securityContext,
@@ -598,7 +598,6 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		expect(matrixClosed!.state).toEqual('CLOSED');
 	});
 
-	// Not allowed to re-execute a Matrix Batch Request:
 	test("ensure executed matrix cannot be executed again", async () => {
 		const reqTransferDto: ITransferDto = {
 			id: null,
@@ -657,5 +656,195 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		}
 	});
 
+	test("ensure batch seq increments for batches within the same period", async () => {
+		const reqTransferDto: ITransferDto = {
+			id: null,
+			transferId: randomUUID(),
+			payerFspId: randomUUID(),
+			payeeFspId: randomUUID(),
+			currencyCode: 'ZAR',
+			amount: '1200', //12 ZAR
+			timestamp: Date.now(),
+			settlementModel: 'SEQ_TEST'
+		};
+		const batchId = await aggregate.handleTransfer(securityContext, reqTransferDto);
+		expect(batchId).toBeDefined();
+
+		// Request a Settlement Matrix, which will be used to execute the matrix on.
+		const matrixId = await aggregate.createSettlementMatrix(
+			securityContext,
+			null, //matrix-id
+			reqTransferDto.settlementModel,
+			reqTransferDto.currencyCode,
+			Date.now() - 5000,
+			Date.now()
+		);
+		expect(matrixId).toBeDefined();
+
+		const matrix = await aggregate.getSettlementMatrix(securityContext, matrixId);
+		expect(matrix).toBeDefined();
+		expect(matrix!.id).toEqual(matrixId);
+		expect(matrix!.state).toEqual('IDLE');
+
+		// execute the matrix:
+		await aggregate.closeSettlementMatrix(securityContext, matrixId);
+		// ensure the batch has been closed:
+		const matrixClosed = await aggregate.getSettlementMatrix(securityContext, matrixId);
+		expect(matrixClosed).toBeDefined();
+		expect(matrixClosed!.id).toEqual(matrixId);
+		expect(matrixClosed!.state).toEqual('CLOSED');
+
+		// create another Transfer:
+		const newBatchId = await aggregate.handleTransfer(securityContext, reqTransferDto);
+		expect(newBatchId).toBeDefined();
+		expect(newBatchId === batchId).toEqual(false);
+
+		// retrieve the Batch:
+		const batches = await aggregate.getSettlementBatchesByCriteria(
+			securityContext, 
+			reqTransferDto.settlementModel,
+			reqTransferDto.currencyCode,
+			Date.now() - 15000,
+			Date.now()
+		);
+		expect(batches).toBeDefined();
+		// we expect at least 2 batches:
+		expect(batches.length).toEqual(2);
+		expect(batches[0].batchName).toEqual(batches[1].batchName);
+
+		// ensure the Batch Sequence has a Seq of [2].
+		for (const batch of batches) {
+			if (batch.state === 'SETTLED') continue;
+			// Ensure our seq was incremented:
+			expect(batch.batchSequence).toEqual(2);
+		}
+
+		const batchesByName = await aggregate.getSettlementBatchesByName(securityContext, batches[0].batchName);
+		expect(batchesByName).toBeDefined();
+		expect(batches.length).toEqual(2);
+		expect(batches[0].id === batches[1].id).toEqual(false);
+	});
+
+	test("batch accounts unique per batch and participant-id", async () => {
+		const settleModel = 'PAR_ACC';
+		const currency = 'ZAR';
+		const payer = 'deb-acc';
+		const payee = 'cred-acc';
+		const batchId = await aggregate.handleTransfer(securityContext, {
+			id: null,
+			transferId: randomUUID(),
+			payerFspId: payer,
+			payeeFspId: payee,
+			currencyCode: currency,
+			amount: '123', //1.23 ZAR
+			timestamp: Date.now(),
+			settlementModel: settleModel
+		});
+		expect(batchId).toBeDefined();
+
+		const matrixId = await aggregate.createSettlementMatrix(
+			securityContext,
+			null, //matrix-id
+			settleModel,
+			currency,
+			Date.now() - 5000,
+			Date.now(),
+		);
+		expect(matrixId).toBeDefined();
+
+		await aggregate.closeSettlementMatrix(securityContext, matrixId);
+
+		// New Transfer under a new batch but same participants:
+		const batchId2 = await aggregate.handleTransfer(securityContext, {
+			id: null,
+			transferId: randomUUID(),
+			payerFspId: payer,
+			payeeFspId: payee,
+			currencyCode: currency,
+			amount: '123', //1.23 ZAR
+			timestamp: Date.now(),
+			settlementModel: settleModel
+			},
+		);
+		expect(batchId2).toBeDefined();
+
+		const partAccPayer = await abAdapter.getParticipantAccounts(payer);
+		const partAccPayee = await abAdapter.getParticipantAccounts(payee);
+
+		expect(partAccPayer).toBeDefined();
+		expect(partAccPayer.length).toEqual(2);
+		expect(partAccPayee).toBeDefined();
+		expect(partAccPayee.length).toEqual(2);
+
+		for (const accBatch1 of partAccPayer) {
+			for (const accBatch2 of partAccPayee) {
+				expect(accBatch1).toBeDefined();
+				expect(accBatch2).toBeDefined();
+				// Batch Accounts are not allowed to match, even if [ParticipantAccountId's] match:
+				expect(accBatch1.id === accBatch2.id).toEqual(false);
+			}
+		}
+	});
+
+	test("matrix re-calculate logic", async () => {
+		const settleModel = 'RE-CALC';
+		const currency = 'ZAR';
+		const batchId = await aggregate.handleTransfer(securityContext, {
+			id: null,
+			transferId: randomUUID(),
+			payerFspId: randomUUID(),
+			payeeFspId: randomUUID(),
+			currencyCode: 'EUR',
+			amount: '1000', //10 EURO
+			timestamp: Date.now(),
+			settlementModel: settleModel
+		});
+		expect(batchId).toBeDefined();
+
+		const matrixId = await aggregate.createSettlementMatrix(
+			securityContext,
+			null, //matrix-id
+			settleModel,
+			currency,
+			Date.now() - 5000,
+			Date.now(),
+		);
+		expect(matrixId).toBeDefined();
+
+		await aggregate.recalculateSettlementMatrix(securityContext, matrixId);
+		const matrixIdle = await aggregate.getSettlementMatrix(securityContext, matrixId);
+		expect(matrixIdle).toBeDefined();
+		expect(matrixIdle!.id).toEqual(matrixId);
+		expect(matrixIdle!.state).toEqual('IDLE');
+		expect(matrixIdle!.participantBalances.length).toEqual(2);
+
+		// 2nd transfer with new participants:
+		await aggregate.handleTransfer(securityContext, {
+			id: null,
+			transferId: randomUUID(),
+			payerFspId: randomUUID(),
+			payeeFspId: randomUUID(),
+			currencyCode: 'EUR',
+			amount: '1100', //11 EURO
+			timestamp: Date.now(),
+			settlementModel: settleModel
+		});
+		await aggregate.recalculateSettlementMatrix(securityContext, matrixId);
+		const matrixIdleUpdated = await aggregate.getSettlementMatrix(securityContext, matrixId);
+		expect(matrixIdleUpdated).toBeDefined();
+		expect(matrixIdleUpdated!.id).toEqual(matrixId);
+		expect(matrixIdleUpdated!.state).toEqual('IDLE');
+		expect(matrixIdleUpdated!.participantBalances.length).toEqual(4);
+	});
+
+	test("test exceptions/errors responses for lookups", async () => {
+
+		
+	});
+
+	// :
+	test("send a settlement matrix request again, to show that the results are different from a previous matrix", async () => {
+		//TODO
+	});
 	
 });

@@ -386,19 +386,18 @@ export class SettlementsAggregate {
 			throw err; // not found
 		}
 
-		if (matrixDto.state==="CLOSED") {
+		if (matrixDto.state === "CLOSED") {
 			const err = new SettlementMatrixIsClosedError("Cannot recalculate a closed matrix");
 			this._logger.warn(err.message);
 			throw err;
 		}
-		if (matrixDto.state==="CALCULATING" || matrixDto.state==="CLOSING") {
+		if (matrixDto.state === "CALCULATING" || matrixDto.state === "CLOSING") {
 			const err = new SettlementMatrixIsBusyError("Matrix already being calculated or closed");
 			this._logger.warn(err.message);
 			throw err;
 		}
 
 		const matrix = SettlementMatrix.FromDto(matrixDto);
-
 		const startTimestamp = Date.now();
 
 		matrix.state = "CALCULATING";
@@ -420,7 +419,6 @@ export class SettlementsAggregate {
 				{key: "settlementMatrixReqId", value: id}
 			]
 		);
-
 		return;
 	}
 
@@ -624,7 +622,7 @@ export class SettlementsAggregate {
 		return batch;
 	}
 
-	async getSettlementBatchesByName(secCtx: CallSecurityContext,batchName: string): Promise<ISettlementBatch[]> {
+	async getSettlementBatchesByName(secCtx: CallSecurityContext, batchName: string): Promise<ISettlementBatch[]> {
 		this._enforcePrivilege(secCtx, Privileges.RETRIEVE_SETTLEMENT_BATCH_ACCOUNTS);
 
 		const batches = await this._batchRepo.getBatchesByName(batchName);
@@ -717,7 +715,7 @@ export class SettlementsAggregate {
 		const batchName = this._generateBatchName(model, currencyCode, toDate);
 		const existingBatches = await this._batchRepo.getBatchesByName(batchName);
 
-		if (!existingBatches || existingBatches.length<=0) {
+		if (!existingBatches || existingBatches.length <= 0) {
 			// no batch exists with that name, let's create a new with seq number 1
 			const newBatchId = this._generateBatchIdentifier(batchName, 1);
 			const newBatch  = new SettlementBatch(
@@ -753,7 +751,6 @@ export class SettlementsAggregate {
 
 		// if we got here, there is no open batch, let's open a new one
 		const nextSeq = sortedBatches[0].batchSequence + 1;
-
 		const newBatchId = this._generateBatchIdentifier(batchName, nextSeq);
 		const newBatch = new SettlementBatch(
 			newBatchId,
