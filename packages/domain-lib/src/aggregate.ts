@@ -158,6 +158,18 @@ export class SettlementsAggregate {
 		return currency;
 	}
 
+	private _getAmountOrThrow(amountTxt :string, currency: ICurrency) {
+		// convert the amount and confirm if it's valid:
+		let amount: bigint;
+		try {
+			amount = stringToBigint(amountTxt, currency.decimals);
+		} catch (error: any) {
+			throw new InvalidAmountError();
+		}
+		if (amount <= 0n) throw new InvalidAmountError();
+		return amount;
+	}
+
 	async processTransferCmd(secCtx: CallSecurityContext, processTransferCmd: ProcessTransferCmd): Promise<string> {
 		// TODO this should the other way around, the rest API should send a command
 		const transferDto: ITransferDto = {
@@ -188,6 +200,7 @@ export class SettlementsAggregate {
 
 		// verify the currency code (and get the corresponding currency decimals).
 		const currency = this._getCurrencyOrThrow(transferDto.currencyCode);
+		this._getAmountOrThrow(transferDto.amount, currency);
 
 		const configDto = await this._configRepo.getSettlementConfigByModel(transferDto.settlementModel);
 		if (!configDto) {
@@ -259,9 +272,9 @@ export class SettlementsAggregate {
 		await this._batchTransferRepo.storeBatchTransfer(batchTransfer);
 
 		// persist the batch changes
-		if(resp.created){
+		if (resp.created) {
 			await this._batchRepo.storeNewBatch(batch);
-		}else{
+		} else {
 			await this._batchRepo.updateBatch(batch);
 		}
 

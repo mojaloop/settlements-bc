@@ -48,7 +48,10 @@ import {
 	InvalidDebitBalanceError,
 	InvalidParticipantAccountIdError,
 	IAccountsBalancesAdapter,
-	ISettlementBatchTransferRepo, SettlementMatrixAlreadyExistsError
+	ISettlementBatchTransferRepo,
+	SettlementMatrixAlreadyExistsError,
+	SettlementMatrixIsClosedError,
+	SettlementMatrixNotFoundError
 } from "../../src/index";
 import {ConsoleLogger, ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import {IAuditClient} from "@mojaloop/auditing-bc-public-types-lib";
@@ -252,12 +255,278 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 	});
 
 	test("create settlement transfer and ensure batch allocation is correct based on settlement model", async () => {
-		//TODO 
+		const debPartAccId = randomUUID();
+		const credPartAccId = randomUUID();
+
+		const txn1RspBatch1 = await aggregate.handleTransfer(securityContext, {
+			id: null,
+			transferId: randomUUID(),
+			payerFspId: debPartAccId,
+			payeeFspId: credPartAccId,
+			currencyCode: 'EUR',
+			amount: '100', // 1 EURO
+			timestamp: Date.now(),
+			settlementModel: 'DEF'
+		});
+		const txn2RspBatch1 = await aggregate.handleTransfer(securityContext, {
+			id: null,
+			transferId: randomUUID(),
+			payerFspId: debPartAccId,
+			payeeFspId: credPartAccId,
+			currencyCode: 'EUR',
+			amount: '500', // 5 EURO
+			timestamp: Date.now(),
+			settlementModel: 'DEF'
+		});
+		const txn3RspBatch1 = await aggregate.handleTransfer(securityContext, {
+			id: null,
+			transferId: randomUUID(),
+			payerFspId: debPartAccId,
+			payeeFspId: credPartAccId,
+			currencyCode: 'EUR',
+			amount: '300', // 3 EURO
+			timestamp: Date.now(),
+			settlementModel: 'DEF'
+		});
+
+		// now we have a new settlement model:
+		const txn4RspBatch2 = await aggregate.handleTransfer(securityContext, {
+			id: null,
+			transferId: randomUUID(),
+			payerFspId: debPartAccId,
+			payeeFspId: credPartAccId,
+			currencyCode: 'EUR',
+			amount: '300', // 3 EURO
+			timestamp: Date.now(),
+			settlementModel: 'FRX'
+		});
+
+		// now we ensure that we have 1 batch for the first 3 transfers, and another batch for transfer nr 4:
+		expect(txn1RspBatch1).toBeDefined();
+		expect(txn2RspBatch1).toBeDefined();
+		expect(txn3RspBatch1).toBeDefined();
+		expect(txn4RspBatch2).toBeDefined();
+
+		expect(txn1RspBatch1).toEqual(txn2RspBatch1);
+		expect(txn1RspBatch1).toEqual(txn3RspBatch1);
+
+		const batch1 = await aggregate.getSettlementBatch(securityContext, txn1RspBatch1);
+		expect(batch1).toBeDefined();
+		expect(batch1!.settlementModel).toEqual('DEF');
+		expect(batch1!.id).toEqual(txn1RspBatch1);
+		expect(batch1!.id).toEqual(txn2RspBatch1);
+		expect(batch1!.id).toEqual(txn3RspBatch1);
+
+		const batch2 = await aggregate.getSettlementBatch(securityContext, txn4RspBatch2);
+		expect(batch2).toBeDefined();
+		expect(batch2!.settlementModel).toEqual('FRX');
+		expect(batch2!.id).toEqual(txn4RspBatch2);
+
+		// Ensure we have one batch for model [DEFAULT]:
+		const batchModelDef = await aggregate.getSettlementBatchesByCriteria(
+			securityContext,
+			batch1!.settlementModel,
+			batch1!.currencyCode,
+			Date.now() - 15000,
+			Date.now()
+		);
+		expect(batchModelDef).toBeDefined();
+		expect(batchModelDef.length).toEqual(1);
+
+		// ensure we have one batch for model [FX]:
+		const batchModelFx = await aggregate.getSettlementBatchesByCriteria(
+			securityContext,
+			batch2!.settlementModel,
+			batch2!.currencyCode,
+			Date.now() - 15000,
+			Date.now()
+		);
+		expect(batchModelFx).toBeDefined();
+		expect(batchModelFx.length).toEqual(1);
 	});
 
-
 	test("test exceptions/errors responses for create transfer (validations)", async () => {
-		// TODO
+		// Timestamp:
+		try {
+			await aggregate.handleTransfer(securityContext, {
+				id: null,
+				transferId: randomUUID(),
+				payerFspId: randomUUID(),
+				payeeFspId: randomUUID(),
+				currencyCode: 'ZAR',
+				amount: '1600', //100 EURO
+				timestamp: 0,
+				settlementModel: 'ERR'
+			});
+			fail('Expected to throw error!');
+		} catch (err) {
+			expect(err).toBeDefined();
+			expect(err instanceof InvalidTimestampError).toEqual(true);
+		}
+
+		// Settlement Model:
+		try {
+			await aggregate.handleTransfer(securityContext, {
+				id: null,
+				transferId: randomUUID(),
+				payerFspId: randomUUID(),
+				payeeFspId: randomUUID(),
+				currencyCode: 'ZAR',
+				amount: '1600', //100 EURO
+				timestamp: Date.now(),
+				settlementModel: ''
+			});
+			fail('Expected to throw error!');
+		} catch (err) {
+			expect(err).toBeDefined();
+			expect(err instanceof InvalidBatchSettlementModelError).toEqual(true);
+		}
+
+		// Currency Code:
+		try {
+			await aggregate.handleTransfer(securityContext, {
+				id: null,
+				transferId: randomUUID(),
+				payerFspId: randomUUID(),
+				payeeFspId: randomUUID(),
+				currencyCode: '',
+				amount: '1600', //100 EURO
+				timestamp: Date.now(),
+				settlementModel: 'ERR'
+			});
+			fail('Expected to throw error!');
+		} catch (err) {
+			expect(err).toBeDefined();
+			expect(err instanceof InvalidCurrencyCodeError).toEqual(true);
+		}
+
+		// Amount:
+		try {
+			await aggregate.handleTransfer(securityContext, {
+				id: null,
+				transferId: randomUUID(),
+				payerFspId: randomUUID(),
+				payeeFspId: randomUUID(),
+				currencyCode: 'ZAR',
+				amount: '',
+				timestamp: Date.now(),
+				settlementModel: 'ERR'
+			});
+			fail('Expected to throw error!');
+		} catch (err) {
+			expect(err).toBeDefined();
+			expect(err instanceof InvalidAmountError).toEqual(true);
+		}
+
+		// Transfer ID:
+		try {
+			await aggregate.handleTransfer(securityContext, {
+				id: null,
+				transferId: '',
+				payerFspId: randomUUID(),
+				payeeFspId: randomUUID(),
+				currencyCode: 'ZAR',
+				amount: '15000', //150 ZAR
+				timestamp: Date.now(),
+				settlementModel: 'ERR'
+			});
+			fail('Expected to throw error!');
+		} catch (err) {
+			expect(err).toBeDefined();
+			expect(err instanceof InvalidTransferIdError).toEqual(true);
+		}
+
+		// Debit Account ID:
+		try {
+			await aggregate.handleTransfer(securityContext, {
+				id: null,
+				transferId: randomUUID(),
+				payerFspId: '',
+				payeeFspId: randomUUID(),
+				currencyCode: 'ZAR',
+				amount: '15000', //150 ZAR
+				timestamp: Date.now(),
+				settlementModel: 'ERR'
+			});
+			fail('Expected to throw error!');
+		} catch (err :any) {
+			expect(err).toBeDefined();
+			expect(err instanceof InvalidIdError).toEqual(true);
+			expect(err.message).toEqual('Invalid payerFspId in transfer');
+		}
+
+		// Credit Account ID:
+		try {
+			await aggregate.handleTransfer(securityContext, {
+				id: null,
+				transferId: randomUUID(),
+				payerFspId: randomUUID(),
+				payeeFspId: '',
+				currencyCode: 'ZAR',
+				amount: '15000', //150 ZAR
+				timestamp: Date.now(),
+				settlementModel: 'ERR'
+			});
+			fail('Expected to throw error!');
+		} catch (err :any) {
+			expect(err).toBeDefined();
+			expect(err instanceof InvalidIdError).toEqual(true);
+			expect(err.message).toEqual('Invalid payeeFspId in transfer');
+		}
+
+		// Invalid Currency ID (not mapped):
+		try {
+			await aggregate.handleTransfer(securityContext, {
+				id: null,
+				transferId: randomUUID(),
+				payerFspId: randomUUID(),
+				payeeFspId: randomUUID(),
+				currencyCode: 'ZZZ',
+				amount: '15000', //150 ZZZ
+				timestamp: Date.now(),
+				settlementModel: 'ERR'
+			});
+			fail('Expected to throw error!');
+		} catch (err) {
+			expect(err).toBeDefined();
+			expect(err instanceof InvalidCurrencyCodeError).toEqual(true);
+		}
+
+		// Invalid Amount (non decimal):
+		try {
+			await aggregate.handleTransfer(securityContext, {
+				id: null,
+				transferId: randomUUID(),
+				payerFspId: randomUUID(),
+				payeeFspId: randomUUID(),
+				currencyCode: 'ZAR',
+				amount: 'GSDSSD', // Invalid
+				timestamp: Date.now(),
+				settlementModel: 'ERR'
+			});
+			fail('Expected to throw error!');
+		} catch (err) {
+			expect(err).toBeDefined();
+			expect(err instanceof InvalidAmountError).toEqual(true);
+		}
+
+		// Invalid Amount (0):
+		try {
+			await aggregate.handleTransfer(securityContext, {
+					id: null,
+					transferId: randomUUID(),
+					payerFspId: randomUUID(),
+					payeeFspId: randomUUID(),
+					currencyCode: 'ZAR',
+					amount: '0', // Invalid
+					timestamp: Date.now(),
+					settlementModel: 'ERR'
+				});
+			fail('Expected to throw error!');
+		} catch (err) {
+			expect(err).toBeDefined();
+			expect(err instanceof InvalidAmountError).toEqual(true);
+		}
 	});
 
 	test("request and execute a settlement matrix", async () => {
@@ -327,12 +596,65 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		expect(matrixClosed).toBeDefined();
 		expect(matrixClosed!.id).toEqual(matrixId);
 		expect(matrixClosed!.state).toEqual('CLOSED');
+	});
 
-		
-		
-		
-		
+	// Not allowed to re-execute a Matrix Batch Request:
+	test("ensure executed matrix cannot be executed again", async () => {
+		const reqTransferDto: ITransferDto = {
+			id: null,
+			transferId: randomUUID(),
+			payerFspId: randomUUID(),
+			payeeFspId: randomUUID(),
+			currencyCode: 'ZAR',
+			amount: '1600', //16 ZAR
+			timestamp: Date.now(),
+			settlementModel: 'REMITTANCE'
+		};
+		await aggregate.handleTransfer(securityContext, reqTransferDto);
 
+		// request a Settlement Matrix, which will be used to execute the matrix on.
+		const matrixId = await aggregate.createSettlementMatrix(
+			securityContext,
+			null, // matrix-id
+			reqTransferDto.settlementModel,
+			reqTransferDto.currencyCode,
+			Date.now() - 5000,
+			Date.now()
+		);
+		expect(matrixId).toBeDefined();
+
+		const matrix = await aggregate.getSettlementMatrix(securityContext, matrixId);
+		expect(matrix).toBeDefined();
+		expect(matrix!.id).toEqual(matrixId);
+		expect(matrix!.state).toEqual('IDLE');
+
+		// execute the matrix (occurs on close):
+		await aggregate.closeSettlementMatrix(securityContext, matrixId);
+		const matrixClosed = await aggregate.getSettlementMatrix(securityContext, matrixId);
+		expect(matrixClosed).toBeDefined();
+		expect(matrixClosed!.id).toEqual(matrixId);
+		expect(matrixClosed!.state).toEqual('CLOSED');
+
+		// ensure the 2nd execute generates an error (SettlementMatrixRequestClosedError):
+		try {
+			await aggregate.closeSettlementMatrix(securityContext, matrixId);
+			fail('Expected to throw error!');
+		} catch (err :any) {
+			expect(err).toBeDefined();
+			expect(err instanceof SettlementMatrixIsClosedError).toEqual(true);
+			expect(err.message).toEqual('Cannot execute a closed matrix');
+		}
+
+		// ensure an invalid id generates an error (SettlementMatrixRequestClosedError):
+		const invalidMatrixId = randomUUID();
+		try {
+			await aggregate.closeSettlementMatrix(securityContext, invalidMatrixId);
+			fail('Expected to throw error!');
+		} catch (err :any) {
+			expect(err).toBeDefined();
+			expect(err instanceof SettlementMatrixNotFoundError).toEqual(true);
+			expect(err.message).toEqual(`Matrix with id: ${invalidMatrixId} not found`);
+		}
 	});
 
 	
