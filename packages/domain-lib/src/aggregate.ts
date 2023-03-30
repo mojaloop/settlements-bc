@@ -158,6 +158,18 @@ export class SettlementsAggregate {
 		return currency;
 	}
 
+	private _getAmountOrThrow(amountTxt :string, currency: ICurrency) {
+		// convert the amount and confirm if it's valid:
+		let amount: bigint;
+		try {
+			amount = stringToBigint(amountTxt, currency.decimals);
+		} catch (error: any) {
+			throw new InvalidAmountError();
+		}
+		if (amount <= 0n) throw new InvalidAmountError();
+		return amount;
+	}
+
 	async processTransferCmd(secCtx: CallSecurityContext, processTransferCmd: ProcessTransferCmd): Promise<string> {
 		// TODO this should the other way around, the rest API should send a command
 		const transferDto: ITransferDto = {
@@ -186,8 +198,9 @@ export class SettlementsAggregate {
 		if (!transferDto.payerFspId) throw new InvalidIdError("Invalid payerFspId in transfer");
 		if (!transferDto.payeeFspId) throw new InvalidIdError("Invalid payeeFspId in transfer");
 
-		// Verify the currency code (and get the corresponding currency decimals).
+		// verify the currency code (and get the corresponding currency decimals).
 		const currency = this._getCurrencyOrThrow(transferDto.currencyCode);
+		this._getAmountOrThrow(transferDto.amount, currency);
 
 		const configDto = await this._configRepo.getSettlementConfigByModel(transferDto.settlementModel);
 		if (!configDto) {
@@ -195,57 +208,54 @@ export class SettlementsAggregate {
 		}
 		const config = SettlementConfig.fromDto(configDto);
 
-		//const fromDate: number = config.calculateBatchFromDate(timestamp);
-		// const toDate: number = config.calculateBatchToDate(transferDto.timestamp);
 		const batchStartDate: number = config.calculateBatchStartTimestamp(transferDto.timestamp);
 
 		// get or create a batch
 		const resp = await this._getOrCreateBatch(transferDto.settlementModel, currency.code, new Date(batchStartDate));
 		const batch = resp.batch;
 
-		// Find payee batch account
-		let creditedAccountExtId;
-		const creditedAccount = batch.getAccount(transferDto.payeeFspId, currency.code);
-		if (creditedAccount) {
-			creditedAccountExtId = creditedAccount.accountExtId;
-		} else {
-			creditedAccountExtId = randomUUID(); // this might not be respected
-			creditedAccountExtId = await this._abAdapter.createAccount(
-				creditedAccountExtId,
-				batch.id, // account owner is the batch
-				BATCH_ACCOUNT_TYPE_IN_ACCOUNTS_AND_BALANCES,
-				currency.code
-			);
-			batch.addAccount(creditedAccountExtId, transferDto.payeeFspId, currency.code);
-		}
-
-		// find payer batch account
+		// find payer batch account (debit):
 		let debitedAccountExtId;
 		const debitedAccount = batch.getAccount(transferDto.payerFspId, currency.code);
 		if (debitedAccount) {
 			debitedAccountExtId = debitedAccount.accountExtId;
 		} else {
-			debitedAccountExtId = randomUUID(); // this might not be respected
+			debitedAccountExtId = randomUUID();
 			debitedAccountExtId = await this._abAdapter.createAccount(
 				debitedAccountExtId,
-				batch.id, // account owner is the batch
+				transferDto.payerFspId, // account owner is the participantId
 				BATCH_ACCOUNT_TYPE_IN_ACCOUNTS_AND_BALANCES,
 				currency.code
 			);
 			batch.addAccount(debitedAccountExtId, transferDto.payerFspId, currency.code);
 		}
 
+		// find payee batch account (credit):
+		let creditedAccountExtId;
+		const creditedAccount = batch.getAccount(transferDto.payeeFspId, currency.code);
+		if (creditedAccount) {
+			creditedAccountExtId = creditedAccount.accountExtId;
+		} else {
+			creditedAccountExtId = randomUUID();
+			creditedAccountExtId = await this._abAdapter.createAccount(
+				creditedAccountExtId,
+				transferDto.payeeFspId, // account owner is the participantId
+				BATCH_ACCOUNT_TYPE_IN_ACCOUNTS_AND_BALANCES,
+				currency.code
+			);
+			batch.addAccount(creditedAccountExtId, transferDto.payeeFspId, currency.code);
+		}
+
 		// create the journal entry
 		const journalEntryId = await this._abAdapter.createJournalEntry(
 			randomUUID(),
-			batch.id,
+			batch.id, // allows us to segment transfers for batches easily.
 			currency.code,
 			transferDto.amount,
-			false,
+			false, // not a 2-phase transfer.
 			debitedAccountExtId,
 			creditedAccountExtId
 		);
-
 
 		// add the transfer record to the batch and persist the batch changes
 		const batchTransfer = new SettlementBatchTransfer(
@@ -257,20 +267,18 @@ export class SettlementsAggregate {
 			transferDto.amount,
 			batch.id,
 			batch.batchName,
-			journalEntryId,
-			false
+			journalEntryId
 		);
 		await this._batchTransferRepo.storeBatchTransfer(batchTransfer);
 
 		// persist the batch changes
-		if(resp.created){
+		if (resp.created) {
 			await this._batchRepo.storeNewBatch(batch);
-		}else{
+		} else {
 			await this._batchRepo.updateBatch(batch);
 		}
 
-
-		if(resp.created){
+		if (resp.created) {
 			// We perform an async audit:
 			await this._auditingClient.audit(
 				AuditingActions.SETTLEMENT_BATCH_CREATED,
@@ -294,7 +302,7 @@ export class SettlementsAggregate {
 
 	async createSettlementMatrix(
 		secCtx: CallSecurityContext,
-		matrixId: string,
+		matrixId: string | null,
 		settlementModel: string,
 		currencyCode: string,
 		fromDate: number,
@@ -309,9 +317,9 @@ export class SettlementsAggregate {
 			settlementModel
 		);
 
-		if(matrixId){
+		if (matrixId) {
 			const existing = await this._settlementMatrixReqRepo.getMatrixById(matrixId);
-			if(existing){
+			if (existing) {
 				const err = new SettlementMatrixAlreadyExistsError("Matrix with the same id already exists");
 				this._logger.warn(err.message);
 				throw err;
@@ -378,19 +386,18 @@ export class SettlementsAggregate {
 			throw err; // not found
 		}
 
-		if (matrixDto.state==="CLOSED") {
+		if (matrixDto.state === "CLOSED") {
 			const err = new SettlementMatrixIsClosedError("Cannot recalculate a closed matrix");
 			this._logger.warn(err.message);
 			throw err;
 		}
-		if (matrixDto.state==="CALCULATING" || matrixDto.state==="CLOSING") {
+		if (matrixDto.state === "CALCULATING" || matrixDto.state === "CLOSING") {
 			const err = new SettlementMatrixIsBusyError("Matrix already being calculated or closed");
 			this._logger.warn(err.message);
 			throw err;
 		}
 
 		const matrix = SettlementMatrix.FromDto(matrixDto);
-
 		const startTimestamp = Date.now();
 
 		matrix.state = "CALCULATING";
@@ -412,7 +419,6 @@ export class SettlementsAggregate {
 				{key: "settlementMatrixReqId", value: id}
 			]
 		);
-
 		return;
 	}
 
@@ -448,7 +454,7 @@ export class SettlementsAggregate {
 		await this._recalculateMatrix(matrix, true);
 
 		// first pass - close the open batches:
-		const previouslyClosedBatches : ISettlementBatch[] = [];
+		const previouslySettledBatches : ISettlementBatch[] = [];
 		const batchesClosedNow: ISettlementBatch[] = [];
 
 		for (const matrixBatch of matrix.batches) {
@@ -456,12 +462,12 @@ export class SettlementsAggregate {
 			if (!batch)
 				throw new SettlementBatchNotFoundError(`Unable to locate batch for id '${matrixBatch.id}'.`);
 
-			if (batch.isClosed){
-				previouslyClosedBatches.push(batch);
+			if (batch.state === 'SETTLED') {
+				previouslySettledBatches.push(batch);
 				continue;
 			}
 
-			batch.isClosed = matrixBatch.isClosed = true;
+			batch.state = matrixBatch.state = 'SETTLED';
 			await this._batchRepo.updateBatch(batch);
 			batchesClosedNow.push(batch);
 		}
@@ -511,14 +517,12 @@ export class SettlementsAggregate {
 		let totalDebit = 0n, totalCredit = 0n;
 		const participantBalances:Map<string, {cr: bigint, dr:bigint}> = new Map<string, {cr: bigint; dr: bigint}>();
 
-		const settledTransfers: ISettlementBatchTransfer[] = [];
-
 		if (batches && batches.length > 0) {
 			await this._updateBatchAccountBalances(batches);
 
 			for (const batch of batches) {
 				// skip closed batches
-				if(batch.isClosed) continue;
+				if (batch.state !== 'OPEN') continue;
 
 				let batchDebitBalance = 0n;
 				let batchCreditBalance = 0n;
@@ -540,34 +544,21 @@ export class SettlementsAggregate {
 					}
 				});
 
-				const batchTransfers = await this._batchTransferRepo.getBatchTransfersByBatchIds([batch.id]);
-				settledTransfers.push(...batchTransfers);
-
 				matrix.addBatch(
 					batch,
 					bigintToString(batchDebitBalance, currency.decimals),
-					bigintToString(batchCreditBalance, currency.decimals),
-					batchTransfers.length ?? 0
+					bigintToString(batchCreditBalance, currency.decimals)
 				);
 
 				totalDebit = totalDebit + batchDebitBalance;
 				totalCredit = totalCredit + batchCreditBalance;
 			}
 		}
-		// update main balances
+		// update main balances:
 		matrix.totalDebitBalance = bigintToString(totalDebit, currency.decimals);
 		matrix.totalCreditBalance = bigintToString(totalCredit, currency.decimals);
 
-		// if closing, mark transfers as settled by this matrix
-		if(close) {
-			for (const transfer of settledTransfers) {
-				transfer.settled = true;
-				transfer.matrixId = matrix.id;
-				await this._batchTransferRepo.storeBatchTransfer(transfer);
-			}
-		}
-
-		// put per participant balances in the matrix
+		// put per participant balances in the matrix:
 		participantBalances.forEach((value, key) => {
 			matrix.participantBalances.push({
 				participantId: key,
@@ -582,7 +573,7 @@ export class SettlementsAggregate {
 
 		const abAccounts = await this._abAdapter.getAccounts(extAccountIds);
 		if (!abAccounts || abAccounts.length !== extAccountIds.length) {
-			const err = new Error("Could not get all accounts from accounts and balances on getSettlementBatches");
+			const err = new Error("Could not get all accounts from accounts and balances on [getSettlementBatches]");
 			this._logger.error(err);
 			throw err;
 		}
@@ -591,7 +582,7 @@ export class SettlementsAggregate {
 			for (const batchAccount of batch.accounts) {
 				const abAccount = abAccounts.find(value => value.id===batchAccount.accountExtId);
 				if (!abAccount) {
-					const err = new Error("Could not get all accounts from accounts and balances on getSettlementBatches");
+					const err = new Error("Could not get all accounts from accounts and balances on [getSettlementBatches]");
 					this._logger.error(err);
 					throw err;
 				}
@@ -612,9 +603,7 @@ export class SettlementsAggregate {
 		this._enforcePrivilege(secCtx, Privileges.RETRIEVE_SETTLEMENT_BATCH);
 
 		const batches = await this._batchRepo.getBatchesByCriteria(fromDate, toDate, currencyCode, settlementModel);
-		if(!batches || batches.length <=0 ){
-			return [];
-		}
+		if(!batches || batches.length <=0 ) return [];
 
 		await this._updateBatchAccountBalances(batches);
 		return batches;
@@ -627,14 +616,13 @@ export class SettlementsAggregate {
 		this._enforcePrivilege(secCtx, Privileges.RETRIEVE_SETTLEMENT_BATCH_ACCOUNTS);
 
 		const batch = await this._batchRepo.getBatch(batchIdentifier);
-		if (!batch) {
-			return null;
-		}
+		if (!batch) return null;
+
 		await this._updateBatchAccountBalances([batch]);
 		return batch;
 	}
 
-	async getSettlementBatchesByName(secCtx: CallSecurityContext,batchName: string): Promise<ISettlementBatch[]> {
+	async getSettlementBatchesByName(secCtx: CallSecurityContext, batchName: string): Promise<ISettlementBatch[]> {
 		this._enforcePrivilege(secCtx, Privileges.RETRIEVE_SETTLEMENT_BATCH_ACCOUNTS);
 
 		const batches = await this._batchRepo.getBatchesByName(batchName);
@@ -727,7 +715,7 @@ export class SettlementsAggregate {
 		const batchName = this._generateBatchName(model, currencyCode, toDate);
 		const existingBatches = await this._batchRepo.getBatchesByName(batchName);
 
-		if(!existingBatches || existingBatches.length<=0){
+		if (!existingBatches || existingBatches.length <= 0) {
 			// no batch exists with that name, let's create a new with seq number 1
 			const newBatchId = this._generateBatchIdentifier(batchName, 1);
 			const newBatch  = new SettlementBatch(
@@ -737,7 +725,7 @@ export class SettlementsAggregate {
 				currencyCode,
 				1,
 				batchName,
-				false
+				'OPEN'
 			);
 			return Promise.resolve({batch:newBatch, created: true});
 		}
@@ -745,7 +733,7 @@ export class SettlementsAggregate {
 		// let's find the highest seq open batch
 		// sort in decreasing order
 		const sortedBatches = existingBatches.sort((a, b) => b.batchSequence - a.batchSequence);
-		if(!sortedBatches[0].isClosed){
+		if(sortedBatches[0].state === 'OPEN'){
 			// highest seq is open, return it
 			const batchDto = sortedBatches[0];
 			const batch = new SettlementBatch(
@@ -755,7 +743,7 @@ export class SettlementsAggregate {
 				batchDto.currencyCode,
 				batchDto.batchSequence,
 				batchDto.batchName,
-				batchDto.isClosed,
+				'OPEN',
 				batchDto.accounts
 			);
 			return Promise.resolve({batch: batch, created: false});
@@ -763,7 +751,6 @@ export class SettlementsAggregate {
 
 		// if we got here, there is no open batch, let's open a new one
 		const nextSeq = sortedBatches[0].batchSequence + 1;
-
 		const newBatchId = this._generateBatchIdentifier(batchName, nextSeq);
 		const newBatch = new SettlementBatch(
 			newBatchId,
@@ -772,7 +759,7 @@ export class SettlementsAggregate {
 			currencyCode,
 			nextSeq,
 			batchName,
-			false
+			'OPEN'
 		);
 		return Promise.resolve({batch: newBatch, created: true});
 	}

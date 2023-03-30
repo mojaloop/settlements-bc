@@ -47,7 +47,11 @@ export class SettlementBatchRepoMock implements ISettlementBatchRepo {
 
 	async updateBatch(batch: ISettlementBatch): Promise<void> {
 		if (batch === undefined) return Promise.resolve();
-		this.batches.push(batch);
+
+		const newArray: Array<ISettlementBatch> = this.batches.filter(value => value.id !== batch.id);
+		newArray.push(batch)
+		this.batches = newArray;
+
 		return Promise.resolve();
 	}
 
@@ -57,7 +61,7 @@ export class SettlementBatchRepoMock implements ISettlementBatchRepo {
 	}
 
 	async getOpenBatchByName(batchName: string): Promise<ISettlementBatch | null> {
-		const returnVal = this.batches.find(value => value.id===batchName || !value.isClosed);
+		const returnVal = this.batches.find(value => value.id === batchName || value.state === 'OPEN');
 		return Promise.resolve(returnVal || null);
 	}
 
@@ -73,12 +77,10 @@ export class SettlementBatchRepoMock implements ISettlementBatchRepo {
 		return Promise.resolve(returnVal);
 	}
 
-
-	async getBatchesByCriteria(fromDate: number, toDate: number, model?: string): Promise<ISettlementBatch[]> {
+	async getBatchesByCriteria(fromDate: number, toDate: number, currencyCode: string, model: string): Promise<ISettlementBatch[]> {
 		const returnVal: Array<ISettlementBatch> = this.batches.filter(value => {
-			return (value.timestamp>=fromDate && value.timestamp <= toDate) && (!model || value.settlementModel === model);
+			return (value.timestamp >= fromDate && value.timestamp <= toDate) && (!model || value.settlementModel === model);
 		});
-
 		return Promise.resolve(returnVal);
 	}
 

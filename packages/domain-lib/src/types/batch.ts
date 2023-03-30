@@ -51,7 +51,7 @@ export class SettlementBatch implements ISettlementBatch{
 	currencyCode: string;
 	batchName: string; // FX.XOF:RWF.2021.08.23.00.00 (minus seq)
 	batchSequence: number; // 1 (seq only)
-	isClosed: boolean;
+	state: "OPEN" | "DISPUTED" | "SETTLED";
 
 	accounts: ISettlementBatchAccount[];
 
@@ -62,7 +62,7 @@ export class SettlementBatch implements ISettlementBatch{
 		currencyCode: string,
 		batchSequence: number,
 		batchName: string,
-		isClosed: boolean,
+		state: "OPEN" | "DISPUTED" | "SETTLED",
 		accounts?: ISettlementBatchAccount[],
 	) {
 		this.id = id;
@@ -71,11 +71,11 @@ export class SettlementBatch implements ISettlementBatch{
 		this.currencyCode = currencyCode;
 		this.batchName = batchName;
 		this.batchSequence = batchSequence;
-		this.isClosed = isClosed;
+		this.state = state;
 		this.accounts = accounts ?? [];
 	}
 
-	addAccount(accountExtId: string, participantId:string, currencyCode:string){
+	addAccount(accountExtId: string, participantId:string, currencyCode:string) {
 		this.accounts.push({
 			accountExtId: accountExtId,
 			participantId: participantId,
@@ -85,10 +85,10 @@ export class SettlementBatch implements ISettlementBatch{
 		});
 	}
 
-	getAccount(participantId:string, currencyCode:string): ISettlementBatchAccount | null{
-		if(!participantId || !participantId)
+	getAccount(participantId : string, currencyCode : string): ISettlementBatchAccount | null {
+		if (!participantId || !participantId)
 			throw new Error("invalid participantId or currencyCode in SettlementBatch.getAccount()");
-		const found = this.accounts.find(value => value.participantId===participantId && value.currencyCode === currencyCode);
+		const found = this.accounts.find(value => value.participantId === participantId && value.currencyCode === currencyCode);
 		return found || null;
 	}
 

@@ -29,7 +29,7 @@
 
 import {ISettlementBatchTransfer} from "@mojaloop/settlements-bc-public-types-lib";
 
-export class SettlementBatchTransfer implements ISettlementBatchTransfer{
+export class SettlementBatchTransfer implements ISettlementBatchTransfer {
 	transferId: string;
 	transferTimestamp: number;
 	payerFspId: string;
@@ -39,7 +39,6 @@ export class SettlementBatchTransfer implements ISettlementBatchTransfer{
 	batchId: string;
 	batchName: string;
 	journalEntryId: string;
-	settled:boolean;
 	matrixId: string | null;
 
 	constructor(
@@ -52,7 +51,6 @@ export class SettlementBatchTransfer implements ISettlementBatchTransfer{
 		batchId: string,
 		batchName: string,
 		journalEntryId: string,
-		settled:boolean,
 		matrixId: string | null = null
 	) {
 		this.transferId = transferId;
@@ -64,7 +62,6 @@ export class SettlementBatchTransfer implements ISettlementBatchTransfer{
 		this.batchId = batchId;
 		this.batchName = batchName;
 		this.journalEntryId = journalEntryId;
-		this.settled = settled;
 		this.matrixId = matrixId
 	}
 }

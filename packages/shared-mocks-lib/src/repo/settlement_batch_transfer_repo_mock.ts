@@ -27,17 +27,37 @@
 
 "use strict";
 
-export * from "./audit_client_mock";
-export * from "./authentication_service_mock";
-export * from "./token_helper_mock";
-export * from "./message_mock";
+import {ISettlementBatchTransferRepo} from "@mojaloop/settlements-bc-domain-lib";
+import { ISettlementBatchTransfer } from "@mojaloop/settlements-bc-public-types-lib";
 
-export * from "./authorization_client_mock";
-export * from "./repo/config_repo_mock";
-export * from "./repo/participant_account_notifier_mock";
+export class SettlementBatchTransferRepoMock implements ISettlementBatchTransferRepo {
+	private _list: ISettlementBatchTransfer[] = [];
 
-export * from "./repo/settlement_batch_repo_mock";
-export * from "./repo/settlement_batch_transfer_repo_mock";
+	async init(): Promise<void> {
+		return Promise.resolve();
+	}
+	async destroy(): Promise<void>{
+		return Promise.resolve();
+	}
 
-export * from "./repo/settlement_matrix_request_repo_mock";
-export * from "./adapter/accounts_balances_adapter_mock";
+	async storeBatchTransfer(batchTransfer: ISettlementBatchTransfer): Promise<void> {
+		this._list.push(batchTransfer);
+		return Promise.resolve();
+	}
+
+	async getBatchTransfersByBatchIds(batchIds: string[]): Promise<ISettlementBatchTransfer[]>{
+		return this._list.filter(value => batchIds.includes(value.batchId));
+	}
+
+	async getBatchTransfersByBatchNames(batchNames: string[]): Promise<ISettlementBatchTransfer[]> {
+		return this._list.filter(value => batchNames.includes(value.batchName));
+	}
+
+	async getBatchTransfersByTransferId(transferId: string): Promise<ISettlementBatchTransfer[]> {
+		return this._list.filter(value => value.transferId===transferId);
+	}
+
+	async getBatchTransfers(): Promise<ISettlementBatchTransfer[]>{
+		return this._list;
+	}
+}

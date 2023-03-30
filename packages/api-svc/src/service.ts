@@ -56,7 +56,7 @@ import {ITokenHelper} from "@mojaloop/security-bc-public-types-lib/";
 import {
 	AccountsBalancesAdapterMock,
 	ParticipantAccountNotifierMock,
-	SettlementBatchRepoMock, SettlementMatrixRequestRepoMock, SettlementTransferRepoMock
+	SettlementBatchRepoMock, SettlementMatrixRequestRepoMock, SettlementBatchTransferRepoMock
 } from "@mojaloop/settlements-bc-shared-mocks-lib";
 import {MongoSettlementMatrixRepo} from "@mojaloop/settlements-bc-infrastructure-lib/dist/mongo_settlement_matrix_repo";
 import {
