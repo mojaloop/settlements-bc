@@ -151,7 +151,7 @@ export class SettlementsAggregate {
 	private _getCurrencyOrThrow(currencyCode: string): { code: string, decimals: number } {
 		// Validate the currency code and get the currency.
 		const currency: { code: string, decimals: number } | undefined
-			= this._currencies.find((value) => value.code===currencyCode);
+			= this._currencies.find((value) => value.code === currencyCode);
 		if (!currency) {
 			throw new InvalidCurrencyCodeError(`Currency code: ${currencyCode} not found`);
 		}
@@ -350,6 +350,110 @@ export class SettlementsAggregate {
 		return newMatrix.id;
 	}
 
+	async createDisputeSettlementMatrix(
+		secCtx: CallSecurityContext,
+		matrixId: string | null,
+		batchIds: string[]
+	): Promise<string> {
+		this._enforcePrivilege(secCtx, Privileges.REQUEST_SETTLEMENT_MATRIX);
+
+		const startTimestamp = Date.now();
+		const newMatrix = new SettlementMatrix(startTimestamp, startTimestamp, '', '');
+		for (const id of batchIds) newMatrix.addBatch({
+			id: id,
+			timestamp: 0,
+			settlementModel: "",
+			currencyCode: "",
+			batchName: "",
+			batchSequence: 0,
+			state: "DISPUTED",
+			accounts: []
+		}, '0', '0');
+
+		if (matrixId) {
+			const existing = await this._settlementMatrixReqRepo.getMatrixById(matrixId);
+			if (existing) {
+				const err = new SettlementMatrixAlreadyExistsError("Matrix with the same id already exists");
+				this._logger.warn(err.message);
+				throw err;
+			}
+			newMatrix.id = matrixId;
+		}
+
+		newMatrix.state = "CALCULATING";
+		await this._settlementMatrixReqRepo.storeMatrix(newMatrix);// generates new matrix-id (if not set)
+
+		await this._recalculateMatrix(newMatrix, true, true);
+
+		newMatrix.state = "IDLE";
+		newMatrix.updatedAt = Date.now();
+		newMatrix.generationDurationSecs = Math.floor((newMatrix.updatedAt - startTimestamp) / 1000);
+		await this._settlementMatrixReqRepo.storeMatrix(newMatrix);
+
+		// We perform an async audit:
+		this._auditingClient.audit(
+			AuditingActions.SETTLEMENT_MATRIX_REQUEST_CREATED,
+			true,
+			this._getAuditSecurityContext(secCtx), [
+				{key: "settlementMatrixRequestId", value: newMatrix.id},
+				{key: "disputeMatrix", value: 'true'}
+			]
+		);
+
+		// Close the settlement matrix as a disputed matrix:
+		await this.closeSettlementMatrix(secCtx, newMatrix.id, true);
+
+		return newMatrix.id;
+	}
+
+	async createUnDisputeSettlementMatrix(
+		secCtx: CallSecurityContext,
+		matrixId: string | null,
+		batchIds: string[]
+	): Promise<string> {
+		this._enforcePrivilege(secCtx, Privileges.REQUEST_SETTLEMENT_MATRIX);
+
+		const startTimestamp = Date.now();
+		const newMatrix = new SettlementMatrix(startTimestamp, startTimestamp, '', '');
+		for (const id of batchIds) newMatrix.addBatch({
+			id: id,
+			timestamp: 0,
+			settlementModel: "",
+			currencyCode: "",
+			batchName: "",
+			batchSequence: 0,
+			state: "CLOSED",
+			accounts: []
+		}, '0', '0');
+
+		if (matrixId) {
+			const existing = await this._settlementMatrixReqRepo.getMatrixById(matrixId);
+			if (existing) {
+				const err = new SettlementMatrixAlreadyExistsError("Matrix with the same id already exists");
+				this._logger.warn(err.message);
+				throw err;
+			}
+			newMatrix.id = matrixId;
+		}
+
+		await this._settlementMatrixReqRepo.storeMatrix(newMatrix);// generates new matrix-id (if not set)
+
+		// Close the settlement matrix as a disputed matrix:
+		await this.closeSettlementMatrix(secCtx, newMatrix.id, false);
+
+		// We perform an async audit:
+		this._auditingClient.audit(
+			AuditingActions.SETTLEMENT_MATRIX_REQUEST_CREATED,
+			true,
+			this._getAuditSecurityContext(secCtx), [
+				{key: "settlementMatrixRequestId", value: newMatrix.id},
+				{key: "unDisputeMatrix", value: 'true'}
+			]
+		);
+
+		return newMatrix.id;
+	}
+
 
 	async getSettlementMatrix(secCtx: CallSecurityContext, id: string): Promise<ISettlementMatrix | null> {
 		this._enforcePrivilege(secCtx, Privileges.GET_SETTLEMENT_MATRIX_REQUEST);
@@ -422,7 +526,11 @@ export class SettlementsAggregate {
 		return;
 	}
 
-	async closeSettlementMatrix(secCtx: CallSecurityContext, id: string): Promise<void> {
+	async closeSettlementMatrix(
+		secCtx: CallSecurityContext,
+		id: string,
+		disputedMatrix :boolean = false
+	): Promise<void> {
 		this._enforcePrivilege(secCtx, Privileges.EXECUTE_SETTLEMENT_MATRIX);
 
 		const matrixDto = await this._settlementMatrixReqRepo.getMatrixById(id);
@@ -451,7 +559,7 @@ export class SettlementsAggregate {
 		await this._settlementMatrixReqRepo.storeMatrix(matrix);
 
 		// recalculate the matrix, without getting new batches in
-		await this._recalculateMatrix(matrix, true);
+		await this._recalculateMatrix(matrix, true, false);
 
 		// first pass - close the open batches:
 		const previouslySettledBatches : ISettlementBatch[] = [];
@@ -467,7 +575,7 @@ export class SettlementsAggregate {
 				continue;
 			}
 
-			batch.state = matrixBatch.state = 'SETTLED';
+			batch.state = matrixBatch.state = disputedMatrix ? 'DISPUTED' : 'SETTLED';
 			await this._batchRepo.updateBatch(batch);
 			batchesClosedNow.push(batch);
 		}
@@ -477,7 +585,7 @@ export class SettlementsAggregate {
 		//await this._participantAccNotifier.publishSettlementMatrixExecuteEvent(returnVal);
 
 		// Close the Matrix Request to prevent further execution:
-		matrix.state = "CLOSED";
+		matrix.state = disputedMatrix ? "DISPUTED" : "CLOSED";
 		matrix.updatedAt = Date.now();
 		matrix.generationDurationSecs = Math.floor((matrix.updatedAt - startTimestamp) / 1000);
 		await this._settlementMatrixReqRepo.storeMatrix(matrix);
@@ -495,18 +603,24 @@ export class SettlementsAggregate {
 		return;
 	}
 
-	private async _recalculateMatrix(matrix: SettlementMatrix, close:boolean=false): Promise<void> {
-		const currency = this._getCurrencyOrThrow(matrix.currencyCode);
+	private async _recalculateMatrix(
+		matrix :SettlementMatrix,
+		close :boolean = false,
+		disputeMatrix :boolean = false
+	): Promise<void> {
 
+		let currency : null | ICurrency = null;
 		// start by cleaning the batches
-		let batches:ISettlementBatch[];
-		if (close) {
+		let batches :ISettlementBatch[];
+		if (close || disputeMatrix) {
 			// this should never change the already included batches
 			// get by batchIds
 			const batchIds = matrix.batches.map(value => value.id);
 			batches = await this._batchRepo.getBatchesByIds(batchIds);
+			if (batches.length > 0) currency = this._getCurrencyOrThrow(batches[0].currencyCode);
 		} else {
-			// this will pickup any new batches
+			// this will pick-up any new batches:
+			currency = this._getCurrencyOrThrow(matrix.currencyCode);
 			batches = await this._batchRepo.getBatchesByCriteria(matrix.dateFrom, matrix.dateTo, matrix.currencyCode, matrix.settlementModel);
 		}
 
@@ -522,7 +636,9 @@ export class SettlementsAggregate {
 
 			for (const batch of batches) {
 				// skip closed batches
-				if (batch.state !== 'OPEN') continue;
+				if (disputeMatrix && batch.state === 'SETTLED') continue;
+				else if (close && batch.state !== 'OPEN' && batch.state !== 'DISPUTED') continue;
+				else if (!close && batch.state === 'DISPUTED') continue;
 
 				let batchDebitBalance = 0n;
 				let batchCreditBalance = 0n;
@@ -530,24 +646,24 @@ export class SettlementsAggregate {
 				// TODO make sure the currencies all match - accounts->batches->matrix
 
 				batch.accounts.forEach(acc => {
-					const debit = stringToBigint(acc.debitBalance, currency.decimals);
-					const credit = stringToBigint(acc.creditBalance, currency.decimals);
+					const debit = stringToBigint(acc.debitBalance, currency!.decimals);
+					const credit = stringToBigint(acc.creditBalance, currency!.decimals);
 					batchDebitBalance += debit;
 					batchCreditBalance += credit;
 
 					// update per participant balances
 					const partBal = participantBalances.get(acc.participantId);
-					if(!partBal){
+					if (!partBal) {
 						participantBalances.set(acc.participantId, {dr:debit, cr: credit});
-					}else{
+					} else {
 						participantBalances.set(acc.participantId, {dr: partBal.dr + debit, cr: partBal.cr + credit});
 					}
 				});
 
 				matrix.addBatch(
 					batch,
-					bigintToString(batchDebitBalance, currency.decimals),
-					bigintToString(batchCreditBalance, currency.decimals)
+					bigintToString(batchDebitBalance, currency!.decimals),
+					bigintToString(batchCreditBalance, currency!.decimals)
 				);
 
 				totalDebit = totalDebit + batchDebitBalance;
@@ -555,15 +671,15 @@ export class SettlementsAggregate {
 			}
 		}
 		// update main balances:
-		matrix.totalDebitBalance = bigintToString(totalDebit, currency.decimals);
-		matrix.totalCreditBalance = bigintToString(totalCredit, currency.decimals);
+		matrix.totalDebitBalance = bigintToString(totalDebit, currency!.decimals);
+		matrix.totalCreditBalance = bigintToString(totalCredit, currency!.decimals);
 
 		// put per participant balances in the matrix:
 		participantBalances.forEach((value, key) => {
 			matrix.participantBalances.push({
 				participantId: key,
-				debitBalance: bigintToString(value.dr, currency.decimals),
-				creditBalance: bigintToString(value.cr, currency.decimals)
+				debitBalance: bigintToString(value.dr, currency!.decimals),
+				creditBalance: bigintToString(value.cr, currency!.decimals)
 			});
 		});
 	}

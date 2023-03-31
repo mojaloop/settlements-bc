@@ -846,5 +846,75 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 	test("send a settlement matrix request again, to show that the results are different from a previous matrix", async () => {
 		//TODO
 	});
+
+	test("dispute a batch", async () => {
+		const reqTransferDto: ITransferDto = {
+			id: null,
+			transferId: randomUUID(),
+			payerFspId: randomUUID(),
+			payeeFspId: randomUUID(),
+			currencyCode: 'EUR',
+			amount: '10000', //100 EURO
+			timestamp: Date.now(),
+			settlementModel: 'DISPUTE-ME'
+		};
+		const batchId: string = await aggregate.handleTransfer(securityContext, reqTransferDto);
+		expect(batchId).toBeDefined();
+
+		// dispute the one and only batch:
+		const matrixIdDisp = await aggregate.createDisputeSettlementMatrix(
+			securityContext,
+			null, // matrix-id
+			[batchId]
+		);
+		expect(matrixIdDisp).toBeDefined();
+
+		const matrixDisp = await aggregate.getSettlementMatrix(securityContext, matrixIdDisp);
+		expect(matrixDisp).toBeDefined();
+		expect(matrixDisp!.id).toEqual(matrixIdDisp);
+		expect(matrixDisp!.state).toEqual('DISPUTED');
+		expect(matrixDisp!.currencyCode).toEqual('');
+		expect(matrixDisp!.settlementModel).toEqual('');
+
+		const batchDisp = await aggregate.getSettlementBatch(securityContext, batchId);
+		expect(batchDisp).toBeDefined();
+		expect(batchDisp!.id).toEqual(batchId);
+		expect(batchDisp!.state).toEqual('DISPUTED');
+
+		// now let's create a matrix with the disputed batch:
+		const matrixId = await aggregate.createSettlementMatrix(
+			securityContext,
+			null, //matrix-id
+			reqTransferDto.settlementModel,
+			reqTransferDto.currencyCode,
+			Date.now() - 5000,
+			Date.now(),
+		);
+		expect(matrixId).toBeDefined();
+		const matrix = await aggregate.getSettlementMatrix(securityContext, matrixId);
+		expect(matrix).toBeDefined();
+		expect(matrix!.id).toEqual(matrixId);
+		expect(matrix!.state).toEqual('IDLE');
+		expect(matrix!.batches.length).toEqual(0);
+
+		// remove the batch from dispute and re-calculate the matrix:
+		const matrixIdUnDispute = await aggregate.createUnDisputeSettlementMatrix(
+			securityContext,
+			null, //matrix-id
+			[batchId]
+		);
+		expect(matrixIdUnDispute).toBeDefined();
+		const matrixUnDispute = await aggregate.getSettlementMatrix(securityContext, matrixIdUnDispute);
+		expect(matrixUnDispute).toBeDefined();
+		expect(matrixUnDispute!.state).toEqual('CLOSED');
+		expect(matrixUnDispute!.currencyCode).toEqual('');
+		expect(matrixUnDispute!.settlementModel).toEqual('');
+		expect(matrixUnDispute!.batches.length).toEqual(1);
+
+		const batchUnDispute = await aggregate.getSettlementBatch(securityContext, batchId);
+		expect(batchUnDispute).toBeDefined();
+		expect(batchUnDispute!.id).toEqual(batchId);
+		expect(batchUnDispute!.state).toEqual('SETTLED');
+	});
 	
 });

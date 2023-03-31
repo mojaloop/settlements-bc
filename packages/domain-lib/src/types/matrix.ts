@@ -72,7 +72,7 @@ export interface ISettlementMatrix {
 	totalTransferCount: number;
 }*/
 
-export class SettlementMatrix implements ISettlementMatrix{
+export class SettlementMatrix implements ISettlementMatrix {
 	id: string;
 	createdAt: number;
 	updatedAt: number;
@@ -85,7 +85,7 @@ export class SettlementMatrix implements ISettlementMatrix{
 	batches: ISettlementMatrixBatch[];
 	participantBalances: ISettlementMatrixParticipantBalance[];
 
-	state: "IDLE" | "CALCULATING" | "CLOSING" | "CLOSED";
+	state: "IDLE" | "CALCULATING" | "CLOSING" | "DISPUTED" | "CLOSED";
 
 	generationDurationSecs: number | null;
 	totalDebitBalance: string;
