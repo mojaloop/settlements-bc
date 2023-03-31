@@ -44,7 +44,7 @@ Future batch states:
 
 */
 
-export class SettlementBatch implements ISettlementBatch{
+export class SettlementBatch implements ISettlementBatch {
 	id: string; // FX.XOF:RWF.2021.08.23.00.00.001
 	timestamp: number;
 	settlementModel: string;

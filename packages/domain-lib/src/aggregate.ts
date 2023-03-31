@@ -422,7 +422,7 @@ export class SettlementsAggregate {
 			currencyCode: "",
 			batchName: "",
 			batchSequence: 0,
-			state: "CLOSED",
+			state: "SETTLED",
 			accounts: []
 		}, '0', '0');
 
