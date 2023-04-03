@@ -36,6 +36,7 @@ import {SettlementsBCTopics} from "@mojaloop/platform-shared-lib-public-messages
 
 import {
 	CloseMatrixCmd, CloseMatrixCmdPayload,
+	DisputeMatrixCmd, DisputeMatrixCmdPayload,
 	CreateMatrixCmd,
 	CreateMatrixCmdPayload,
 	ProcessTransferCmd, RecalculateMatrixCmd, RecalculateMatrixCmdPayload,
@@ -115,6 +116,15 @@ export class SettlementsCommandHandler{
 						await this._settlementsAgg.closeSettlementMatrix(
 							sectCtx,
 							closePayload.matrixId
+						);
+						break;
+					case DisputeMatrixCmd.name:
+						// eslint-disable-next-line no-case-declarations
+						const disputePayload = message.payload as DisputeMatrixCmdPayload;
+						await this._settlementsAgg.createDisputeSettlementMatrix(
+							sectCtx,
+							disputePayload.matrixId,
+							disputePayload.batchIds
 						);
 						break;
 					default: {

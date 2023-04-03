@@ -262,12 +262,10 @@ export class Service {
 
 		// TODO implement remaining repositories and adapters
 
-
 		if (!participantAccountNotifier) {
 			participantAccountNotifier = new ParticipantAccountNotifierMock();
 		}
 		this.participantAccountNotifier = participantAccountNotifier;
-
 
 		if (!messageProducer) {
 			messageProducer = new MLKafkaJsonProducer(kafkaProducerOptions, this.logger);
@@ -275,7 +273,6 @@ export class Service {
 		}
 		this.messageProducer = messageProducer;
 
-/*
 		// Aggregate:
 		this.aggregate = new SettlementsAggregate(
 			this.logger,
@@ -289,7 +286,6 @@ export class Service {
 			this.accountsAndBalancesAdapter,
 			this.messageProducer
 		);
-*/
 
 		await this.setupExpress();
 	}

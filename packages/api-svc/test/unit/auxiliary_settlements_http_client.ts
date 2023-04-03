@@ -28,7 +28,7 @@
 
 import axios, {AxiosError, AxiosInstance, AxiosResponse} from "axios";
 import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
-import {ISettlementTransferDto} from "@mojaloop/settlements-bc-public-types-lib";
+import {ITransferDto} from "@mojaloop/settlements-bc-public-types-lib";
 
 export class AuxiliarySettlementsHttpClient {
 	// Properties received through the constructor.
@@ -57,9 +57,9 @@ export class AuxiliarySettlementsHttpClient {
 		this.httpClient.defaults.headers.common["Authorization"] = `Bearer ${accessToken}`;
 	}
 
-	async createSettlementTransfer(settleTransferDto: ISettlementTransferDto): Promise<number> {
+	async createSettlementTransfer(transferDto: ITransferDto): Promise<number> {
 		try {
-			const axiosResponse: AxiosResponse = await this.httpClient.post("/transfer", settleTransferDto);
+			const axiosResponse: AxiosResponse = await this.httpClient.post("/transfer", transferDto);
 			return axiosResponse.status;
 		} catch (error) {
 			return (error as AxiosError).response?.status ?? -1;

@@ -30,9 +30,8 @@
 import {
 	ISettlementConfigRepo,
 	ISettlementBatchRepo,
-	ISettlementBatchAccountRepo,
 	IParticipantAccountNotifier,
-	ISettlementTransferRepo,
+	ISettlementBatchTransferRepo,
 	ISettlementMatrixRequestRepo
 } from "@mojaloop/settlements-bc-domain-lib";
 import {ConsoleLogger, ILogger} from "@mojaloop/logging-bc-public-types-lib";
@@ -49,7 +48,7 @@ import {
 	SettlementBatchAccountRepoMock,
 	ParticipantAccountNotifierMock,
 	SettlementTransferRepoMock,
-	SettlementMatrixRequestRepoMock, TokenHelperMock
+	SettlementMatrixRequestRepoMock, TokenHelperMock, SettlementBatchTransferRepoMock
 } from "@mojaloop/settlements-bc-shared-mocks-lib";
 import {Service} from "../../src/service";
 import {
@@ -64,7 +63,7 @@ let authorizationClient: IAuthorizationClient;
 let configRepo: ISettlementConfigRepo;
 let settleBatchRepo: ISettlementBatchRepo;
 let settleBatchAccRepo: ISettlementBatchAccountRepo;
-let settleTransferRepo: ISettlementTransferRepo;
+let settleTransferRepo: ISettlementBatchTransferRepo;
 let settleMatrixReqRepo: ISettlementMatrixRequestRepo;
 let partNotifier: IParticipantAccountNotifier;
 
@@ -83,7 +82,7 @@ describe("settlements http service - unit tests", () => {
 		configRepo = new SettlementConfigRepoMock();
 		settleBatchRepo = new SettlementBatchRepoMock();
 		settleBatchAccRepo = new SettlementBatchAccountRepoMock();
-		settleTransferRepo = new SettlementTransferRepoMock();
+		settleTransferRepo = new SettlementBatchTransferRepoMock();
 		settleMatrixReqRepo = new SettlementMatrixRequestRepoMock();
 
 		partNotifier = new ParticipantAccountNotifierMock();
@@ -97,10 +96,10 @@ describe("settlements http service - unit tests", () => {
 			undefined,
 			configRepo,
 			settleBatchRepo,
-			settleBatchAccRepo,
-			partNotifier,
 			settleTransferRepo,
-			settleMatrixReqRepo
+			partNotifier,
+			settleMatrixReqRepo,
+			
 		);
 
 		auxiliarySettlementsHttpClient = new AuxiliarySettlementsHttpClient(
@@ -115,7 +114,6 @@ describe("settlements http service - unit tests", () => {
 		await Service.stop();
 	});
 
-	// Create Settlement Transfer.
 	test("create settlement transfer", async () => {
 		const transferId: string = randomUUID();
 		const debitAcc: string = randomUUID();
