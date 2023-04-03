@@ -169,6 +169,9 @@ export class DisputeMatrixCmd extends CommandMsg {
 	}
 
 	validatePayload(): void {
-		// TODO
+		// TODO Need to ensure the following is set;
+		// TODO payload
+		// TODO payload.matrixId is not blank
+		// TODO payload.batchIds is not empty
 	}
 }

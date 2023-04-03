@@ -406,11 +406,7 @@ export class ExpressRoutes {
 			const matrixId = req.params.id as string;
 			const disputePayloadReq = req.body as DisputeMatrixCmdPayload;
 
-			const cmd = new DisputeMatrixCmd(
-				{
-					matrixId: matrixId,
-					batchIds: disputePayloadReq.batchIds
-				});
+			const cmd = new DisputeMatrixCmd(disputePayloadReq);
 			await this._messageProducer.send(cmd);
 
 			this.sendSuccessResponse(res, 202, {id: matrixId});
