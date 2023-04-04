@@ -46,7 +46,6 @@ import {CallSecurityContext} from "@mojaloop/security-bc-public-types-lib/dist/i
 import {MLKafkaJsonConsumer} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib/dist/rdkafka_json_consumer";
 import {ILoginHelper, ITokenHelper, UnauthorizedError} from "@mojaloop/security-bc-public-types-lib";
 
-
 export class SettlementsCommandHandler{
 	private _logger: ILogger;
 	private _auditClient: IAuditClient;
@@ -106,8 +105,7 @@ export class SettlementsCommandHandler{
 						const recalcPayload = message.payload as RecalculateMatrixCmdPayload;
 						await this._settlementsAgg.recalculateSettlementMatrix(
 							sectCtx,
-							recalcPayload.matrixId,
-							//recalcPayload.includeNewBatches
+							recalcPayload.matrixId
 						);
 						break;
 					case CloseMatrixCmd.name:

@@ -39,13 +39,13 @@
     "@mojaloop/settlements-bc-domain-lib": "*",
     "@mojaloop/settlements-bc-infrastructure-lib": "*",
     "@mojaloop/settlements-bc-public-types-lib": "*",
-    "@mojaloop/auditing-bc-client-lib": "~0.0.11",
-    "@mojaloop/auditing-bc-public-types-lib": "~0.0.12",
-    "@mojaloop/logging-bc-client-lib": "~0.1.18",
-    "@mojaloop/logging-bc-public-types-lib": "~0.1.15",
-    "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib": "~0.3.34",
-    "@mojaloop/security-bc-client-lib": "~0.1.15",
-    "@mojaloop/security-bc-public-types-lib": "~0.1.15",
+    "@mojaloop/auditing-bc-client-lib": "~0.0.12",
+    "@mojaloop/auditing-bc-public-types-lib": "~0.0.13",
+    "@mojaloop/logging-bc-client-lib": "~0.1.19",
+    "@mojaloop/logging-bc-public-types-lib": "~0.1.16",
+    "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib": "~0.3.36",
+    "@mojaloop/security-bc-client-lib": "~0.1.28",
+    "@mojaloop/security-bc-public-types-lib": "~0.1.19",
     "express": "~4.18.2"
   }
 }

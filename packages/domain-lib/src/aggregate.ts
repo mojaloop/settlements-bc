@@ -32,9 +32,7 @@ import {randomUUID} from "crypto";
 import {
 	InvalidAmountError,
 	InvalidBatchSettlementModelError,
-	InvalidCreditAccountError,
 	InvalidCurrencyCodeError,
-	InvalidDebitAccountError,
 	InvalidIdError,
 	InvalidTimestampError,
 	InvalidTransferIdError,
@@ -58,7 +56,7 @@ import {SettlementBatch} from "./types/batch";
 import {
 	ISettlementBatch,
 	ISettlementBatchTransfer,
-	ISettlementMatrix, ISettlementMatrixBatch,
+	ISettlementMatrix,
 	ITransferDto,
 } from "@mojaloop/settlements-bc-public-types-lib";
 import {AuditSecurityContext, IAuditClient} from "@mojaloop/auditing-bc-public-types-lib";
@@ -163,7 +161,7 @@ export class SettlementsAggregate {
 		let amount: bigint;
 		try {
 			amount = stringToBigint(amountTxt, currency.decimals);
-		} catch (error: any) {
+		} catch (error) {
 			throw new InvalidAmountError();
 		}
 		if (amount <= 0n) throw new InvalidAmountError();
@@ -608,7 +606,6 @@ export class SettlementsAggregate {
 		close :boolean = false,
 		disputeMatrix :boolean = false
 	): Promise<void> {
-
 		let currency : null | ICurrency = null;
 		// start by cleaning the batches
 		let batches :ISettlementBatch[];
