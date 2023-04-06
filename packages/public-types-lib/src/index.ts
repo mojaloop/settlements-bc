@@ -97,7 +97,7 @@ export interface ISettlementMatrix {
 	settlementModel: string;
 	batches: ISettlementMatrixBatch[];
 	participantBalances: ISettlementMatrixParticipantBalance[];
-	state: "IDLE" | "CALCULATING" | "CLOSING" | "DISPUTED" | "CLOSED";
+	state: "IDLE" | "CALCULATING" | "CLOSING" | "CLOSED";
 	generationDurationSecs: number | null;
 	totalDebitBalance: string;
 	totalCreditBalance: string;

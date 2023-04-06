@@ -50,10 +50,12 @@ import {
 	ISettlementBatchTransferRepo,
 	ISettlementConfigRepo,
 	ISettlementMatrixRequestRepo,
+	IBatchSpecificSettlementMatrixRequestRepo
 } from "./types/infrastructure";
 import {SettlementBatch} from "./types/batch";
 
 import {
+	IBatchSpecificSettlementMatrix,
 	ISettlementBatch,
 	ISettlementBatchTransfer,
 	ISettlementMatrix,
@@ -71,6 +73,7 @@ import {SettlementConfig} from "./types/settlement_config";
 import {AccountsAndBalancesAccountType} from "@mojaloop/accounts-and-balances-bc-public-types-lib";
 import {SettlementBatchTransfer} from "./types/transfer";
 import {SettlementMatrix} from "./types/matrix";
+import {BatchSpecificSettlementMatrix} from "./types/batch_specific_matrix";
 import {ProcessTransferCmd} from "./commands";
 import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib/dist/index";
 
@@ -85,7 +88,9 @@ enum AuditingActions {
 	SETTLEMENT_TRANSFER_CREATED = "SETTLEMENT_TRANSFER_CREATED",
 	SETTLEMENT_MATRIX_EXECUTED = "SETTLEMENT_MATRIX_EXECUTED",
 	SETTLEMENT_MATRIX_REQUEST_FETCH = "SETTLEMENT_MATRIX_REQUEST_FETCH",
-	SETTLEMENT_MATRIX_REQUEST_CREATED = "SETTLEMENT_MATRIX_REQUEST_CREATED"
+	BATCH_SPECIFIC_SETTLEMENT_MATRIX_REQUEST_FETCH = "BATCH_SPECIFIC_SETTLEMENT_MATRIX_REQUEST_FETCH",
+	SETTLEMENT_MATRIX_REQUEST_CREATED = "SETTLEMENT_MATRIX_REQUEST_CREATED",
+	BATCH_SPECIFIC_SETTLEMENT_MATRIX_REQUEST_CREATED = "BATCH_SPECIFIC_SETTLEMENT_MATRIX_REQUEST_CREATED"
 }
 
 export class SettlementsAggregate {
@@ -98,6 +103,7 @@ export class SettlementsAggregate {
 	private readonly _batchTransferRepo: ISettlementBatchTransferRepo;
 	private readonly _configRepo: ISettlementConfigRepo;
 	private readonly _settlementMatrixReqRepo: ISettlementMatrixRequestRepo;
+	private readonly _batchSpecificSettlementMatrixReqRepo: IBatchSpecificSettlementMatrixRequestRepo;
 	private readonly _abAdapter: IAccountsBalancesAdapter;
 	private readonly _msgProducer: IMessageProducer;
 	private readonly _currencies: ICurrency[];
@@ -110,6 +116,7 @@ export class SettlementsAggregate {
 		batchTransferRepo: ISettlementBatchTransferRepo,
 		configRepo: ISettlementConfigRepo,
 		settlementMatrixReqRepo: ISettlementMatrixRequestRepo,
+		batchSpecificSettlementMatrixReqRepo: IBatchSpecificSettlementMatrixRequestRepo,
 		participantAccNotifier: IParticipantAccountNotifier,
 		abAdapter: IAccountsBalancesAdapter,
 		msgProducer: IMessageProducer
@@ -122,6 +129,7 @@ export class SettlementsAggregate {
 		this._batchTransferRepo = batchTransferRepo;
 		this._configRepo = configRepo;
 		this._settlementMatrixReqRepo = settlementMatrixReqRepo;
+		this._batchSpecificSettlementMatrixReqRepo = batchSpecificSettlementMatrixReqRepo;
 		this._abAdapter = abAdapter;
 		this._msgProducer = msgProducer;
 
@@ -337,7 +345,6 @@ export class SettlementsAggregate {
 		newMatrix.generationDurationSecs = Math.floor((newMatrix.updatedAt - startTimestamp) / 1000);
 		await this._settlementMatrixReqRepo.storeMatrix(newMatrix);
 
-
 		// We perform an async audit:
 		this._auditingClient.audit(
 			AuditingActions.SETTLEMENT_MATRIX_REQUEST_CREATED,
@@ -356,7 +363,7 @@ export class SettlementsAggregate {
 		this._enforcePrivilege(secCtx, Privileges.SETTLEMENTS_REQUEST_DISPUTE_MATRIX);
 
 		const startTimestamp = Date.now();
-		const newMatrix = new SettlementMatrix(startTimestamp, startTimestamp, '', '');
+		const newMatrix = new BatchSpecificSettlementMatrix();
 		for (const id of batchIds) newMatrix.addBatch({
 			id: id,
 			timestamp: 0,
@@ -369,7 +376,7 @@ export class SettlementsAggregate {
 		}, '0', '0');
 
 		if (matrixId) {
-			const existing = await this._settlementMatrixReqRepo.getMatrixById(matrixId);
+			const existing = await this._batchSpecificSettlementMatrixReqRepo.getMatrixById(matrixId);
 			if (existing) {
 				const err = new SettlementMatrixAlreadyExistsError("Matrix with the same id already exists");
 				this._logger.warn(err.message);
@@ -378,29 +385,32 @@ export class SettlementsAggregate {
 			newMatrix.id = matrixId;
 		}
 
-		newMatrix.state = "CALCULATING";
-		await this._settlementMatrixReqRepo.storeMatrix(newMatrix);// generates new matrix-id (if not set)
-
 		await this._recalculateMatrix(newMatrix, true, true);
 
-		newMatrix.state = "IDLE";
-		newMatrix.updatedAt = Date.now();
-		newMatrix.generationDurationSecs = Math.floor((newMatrix.updatedAt - startTimestamp) / 1000);
-		await this._settlementMatrixReqRepo.storeMatrix(newMatrix);
+		// dispute the 'unsettled' batches:
+		for (const matrixBatch of newMatrix.batches) {
+			const batch = await this._batchRepo.getBatch(matrixBatch.id);
+			if (!batch)
+				throw new SettlementBatchNotFoundError(`Unable to locate batch for id '${matrixBatch.id}'.`);
+
+			if (batch.state === 'SETTLED') continue;
+
+			batch.state = matrixBatch.state = 'DISPUTED';
+			await this._batchRepo.updateBatch(batch);
+		}
+
+		newMatrix.generationDurationSecs = Math.floor((newMatrix.createdAt - startTimestamp) / 1000);
+		await this._batchSpecificSettlementMatrixReqRepo.storeMatrix(newMatrix);// generates new matrix-id
 
 		// We perform an async audit:
 		this._auditingClient.audit(
-			AuditingActions.SETTLEMENT_MATRIX_REQUEST_CREATED,
+			AuditingActions.BATCH_SPECIFIC_SETTLEMENT_MATRIX_REQUEST_CREATED,
 			true,
 			this._getAuditSecurityContext(secCtx), [
 				{key: "settlementMatrixRequestId", value: newMatrix.id},
 				{key: "disputeMatrix", value: 'true'}
 			]
 		);
-
-		// Close the settlement matrix as a disputed matrix:
-		await this.closeSettlementMatrix(secCtx, newMatrix.id, true);
-
 		return newMatrix.id;
 	}
 
@@ -437,7 +447,7 @@ export class SettlementsAggregate {
 		await this._settlementMatrixReqRepo.storeMatrix(newMatrix);// generates new matrix-id (if not set)
 
 		// Close the settlement matrix as a disputed matrix:
-		await this.closeSettlementMatrix(secCtx, newMatrix.id, false);
+		await this.closeSettlementMatrix(secCtx, newMatrix.id);
 
 		// We perform an async audit:
 		this._auditingClient.audit(
@@ -475,6 +485,27 @@ export class SettlementsAggregate {
 			]
 		);
 
+		return matrixDto;
+	}
+
+	async getBatchSpecificSettlementMatrix(secCtx: CallSecurityContext, id: string): Promise<IBatchSpecificSettlementMatrix | null> {
+		this._enforcePrivilege(secCtx, Privileges.GET_BATCH_SPECIFIC_SETTLEMENT_MATRIX_REQUEST);
+
+		const matrixDto = await this._batchSpecificSettlementMatrixReqRepo.getMatrixById(id);
+		if (!matrixDto) {
+			const err = new SettlementMatrixNotFoundError(`Matrix with id: ${id} not found`);
+			this._logger.warn(err.message);
+			throw err; // not found
+		}
+
+		// We perform an async audit:
+		this._auditingClient.audit(
+			AuditingActions.BATCH_SPECIFIC_SETTLEMENT_MATRIX_REQUEST_FETCH,
+			true,
+			this._getAuditSecurityContext(secCtx), [
+				{key: "settlementMatrixReqId", value: id}
+			]
+		);
 		return matrixDto;
 	}
 
@@ -524,11 +555,7 @@ export class SettlementsAggregate {
 		return;
 	}
 
-	async closeSettlementMatrix(
-		secCtx: CallSecurityContext,
-		id: string,
-		disputedMatrix :boolean = false
-	): Promise<void> {
+	async closeSettlementMatrix(secCtx: CallSecurityContext, id: string): Promise<void> {
 		this._enforcePrivilege(secCtx, Privileges.EXECUTE_SETTLEMENT_MATRIX);
 
 		const matrixDto = await this._settlementMatrixReqRepo.getMatrixById(id);
@@ -550,7 +577,6 @@ export class SettlementsAggregate {
 		}
 
 		const matrix = SettlementMatrix.FromDto(matrixDto);
-
 		const startTimestamp = Date.now();
 
 		matrix.state = "CLOSING";
@@ -573,7 +599,7 @@ export class SettlementsAggregate {
 				continue;
 			}
 
-			batch.state = matrixBatch.state = disputedMatrix ? 'DISPUTED' : 'SETTLED';
+			batch.state = matrixBatch.state = 'SETTLED';
 			await this._batchRepo.updateBatch(batch);
 			batchesClosedNow.push(batch);
 		}
@@ -583,7 +609,7 @@ export class SettlementsAggregate {
 		//await this._participantAccNotifier.publishSettlementMatrixExecuteEvent(returnVal);
 
 		// Close the Matrix Request to prevent further execution:
-		matrix.state = disputedMatrix ? "DISPUTED" : "CLOSED";
+		matrix.state = "CLOSED";
 		matrix.updatedAt = Date.now();
 		matrix.generationDurationSecs = Math.floor((matrix.updatedAt - startTimestamp) / 1000);
 		await this._settlementMatrixReqRepo.storeMatrix(matrix);
@@ -597,12 +623,11 @@ export class SettlementsAggregate {
 				{key: "settlementMatrixReqId", value: id}
 			]
 		);
-
 		return;
 	}
 
 	private async _recalculateMatrix(
-		matrix :SettlementMatrix,
+		matrix : SettlementMatrix | BatchSpecificSettlementMatrix,
 		close :boolean = false,
 		disputeMatrix :boolean = false
 	): Promise<void> {
@@ -615,11 +640,11 @@ export class SettlementsAggregate {
 			const batchIds = matrix.batches.map(value => value.id);
 			batches = await this._batchRepo.getBatchesByIds(batchIds);
 			if (batches.length > 0) currency = this._getCurrencyOrThrow(batches[0].currencyCode);
-		} else {
+		} else if (matrix instanceof SettlementMatrix) {
 			// this will pick-up any new batches:
 			currency = this._getCurrencyOrThrow(matrix.currencyCode);
 			batches = await this._batchRepo.getBatchesByCriteria(matrix.dateFrom, matrix.dateTo, matrix.currencyCode, matrix.settlementModel);
-		}
+		} else batches = [];
 
 		// remove batches and zero totals
 		matrix.clear();
@@ -667,18 +692,21 @@ export class SettlementsAggregate {
 				totalCredit = totalCredit + batchCreditBalance;
 			}
 		}
-		// update main balances:
-		matrix.totalDebitBalance = bigintToString(totalDebit, currency!.decimals);
-		matrix.totalCreditBalance = bigintToString(totalCredit, currency!.decimals);
 
-		// put per participant balances in the matrix:
-		participantBalances.forEach((value, key) => {
-			matrix.participantBalances.push({
-				participantId: key,
-				debitBalance: bigintToString(value.dr, currency!.decimals),
-				creditBalance: bigintToString(value.cr, currency!.decimals)
+		// update main balances for standard matrix:
+		if (matrix instanceof SettlementMatrix) {
+			matrix.totalDebitBalance = bigintToString(totalDebit, currency!.decimals);
+			matrix.totalCreditBalance = bigintToString(totalCredit, currency!.decimals);
+
+			// put per participant balances in the matrix:
+			participantBalances.forEach((value, key) => {
+				matrix.participantBalances.push({
+					participantId: key,
+					debitBalance: bigintToString(value.dr, currency!.decimals),
+					creditBalance: bigintToString(value.cr, currency!.decimals)
+				});
 			});
-		});
+		}
 	}
 
 	private async _updateBatchAccountBalances(batches: ISettlementBatch[]): Promise<void>{

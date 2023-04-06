@@ -38,7 +38,7 @@ import {AuthorizationClient, LoginHelper, TokenHelper} from "@mojaloop/security-
 import {
 	IAccountsBalancesAdapter, IParticipantAccountNotifier,
 	ISettlementBatchRepo, ISettlementConfigRepo, ISettlementMatrixRequestRepo,
-	SettlementsAggregate, Privileges, ISettlementBatchTransferRepo
+	SettlementsAggregate, Privileges, ISettlementBatchTransferRepo, IBatchSpecificSettlementMatrixRequestRepo
 } from "@mojaloop/settlements-bc-domain-lib";
 import process from "process";
 import {existsSync} from "fs";
@@ -64,6 +64,9 @@ import {
 } from "@mojaloop/settlements-bc-infrastructure-lib/dist/mongo_settlement_transfer_repo";
 import {MLKafkaJsonProducer} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib/dist/index";
 import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib/dist/index";
+import {
+	MongoBatchSpecificSettlementMatrixRepo
+} from "@mojaloop/settlements-bc-infrastructure-lib/dist/mongo_batch_specific_settlement_matrix_repo";
 
 
 
@@ -105,6 +108,7 @@ const DB_NAME: string = "settlements";
 const SETTLEMENT_CONFIGS_COLLECTION_NAME: string = "configs";
 const SETTLEMENT_BATCHES_COLLECTION_NAME: string = "batches";
 const SETTLEMENT_MATRICES_COLLECTION_NAME: string = "matrices";
+const BATCH_SPECIFIC_SETTLEMENT_MATRICES_COLLECTION_NAME: string = "batch_specific_matrices";
 const SETTLEMENT_TRANSFERS_COLLECTION_NAME: string = "transfers";
 
 const kafkaProducerOptions: MLKafkaJsonProducerOptions = {
@@ -126,6 +130,7 @@ export class Service {
 	static participantAccountNotifier: IParticipantAccountNotifier;
 	static batchTransferRepo: ISettlementBatchTransferRepo;
 	static matrixRepo: ISettlementMatrixRequestRepo;
+	static batchSpecificMatrixRepo: IBatchSpecificSettlementMatrixRequestRepo;
 	static messageProducer: IMessageProducer;
 	static aggregate: SettlementsAggregate;
 
@@ -140,6 +145,7 @@ export class Service {
 		batchTransferRepo?: ISettlementBatchTransferRepo,
 		participantAccountNotifier?: IParticipantAccountNotifier,
 		matrixRepo?: ISettlementMatrixRequestRepo,
+		batchSpecificMatrixRepo?: IBatchSpecificSettlementMatrixRequestRepo,
 		messageProducer?: IMessageProducer,
 	):Promise<void>{
 		console.log(`Service starting with PID: ${process.pid}`);
@@ -216,7 +222,7 @@ export class Service {
 		this.accountsAndBalancesAdapter = accountsAndBalancesAdapter;
 
 		// repositories
-		if(!configRepo){
+		if (!configRepo) {
 			configRepo = new MongoSettlementConfigRepo(
 				logger,
 				MONGO_URL,
@@ -248,6 +254,17 @@ export class Service {
 			await matrixRepo.init();
 		}
 		this.matrixRepo = matrixRepo;
+
+		if (!batchSpecificMatrixRepo) {
+			batchSpecificMatrixRepo = new MongoBatchSpecificSettlementMatrixRepo(
+				logger,
+				MONGO_URL,
+				DB_NAME,
+				BATCH_SPECIFIC_SETTLEMENT_MATRICES_COLLECTION_NAME
+			);
+			await batchSpecificMatrixRepo.init();
+		}
+		this.batchSpecificMatrixRepo = batchSpecificMatrixRepo;
 
 		if (!batchTransferRepo) {
 			batchTransferRepo = new MongoSettlementTransferRepo(
@@ -282,6 +299,7 @@ export class Service {
 			this.batchTransferRepo,
 			this.configRepo,
 			this.matrixRepo,
+			this.batchSpecificMatrixRepo,
 			this.participantAccountNotifier,
 			this.accountsAndBalancesAdapter,
 			this.messageProducer

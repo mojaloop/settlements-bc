@@ -29,6 +29,7 @@
 
 import {
 	IAccountsBalancesAdapter,
+	IBatchSpecificSettlementMatrixRequestRepo,
 	InvalidAmountError,
 	InvalidBatchSettlementModelError,
 	InvalidCurrencyCodeError,
@@ -65,6 +66,9 @@ import {
 } from "@mojaloop/settlements-bc-shared-mocks-lib";
 import {ITransferDto} from "@mojaloop/settlements-bc-public-types-lib";
 import {IMessageProducer, MessageTypes} from "@mojaloop/platform-shared-lib-messaging-types-lib/dist/index";
+import {
+	BatchSpecificSettlementMatrixRequestRepoMock
+} from "@mojaloop/settlements-bc-shared-mocks-lib/dist/repo/batch_specific_settlement_matrix_request_repo_mock";
 
 let authorizationClient: IAuthorizationClient;
 let authorizationClientNoAuth: IAuthorizationClient;
@@ -72,6 +76,7 @@ let configRepo: ISettlementConfigRepo;
 let settleBatchRepo: ISettlementBatchRepo;
 let settleTransferRepo: ISettlementBatchTransferRepo;
 let settleMatrixReqRepo: ISettlementMatrixRequestRepo;
+let batchSpecificSettleMatrixReqRepo: IBatchSpecificSettlementMatrixRequestRepo;
 let partNotifier: IParticipantAccountNotifier;
 let abAdapter: IAccountsBalancesAdapter;
 let msgCache: MessageCache;
@@ -101,6 +106,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		settleBatchRepo = new SettlementBatchRepoMock();
 		settleTransferRepo = new SettlementBatchTransferRepoMock();
 		settleMatrixReqRepo = new SettlementMatrixRequestRepoMock();
+		batchSpecificSettleMatrixReqRepo = new BatchSpecificSettlementMatrixRequestRepoMock();
 
 		// adapters:
 		partNotifier = new ParticipantAccountNotifierMock();
@@ -119,6 +125,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 			settleTransferRepo,
 			configRepo,
 			settleMatrixReqRepo,
+			batchSpecificSettleMatrixReqRepo,
 			partNotifier,
 			abAdapter,
 			msgProducer
@@ -131,6 +138,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 			settleTransferRepo,
 			configRepo,
 			settleMatrixReqRepo,
+			batchSpecificSettleMatrixReqRepo,
 			partNotifier,
 			abAdapter,
 			msgProducer
@@ -918,12 +926,10 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 			expect(err.message).toEqual('Matrix with the same id already exists');
 		}
 
-		const matrixDisp = await aggregate.getSettlementMatrix(securityContext, matrixIdDisp);
+		const matrixDisp = await aggregate.getBatchSpecificSettlementMatrix(securityContext, matrixIdDisp);
 		expect(matrixDisp).toBeDefined();
 		expect(matrixDisp!.id).toEqual(matrixIdDisp);
 		expect(matrixDisp!.state).toEqual('DISPUTED');
-		expect(matrixDisp!.currencyCode).toEqual('');
-		expect(matrixDisp!.settlementModel).toEqual('');
 
 		const batchDisp = await aggregate.getSettlementBatch(securityContext, batchId);
 		expect(batchDisp).toBeDefined();

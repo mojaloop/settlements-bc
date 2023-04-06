@@ -57,7 +57,12 @@ import {
 
 import {
 	IAccountsBalancesAdapter, IParticipantAccountNotifier,
-	ISettlementBatchRepo, ISettlementBatchTransferRepo, ISettlementConfigRepo, ISettlementMatrixRequestRepo, Privileges,
+	ISettlementBatchRepo,
+	ISettlementBatchTransferRepo,
+	ISettlementConfigRepo,
+	ISettlementMatrixRequestRepo,
+	IBatchSpecificSettlementMatrixRequestRepo,
+	Privileges,
 	SettlementsAggregate
 } from "@mojaloop/settlements-bc-domain-lib";
 import {Express} from "express";
@@ -77,7 +82,7 @@ import {
 	MongoSettlementTransferRepo
 } from "@mojaloop/settlements-bc-infrastructure-lib/dist/mongo_settlement_transfer_repo";
 import {MongoSettlementMatrixRepo} from "@mojaloop/settlements-bc-infrastructure-lib/dist/mongo_settlement_matrix_repo";
-
+import {MongoBatchSpecificSettlementMatrixRepo} from "@mojaloop/settlements-bc-infrastructure-lib/dist/mongo_batch_specific_settlement_matrix_repo";
 
 import configClient from "./config";
 const BC_NAME = configClient.boundedContextName;
@@ -113,6 +118,7 @@ const DB_NAME: string = "settlements";
 const SETTLEMENT_CONFIGS_COLLECTION_NAME: string = "configs";
 const SETTLEMENT_BATCHES_COLLECTION_NAME: string = "batches";
 const SETTLEMENT_MATRICES_COLLECTION_NAME: string = "matrices";
+const BATCH_SPECIFIC_SETTLEMENT_MATRICES_COLLECTION_NAME: string = "batch_specific_matrices";
 const SETTLEMENT_TRANSFERS_COLLECTION_NAME: string = "transfers";
 
 
@@ -142,6 +148,7 @@ export class Service {
 	static participantAccountNotifier: IParticipantAccountNotifier;
 	static batchTransferRepo: ISettlementBatchTransferRepo;
 	static matrixRepo: ISettlementMatrixRequestRepo;
+	static batchSpecificMatrixRepo: IBatchSpecificSettlementMatrixRequestRepo;
 	static messageConsumer: IMessageConsumer;
 	static messageProducer: IMessageProducer;
 	static aggregate: SettlementsAggregate;
@@ -159,6 +166,7 @@ export class Service {
 		batchTransferRepo?: ISettlementBatchTransferRepo,
 		participantAccountNotifier?: IParticipantAccountNotifier,
 		matrixRepo?: ISettlementMatrixRequestRepo,
+		batchSpecificMatrixRepo?: IBatchSpecificSettlementMatrixRequestRepo,
 		messageConsumer?: IMessageConsumer,
 		messageProducer?: IMessageProducer,
 	): Promise<void> {
@@ -292,6 +300,17 @@ export class Service {
 		}
 		this.matrixRepo = matrixRepo;
 
+		if (!batchSpecificMatrixRepo) {
+			batchSpecificMatrixRepo = new MongoBatchSpecificSettlementMatrixRepo(
+				this.logger,
+				MONGO_URL,
+				DB_NAME,
+				BATCH_SPECIFIC_SETTLEMENT_MATRICES_COLLECTION_NAME
+			);
+			await batchSpecificMatrixRepo.init();
+		}
+		this.batchSpecificMatrixRepo = batchSpecificMatrixRepo;
+
 		if (!batchTransferRepo) {
 			batchTransferRepo = new MongoSettlementTransferRepo(
 				this.logger,
@@ -333,6 +352,7 @@ export class Service {
 			this.batchTransferRepo,
 			this.configRepo,
 			this.matrixRepo,
+			this.batchSpecificMatrixRepo,
 			this.participantAccountNotifier,
 			this.accountsAndBalancesAdapter,
 			this.messageProducer

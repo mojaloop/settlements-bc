@@ -49,7 +49,7 @@ export class SettlementMatrix implements ISettlementMatrix {
   batches: ISettlementMatrixBatch[];
   participantBalances: ISettlementMatrixParticipantBalance[];
 
-  state: "IDLE" | "CALCULATING" | "CLOSING" | "DISPUTED" | "CLOSED";
+  state: "IDLE" | "CALCULATING" | "CLOSING" | "CLOSED";
 
   generationDurationSecs: number | null;
   totalDebitBalance: string;

@@ -19,19 +19,44 @@
  their names indented and be marked with a '-'. Email address can be added
  optionally within square brackets <email>.
 
- Coil
- - Jason Bruwer <jason.bruwer@coil.com>
+ * Coil
+ * - Jason Bruwer <jason.bruwer@coil.com>
 
  --------------
  ******/
 
 "use strict";
 
-export * from "./aggregate";
-export * from "./types/errors";
-export * from "./types/infrastructure";
-export * from "./privileges";
-export * from "./converters";
-export * from "./commands";
-export * from "./types/matrix";  // BC private matrix interfaces for infra and mocks
-export * from "./types/batch_specific_matrix";  // BC private matrix interfaces for infra and mocks
+import {IBatchSpecificSettlementMatrixRequestRepo} from "@mojaloop/settlements-bc-domain-lib";
+import {IBatchSpecificSettlementMatrix} from "@mojaloop/settlements-bc-public-types-lib";
+
+export class BatchSpecificSettlementMatrixRequestRepoMock implements IBatchSpecificSettlementMatrixRequestRepo {
+	matrixRequests: Array<IBatchSpecificSettlementMatrix> = [];
+
+	async init(): Promise<void> {
+		return Promise.resolve();
+	}
+	async destroy(): Promise<void>{
+		return Promise.resolve();
+	}
+
+	async storeMatrix(matrixReq: IBatchSpecificSettlementMatrix): Promise<void> {
+		if (matrixReq === undefined) return Promise.resolve();
+
+		const newArray: Array<IBatchSpecificSettlementMatrix> = this.matrixRequests.filter(value => value.id !== matrixReq.id);
+		newArray.push(matrixReq)
+		this.matrixRequests = newArray;
+		return Promise.resolve();
+	}
+
+	async getMatrixById(settlementMatrixReqId: string): Promise<IBatchSpecificSettlementMatrix | null> {
+		if (settlementMatrixReqId === undefined) return Promise.resolve(null);
+
+		for (const matrixReqIter of this.matrixRequests) {
+			if (matrixReqIter.id === settlementMatrixReqId) {
+				return Promise.resolve(matrixReqIter);
+			}
+		}
+		return Promise.resolve(null);
+	}
+}
