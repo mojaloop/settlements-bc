@@ -29,54 +29,30 @@
 
 import {
   ISettlementBatch,
-  ISettlementMatrix,
   ISettlementMatrixBatch,
-  ISettlementMatrixParticipantBalance
-
+  IBatchSpecificSettlementMatrix
 } from "@mojaloop/settlements-bc-public-types-lib";
 import {randomUUID} from "crypto";
 
-export class SettlementMatrix implements ISettlementMatrix {
+export class BatchSpecificSettlementMatrix implements IBatchSpecificSettlementMatrix {
   id: string;
   createdAt: number;
-  updatedAt: number;
-
-  dateFrom: number;
-  dateTo: number;
-  currencyCode: string;
-  settlementModel: string;
 
   batches: ISettlementMatrixBatch[];
-  participantBalances: ISettlementMatrixParticipantBalance[];
 
-  state: "IDLE" | "CALCULATING" | "CLOSING" | "DISPUTED" | "CLOSED";
+  state: "DISPUTED";
 
   generationDurationSecs: number | null;
-  totalDebitBalance: string;
-  totalCreditBalance: string;
 
-  constructor(
-    dateFrom: number,
-    dateTo: number,
-    currencyCode: string,
-    settlementModel: string,
-  ) {
+  constructor() {
     this.id = randomUUID();
-    this.createdAt = this.updatedAt = Date.now();
-    this.dateFrom = dateFrom;
-    this.dateTo = dateTo;
-    this.currencyCode = currencyCode;
-    this.settlementModel = settlementModel;
-
-    this.state = "IDLE";
+    this.createdAt = Date.now();
+    this.state = "DISPUTED";
 
     this.batches  = [];
-    this.participantBalances = [];
-    this.totalDebitBalance = "0";
-    this.totalCreditBalance = "0";
   }
 
-  addBatch(batch: ISettlementBatch, debitBalance: string, creditBalance: string):void{
+  addBatch(batch: ISettlementBatch, debitBalance: string, creditBalance: string): void {
     this.batches.push({
       id: batch.id,
       name: batch.batchName,
@@ -88,26 +64,5 @@ export class SettlementMatrix implements ISettlementMatrix {
 
   clear(){
     this.batches = [];
-    this.participantBalances = [];
-    this.totalDebitBalance = "0";
-    this.totalCreditBalance = "0";
-  }
-
-  static FromDto(dto: ISettlementMatrix): SettlementMatrix {
-    const newInstance = new SettlementMatrix(dto.dateFrom, dto.dateTo, dto.currencyCode, dto.settlementModel);
-
-    newInstance.id = dto.id;
-    newInstance.createdAt = dto.createdAt;
-    newInstance.updatedAt = dto.updatedAt;
-    newInstance.state = dto.state;
-
-    newInstance.batches = dto.batches;
-    newInstance.participantBalances = dto.participantBalances;
-
-    newInstance.generationDurationSecs = dto.generationDurationSecs;
-    newInstance.totalDebitBalance = dto.totalDebitBalance;
-    newInstance.totalCreditBalance = dto.totalCreditBalance;
-
-    return newInstance;
   }
 }

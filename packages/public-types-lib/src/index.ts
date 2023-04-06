@@ -103,10 +103,18 @@ export interface ISettlementMatrix {
 	totalCreditBalance: string;
 }
 
-export interface ISettlementMatrixParticipantBalance{
+export interface ISettlementMatrixParticipantBalance {
 	participantId: string;
 	debitBalance: string;
 	creditBalance: string;
+}
+
+export interface IBatchSpecificSettlementMatrix {
+	id: string;
+	createdAt: number;
+	batches: ISettlementMatrixBatch[];
+	state: "DISPUTED";
+	generationDurationSecs: number | null;
 }
 
 export interface ISettlementMatrixBatch {

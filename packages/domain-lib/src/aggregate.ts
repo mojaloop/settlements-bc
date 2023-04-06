@@ -353,7 +353,7 @@ export class SettlementsAggregate {
 		matrixId: string | null,
 		batchIds: string[]
 	): Promise<string> {
-		this._enforcePrivilege(secCtx, Privileges.REQUEST_SETTLEMENT_MATRIX);
+		this._enforcePrivilege(secCtx, Privileges.SETTLEMENTS_REQUEST_DISPUTE_MATRIX);
 
 		const startTimestamp = Date.now();
 		const newMatrix = new SettlementMatrix(startTimestamp, startTimestamp, '', '');
