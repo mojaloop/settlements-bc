@@ -100,7 +100,7 @@ export class CreateMatrixCmd extends CommandMsg {
 
 export type RecalculateMatrixCmdPayload = {
 	matrixId: string;
-	includeNewBatches:boolean;
+	includeNewBatches: boolean;
 }
 
 export class RecalculateMatrixCmd extends CommandMsg {
@@ -124,7 +124,6 @@ export class RecalculateMatrixCmd extends CommandMsg {
 }
 
 
-
 export type CloseMatrixCmdPayload = {
 	matrixId: string;
 }
@@ -146,5 +145,33 @@ export class CloseMatrixCmd extends CommandMsg {
 
 	validatePayload(): void {
 		// TODO
+	}
+}
+
+export type DisputeMatrixCmdPayload = {
+	matrixId: string;
+	batchIds: string[];
+}
+
+export class DisputeMatrixCmd extends CommandMsg {
+	boundedContextName: string = SETTLEMENTS_BOUNDED_CONTEXT_NAME;
+	aggregateId: string;
+	aggregateName: string = SETTLEMENTS_AGGREGATE_NAME;
+	msgKey: string;
+	msgTopic: string = SettlementsBCTopics.DomainRequests;
+	payload: DisputeMatrixCmdPayload;
+
+	constructor(payload: DisputeMatrixCmdPayload) {
+		super();
+
+		this.aggregateId = this.msgKey = payload.matrixId;
+		this.payload = payload;
+	}
+
+	validatePayload(): void {
+		// TODO Need to ensure the following is set;
+		// TODO payload
+		// TODO payload.matrixId is not blank
+		// TODO payload.batchIds is not empty
 	}
 }

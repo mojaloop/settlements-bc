@@ -40,15 +40,11 @@ export interface ITransferDto {
 	//creditParticipantAccountId: string;
 	timestamp: number;
 	settlementModel: string;
-	// batch?: ISettlementBatch | null; // this is forbidden, only thing that is allocated from the transfers is the model (from the lib)
-	// batchAllocation?: string | null; // this is forbidden, only thing that is allocated from the transfers is the model (from the lib)
 }
-
 
 export interface ISettlementConfig {
 	id: string;
 	settlementModel: string;
-	//currencyCode: string | null; // TODO enable currency code in  ISettlementConfig - nullable
 	batchCreateInterval: number;
 }
 
@@ -89,27 +85,25 @@ export interface ISettlementBatchTransfer {
 /*******************
 * Settlement Matrix
 ********************/
-
-
 export interface ISettlementMatrix {
 	id: string;
 	createdAt: number;
 	updatedAt: number;
 
 	// criteria
-	dateFrom: number;
-	dateTo: number;
-	currencyCode: string;
-	settlementModel: string;
+	dateFrom: number | null;
+	dateTo: number | null;
+	currencyCode: string | null;
+	settlementModel: string | null;
 	batches: ISettlementMatrixBatch[];
 	participantBalances: ISettlementMatrixParticipantBalance[];
-	state: "IDLE" | "CALCULATING" | "CLOSING" | "CLOSED";
+	state: "IDLE" | "CALCULATING" | "CLOSING" | "DISPUTED" | "CLOSED";
 	generationDurationSecs: number | null;
 	totalDebitBalance: string;
 	totalCreditBalance: string;
 }
 
-export interface ISettlementMatrixParticipantBalance{
+export interface ISettlementMatrixParticipantBalance {
 	participantId: string;
 	debitBalance: string;
 	creditBalance: string;

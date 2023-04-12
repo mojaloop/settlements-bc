@@ -57,7 +57,11 @@ import {
 
 import {
 	IAccountsBalancesAdapter, IParticipantAccountNotifier,
-	ISettlementBatchRepo, ISettlementBatchTransferRepo, ISettlementConfigRepo, ISettlementMatrixRequestRepo, Privileges,
+	ISettlementBatchRepo,
+	ISettlementBatchTransferRepo,
+	ISettlementConfigRepo,
+	ISettlementMatrixRequestRepo,
+	Privileges,
 	SettlementsAggregate
 } from "@mojaloop/settlements-bc-domain-lib";
 import {Express} from "express";
@@ -77,7 +81,7 @@ import {
 	MongoSettlementTransferRepo
 } from "@mojaloop/settlements-bc-infrastructure-lib/dist/mongo_settlement_transfer_repo";
 import {MongoSettlementMatrixRepo} from "@mojaloop/settlements-bc-infrastructure-lib/dist/mongo_settlement_matrix_repo";
-
+import {MongoBatchSpecificSettlementMatrixRepo} from "@mojaloop/settlements-bc-infrastructure-lib/dist/mongo_batch_specific_settlement_matrix_repo";
 
 import configClient from "./config";
 const BC_NAME = configClient.boundedContextName;
@@ -113,6 +117,7 @@ const DB_NAME: string = "settlements";
 const SETTLEMENT_CONFIGS_COLLECTION_NAME: string = "configs";
 const SETTLEMENT_BATCHES_COLLECTION_NAME: string = "batches";
 const SETTLEMENT_MATRICES_COLLECTION_NAME: string = "matrices";
+const BATCH_SPECIFIC_SETTLEMENT_MATRICES_COLLECTION_NAME: string = "batch_specific_matrices";
 const SETTLEMENT_TRANSFERS_COLLECTION_NAME: string = "transfers";
 
 
@@ -322,7 +327,6 @@ export class Service {
 			await messageProducer.connect();
 		}
 		this.messageProducer = messageProducer;
-
 
 		// Aggregate:
 		this.aggregate = new SettlementsAggregate(

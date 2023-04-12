@@ -69,7 +69,6 @@ export class SettlementsEventHandler{
 		return await new Promise<void>(async (resolve) => {
 			this._logger.debug(`Got message in SettlementsEventHandler with name: ${message.msgName}`);
 			try {
-				//let transferEvt: DomainEventMsg | undefined;
 				let settlementsCmd: CommandMsg | null = null;
 
 				switch (message.msgName) {
@@ -100,20 +99,13 @@ export class SettlementsEventHandler{
 	}
 
 	private _TransferCommittedFulfiledEvtToProcessTransfCmd(evt: TransferCommittedFulfiledEvt): ProcessTransferCmd {
-		// @ts-ignore
-
 		const cmdPayload: ProcessTransferCmdPayload = {
 			transferId: evt.payload.transferId,
 			completedTimestamp: evt.payload.completedTimestamp!,
-			// @ts-ignore
 			payerFspId: evt.payload.payerFspId,
-			// @ts-ignore
 			payeeFspId: evt.payload.payeeFspId,
-			// @ts-ignore
 			currencyCode: evt.payload.currencyCode,
-			// @ts-ignore
 			amount: evt.payload.amount,
-			// @ts-ignore,
 			settlementModel: evt.payload.settlementModel,
 		};
 

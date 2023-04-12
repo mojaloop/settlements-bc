@@ -44,7 +44,12 @@ import {
 	ISettlementBatchRepo,
 	ISettlementMatrixRequestRepo,
 	ISettlementBatchTransferRepo,
-	CreateMatrixCmd, CreateMatrixCmdPayload, RecalculateMatrixCmd, CloseMatrixCmd
+	CreateMatrixCmd,
+	CreateMatrixCmdPayload,
+	RecalculateMatrixCmd,
+	CloseMatrixCmd,
+	DisputeMatrixCmd,
+	DisputeMatrixCmdPayload
 } from "@mojaloop/settlements-bc-domain-lib";
 import {CallSecurityContext} from "@mojaloop/security-bc-public-types-lib";
 import {
@@ -107,16 +112,15 @@ export class ExpressRoutes {
 		// this._router.get("/settlement_accounts", this.getSettlementBatchAccounts.bind(this)); // TODO is this necessary? batches already have the accounts
 		this._router.get("/transfers", this.getSettlementBatchTransfers.bind(this));
 
-
-		// Settlement Matrix
-
-		// create matrix
+		// Settlement Matrix:
 		this._router.post("/matrix", this.postCreateMatrix.bind(this));
 
 		// request recalculation of matrix
 		this._router.post("/matrix/:id/recalculate", this.postRecalculateMatrix.bind(this));
 		// request execution/closure of matrix
 		this._router.post("/matrix/:id/close", this.postCloseSettlementMatrix.bind(this));
+		// request dispute of matrix
+		this._router.post("/matrix/:id/dispute", this.postDisputeSettlementMatrix.bind(this));
 		// get matrix by id - static get, no recalculate
 		this._router.get("/matrix/:id", this.getSettlementMatrix.bind(this));
 		// get matrices - static get, no recalculate
@@ -311,7 +315,7 @@ export class ExpressRoutes {
 			const toDate = req.body.toDate;
 
 			const matrix = await this._matrixRepo.getMatrixById(matrixId);
-			if(matrix){
+			if (matrix) {
 				return this.sendErrorResponse(res,400, "Matrix with the same id already exists");
 			}
 
@@ -381,6 +385,29 @@ export class ExpressRoutes {
 			const cmd = new CloseMatrixCmd({matrixId:matrixId});
 			await this._messageProducer.send(cmd);
 
+
+			this.sendSuccessResponse(res, 202, {id: matrixId});
+		} catch (error: any) {
+			this._logger.error(error);
+			if (error instanceof SettlementMatrixIsClosedError || error instanceof SettlementMatrixIsBusyError) {
+				this.sendErrorResponse(res, 406, error.message);
+			} else if (error instanceof SettlementMatrixNotFoundError) {
+				this.sendErrorResponse(res, 404, error.message);
+			} else if (error instanceof UnauthorizedError) {
+				this.sendErrorResponse(res, 403, "unauthorized"); // TODO: verify.
+			} else {
+				this.sendErrorResponse(res, 500, error.message || ExpressRoutes.UNKNOWN_ERROR_MESSAGE);
+			}
+		}
+	}
+
+	private async postDisputeSettlementMatrix(req: express.Request, res: express.Response): Promise<void> {
+		try {
+			const matrixId = req.params.id as string;
+			const disputePayloadReq = req.body as DisputeMatrixCmdPayload;
+
+			const cmd = new DisputeMatrixCmd(disputePayloadReq);
+			await this._messageProducer.send(cmd);
 
 			this.sendSuccessResponse(res, 202, {id: matrixId});
 		} catch (error: any) {

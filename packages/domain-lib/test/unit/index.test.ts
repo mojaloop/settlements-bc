@@ -28,55 +28,43 @@
 "use strict";
 
 import {
-	ISettlementConfigRepo,
-	ISettlementBatchRepo,
-	IParticipantAccountNotifier,
-	ISettlementMatrixRequestRepo,
-	SettlementsAggregate,
-	InvalidTimestampError,
+	IAccountsBalancesAdapter,
+	InvalidAmountError,
 	InvalidBatchSettlementModelError,
 	InvalidCurrencyCodeError,
-	InvalidAmountError,
-	InvalidTransferIdError,
-	InvalidDebitAccountError,
-	InvalidCreditAccountError,
-	SettlementBatchNotFoundError,
-	UnauthorizedError,
-	InvalidBatchIdentifierError,
 	InvalidIdError,
-	InvalidCreditBalanceError,
-	InvalidDebitBalanceError,
-	InvalidParticipantAccountIdError,
-	IAccountsBalancesAdapter,
+	InvalidTimestampError,
+	InvalidTransferIdError,
+	IParticipantAccountNotifier,
+	ISettlementBatchRepo,
 	ISettlementBatchTransferRepo,
+	ISettlementConfigRepo,
+	ISettlementMatrixRequestRepo,
+	ProcessTransferCmd,
+	ProcessTransferCmdPayload, SettlementBatchNotFoundError,
 	SettlementMatrixAlreadyExistsError,
 	SettlementMatrixIsClosedError,
-	SettlementMatrixNotFoundError
+	SettlementMatrixNotFoundError,
+	SettlementsAggregate
 } from "../../src/index";
 import {ConsoleLogger, ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import {IAuditClient} from "@mojaloop/auditing-bc-public-types-lib";
 import {randomUUID} from "crypto";
-import {stringToBigint, bigintToString} from "../../src/converters";
-import {IAuthorizationClient, CallSecurityContext} from "@mojaloop/security-bc-public-types-lib";
+import {CallSecurityContext, ForbiddenError, IAuthorizationClient} from "@mojaloop/security-bc-public-types-lib";
 import {
+	AccountsBalancesAdapterMock,
 	AuditClientMock,
 	AuthorizationClientMock,
-	SettlementConfigRepoMock,
-	SettlementBatchRepoMock,
-	ParticipantAccountNotifierMock,
-	SettlementMatrixRequestRepoMock,
-	AccountsBalancesAdapterMock,
-	SettlementBatchTransferRepoMock,
+	MessageCache,
 	MessageProducerMock,
-	MessageCache
+	ParticipantAccountNotifierMock,
+	SettlementBatchRepoMock,
+	SettlementBatchTransferRepoMock,
+	SettlementConfigRepoMock,
+	SettlementMatrixRequestRepoMock
 } from "@mojaloop/settlements-bc-shared-mocks-lib";
-import {
-	ITransferDto
-
-} from "@mojaloop/settlements-bc-public-types-lib";
-import {SettlementConfig} from "../../src/types/settlement_config";
-import {SettlementBatchTransfer} from "../../src/types/transfer";
-import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib/dist/index";
+import {ITransferDto} from "@mojaloop/settlements-bc-public-types-lib";
+import {IMessageProducer, MessageTypes} from "@mojaloop/platform-shared-lib-messaging-types-lib/dist/index";
 
 let authorizationClient: IAuthorizationClient;
 let authorizationClientNoAuth: IAuthorizationClient;
@@ -91,7 +79,7 @@ let msgProducer: IMessageProducer;
 
 describe("Settlements BC [Domain] - Unit Tests", () => {
 	let aggregate : SettlementsAggregate;
-	let aggregateNoAuth : SettlementsAggregate;//TODO Do one with no auth.
+	let aggregateNoAuth : SettlementsAggregate;
 	let securityContext : CallSecurityContext;
 
 	beforeAll(async () => {
@@ -135,18 +123,18 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 			abAdapter,
 			msgProducer
 		);
-		/*aggregateNoAuth = new SettlementsAggregate(
+		aggregateNoAuth = new SettlementsAggregate(
 			logger,
 			authorizationClientNoAuth,
 			auditingClient,
 			settleBatchRepo,
-			settleBatchAccRepo,
-			partNotifier,
 			settleTransferRepo,
 			configRepo,
 			settleMatrixReqRepo,
-			abAdapter
-		);*/
+			partNotifier,
+			abAdapter,
+			msgProducer
+		);
 	});
 
 	afterAll(async () => {
@@ -786,6 +774,53 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		}
 	});
 
+	test("process handle transfer command", async () => {
+		const payload: ProcessTransferCmdPayload = {
+			transferId: randomUUID(),
+			payerFspId: randomUUID(),
+			payeeFspId: randomUUID(),
+			currencyCode: 'ZAR',
+			amount: '1500', //15 ZAR
+			completedTimestamp: Date.now(),
+			settlementModel: 'SEQ_TEST_CMD'
+		}
+
+		const reqTransferCmd: ProcessTransferCmd = {
+			boundedContextName: "",
+			aggregateId: "",
+			aggregateName: "",
+			msgKey: "",
+			msgTopic: "",
+			payload: payload,
+			validatePayload: function (): void {
+				throw new Error("Function not implemented.");
+			},
+			msgType: MessageTypes.COMMAND,
+			fspiopOpaqueState: undefined,
+			msgId: "",
+			msgTimestamp: Date.now(),
+			msgPartition: null,
+			msgOffset: null,
+			msgName: ""
+		};
+		const batchId = await aggregate.processTransferCmd(securityContext, reqTransferCmd);
+		expect(batchId).toBeDefined();
+
+		const transfers = await aggregate.getSettlementBatchTransfersByBatchId(securityContext, batchId);
+		expect(transfers).toBeDefined();
+		expect(transfers.length).toEqual(1);
+		expect(transfers[0].transferId).toEqual(payload.transferId);
+
+		// lookup with invalid batch-id
+		try {
+			await aggregate.getSettlementBatchTransfersByBatchId(securityContext, randomUUID());
+			fail('Expected to throw error!');
+		} catch (err: any) {
+			expect(err).toBeDefined();
+			expect(err instanceof SettlementBatchNotFoundError).toEqual(true);
+		}
+	});
+
 	test("matrix re-calculate logic", async () => {
 		const settleModel = 'RE-CALC';
 		const currency = 'ZAR';
@@ -838,13 +873,105 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 	});
 
 	test("test exceptions/errors responses for lookups", async () => {
-
-		
+		try {
+			await aggregateNoAuth.getSettlementBatch(securityContext, '12345');
+			fail('Expected to throw error!');
+		} catch (err) {
+			expect(err).toBeDefined();
+			expect(err instanceof ForbiddenError).toEqual(true);
+		}
 	});
 
-	// :
 	test("send a settlement matrix request again, to show that the results are different from a previous matrix", async () => {
 		//TODO
+	});
+
+	test("dispute a batch", async () => {
+		const reqTransferDto: ITransferDto = {
+			id: null,
+			transferId: randomUUID(),
+			payerFspId: randomUUID(),
+			payeeFspId: randomUUID(),
+			currencyCode: 'EUR',
+			amount: '10000', //100 EURO
+			timestamp: Date.now(),
+			settlementModel: 'DISPUTE-ME'
+		};
+		const batchId: string = await aggregate.handleTransfer(securityContext, reqTransferDto);
+		expect(batchId).toBeDefined();
+
+		// dispute the one and only batch:
+		const matrixIdDisp = await aggregate.createDisputeSettlementMatrix(
+			securityContext,
+			null, // matrix-id
+			[batchId]
+		);
+		expect(matrixIdDisp).toBeDefined();
+
+		// not allowed to create a duplicate dispute matrix:
+		try {
+			await aggregate.createDisputeSettlementMatrix(securityContext, matrixIdDisp, [batchId]);
+			fail('Expected to throw error!');
+		} catch (err: any) {
+			expect(err).toBeDefined();
+			expect(err instanceof SettlementMatrixAlreadyExistsError).toEqual(true);
+			expect(err.message).toEqual('Matrix with the same id already exists');
+		}
+
+		const matrixDisp = await aggregate.getSettlementMatrix(securityContext, matrixIdDisp);
+		expect(matrixDisp).toBeDefined();
+		expect(matrixDisp!.id).toEqual(matrixIdDisp);
+		expect(matrixDisp!.state).toEqual('DISPUTED');
+
+		const batchDisp = await aggregate.getSettlementBatch(securityContext, batchId);
+		expect(batchDisp).toBeDefined();
+		expect(batchDisp!.id).toEqual(batchId);
+		expect(batchDisp!.state).toEqual('DISPUTED');
+
+		// now let's create a matrix with the disputed batch:
+		const matrixId = await aggregate.createSettlementMatrix(
+			securityContext,
+			null, //matrix-id
+			reqTransferDto.settlementModel,
+			reqTransferDto.currencyCode,
+			Date.now() - 5000,
+			Date.now(),
+		);
+		expect(matrixId).toBeDefined();
+		const matrix = await aggregate.getSettlementMatrix(securityContext, matrixId);
+		expect(matrix).toBeDefined();
+		expect(matrix!.id).toEqual(matrixId);
+		expect(matrix!.state).toEqual('IDLE');
+		expect(matrix!.batches.length).toEqual(0);
+
+		// remove the batch from dispute and re-calculate the matrix:
+		const matrixIdUnDispute = await aggregate.closeSpecificBatchesSettlementMatrix(
+			securityContext,
+			null, //matrix-id
+			[batchId]
+		);
+		expect(matrixIdUnDispute).toBeDefined();
+		const matrixUnDispute = await aggregate.getSettlementMatrix(securityContext, matrixIdUnDispute);
+		expect(matrixUnDispute).toBeDefined();
+		expect(matrixUnDispute!.state).toEqual('CLOSED');
+		expect(matrixUnDispute!.currencyCode).toBeNull();
+		expect(matrixUnDispute!.settlementModel).toBeNull();
+		expect(matrixUnDispute!.batches.length).toEqual(1);
+
+		const batchUnDispute = await aggregate.getSettlementBatch(securityContext, batchId);
+		expect(batchUnDispute).toBeDefined();
+		expect(batchUnDispute!.id).toEqual(batchId);
+		expect(batchUnDispute!.state).toEqual('SETTLED');
+
+		// not allowed to create a duplicate close specific matrix:
+		try {
+			await aggregate.closeSpecificBatchesSettlementMatrix(securityContext, matrixIdUnDispute, [batchId]);
+			fail('Expected to throw error!');
+		} catch (err: any) {
+			expect(err).toBeDefined();
+			expect(err instanceof SettlementMatrixAlreadyExistsError).toEqual(true);
+			expect(err.message).toEqual('Matrix with the same id already exists');
+		}
 	});
 	
 });

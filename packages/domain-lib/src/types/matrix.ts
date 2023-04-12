@@ -28,122 +28,129 @@
 "use strict";
 
 import {
-	ISettlementBatch, ISettlementMatrix, ISettlementMatrixBatch, ISettlementMatrixParticipantBalance
+  ISettlementBatch,
+  ISettlementMatrix,
+  ISettlementMatrixBatch,
+  ISettlementMatrixParticipantBalance
 
 } from "@mojaloop/settlements-bc-public-types-lib";
 import {randomUUID} from "crypto";
-import now = jest.now;
 
-// internal to settlements BC, domain and infra, should not go to public clients
+export class SettlementMatrix implements ISettlementMatrix {
+  id: string;
+  createdAt: number;
+  updatedAt: number;
 
-/*export interface ISettlementMatrixBatch {
-	id: string;
-	name: string;
-	currencyCode: string;
+  dateFrom: number | null;
+  dateTo: number | null;
+  currencyCode: string | null;
+  settlementModel: string | null;
 
-	batchDebitBalance: string;
-	batchCreditBalance: string;
-	batchTransferCount: number;
+  batches: ISettlementMatrixBatch[];
+  participantBalances: ISettlementMatrixParticipantBalance[];
 
-	isClosed: boolean;
-	batchWasClosedBeforeExec: boolean;
+  state: "IDLE" | "CALCULATING" | "CLOSING" | "DISPUTED" | "CLOSED";
 
-	// not persisted - only populated on output - for api responses
-	batchAccounts?: ISettlementMatrixBatchAccountResponse[];
-}
+  generationDurationSecs: number | null;
+  totalDebitBalance: string;
+  totalCreditBalance: string;
 
-export interface ISettlementMatrix {
-	id: string;
-	createdAt: number;
-	updatedAt: number;
+  protected constructor(
+    dateFrom: number | null,
+    dateTo: number | null,
+    currencyCode: string | null,
+    settlementModel: string | null
+  ) {
+    this.id = randomUUID();
+    this.createdAt = this.updatedAt = Date.now();
+    this.dateFrom = dateFrom;
+    this.dateTo = dateTo;
+    this.currencyCode = currencyCode;
+    this.settlementModel = settlementModel;
 
-	// criteria
-	dateFrom: number;
-	dateTo: number;
-	settlementModel: string;
+    this.state = "IDLE";
 
-	batches: ISettlementMatrixBatch[];// Batches found everytime the matrix is recalculated
-	// closedBatchesIds: string[]; // batches that were closed with the matrix execution
+    this.batches  = [];
+    this.participantBalances = [];
+    this.totalDebitBalance = "0";
+    this.totalCreditBalance = "0";
+  }
 
-	isClosed: boolean;
-	generationDuration: number;
-	totalDebitBalance: string;
-	totalCreditBalance: string;
-	totalTransferCount: number;
-}*/
+  addBatch(batch: ISettlementBatch, debitBalance: string, creditBalance: string):void{
+    this.batches.push({
+      id: batch.id,
+      name: batch.batchName,
+      batchDebitBalance: debitBalance,
+      batchCreditBalance: creditBalance,
+      state: batch.state,
+    });
+  }
 
-export class SettlementMatrix implements ISettlementMatrix{
-	id: string;
-	createdAt: number;
-	updatedAt: number;
+  clear(){
+    this.batches = [];
+    this.participantBalances = [];
+    this.totalDebitBalance = "0";
+    this.totalCreditBalance = "0";
+  }
 
-	dateFrom: number;
-	dateTo: number;
-	currencyCode: string;
-	settlementModel: string;
+  static NewDisputeMatrixFromBatches(batchIds: string[]): SettlementMatrix {
+    const newInstance = new SettlementMatrix(null, null, null, null);
+    newInstance.state = "DISPUTED";
 
-	batches: ISettlementMatrixBatch[];
-	participantBalances: ISettlementMatrixParticipantBalance[];
+    for (const id of batchIds) newInstance.addBatch({
+      id: id,
+      timestamp: 0,
+      settlementModel: "",
+      currencyCode: "",
+      batchName: "",
+      batchSequence: 0,
+      state: "DISPUTED",
+      accounts: []
+    }, '0', '0');
 
-	state: "IDLE" | "CALCULATING" | "CLOSING" | "CLOSED";
+    return newInstance;
+  }
 
-	generationDurationSecs: number | null;
-	totalDebitBalance: string;
-	totalCreditBalance: string;
+  static NewCloseSpecificMatrixFromBatches(batchIds: string[]): SettlementMatrix {
+    const newInstance = new SettlementMatrix(null, null, null, null);
+    for (const id of batchIds) newInstance.addBatch({
+      id: id,
+      timestamp: 0,
+      settlementModel: "",
+      currencyCode: "",
+      batchName: "",
+      batchSequence: 0,
+      state: "SETTLED",
+      accounts: []
+    }, '0', '0');
 
-	constructor(
-		dateFrom: number,
-		dateTo: number,
-		currencyCode: string,
-		settlementModel: string,
-	) {
-		this.id = randomUUID();
-		this.createdAt = this.updatedAt = Date.now();
-		this.dateFrom = dateFrom;
-		this.dateTo = dateTo;
-		this.currencyCode = currencyCode;
-		this.settlementModel = settlementModel;
+    return newInstance;
+  }
 
-		this.state = "IDLE";
+  static NewFromCriteria(
+    dateFrom: number | null,
+    dateTo: number | null,
+    currencyCode: string | null,
+    settlementModel: string | null
+  ) : SettlementMatrix {
+    return new SettlementMatrix(dateFrom, dateTo, currencyCode, settlementModel);
+  }
 
-		this.batches  = [];
-		this.participantBalances = [];
-		this.totalDebitBalance = "0";
-		this.totalCreditBalance = "0";
-	}
+  static NewFromDto(dto: ISettlementMatrix): SettlementMatrix {
+    const newInstance = new SettlementMatrix(dto.dateFrom, dto.dateTo, dto.currencyCode, dto.settlementModel);
 
-	addBatch(batch: ISettlementBatch, debitBalance: string, creditBalance: string):void{
-		this.batches.push({
-			id: batch.id,
-			name: batch.batchName,
-			batchDebitBalance: debitBalance,
-			batchCreditBalance: creditBalance,
-			state: batch.state,
-		});
-	}
+    newInstance.id = dto.id;
+    newInstance.createdAt = dto.createdAt;
+    newInstance.updatedAt = dto.updatedAt;
+    newInstance.state = dto.state;
 
-	clear(){
-		this.batches = [];
-		this.participantBalances = [];
-		this.totalDebitBalance = "0";
-		this.totalCreditBalance = "0";
-	}
+    newInstance.batches = dto.batches;
+    newInstance.participantBalances = dto.participantBalances;
 
-	static FromDto(dto: ISettlementMatrix):SettlementMatrix{
-		const newInstance = new SettlementMatrix(dto.dateFrom, dto.dateTo, dto.currencyCode, dto.settlementModel);
+    newInstance.generationDurationSecs = dto.generationDurationSecs;
+    newInstance.totalDebitBalance = dto.totalDebitBalance;
+    newInstance.totalCreditBalance = dto.totalCreditBalance;
 
-		newInstance.id = dto.id;
-		newInstance.createdAt = dto.createdAt;
-		newInstance.updatedAt = dto.updatedAt;
-		newInstance.state = dto.state;
-
-		newInstance.batches = dto.batches;
-		newInstance.participantBalances = dto.participantBalances;
-
-		newInstance.generationDurationSecs = dto.generationDurationSecs;
-		newInstance.totalDebitBalance = dto.totalDebitBalance;
-		newInstance.totalCreditBalance = dto.totalCreditBalance;
-
-		return newInstance;
-	}
+    return newInstance;
+  }
 }

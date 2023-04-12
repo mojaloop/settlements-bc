@@ -36,6 +36,7 @@ import {SettlementsBCTopics} from "@mojaloop/platform-shared-lib-public-messages
 
 import {
 	CloseMatrixCmd, CloseMatrixCmdPayload,
+	DisputeMatrixCmd, DisputeMatrixCmdPayload,
 	CreateMatrixCmd,
 	CreateMatrixCmdPayload,
 	ProcessTransferCmd, RecalculateMatrixCmd, RecalculateMatrixCmdPayload,
@@ -44,7 +45,6 @@ import {
 import {CallSecurityContext} from "@mojaloop/security-bc-public-types-lib/dist/index";
 import {MLKafkaJsonConsumer} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib/dist/rdkafka_json_consumer";
 import {ILoginHelper, ITokenHelper, UnauthorizedError} from "@mojaloop/security-bc-public-types-lib";
-
 
 export class SettlementsCommandHandler{
 	private _logger: ILogger;
@@ -105,8 +105,7 @@ export class SettlementsCommandHandler{
 						const recalcPayload = message.payload as RecalculateMatrixCmdPayload;
 						await this._settlementsAgg.recalculateSettlementMatrix(
 							sectCtx,
-							recalcPayload.matrixId,
-							//recalcPayload.includeNewBatches
+							recalcPayload.matrixId
 						);
 						break;
 					case CloseMatrixCmd.name:
@@ -115,6 +114,15 @@ export class SettlementsCommandHandler{
 						await this._settlementsAgg.closeSettlementMatrix(
 							sectCtx,
 							closePayload.matrixId
+						);
+						break;
+					case DisputeMatrixCmd.name:
+						// eslint-disable-next-line no-case-declarations
+						const disputePayload = message.payload as DisputeMatrixCmdPayload;
+						await this._settlementsAgg.createDisputeSettlementMatrix(
+							sectCtx,
+							disputePayload.matrixId,
+							disputePayload.batchIds
 						);
 						break;
 					default: {

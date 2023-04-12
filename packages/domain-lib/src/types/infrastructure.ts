@@ -29,7 +29,9 @@
 
 import {
 	ISettlementConfig,
-	ISettlementBatch, ISettlementBatchTransfer, ISettlementMatrix
+	ISettlementBatch,
+	ISettlementBatchTransfer,
+	ISettlementMatrix
 } from "@mojaloop/settlements-bc-public-types-lib";
 
 import {
@@ -103,22 +105,11 @@ export interface ISettlementBatchTransferRepo {
 	getBatchTransfers(): Promise<ISettlementBatchTransfer[]>;
 }
 
-
-/*
-* OLD ones
-* */
-
-
-
-
-
-
 export interface IParticipantAccountNotifier {
 	init(): Promise<void>;
 	destroy(): Promise<void>;
 	publishSettlementMatrixExecuteEvent(matrix: any): Promise<void>;
 }
-
 
 export interface ISettlementMatrixRequestRepo {
 	init(): Promise<void>;
@@ -130,4 +121,3 @@ export interface ISettlementMatrixRequestRepo {
 // this is not the job of a repo, should be at aggregate level
 //	closeSettlementMatrixRequest(matrixReq: ISettlementMatrixRequestDto): Promise<void>;
 }
-

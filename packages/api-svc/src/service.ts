@@ -64,6 +64,9 @@ import {
 } from "@mojaloop/settlements-bc-infrastructure-lib/dist/mongo_settlement_transfer_repo";
 import {MLKafkaJsonProducer} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib/dist/index";
 import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib/dist/index";
+import {
+	MongoBatchSpecificSettlementMatrixRepo
+} from "@mojaloop/settlements-bc-infrastructure-lib/dist/mongo_batch_specific_settlement_matrix_repo";
 
 
 
@@ -105,6 +108,7 @@ const DB_NAME: string = "settlements";
 const SETTLEMENT_CONFIGS_COLLECTION_NAME: string = "configs";
 const SETTLEMENT_BATCHES_COLLECTION_NAME: string = "batches";
 const SETTLEMENT_MATRICES_COLLECTION_NAME: string = "matrices";
+const BATCH_SPECIFIC_SETTLEMENT_MATRICES_COLLECTION_NAME: string = "batch_specific_matrices";
 const SETTLEMENT_TRANSFERS_COLLECTION_NAME: string = "transfers";
 
 const kafkaProducerOptions: MLKafkaJsonProducerOptions = {
@@ -216,7 +220,7 @@ export class Service {
 		this.accountsAndBalancesAdapter = accountsAndBalancesAdapter;
 
 		// repositories
-		if(!configRepo){
+		if (!configRepo) {
 			configRepo = new MongoSettlementConfigRepo(
 				logger,
 				MONGO_URL,
@@ -262,12 +266,10 @@ export class Service {
 
 		// TODO implement remaining repositories and adapters
 
-
 		if (!participantAccountNotifier) {
 			participantAccountNotifier = new ParticipantAccountNotifierMock();
 		}
 		this.participantAccountNotifier = participantAccountNotifier;
-
 
 		if (!messageProducer) {
 			messageProducer = new MLKafkaJsonProducer(kafkaProducerOptions, this.logger);
@@ -275,7 +277,6 @@ export class Service {
 		}
 		this.messageProducer = messageProducer;
 
-/*
 		// Aggregate:
 		this.aggregate = new SettlementsAggregate(
 			this.logger,
@@ -289,7 +290,6 @@ export class Service {
 			this.accountsAndBalancesAdapter,
 			this.messageProducer
 		);
-*/
 
 		await this.setupExpress();
 	}
