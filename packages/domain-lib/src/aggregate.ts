@@ -49,13 +49,11 @@ import {
 	ISettlementBatchRepo,
 	ISettlementBatchTransferRepo,
 	ISettlementConfigRepo,
-	ISettlementMatrixRequestRepo,
-	IBatchSpecificSettlementMatrixRequestRepo
+	ISettlementMatrixRequestRepo
 } from "./types/infrastructure";
 import {SettlementBatch} from "./types/batch";
 
 import {
-	IBatchSpecificSettlementMatrix,
 	ISettlementBatch,
 	ISettlementBatchTransfer,
 	ISettlementMatrix,
@@ -73,7 +71,6 @@ import {SettlementConfig} from "./types/settlement_config";
 import {AccountsAndBalancesAccountType} from "@mojaloop/accounts-and-balances-bc-public-types-lib";
 import {SettlementBatchTransfer} from "./types/transfer";
 import {SettlementMatrix} from "./types/matrix";
-import {BatchSpecificSettlementMatrix} from "./types/batch_specific_matrix";
 import {ProcessTransferCmd} from "./commands";
 import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib/dist/index";
 
@@ -103,7 +100,6 @@ export class SettlementsAggregate {
 	private readonly _batchTransferRepo: ISettlementBatchTransferRepo;
 	private readonly _configRepo: ISettlementConfigRepo;
 	private readonly _settlementMatrixReqRepo: ISettlementMatrixRequestRepo;
-	private readonly _batchSpecificSettlementMatrixReqRepo: IBatchSpecificSettlementMatrixRequestRepo;
 	private readonly _abAdapter: IAccountsBalancesAdapter;
 	private readonly _msgProducer: IMessageProducer;
 	private readonly _currencies: ICurrency[];
@@ -116,7 +112,6 @@ export class SettlementsAggregate {
 		batchTransferRepo: ISettlementBatchTransferRepo,
 		configRepo: ISettlementConfigRepo,
 		settlementMatrixReqRepo: ISettlementMatrixRequestRepo,
-		batchSpecificSettlementMatrixReqRepo: IBatchSpecificSettlementMatrixRequestRepo,
 		participantAccNotifier: IParticipantAccountNotifier,
 		abAdapter: IAccountsBalancesAdapter,
 		msgProducer: IMessageProducer
@@ -129,7 +124,6 @@ export class SettlementsAggregate {
 		this._batchTransferRepo = batchTransferRepo;
 		this._configRepo = configRepo;
 		this._settlementMatrixReqRepo = settlementMatrixReqRepo;
-		this._batchSpecificSettlementMatrixReqRepo = batchSpecificSettlementMatrixReqRepo;
 		this._abAdapter = abAdapter;
 		this._msgProducer = msgProducer;
 
@@ -316,13 +310,7 @@ export class SettlementsAggregate {
 	): Promise<string> {
 		this._enforcePrivilege(secCtx, Privileges.REQUEST_SETTLEMENT_MATRIX);
 
-		const newMatrix = new SettlementMatrix(
-			fromDate,
-			toDate,
-			currencyCode,
-			settlementModel
-		);
-
+		const newMatrix = SettlementMatrix.NewFromCriteria(fromDate, toDate, currencyCode, settlementModel);
 		if (matrixId) {
 			const existing = await this._settlementMatrixReqRepo.getMatrixById(matrixId);
 			if (existing) {
@@ -363,20 +351,9 @@ export class SettlementsAggregate {
 		this._enforcePrivilege(secCtx, Privileges.SETTLEMENTS_REQUEST_DISPUTE_MATRIX);
 
 		const startTimestamp = Date.now();
-		const newMatrix = new BatchSpecificSettlementMatrix();
-		for (const id of batchIds) newMatrix.addBatch({
-			id: id,
-			timestamp: 0,
-			settlementModel: "",
-			currencyCode: "",
-			batchName: "",
-			batchSequence: 0,
-			state: "DISPUTED",
-			accounts: []
-		}, '0', '0');
-
+		const newMatrix = SettlementMatrix.NewDisputeMatrixFromBatches(batchIds);
 		if (matrixId) {
-			const existing = await this._batchSpecificSettlementMatrixReqRepo.getMatrixById(matrixId);
+			const existing = await this._settlementMatrixReqRepo.getMatrixById(matrixId);
 			if (existing) {
 				const err = new SettlementMatrixAlreadyExistsError("Matrix with the same id already exists");
 				this._logger.warn(err.message);
@@ -400,7 +377,7 @@ export class SettlementsAggregate {
 		}
 
 		newMatrix.generationDurationSecs = Math.floor((newMatrix.createdAt - startTimestamp) / 1000);
-		await this._batchSpecificSettlementMatrixReqRepo.storeMatrix(newMatrix);// generates new matrix-id
+		await this._settlementMatrixReqRepo.storeMatrix(newMatrix);// generates new matrix-id
 
 		// We perform an async audit:
 		this._auditingClient.audit(
@@ -414,26 +391,14 @@ export class SettlementsAggregate {
 		return newMatrix.id;
 	}
 
-	async createUnDisputeSettlementMatrix(
+	async closeSpecificBatchesSettlementMatrix(
 		secCtx: CallSecurityContext,
 		matrixId: string | null,
 		batchIds: string[]
 	): Promise<string> {
 		this._enforcePrivilege(secCtx, Privileges.REQUEST_SETTLEMENT_MATRIX);
 
-		const startTimestamp = Date.now();
-		const newMatrix = new SettlementMatrix(startTimestamp, startTimestamp, '', '');
-		for (const id of batchIds) newMatrix.addBatch({
-			id: id,
-			timestamp: 0,
-			settlementModel: "",
-			currencyCode: "",
-			batchName: "",
-			batchSequence: 0,
-			state: "SETTLED",
-			accounts: []
-		}, '0', '0');
-
+		const newMatrix = SettlementMatrix.NewCloseSpecificMatrixFromBatches(batchIds);
 		if (matrixId) {
 			const existing = await this._settlementMatrixReqRepo.getMatrixById(matrixId);
 			if (existing) {
@@ -480,32 +445,11 @@ export class SettlementsAggregate {
 			AuditingActions.SETTLEMENT_MATRIX_REQUEST_FETCH,
 			true,
 			this._getAuditSecurityContext(secCtx), [
-				{key: "settlementModel", value: matrixDto.settlementModel},
+				{key: "settlementModel", value: matrixDto.settlementModel === null ? '' : matrixDto.settlementModel},
 				{key: "settlementMatrixReqId", value: id}
 			]
 		);
 
-		return matrixDto;
-	}
-
-	async getBatchSpecificSettlementMatrix(secCtx: CallSecurityContext, id: string): Promise<IBatchSpecificSettlementMatrix | null> {
-		this._enforcePrivilege(secCtx, Privileges.GET_BATCH_SPECIFIC_SETTLEMENT_MATRIX_REQUEST);
-
-		const matrixDto = await this._batchSpecificSettlementMatrixReqRepo.getMatrixById(id);
-		if (!matrixDto) {
-			const err = new SettlementMatrixNotFoundError(`Matrix with id: ${id} not found`);
-			this._logger.warn(err.message);
-			throw err; // not found
-		}
-
-		// We perform an async audit:
-		this._auditingClient.audit(
-			AuditingActions.BATCH_SPECIFIC_SETTLEMENT_MATRIX_REQUEST_FETCH,
-			true,
-			this._getAuditSecurityContext(secCtx), [
-				{key: "settlementMatrixReqId", value: id}
-			]
-		);
 		return matrixDto;
 	}
 
@@ -530,7 +474,7 @@ export class SettlementsAggregate {
 			throw err;
 		}
 
-		const matrix = SettlementMatrix.FromDto(matrixDto);
+		const matrix = SettlementMatrix.NewFromDto(matrixDto);
 		const startTimestamp = Date.now();
 
 		matrix.state = "CALCULATING";
@@ -548,7 +492,7 @@ export class SettlementsAggregate {
 			AuditingActions.SETTLEMENT_MATRIX_REQUEST_FETCH,
 			true,
 			this._getAuditSecurityContext(secCtx), [
-				{key: "settlementModel", value: matrix.settlementModel},
+				{key: "settlementModel", value: matrix.settlementModel === null ? '' : matrix.settlementModel},
 				{key: "settlementMatrixReqId", value: id}
 			]
 		);
@@ -576,7 +520,7 @@ export class SettlementsAggregate {
 			throw err;
 		}
 
-		const matrix = SettlementMatrix.FromDto(matrixDto);
+		const matrix = SettlementMatrix.NewFromDto(matrixDto);
 		const startTimestamp = Date.now();
 
 		matrix.state = "CLOSING";
@@ -619,7 +563,7 @@ export class SettlementsAggregate {
 			AuditingActions.SETTLEMENT_MATRIX_EXECUTED,
 			true,
 			this._getAuditSecurityContext(secCtx), [
-				{key: "settlementModel", value: matrix.settlementModel},
+				{key: "settlementModel", value: matrix.settlementModel === null ? '' : matrix.settlementModel},
 				{key: "settlementMatrixReqId", value: id}
 			]
 		);
@@ -627,7 +571,7 @@ export class SettlementsAggregate {
 	}
 
 	private async _recalculateMatrix(
-		matrix : SettlementMatrix | BatchSpecificSettlementMatrix,
+		matrix : SettlementMatrix,
 		close :boolean = false,
 		disputeMatrix :boolean = false
 	): Promise<void> {
@@ -640,11 +584,16 @@ export class SettlementsAggregate {
 			const batchIds = matrix.batches.map(value => value.id);
 			batches = await this._batchRepo.getBatchesByIds(batchIds);
 			if (batches.length > 0) currency = this._getCurrencyOrThrow(batches[0].currencyCode);
-		} else if (matrix instanceof SettlementMatrix) {
+		} else {
 			// this will pick-up any new batches:
-			currency = this._getCurrencyOrThrow(matrix.currencyCode);
-			batches = await this._batchRepo.getBatchesByCriteria(matrix.dateFrom, matrix.dateTo, matrix.currencyCode, matrix.settlementModel);
-		} else batches = [];
+			currency = this._getCurrencyOrThrow(matrix.currencyCode === null ? '' : matrix.currencyCode);
+			batches = await this._batchRepo.getBatchesByCriteria(
+				matrix.dateFrom!,
+				matrix.dateTo!,
+				matrix.currencyCode!,
+				matrix.settlementModel!
+			);
+		}
 
 		// remove batches and zero totals
 		matrix.clear();

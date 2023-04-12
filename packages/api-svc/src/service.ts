@@ -38,7 +38,7 @@ import {AuthorizationClient, LoginHelper, TokenHelper} from "@mojaloop/security-
 import {
 	IAccountsBalancesAdapter, IParticipantAccountNotifier,
 	ISettlementBatchRepo, ISettlementConfigRepo, ISettlementMatrixRequestRepo,
-	SettlementsAggregate, Privileges, ISettlementBatchTransferRepo, IBatchSpecificSettlementMatrixRequestRepo
+	SettlementsAggregate, Privileges, ISettlementBatchTransferRepo
 } from "@mojaloop/settlements-bc-domain-lib";
 import process from "process";
 import {existsSync} from "fs";
@@ -130,7 +130,6 @@ export class Service {
 	static participantAccountNotifier: IParticipantAccountNotifier;
 	static batchTransferRepo: ISettlementBatchTransferRepo;
 	static matrixRepo: ISettlementMatrixRequestRepo;
-	static batchSpecificMatrixRepo: IBatchSpecificSettlementMatrixRequestRepo;
 	static messageProducer: IMessageProducer;
 	static aggregate: SettlementsAggregate;
 
@@ -145,7 +144,6 @@ export class Service {
 		batchTransferRepo?: ISettlementBatchTransferRepo,
 		participantAccountNotifier?: IParticipantAccountNotifier,
 		matrixRepo?: ISettlementMatrixRequestRepo,
-		batchSpecificMatrixRepo?: IBatchSpecificSettlementMatrixRequestRepo,
 		messageProducer?: IMessageProducer,
 	):Promise<void>{
 		console.log(`Service starting with PID: ${process.pid}`);
@@ -255,17 +253,6 @@ export class Service {
 		}
 		this.matrixRepo = matrixRepo;
 
-		if (!batchSpecificMatrixRepo) {
-			batchSpecificMatrixRepo = new MongoBatchSpecificSettlementMatrixRepo(
-				logger,
-				MONGO_URL,
-				DB_NAME,
-				BATCH_SPECIFIC_SETTLEMENT_MATRICES_COLLECTION_NAME
-			);
-			await batchSpecificMatrixRepo.init();
-		}
-		this.batchSpecificMatrixRepo = batchSpecificMatrixRepo;
-
 		if (!batchTransferRepo) {
 			batchTransferRepo = new MongoSettlementTransferRepo(
 				logger,
@@ -299,7 +286,6 @@ export class Service {
 			this.batchTransferRepo,
 			this.configRepo,
 			this.matrixRepo,
-			this.batchSpecificMatrixRepo,
 			this.participantAccountNotifier,
 			this.accountsAndBalancesAdapter,
 			this.messageProducer

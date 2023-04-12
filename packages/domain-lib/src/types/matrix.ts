@@ -41,25 +41,25 @@ export class SettlementMatrix implements ISettlementMatrix {
   createdAt: number;
   updatedAt: number;
 
-  dateFrom: number;
-  dateTo: number;
-  currencyCode: string;
-  settlementModel: string;
+  dateFrom: number | null;
+  dateTo: number | null;
+  currencyCode: string | null;
+  settlementModel: string | null;
 
   batches: ISettlementMatrixBatch[];
   participantBalances: ISettlementMatrixParticipantBalance[];
 
-  state: "IDLE" | "CALCULATING" | "CLOSING" | "CLOSED";
+  state: "IDLE" | "CALCULATING" | "CLOSING" | "DISPUTED" | "CLOSED";
 
   generationDurationSecs: number | null;
   totalDebitBalance: string;
   totalCreditBalance: string;
 
-  constructor(
-    dateFrom: number,
-    dateTo: number,
-    currencyCode: string,
-    settlementModel: string,
+  protected constructor(
+    dateFrom: number | null,
+    dateTo: number | null,
+    currencyCode: string | null,
+    settlementModel: string | null
   ) {
     this.id = randomUUID();
     this.createdAt = this.updatedAt = Date.now();
@@ -93,7 +93,50 @@ export class SettlementMatrix implements ISettlementMatrix {
     this.totalCreditBalance = "0";
   }
 
-  static FromDto(dto: ISettlementMatrix): SettlementMatrix {
+  static NewDisputeMatrixFromBatches(batchIds: string[]): SettlementMatrix {
+    const newInstance = new SettlementMatrix(null, null, null, null);
+    newInstance.state = "DISPUTED";
+
+    for (const id of batchIds) newInstance.addBatch({
+      id: id,
+      timestamp: 0,
+      settlementModel: "",
+      currencyCode: "",
+      batchName: "",
+      batchSequence: 0,
+      state: "DISPUTED",
+      accounts: []
+    }, '0', '0');
+
+    return newInstance;
+  }
+
+  static NewCloseSpecificMatrixFromBatches(batchIds: string[]): SettlementMatrix {
+    const newInstance = new SettlementMatrix(null, null, null, null);
+    for (const id of batchIds) newInstance.addBatch({
+      id: id,
+      timestamp: 0,
+      settlementModel: "",
+      currencyCode: "",
+      batchName: "",
+      batchSequence: 0,
+      state: "SETTLED",
+      accounts: []
+    }, '0', '0');
+
+    return newInstance;
+  }
+
+  static NewFromCriteria(
+    dateFrom: number | null,
+    dateTo: number | null,
+    currencyCode: string | null,
+    settlementModel: string | null
+  ) : SettlementMatrix {
+    return new SettlementMatrix(dateFrom, dateTo, currencyCode, settlementModel);
+  }
+
+  static NewFromDto(dto: ISettlementMatrix): SettlementMatrix {
     const newInstance = new SettlementMatrix(dto.dateFrom, dto.dateTo, dto.currencyCode, dto.settlementModel);
 
     newInstance.id = dto.id;

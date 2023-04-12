@@ -31,8 +31,7 @@ import {
 	ISettlementConfig,
 	ISettlementBatch,
 	ISettlementBatchTransfer,
-	ISettlementMatrix,
-	IBatchSpecificSettlementMatrix
+	ISettlementMatrix
 } from "@mojaloop/settlements-bc-public-types-lib";
 
 import {
@@ -121,11 +120,4 @@ export interface ISettlementMatrixRequestRepo {
 
 // this is not the job of a repo, should be at aggregate level
 //	closeSettlementMatrixRequest(matrixReq: ISettlementMatrixRequestDto): Promise<void>;
-}
-
-export interface IBatchSpecificSettlementMatrixRequestRepo {
-	init(): Promise<void>;
-	destroy(): Promise<void>;
-	storeMatrix(matrix: IBatchSpecificSettlementMatrix): Promise<void>; // Throws if account.id is not unique.
-	getMatrixById(id: string): Promise<IBatchSpecificSettlementMatrix | null>;
 }

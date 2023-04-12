@@ -91,13 +91,13 @@ export interface ISettlementMatrix {
 	updatedAt: number;
 
 	// criteria
-	dateFrom: number;
-	dateTo: number;
-	currencyCode: string;
-	settlementModel: string;
+	dateFrom: number | null;
+	dateTo: number | null;
+	currencyCode: string | null;
+	settlementModel: string | null;
 	batches: ISettlementMatrixBatch[];
 	participantBalances: ISettlementMatrixParticipantBalance[];
-	state: "IDLE" | "CALCULATING" | "CLOSING" | "CLOSED";
+	state: "IDLE" | "CALCULATING" | "CLOSING" | "DISPUTED" | "CLOSED";
 	generationDurationSecs: number | null;
 	totalDebitBalance: string;
 	totalCreditBalance: string;
@@ -107,14 +107,6 @@ export interface ISettlementMatrixParticipantBalance {
 	participantId: string;
 	debitBalance: string;
 	creditBalance: string;
-}
-
-export interface IBatchSpecificSettlementMatrix {
-	id: string;
-	createdAt: number;
-	batches: ISettlementMatrixBatch[];
-	state: "DISPUTED";
-	generationDurationSecs: number | null;
 }
 
 export interface ISettlementMatrixBatch {

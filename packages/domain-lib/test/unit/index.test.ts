@@ -29,7 +29,6 @@
 
 import {
 	IAccountsBalancesAdapter,
-	IBatchSpecificSettlementMatrixRequestRepo,
 	InvalidAmountError,
 	InvalidBatchSettlementModelError,
 	InvalidCurrencyCodeError,
@@ -66,9 +65,6 @@ import {
 } from "@mojaloop/settlements-bc-shared-mocks-lib";
 import {ITransferDto} from "@mojaloop/settlements-bc-public-types-lib";
 import {IMessageProducer, MessageTypes} from "@mojaloop/platform-shared-lib-messaging-types-lib/dist/index";
-import {
-	BatchSpecificSettlementMatrixRequestRepoMock
-} from "@mojaloop/settlements-bc-shared-mocks-lib/dist/repo/batch_specific_settlement_matrix_request_repo_mock";
 
 let authorizationClient: IAuthorizationClient;
 let authorizationClientNoAuth: IAuthorizationClient;
@@ -76,7 +72,6 @@ let configRepo: ISettlementConfigRepo;
 let settleBatchRepo: ISettlementBatchRepo;
 let settleTransferRepo: ISettlementBatchTransferRepo;
 let settleMatrixReqRepo: ISettlementMatrixRequestRepo;
-let batchSpecificSettleMatrixReqRepo: IBatchSpecificSettlementMatrixRequestRepo;
 let partNotifier: IParticipantAccountNotifier;
 let abAdapter: IAccountsBalancesAdapter;
 let msgCache: MessageCache;
@@ -106,7 +101,6 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		settleBatchRepo = new SettlementBatchRepoMock();
 		settleTransferRepo = new SettlementBatchTransferRepoMock();
 		settleMatrixReqRepo = new SettlementMatrixRequestRepoMock();
-		batchSpecificSettleMatrixReqRepo = new BatchSpecificSettlementMatrixRequestRepoMock();
 
 		// adapters:
 		partNotifier = new ParticipantAccountNotifierMock();
@@ -125,7 +119,6 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 			settleTransferRepo,
 			configRepo,
 			settleMatrixReqRepo,
-			batchSpecificSettleMatrixReqRepo,
 			partNotifier,
 			abAdapter,
 			msgProducer
@@ -138,7 +131,6 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 			settleTransferRepo,
 			configRepo,
 			settleMatrixReqRepo,
-			batchSpecificSettleMatrixReqRepo,
 			partNotifier,
 			abAdapter,
 			msgProducer
@@ -926,7 +918,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 			expect(err.message).toEqual('Matrix with the same id already exists');
 		}
 
-		const matrixDisp = await aggregate.getBatchSpecificSettlementMatrix(securityContext, matrixIdDisp);
+		const matrixDisp = await aggregate.getSettlementMatrix(securityContext, matrixIdDisp);
 		expect(matrixDisp).toBeDefined();
 		expect(matrixDisp!.id).toEqual(matrixIdDisp);
 		expect(matrixDisp!.state).toEqual('DISPUTED');
@@ -953,7 +945,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		expect(matrix!.batches.length).toEqual(0);
 
 		// remove the batch from dispute and re-calculate the matrix:
-		const matrixIdUnDispute = await aggregate.createUnDisputeSettlementMatrix(
+		const matrixIdUnDispute = await aggregate.closeSpecificBatchesSettlementMatrix(
 			securityContext,
 			null, //matrix-id
 			[batchId]
@@ -962,8 +954,8 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		const matrixUnDispute = await aggregate.getSettlementMatrix(securityContext, matrixIdUnDispute);
 		expect(matrixUnDispute).toBeDefined();
 		expect(matrixUnDispute!.state).toEqual('CLOSED');
-		expect(matrixUnDispute!.currencyCode).toEqual('');
-		expect(matrixUnDispute!.settlementModel).toEqual('');
+		expect(matrixUnDispute!.currencyCode).toBeNull();
+		expect(matrixUnDispute!.settlementModel).toBeNull();
 		expect(matrixUnDispute!.batches.length).toEqual(1);
 
 		const batchUnDispute = await aggregate.getSettlementBatch(securityContext, batchId);
@@ -971,9 +963,9 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		expect(batchUnDispute!.id).toEqual(batchId);
 		expect(batchUnDispute!.state).toEqual('SETTLED');
 
-		// not allowed to create a duplicate un-dispute matrix:
+		// not allowed to create a duplicate close specific matrix:
 		try {
-			await aggregate.createUnDisputeSettlementMatrix(securityContext, matrixIdUnDispute, [batchId]);
+			await aggregate.closeSpecificBatchesSettlementMatrix(securityContext, matrixIdUnDispute, [batchId]);
 			fail('Expected to throw error!');
 		} catch (err: any) {
 			expect(err).toBeDefined();

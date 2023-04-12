@@ -61,7 +61,6 @@ import {
 	ISettlementBatchTransferRepo,
 	ISettlementConfigRepo,
 	ISettlementMatrixRequestRepo,
-	IBatchSpecificSettlementMatrixRequestRepo,
 	Privileges,
 	SettlementsAggregate
 } from "@mojaloop/settlements-bc-domain-lib";
@@ -148,7 +147,6 @@ export class Service {
 	static participantAccountNotifier: IParticipantAccountNotifier;
 	static batchTransferRepo: ISettlementBatchTransferRepo;
 	static matrixRepo: ISettlementMatrixRequestRepo;
-	static batchSpecificMatrixRepo: IBatchSpecificSettlementMatrixRequestRepo;
 	static messageConsumer: IMessageConsumer;
 	static messageProducer: IMessageProducer;
 	static aggregate: SettlementsAggregate;
@@ -166,7 +164,6 @@ export class Service {
 		batchTransferRepo?: ISettlementBatchTransferRepo,
 		participantAccountNotifier?: IParticipantAccountNotifier,
 		matrixRepo?: ISettlementMatrixRequestRepo,
-		batchSpecificMatrixRepo?: IBatchSpecificSettlementMatrixRequestRepo,
 		messageConsumer?: IMessageConsumer,
 		messageProducer?: IMessageProducer,
 	): Promise<void> {
@@ -300,17 +297,6 @@ export class Service {
 		}
 		this.matrixRepo = matrixRepo;
 
-		if (!batchSpecificMatrixRepo) {
-			batchSpecificMatrixRepo = new MongoBatchSpecificSettlementMatrixRepo(
-				this.logger,
-				MONGO_URL,
-				DB_NAME,
-				BATCH_SPECIFIC_SETTLEMENT_MATRICES_COLLECTION_NAME
-			);
-			await batchSpecificMatrixRepo.init();
-		}
-		this.batchSpecificMatrixRepo = batchSpecificMatrixRepo;
-
 		if (!batchTransferRepo) {
 			batchTransferRepo = new MongoSettlementTransferRepo(
 				this.logger,
@@ -342,7 +328,6 @@ export class Service {
 		}
 		this.messageProducer = messageProducer;
 
-
 		// Aggregate:
 		this.aggregate = new SettlementsAggregate(
 			this.logger,
@@ -352,7 +337,6 @@ export class Service {
 			this.batchTransferRepo,
 			this.configRepo,
 			this.matrixRepo,
-			this.batchSpecificMatrixRepo,
 			this.participantAccountNotifier,
 			this.accountsAndBalancesAdapter,
 			this.messageProducer
