@@ -31,7 +31,8 @@
     "lint:fix": "npm run build && npx eslint ./src --fix",
     "test:unit": "jest --passWithNoTests --testMatch '**/test/unit/**/*.test.ts'",
     "dep:check": "ncu -e 2",
-    "dep:update": "ncu -u"
+    "dep:update": "ncu -u",
+    "test:unit:domain": "echo 'skpping'"
   },
   "dependencies": {
     "@mojaloop/settlements-bc-domain-lib": "*",

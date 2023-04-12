@@ -27,7 +27,8 @@
     "audit:fix": "npm audit fix",
     "lint": "eslint src/",
     "build": "tsc",
-    "test:unit": "jest --passWithNoTests --testMatch '**/test/unit/**/*.test.ts'"
+    "test:unit": "jest --passWithNoTests --testMatch '**/test/unit/**/*.test.ts'",
+    "test:unit:domain": "echo 'skpping'"
   },
   "devDependencies": {
     "@mojaloop/settlements-bc-shared-mocks-lib": "*",
