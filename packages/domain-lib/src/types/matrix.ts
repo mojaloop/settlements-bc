@@ -90,7 +90,7 @@ export class SettlementMatrix implements ISettlementMatrix {
     this.totalCreditBalance = "0";
   }
 
-  static NewStatic(batchIds: string[], batchState: "SETTLED" | "DISPUTED" | "CLOSED"): SettlementMatrix {
+  static NewStatic(batchIds: string[], batchState: "CLOSED" | "SETTLED" | "DISPUTED"): SettlementMatrix {
     const newInstance = new SettlementMatrix("STATIC");
     for (const id of batchIds) newInstance.addBatch({
       id: id,

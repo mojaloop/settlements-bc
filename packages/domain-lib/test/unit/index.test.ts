@@ -946,10 +946,11 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		expect(matrix!.batches.length).toEqual(0);
 
 		// remove the batch from dispute and re-calculate the matrix:
-		const matrixIdUnDispute = await aggregate.closeSpecificBatchesSettlementMatrix(
+		const matrixIdUnDispute = await aggregate.createStaticSettlementMatrix(
 			securityContext,
 			null, //matrix-id
-			[batchId]
+			[batchId],
+			'SETTLED'
 		);
 		expect(matrixIdUnDispute).toBeDefined();
 		const matrixUnDispute = await aggregate.getSettlementMatrix(securityContext, matrixIdUnDispute);
@@ -966,7 +967,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 
 		// not allowed to create a duplicate close specific matrix:
 		try {
-			await aggregate.closeSpecificBatchesSettlementMatrix(securityContext, matrixIdUnDispute, [batchId]);
+			await aggregate.createStaticSettlementMatrix(securityContext, matrixIdUnDispute, [batchId], 'SETTLED');
 			fail('Expected to throw error!');
 		} catch (err: any) {
 			expect(err).toBeDefined();

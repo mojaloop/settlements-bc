@@ -87,7 +87,7 @@ enum AuditingActions {
 	SETTLEMENT_MATRIX_REQUEST_FETCH = "SETTLEMENT_MATRIX_REQUEST_FETCH",
 	BATCH_SPECIFIC_SETTLEMENT_MATRIX_REQUEST_FETCH = "BATCH_SPECIFIC_SETTLEMENT_MATRIX_REQUEST_FETCH",
 	SETTLEMENT_MATRIX_REQUEST_CREATED = "SETTLEMENT_MATRIX_REQUEST_CREATED",
-	BATCH_SPECIFIC_SETTLEMENT_MATRIX_REQUEST_CREATED = "BATCH_SPECIFIC_SETTLEMENT_MATRIX_REQUEST_CREATED"
+	STATIC_SETTLEMENT_MATRIX_REQUEST_CREATED = "STATIC_SETTLEMENT_MATRIX_REQUEST_CREATED"
 }
 
 export class SettlementsAggregate {
@@ -347,9 +347,15 @@ export class SettlementsAggregate {
 		secCtx: CallSecurityContext,
 		matrixId: string | null,
 		batchIds: string[],
-		batchStateOutcome: "SETTLED" | "DISPUTED" | "CLOSED"
+		batchStateOutcome: "DISPUTED" | "SETTLED" | "CLOSED"
 	): Promise<string> {
-		this._enforcePrivilege(secCtx, Privileges.SETTLEMENTS_REQUEST_DISPUTE_MATRIX);
+		this._enforcePrivilege(secCtx, Privileges.SETTLEMENTS_REQUEST_STATIC_MATRIX);
+
+		if (batchStateOutcome === "SETTLED") {
+			return await this._closeSpecificBatchesSettlementMatrix(secCtx, matrixId, batchIds)
+		}
+
+		//TODO @jason, need to handle closed vs settled.
 
 		const startTimestamp = Date.now();
 		const newMatrix = SettlementMatrix.NewStatic(batchIds, batchStateOutcome);
@@ -382,7 +388,7 @@ export class SettlementsAggregate {
 
 		// We perform an async audit:
 		this._auditingClient.audit(
-			AuditingActions.BATCH_SPECIFIC_SETTLEMENT_MATRIX_REQUEST_CREATED,
+			AuditingActions.STATIC_SETTLEMENT_MATRIX_REQUEST_CREATED,
 			true,
 			this._getAuditSecurityContext(secCtx), [
 				{key: "settlementMatrixRequestId", value: newMatrix.id},
@@ -392,7 +398,7 @@ export class SettlementsAggregate {
 		return newMatrix.id;
 	}
 
-	async closeSpecificBatchesSettlementMatrix(
+	private async _closeSpecificBatchesSettlementMatrix(
 		secCtx: CallSecurityContext,
 		matrixId: string | null,
 		batchIds: string[]
@@ -464,8 +470,9 @@ export class SettlementsAggregate {
 			throw err; // not found
 		}
 
-		if (matrixDto.state === "CLOSED") {
-			const err = new SettlementMatrixIsClosedError("Cannot recalculate a closed matrix");
+		if (matrixDto.state === "CLOSED" || matrixDto.type === "STATIC") {
+			//TODO @jason: Need to test for STATIC.
+			const err = new SettlementMatrixIsClosedError("Cannot recalculate a closed/static matrix");
 			this._logger.warn(err.message);
 			throw err;
 		}
@@ -510,7 +517,7 @@ export class SettlementsAggregate {
 			throw err; // not found
 		}
 
-		if (matrixDto.state === "CLOSED" || matrixDto.state === "DISPUTED" ) {
+		if (matrixDto.state === "CLOSED" || matrixDto.state === "DISPUTED") {
 			const err = new SettlementMatrixIsClosedError("Cannot execute a closed/disputed matrix");
 			this._logger.warn(err.message);
 			throw err;
