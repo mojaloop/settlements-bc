@@ -326,7 +326,7 @@ export class SettlementsAggregate {
 		newMatrix.state = "CALCULATING";
 		await this._settlementMatrixReqRepo.storeMatrix(newMatrix);
 
-		await this._recalculateMatrix(newMatrix, false);
+		await this._recalculateMatrix(newMatrix, 'CALC');
 
 		newMatrix.state = "IDLE";
 		newMatrix.updatedAt = Date.now();
@@ -363,7 +363,7 @@ export class SettlementsAggregate {
 			newMatrix.id = matrixId;
 		}
 
-		await this._recalculateMatrix(newMatrix, true);
+		await this._recalculateMatrix(newMatrix, 'CLOSE');
 
 		// dispute the 'unsettled' batches:
 		for (const matrixBatch of newMatrix.batches) {
@@ -412,7 +412,7 @@ export class SettlementsAggregate {
 
 		await this._settlementMatrixReqRepo.storeMatrix(newMatrix);// generates new matrix-id (if not set)
 
-		// Close the settlement matrix as a disputed matrix:
+		// Close the settlement matrix:
 		await this.closeSettlementMatrix(secCtx, newMatrix.id);
 
 		// We perform an async audit:
@@ -481,7 +481,7 @@ export class SettlementsAggregate {
 		matrix.state = "CALCULATING";
 		await this._settlementMatrixReqRepo.storeMatrix(matrix);
 
-		await this._recalculateMatrix(matrix);
+		await this._recalculateMatrix(matrix, 'CALC');
 
 		matrix.state = "IDLE";
 		matrix.updatedAt = Date.now();
@@ -510,8 +510,8 @@ export class SettlementsAggregate {
 			throw err; // not found
 		}
 
-		if (matrixDto.state === "CLOSED") {
-			const err = new SettlementMatrixIsClosedError("Cannot execute a closed matrix");
+		if (matrixDto.state === "CLOSED" || matrixDto.state === "DISPUTED" ) {
+			const err = new SettlementMatrixIsClosedError("Cannot execute a closed/disputed matrix");
 			this._logger.warn(err.message);
 			throw err;
 		}
@@ -528,7 +528,7 @@ export class SettlementsAggregate {
 		await this._settlementMatrixReqRepo.storeMatrix(matrix);
 
 		// recalculate the matrix, without getting new batches in
-		await this._recalculateMatrix(matrix, true);
+		await this._recalculateMatrix(matrix, 'CLOSE');
 
 		// first pass - close the open batches:
 		const previouslySettledBatches : ISettlementBatch[] = [];
@@ -573,7 +573,7 @@ export class SettlementsAggregate {
 
 	private async _recalculateMatrix(
 		matrix : SettlementMatrix,
-		close : boolean = false
+		calculateIntent: "CLOSE" | "SETTLE" | "CALC"
 	): Promise<void> {
 		let currency : null | ICurrency = null;
 		// start by cleaning the batches
@@ -608,14 +608,13 @@ export class SettlementsAggregate {
 			for (const batch of batches) {
 				// skip closed batches
 				if (matrix.type === 'STATIC' && batch.state === 'SETTLED') continue;
-				else if (close && batch.state !== 'OPEN' && batch.state !== 'DISPUTED') continue;
-				else if (!close && batch.state === 'DISPUTED') continue;
+				else if (calculateIntent === 'CLOSE' && (batch.state !== 'OPEN' && batch.state !== 'DISPUTED')) continue;
+				else if (calculateIntent === 'CALC' && batch.state === 'DISPUTED') continue;
 
 				let batchDebitBalance = 0n;
 				let batchCreditBalance = 0n;
 
 				// TODO make sure the currencies all match - accounts->batches->matrix
-
 				batch.accounts.forEach(acc => {
 					const debit = stringToBigint(acc.debitBalance, currency!.decimals);
 					const credit = stringToBigint(acc.creditBalance, currency!.decimals);

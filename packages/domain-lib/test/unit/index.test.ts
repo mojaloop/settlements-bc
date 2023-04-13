@@ -629,7 +629,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		} catch (err :any) {
 			expect(err).toBeDefined();
 			expect(err instanceof SettlementMatrixIsClosedError).toEqual(true);
-			expect(err.message).toEqual('Cannot execute a closed matrix');
+			expect(err.message).toEqual('Cannot execute a closed/disputed matrix');
 		}
 
 		// ensure an invalid id generates an error (SettlementMatrixRequestClosedError):
