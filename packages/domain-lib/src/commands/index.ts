@@ -68,7 +68,7 @@ export class ProcessTransferCmd extends CommandMsg {
 	}
 }
 
-export type CreateMatrixCmdPayload = {
+export type CreateDynamicMatrixCmdPayload = {
 	matrixId: string;
 	fromDate: number;
 	toDate: number;
@@ -77,15 +77,15 @@ export type CreateMatrixCmdPayload = {
 }
 
 
-export class CreateMatrixCmd extends CommandMsg {
+export class CreateDynamicMatrixCmd extends CommandMsg {
 	boundedContextName: string = SETTLEMENTS_BOUNDED_CONTEXT_NAME;
 	aggregateId: string;
 	aggregateName: string = SETTLEMENTS_AGGREGATE_NAME;
 	msgKey: string;
 	msgTopic: string = SettlementsBCTopics.DomainRequests;
-	payload: CreateMatrixCmdPayload;
+	payload: CreateDynamicMatrixCmdPayload;
 
-	constructor(payload: CreateMatrixCmdPayload) {
+	constructor(payload: CreateDynamicMatrixCmdPayload) {
 		super();
 
 		this.aggregateId = this.msgKey = payload.matrixId;
@@ -148,20 +148,21 @@ export class CloseMatrixCmd extends CommandMsg {
 	}
 }
 
-export type DisputeMatrixCmdPayload = {
+export type CreateStaticMatrixCmdPayload = {
 	matrixId: string;
 	batchIds: string[];
+	batchStateOutcome: "SETTLED" | "DISPUTED" | "CLOSED"
 }
 
-export class DisputeMatrixCmd extends CommandMsg {
+export class CreateStaticMatrixCmd extends CommandMsg {
 	boundedContextName: string = SETTLEMENTS_BOUNDED_CONTEXT_NAME;
 	aggregateId: string;
 	aggregateName: string = SETTLEMENTS_AGGREGATE_NAME;
 	msgKey: string;
 	msgTopic: string = SettlementsBCTopics.DomainRequests;
-	payload: DisputeMatrixCmdPayload;
+	payload: CreateStaticMatrixCmdPayload;
 
-	constructor(payload: DisputeMatrixCmdPayload) {
+	constructor(payload: CreateStaticMatrixCmdPayload) {
 		super();
 
 		this.aggregateId = this.msgKey = payload.matrixId;

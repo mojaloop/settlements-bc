@@ -533,7 +533,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 
 		const dateTo = Date.now();
 		const dateFrom = dateTo - 5000;
-		const matrixId = await aggregate.createSettlementMatrix(
+		const matrixId = await aggregate.createDynamicSettlementMatrix(
 			securityContext,
 			null, // matrix-id
 			reqTransferDto.settlementModel,
@@ -545,7 +545,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 
 		// not allowed to create matrix using the same id.
 		try {
-			await aggregate.createSettlementMatrix(
+			await aggregate.createDynamicSettlementMatrix(
 				securityContext,
 				matrixId,
 				reqTransferDto.settlementModel,
@@ -600,7 +600,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		await aggregate.handleTransfer(securityContext, reqTransferDto);
 
 		// request a Settlement Matrix, which will be used to execute the matrix on.
-		const matrixId = await aggregate.createSettlementMatrix(
+		const matrixId = await aggregate.createDynamicSettlementMatrix(
 			securityContext,
 			null, // matrix-id
 			reqTransferDto.settlementModel,
@@ -659,7 +659,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		expect(batchId).toBeDefined();
 
 		// Request a Settlement Matrix, which will be used to execute the matrix on.
-		const matrixId = await aggregate.createSettlementMatrix(
+		const matrixId = await aggregate.createDynamicSettlementMatrix(
 			securityContext,
 			null, //matrix-id
 			reqTransferDto.settlementModel,
@@ -730,7 +730,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		});
 		expect(batchId).toBeDefined();
 
-		const matrixId = await aggregate.createSettlementMatrix(
+		const matrixId = await aggregate.createDynamicSettlementMatrix(
 			securityContext,
 			null, //matrix-id
 			settleModel,
@@ -836,7 +836,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		});
 		expect(batchId).toBeDefined();
 
-		const matrixId = await aggregate.createSettlementMatrix(
+		const matrixId = await aggregate.createDynamicSettlementMatrix(
 			securityContext,
 			null, //matrix-id
 			settleModel,
@@ -901,16 +901,17 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		expect(batchId).toBeDefined();
 
 		// dispute the one and only batch:
-		const matrixIdDisp = await aggregate.createDisputeSettlementMatrix(
+		const matrixIdDisp = await aggregate.createStaticSettlementMatrix(
 			securityContext,
 			null, // matrix-id
-			[batchId]
+			[batchId],
+			'DISPUTED'
 		);
 		expect(matrixIdDisp).toBeDefined();
 
 		// not allowed to create a duplicate dispute matrix:
 		try {
-			await aggregate.createDisputeSettlementMatrix(securityContext, matrixIdDisp, [batchId]);
+			await aggregate.createStaticSettlementMatrix(securityContext, matrixIdDisp, [batchId], 'DISPUTED');
 			fail('Expected to throw error!');
 		} catch (err: any) {
 			expect(err).toBeDefined();
@@ -929,7 +930,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		expect(batchDisp!.state).toEqual('DISPUTED');
 
 		// now let's create a matrix with the disputed batch:
-		const matrixId = await aggregate.createSettlementMatrix(
+		const matrixId = await aggregate.createDynamicSettlementMatrix(
 			securityContext,
 			null, //matrix-id
 			reqTransferDto.settlementModel,

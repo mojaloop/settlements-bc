@@ -44,12 +44,12 @@ import {
 	ISettlementBatchRepo,
 	ISettlementMatrixRequestRepo,
 	ISettlementBatchTransferRepo,
-	CreateMatrixCmd,
-	CreateMatrixCmdPayload,
+	CreateStaticMatrixCmd,
+	CreateStaticMatrixCmdPayload,
 	RecalculateMatrixCmd,
 	CloseMatrixCmd,
-	DisputeMatrixCmd,
-	DisputeMatrixCmdPayload
+	CreateDynamicMatrixCmd,
+	CreateDynamicMatrixCmdPayload
 } from "@mojaloop/settlements-bc-domain-lib";
 import {CallSecurityContext} from "@mojaloop/security-bc-public-types-lib";
 import {
@@ -113,14 +113,14 @@ export class ExpressRoutes {
 		this._router.get("/transfers", this.getSettlementBatchTransfers.bind(this));
 
 		// Settlement Matrix:
-		this._router.post("/matrix", this.postCreateMatrix.bind(this));
+		this._router.post("/matrix", this.postCreateDynamicMatrix.bind(this));
 
 		// request recalculation of matrix
 		this._router.post("/matrix/:id/recalculate", this.postRecalculateMatrix.bind(this));
 		// request execution/closure of matrix
 		this._router.post("/matrix/:id/close", this.postCloseSettlementMatrix.bind(this));
 		// request dispute of matrix
-		this._router.post("/matrix/:id/dispute", this.postDisputeSettlementMatrix.bind(this));
+		this._router.post("/matrix/static", this.postCreateStaticMatrix.bind(this));
 		// get matrix by id - static get, no recalculate
 		this._router.get("/matrix/:id", this.getSettlementMatrix.bind(this));
 		// get matrices - static get, no recalculate
@@ -304,7 +304,7 @@ export class ExpressRoutes {
 		}
 	}
 
-	private async postCreateMatrix(req: express.Request, res: express.Response): Promise<void> {
+	private async postCreateDynamicMatrix(req: express.Request, res: express.Response): Promise<void> {
 		// TODO enforce privileges
 
 		try {
@@ -319,14 +319,14 @@ export class ExpressRoutes {
 				return this.sendErrorResponse(res,400, "Matrix with the same id already exists");
 			}
 
-			const cmdPayload:CreateMatrixCmdPayload = {
+			const cmdPayload:CreateDynamicMatrixCmdPayload = {
 				matrixId: matrixId,
 				fromDate: fromDate,
 				toDate: toDate,
 				currencyCode: currencyCode,
 				settlementModel: settlementModel
 			};
-			const cmd = new CreateMatrixCmd(cmdPayload);
+			const cmd = new CreateDynamicMatrixCmd(cmdPayload);
 
 			await this._messageProducer.send(cmd);
 
@@ -401,12 +401,12 @@ export class ExpressRoutes {
 		}
 	}
 
-	private async postDisputeSettlementMatrix(req: express.Request, res: express.Response): Promise<void> {
+	private async postCreateStaticMatrix(req: express.Request, res: express.Response): Promise<void> {
 		try {
 			const matrixId = req.params.id as string;
-			const disputePayloadReq = req.body as DisputeMatrixCmdPayload;
+			const disputePayloadReq = req.body as CreateStaticMatrixCmdPayload;
 
-			const cmd = new DisputeMatrixCmd(disputePayloadReq);
+			const cmd = new CreateStaticMatrixCmd(disputePayloadReq);
 			await this._messageProducer.send(cmd);
 
 			this.sendSuccessResponse(res, 202, {id: matrixId});

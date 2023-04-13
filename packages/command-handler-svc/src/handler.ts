@@ -36,9 +36,8 @@ import {SettlementsBCTopics} from "@mojaloop/platform-shared-lib-public-messages
 
 import {
 	CloseMatrixCmd, CloseMatrixCmdPayload,
-	DisputeMatrixCmd, DisputeMatrixCmdPayload,
-	CreateMatrixCmd,
-	CreateMatrixCmdPayload,
+	CreateStaticMatrixCmd, CreateStaticMatrixCmdPayload,
+	CreateDynamicMatrixCmd, CreateDynamicMatrixCmdPayload,
 	ProcessTransferCmd, RecalculateMatrixCmd, RecalculateMatrixCmdPayload,
 	SettlementsAggregate
 } from "@mojaloop/settlements-bc-domain-lib";
@@ -88,10 +87,10 @@ export class SettlementsCommandHandler{
 					case ProcessTransferCmd.name:
 						await this._settlementsAgg.processTransferCmd(sectCtx, message as ProcessTransferCmd);
 						break;
-					case CreateMatrixCmd.name:
+					case CreateDynamicMatrixCmd.name:
 						// eslint-disable-next-line no-case-declarations
-						const createPayload = message.payload as CreateMatrixCmdPayload;
-						await this._settlementsAgg.createSettlementMatrix(
+						const createPayload = message.payload as CreateDynamicMatrixCmdPayload;
+						await this._settlementsAgg.createDynamicSettlementMatrix(
 							sectCtx,
 							createPayload.matrixId,
 							createPayload.settlementModel,
@@ -116,13 +115,14 @@ export class SettlementsCommandHandler{
 							closePayload.matrixId
 						);
 						break;
-					case DisputeMatrixCmd.name:
+					case CreateStaticMatrixCmd.name:
 						// eslint-disable-next-line no-case-declarations
-						const disputePayload = message.payload as DisputeMatrixCmdPayload;
-						await this._settlementsAgg.createDisputeSettlementMatrix(
+						const staticMatrix = message.payload as CreateStaticMatrixCmdPayload;
+						await this._settlementsAgg.createStaticSettlementMatrix(
 							sectCtx,
-							disputePayload.matrixId,
-							disputePayload.batchIds
+							staticMatrix.matrixId,
+							staticMatrix.batchIds,
+							staticMatrix.batchStateOutcome
 						);
 						break;
 					default: {

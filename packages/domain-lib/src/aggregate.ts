@@ -300,7 +300,7 @@ export class SettlementsAggregate {
 		return batch.id;
 	}
 
-	async createSettlementMatrix(
+	async createDynamicSettlementMatrix(
 		secCtx: CallSecurityContext,
 		matrixId: string | null,
 		settlementModel: string,
@@ -310,7 +310,7 @@ export class SettlementsAggregate {
 	): Promise<string> {
 		this._enforcePrivilege(secCtx, Privileges.REQUEST_SETTLEMENT_MATRIX);
 
-		const newMatrix = SettlementMatrix.NewFromCriteria(fromDate, toDate, currencyCode, settlementModel);
+		const newMatrix = SettlementMatrix.NewDynamic(fromDate, toDate, currencyCode, settlementModel);
 		if (matrixId) {
 			const existing = await this._settlementMatrixReqRepo.getMatrixById(matrixId);
 			if (existing) {
@@ -326,7 +326,7 @@ export class SettlementsAggregate {
 		newMatrix.state = "CALCULATING";
 		await this._settlementMatrixReqRepo.storeMatrix(newMatrix);
 
-		await this._recalculateMatrix(newMatrix);
+		await this._recalculateMatrix(newMatrix, false);
 
 		newMatrix.state = "IDLE";
 		newMatrix.updatedAt = Date.now();
@@ -343,15 +343,16 @@ export class SettlementsAggregate {
 		return newMatrix.id;
 	}
 
-	async createDisputeSettlementMatrix(
+	async createStaticSettlementMatrix(
 		secCtx: CallSecurityContext,
 		matrixId: string | null,
-		batchIds: string[]
+		batchIds: string[],
+		batchStateOutcome: "SETTLED" | "DISPUTED" | "CLOSED"
 	): Promise<string> {
 		this._enforcePrivilege(secCtx, Privileges.SETTLEMENTS_REQUEST_DISPUTE_MATRIX);
 
 		const startTimestamp = Date.now();
-		const newMatrix = SettlementMatrix.NewDisputeMatrixFromBatches(batchIds);
+		const newMatrix = SettlementMatrix.NewStatic(batchIds, batchStateOutcome);
 		if (matrixId) {
 			const existing = await this._settlementMatrixReqRepo.getMatrixById(matrixId);
 			if (existing) {
@@ -362,7 +363,7 @@ export class SettlementsAggregate {
 			newMatrix.id = matrixId;
 		}
 
-		await this._recalculateMatrix(newMatrix, true, true);
+		await this._recalculateMatrix(newMatrix, true);
 
 		// dispute the 'unsettled' batches:
 		for (const matrixBatch of newMatrix.batches) {
@@ -372,7 +373,7 @@ export class SettlementsAggregate {
 
 			if (batch.state === 'SETTLED') continue;
 
-			batch.state = matrixBatch.state = 'DISPUTED';
+			batch.state = matrixBatch.state = batchStateOutcome;
 			await this._batchRepo.updateBatch(batch);
 		}
 
@@ -385,7 +386,7 @@ export class SettlementsAggregate {
 			true,
 			this._getAuditSecurityContext(secCtx), [
 				{key: "settlementMatrixRequestId", value: newMatrix.id},
-				{key: "disputeMatrix", value: 'true'}
+				{key: "matrixBatchOutcome", value: `${batchStateOutcome}`}
 			]
 		);
 		return newMatrix.id;
@@ -398,7 +399,7 @@ export class SettlementsAggregate {
 	): Promise<string> {
 		this._enforcePrivilege(secCtx, Privileges.REQUEST_SETTLEMENT_MATRIX);
 
-		const newMatrix = SettlementMatrix.NewCloseSpecificMatrixFromBatches(batchIds);
+		const newMatrix = SettlementMatrix.NewStatic(batchIds, "SETTLED");
 		if (matrixId) {
 			const existing = await this._settlementMatrixReqRepo.getMatrixById(matrixId);
 			if (existing) {
@@ -527,7 +528,7 @@ export class SettlementsAggregate {
 		await this._settlementMatrixReqRepo.storeMatrix(matrix);
 
 		// recalculate the matrix, without getting new batches in
-		await this._recalculateMatrix(matrix, true, false);
+		await this._recalculateMatrix(matrix, true);
 
 		// first pass - close the open batches:
 		const previouslySettledBatches : ISettlementBatch[] = [];
@@ -572,13 +573,12 @@ export class SettlementsAggregate {
 
 	private async _recalculateMatrix(
 		matrix : SettlementMatrix,
-		close :boolean = false,
-		disputeMatrix :boolean = false
+		close : boolean = false
 	): Promise<void> {
 		let currency : null | ICurrency = null;
 		// start by cleaning the batches
 		let batches :ISettlementBatch[];
-		if (close || disputeMatrix) {
+		if (matrix.type === 'STATIC') {
 			// this should never change the already included batches
 			// get by batchIds
 			const batchIds = matrix.batches.map(value => value.id);
@@ -607,7 +607,7 @@ export class SettlementsAggregate {
 
 			for (const batch of batches) {
 				// skip closed batches
-				if (disputeMatrix && batch.state === 'SETTLED') continue;
+				if (matrix.type === 'STATIC' && batch.state === 'SETTLED') continue;
 				else if (close && batch.state !== 'OPEN' && batch.state !== 'DISPUTED') continue;
 				else if (!close && batch.state === 'DISPUTED') continue;
 
@@ -643,19 +643,17 @@ export class SettlementsAggregate {
 		}
 
 		// update main balances for standard matrix:
-		if (matrix instanceof SettlementMatrix) {
-			matrix.totalDebitBalance = bigintToString(totalDebit, currency!.decimals);
-			matrix.totalCreditBalance = bigintToString(totalCredit, currency!.decimals);
+		matrix.totalDebitBalance = bigintToString(totalDebit, currency!.decimals);
+		matrix.totalCreditBalance = bigintToString(totalCredit, currency!.decimals);
 
-			// put per participant balances in the matrix:
-			participantBalances.forEach((value, key) => {
-				matrix.participantBalances.push({
-					participantId: key,
-					debitBalance: bigintToString(value.dr, currency!.decimals),
-					creditBalance: bigintToString(value.cr, currency!.decimals)
-				});
+		// put per participant balances in the matrix:
+		participantBalances.forEach((value, key) => {
+			matrix.participantBalances.push({
+				participantId: key,
+				debitBalance: bigintToString(value.dr, currency!.decimals),
+				creditBalance: bigintToString(value.cr, currency!.decimals)
 			});
-		}
+		});
 	}
 
 	private async _updateBatchAccountBalances(batches: ISettlementBatch[]): Promise<void>{
