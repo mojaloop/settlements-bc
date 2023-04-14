@@ -351,8 +351,6 @@ export class SettlementsAggregate {
 	): Promise<string> {
 		this._enforcePrivilege(secCtx, Privileges.SETTLEMENTS_REQUEST_STATIC_MATRIX);
 
-		//TODO @jason, need to handle closed vs settled.
-		//TODO Currently only [DISPUTED] and [SETTLED] is being processed.
 		const startTimestamp = Date.now();
 		const newMatrix = SettlementMatrix.NewStatic(batchIds, batchStateOutcome);
 		if (matrixId) {
@@ -365,12 +363,23 @@ export class SettlementsAggregate {
 			newMatrix.id = matrixId;
 		}
 
-		// Close the settlement matrix (performs a [_recalculateMatrix]), otherwise recalc:
-		if (batchStateOutcome === "SETTLED") {
-			await this._settlementMatrixReqRepo.storeMatrix(newMatrix);// generates new matrix-id (if not set)
-			await this.closeSettlementMatrix(secCtx, newMatrix.id);
-			return newMatrix.id;
-		} else await this._recalculateMatrix(newMatrix, 'CLOSE');
+		/*
+		We currently do not manage a static batch, since the action
+		of creating a static batch results in immediate action.
+		 */
+		// Close the settlement matrix (performs a [_recalculateMatrix]), otherwise re-calc:
+		switch (batchStateOutcome) {
+			case "SETTLED":
+				await this._settlementMatrixReqRepo.storeMatrix(newMatrix);// generates new matrix-id (if not set)
+				await this.settleSettlementMatrix(secCtx, newMatrix.id);
+				return newMatrix.id;
+			case "DISPUTED":
+				await this._recalculateMatrix(newMatrix, 'CLOSE');
+			break;
+			case "CLOSED":
+			//TODO @jason, need to handle [CLOSED] vs settled.
+			//TODO Currently only [DISPUTED] and [SETTLED] is being processed.
+		}
 
 		// dispute the 'unsettled' batches:
 		for (const matrixBatch of newMatrix.batches) {
@@ -471,7 +480,7 @@ export class SettlementsAggregate {
 		return;
 	}
 
-	async closeSettlementMatrix(secCtx: CallSecurityContext, id: string): Promise<void> {
+	async settleSettlementMatrix(secCtx: CallSecurityContext, id: string): Promise<void> {
 		this._enforcePrivilege(secCtx, Privileges.EXECUTE_SETTLEMENT_MATRIX);
 
 		const matrixDto = await this._settlementMatrixReqRepo.getMatrixById(id);

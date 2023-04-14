@@ -579,7 +579,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		expect(matrix!.generationDurationSecs).toBeGreaterThan(-1);
 
 		// close the matrix:
-		await aggregate.closeSettlementMatrix(securityContext, matrixId);
+		await aggregate.settleSettlementMatrix(securityContext, matrixId);
 		const matrixClosed = await aggregate.getSettlementMatrix(securityContext, matrixId);
 		expect(matrixClosed).toBeDefined();
 		expect(matrixClosed!.id).toEqual(matrixId);
@@ -616,7 +616,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		expect(matrix!.state).toEqual('IDLE');
 
 		// execute the matrix (occurs on close):
-		await aggregate.closeSettlementMatrix(securityContext, matrixId);
+		await aggregate.settleSettlementMatrix(securityContext, matrixId);
 		const matrixClosed = await aggregate.getSettlementMatrix(securityContext, matrixId);
 		expect(matrixClosed).toBeDefined();
 		expect(matrixClosed!.id).toEqual(matrixId);
@@ -624,7 +624,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 
 		// ensure the 2nd execute generates an error (SettlementMatrixRequestClosedError):
 		try {
-			await aggregate.closeSettlementMatrix(securityContext, matrixId);
+			await aggregate.settleSettlementMatrix(securityContext, matrixId);
 			fail('Expected to throw error!');
 		} catch (err :any) {
 			expect(err).toBeDefined();
@@ -635,7 +635,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		// ensure an invalid id generates an error (SettlementMatrixRequestClosedError):
 		const invalidMatrixId = randomUUID();
 		try {
-			await aggregate.closeSettlementMatrix(securityContext, invalidMatrixId);
+			await aggregate.settleSettlementMatrix(securityContext, invalidMatrixId);
 			fail('Expected to throw error!');
 		} catch (err :any) {
 			expect(err).toBeDefined();
@@ -675,7 +675,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		expect(matrix!.state).toEqual('IDLE');
 
 		// execute the matrix:
-		await aggregate.closeSettlementMatrix(securityContext, matrixId);
+		await aggregate.settleSettlementMatrix(securityContext, matrixId);
 		// ensure the batch has been closed:
 		const matrixClosed = await aggregate.getSettlementMatrix(securityContext, matrixId);
 		expect(matrixClosed).toBeDefined();
@@ -740,7 +740,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		);
 		expect(matrixId).toBeDefined();
 
-		await aggregate.closeSettlementMatrix(securityContext, matrixId);
+		await aggregate.settleSettlementMatrix(securityContext, matrixId);
 
 		// New Transfer under a new batch but same participants:
 		const batchId2 = await aggregate.handleTransfer(securityContext, {
