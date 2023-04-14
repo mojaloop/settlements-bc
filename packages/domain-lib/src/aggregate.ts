@@ -351,12 +351,8 @@ export class SettlementsAggregate {
 	): Promise<string> {
 		this._enforcePrivilege(secCtx, Privileges.SETTLEMENTS_REQUEST_STATIC_MATRIX);
 
-		if (batchStateOutcome === "SETTLED") {
-			return await this._closeSpecificBatchesSettlementMatrix(secCtx, matrixId, batchIds)
-		}
-
 		//TODO @jason, need to handle closed vs settled.
-
+		//TODO Currently only [DISPUTED] and [SETTLED] is being processed.
 		const startTimestamp = Date.now();
 		const newMatrix = SettlementMatrix.NewStatic(batchIds, batchStateOutcome);
 		if (matrixId) {
@@ -369,7 +365,12 @@ export class SettlementsAggregate {
 			newMatrix.id = matrixId;
 		}
 
-		await this._recalculateMatrix(newMatrix, 'CLOSE');
+		// Close the settlement matrix (performs a [_recalculateMatrix]), otherwise recalc:
+		if (batchStateOutcome === "SETTLED") {
+			await this._settlementMatrixReqRepo.storeMatrix(newMatrix);// generates new matrix-id (if not set)
+			await this.closeSettlementMatrix(secCtx, newMatrix.id);
+			return newMatrix.id;
+		} else await this._recalculateMatrix(newMatrix, 'CLOSE');
 
 		// dispute the 'unsettled' batches:
 		for (const matrixBatch of newMatrix.batches) {
@@ -397,43 +398,6 @@ export class SettlementsAggregate {
 		);
 		return newMatrix.id;
 	}
-
-	private async _closeSpecificBatchesSettlementMatrix(
-		secCtx: CallSecurityContext,
-		matrixId: string | null,
-		batchIds: string[]
-	): Promise<string> {
-		this._enforcePrivilege(secCtx, Privileges.REQUEST_SETTLEMENT_MATRIX);
-
-		const newMatrix = SettlementMatrix.NewStatic(batchIds, "SETTLED");
-		if (matrixId) {
-			const existing = await this._settlementMatrixReqRepo.getMatrixById(matrixId);
-			if (existing) {
-				const err = new SettlementMatrixAlreadyExistsError("Matrix with the same id already exists");
-				this._logger.warn(err.message);
-				throw err;
-			}
-			newMatrix.id = matrixId;
-		}
-
-		await this._settlementMatrixReqRepo.storeMatrix(newMatrix);// generates new matrix-id (if not set)
-
-		// Close the settlement matrix:
-		await this.closeSettlementMatrix(secCtx, newMatrix.id);
-
-		// We perform an async audit:
-		this._auditingClient.audit(
-			AuditingActions.SETTLEMENT_MATRIX_REQUEST_CREATED,
-			true,
-			this._getAuditSecurityContext(secCtx), [
-				{key: "settlementMatrixRequestId", value: newMatrix.id},
-				{key: "unDisputeMatrix", value: 'true'}
-			]
-		);
-
-		return newMatrix.id;
-	}
-
 
 	async getSettlementMatrix(secCtx: CallSecurityContext, id: string): Promise<ISettlementMatrix | null> {
 		this._enforcePrivilege(secCtx, Privileges.GET_SETTLEMENT_MATRIX_REQUEST);
