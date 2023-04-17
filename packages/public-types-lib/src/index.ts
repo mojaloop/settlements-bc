@@ -93,11 +93,11 @@ export interface ISettlementMatrix {
 	// criteria
 	dateFrom: number | null;
 	dateTo: number | null;
-	currencyCode: string | null;
+	currencyCode: string;
 	settlementModel: string | null;
 	batches: ISettlementMatrixBatch[];
 	participantBalances: ISettlementMatrixParticipantBalance[];
-	state: "IDLE" | "CALCULATING" | "CLOSING" | "DISPUTED" | "CLOSED";
+	state: "IDLE" | "BUSY" | "DISPUTED" | "CLOSED" | "SETTLED";//TODO @jason: We only have final states (driven by commands)
 	type: "STATIC" | "DYNAMIC";
 	generationDurationSecs: number | null;
 	totalDebitBalance: string;

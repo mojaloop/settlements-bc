@@ -121,8 +121,7 @@ export class SettlementsCommandHandler{
 						await this._settlementsAgg.createStaticSettlementMatrix(
 							sectCtx,
 							staticMatrix.matrixId,
-							staticMatrix.batchIds,
-							staticMatrix.batchStateOutcome
+							staticMatrix.batchIds
 						);
 						break;
 					default: {

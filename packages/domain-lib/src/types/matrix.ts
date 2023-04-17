@@ -35,6 +35,7 @@ import {
 
 } from "@mojaloop/settlements-bc-public-types-lib";
 import {randomUUID} from "crypto";
+import {CurrencyCodesDifferError} from "./errors";
 
 export class SettlementMatrix implements ISettlementMatrix {
   id: string;
@@ -43,25 +44,25 @@ export class SettlementMatrix implements ISettlementMatrix {
 
   dateFrom: number | null;
   dateTo: number | null;
-  currencyCode: string | null;
+  currencyCode: string;
   settlementModel: string | null;
 
   batches: ISettlementMatrixBatch[];
   participantBalances: ISettlementMatrixParticipantBalance[];
 
-  state: "IDLE" | "CALCULATING" | "CLOSING" | "DISPUTED" | "CLOSED";
+  state: "IDLE" | "BUSY" | "DISPUTED" | "CLOSED" | "SETTLED";
   type: "STATIC" | "DYNAMIC"
 
   generationDurationSecs: number | null;
   totalDebitBalance: string;
   totalCreditBalance: string;
 
-  protected constructor(type: "STATIC" | "DYNAMIC") {
+  protected constructor(type: "STATIC" | "DYNAMIC", currency: string) {
     this.id = randomUUID();
     this.createdAt = this.updatedAt = Date.now();
     this.dateFrom = null;
     this.dateTo = null;
-    this.currencyCode = null;
+    this.currencyCode = currency;
     this.settlementModel = null;
 
     this.state = "IDLE";
@@ -73,7 +74,15 @@ export class SettlementMatrix implements ISettlementMatrix {
     this.totalCreditBalance = "0";
   }
 
-  addBatch(batch: ISettlementBatch, debitBalance: string, creditBalance: string):void{
+  addBatch(batch: ISettlementBatch, debitBalance: string, creditBalance: string): void {
+    if (this.type === 'STATIC' && this.batches.length === 0) {
+      this.currencyCode = batch.currencyCode;
+    }
+
+    if (batch.currencyCode !== this.currencyCode) {
+      throw new CurrencyCodesDifferError(`Matrix expects '${this.currencyCode}' but was '${batch.currencyCode}'`);
+    }
+
     this.batches.push({
       id: batch.id,
       name: batch.batchName,
@@ -90,40 +99,25 @@ export class SettlementMatrix implements ISettlementMatrix {
     this.totalCreditBalance = "0";
   }
 
-  static NewStatic(batchIds: string[], batchState: "CLOSED" | "SETTLED" | "DISPUTED"): SettlementMatrix {
-    const newInstance = new SettlementMatrix("STATIC");
-    for (const id of batchIds) newInstance.addBatch({
-      id: id,
-      timestamp: 0,
-      settlementModel: "",
-      currencyCode: "",
-      batchName: "",
-      batchSequence: 0,
-      state: batchState, //SETTLED or DISPUTED
-      accounts: []
-    }, '0', '0');
-
-    if (batchState === 'DISPUTED') newInstance.state = 'DISPUTED';
-
-    return newInstance;
+  static CreateStatic(currency: string): SettlementMatrix {
+    return new SettlementMatrix("STATIC", currency);
   }
 
-  static NewDynamic(
+  static CreateDynamic(
     dateFrom: number | null,
     dateTo: number | null,
-    currencyCode: string | null,
+    currencyCode: string,
     settlementModel: string | null
   ) : SettlementMatrix {
-    const newInstance = new SettlementMatrix("DYNAMIC");
+    const newInstance = new SettlementMatrix("DYNAMIC", currencyCode);
     newInstance.dateFrom = dateFrom;
     newInstance.dateTo = dateTo;
-    newInstance.currencyCode = currencyCode;
     newInstance.settlementModel = settlementModel;
     return newInstance;
   }
 
-  static NewFromDto(dto: ISettlementMatrix): SettlementMatrix {
-    const newInstance = new SettlementMatrix(dto.type);
+  static CreateFromDto(dto: ISettlementMatrix): SettlementMatrix {
+    const newInstance = new SettlementMatrix(dto.type, dto.currencyCode);
 
     newInstance.id = dto.id;
     newInstance.createdAt = dto.createdAt;
@@ -132,7 +126,6 @@ export class SettlementMatrix implements ISettlementMatrix {
 
     newInstance.dateFrom = dto.dateFrom;
     newInstance.dateTo = dto.dateTo;
-    newInstance.currencyCode = dto.currencyCode;
     newInstance.settlementModel = dto.settlementModel;
 
     newInstance.batches = dto.batches;

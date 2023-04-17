@@ -386,9 +386,19 @@ function addPrivileges(authorizationClient: AuthorizationClient): void {
 		"Allows the retrieval of a settlement matrix."
 	);
 	authorizationClient.addPrivilege(
-		Privileges.EXECUTE_SETTLEMENT_MATRIX,
-		Privileges.EXECUTE_SETTLEMENT_MATRIX,
-		"Allows the execution of a settlement matrix."
+		Privileges.SETTLEMENTS_CLOSE_MATRIX,
+		Privileges.SETTLEMENTS_CLOSE_MATRIX,
+		"Allows the settling of a settlement matrix."
+	);
+	authorizationClient.addPrivilege(
+		Privileges.SETTLEMENTS_SETTLE_MATRIX,
+		Privileges.SETTLEMENTS_SETTLE_MATRIX,
+		"Allows the dispute of a settlement matrix."
+	);
+	authorizationClient.addPrivilege(
+		Privileges.SETTLEMENTS_DISPUTE_MATRIX,
+		Privileges.SETTLEMENTS_DISPUTE_MATRIX,
+		"Allows the dispute of a settlement matrix."
 	);
 	authorizationClient.addPrivilege(
 		Privileges.GET_SETTLEMENT_MATRIX_REQUEST,

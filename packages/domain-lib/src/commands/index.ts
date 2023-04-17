@@ -151,7 +151,6 @@ export class CloseMatrixCmd extends CommandMsg {
 export type CreateStaticMatrixCmdPayload = {
 	matrixId: string;
 	batchIds: string[];
-	batchStateOutcome: "SETTLED" | "DISPUTED" | "CLOSED"
 }
 
 export class CreateStaticMatrixCmd extends CommandMsg {
