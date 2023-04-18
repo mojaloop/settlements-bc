@@ -39,7 +39,11 @@ import {
 	CreateStaticMatrixCmd, CreateStaticMatrixCmdPayload,
 	CreateDynamicMatrixCmd, CreateDynamicMatrixCmdPayload,
 	ProcessTransferCmd, RecalculateMatrixCmd, RecalculateMatrixCmdPayload,
-	SettlementsAggregate
+	SettlementsAggregate,
+	SettleMatrixCmd,
+	SettleMatrixCmdPayload,
+	DisputeMatrixCmd,
+	DisputeMatrixCmdPayload
 } from "@mojaloop/settlements-bc-domain-lib";
 import {CallSecurityContext} from "@mojaloop/security-bc-public-types-lib/dist/index";
 import {MLKafkaJsonConsumer} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib/dist/rdkafka_json_consumer";
@@ -86,7 +90,7 @@ export class SettlementsCommandHandler{
 				switch (message.msgName) {
 					case ProcessTransferCmd.name:
 						await this._settlementsAgg.processTransferCmd(sectCtx, message as ProcessTransferCmd);
-						break;
+					break;
 					case CreateDynamicMatrixCmd.name:
 						// eslint-disable-next-line no-case-declarations
 						const createPayload = message.payload as CreateDynamicMatrixCmdPayload;
@@ -97,6 +101,15 @@ export class SettlementsCommandHandler{
 							createPayload.currencyCode,
 							createPayload.fromDate,
 							createPayload.toDate
+						);
+						break;
+					case CreateStaticMatrixCmd.name:
+						// eslint-disable-next-line no-case-declarations
+						const staticMatrix = message.payload as CreateStaticMatrixCmdPayload;
+						await this._settlementsAgg.createStaticSettlementMatrix(
+							sectCtx,
+							staticMatrix.matrixId,
+							staticMatrix.batchIds
 						);
 						break;
 					case RecalculateMatrixCmd.name:
@@ -110,18 +123,25 @@ export class SettlementsCommandHandler{
 					case CloseMatrixCmd.name:
 						// eslint-disable-next-line no-case-declarations
 						const closePayload = message.payload as CloseMatrixCmdPayload;
-						await this._settlementsAgg.settleSettlementMatrix(
+						await this._settlementsAgg.closeSettlementMatrix(
 							sectCtx,
 							closePayload.matrixId
 						);
 						break;
-					case CreateStaticMatrixCmd.name:
+					case SettleMatrixCmd.name:
 						// eslint-disable-next-line no-case-declarations
-						const staticMatrix = message.payload as CreateStaticMatrixCmdPayload;
-						await this._settlementsAgg.createStaticSettlementMatrix(
+						const settlePayload = message.payload as SettleMatrixCmdPayload;
+						await this._settlementsAgg.closeSettlementMatrix(
 							sectCtx,
-							staticMatrix.matrixId,
-							staticMatrix.batchIds
+							settlePayload.matrixId
+						);
+						break;
+					case DisputeMatrixCmd.name:
+						// eslint-disable-next-line no-case-declarations
+						const disputePayload = message.payload as DisputeMatrixCmdPayload;
+						await this._settlementsAgg.disputeSettlementMatrix(
+							sectCtx,
+							disputePayload.matrixId
 						);
 						break;
 					default: {

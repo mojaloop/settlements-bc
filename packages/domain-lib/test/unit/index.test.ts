@@ -517,7 +517,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		}
 	});
 
-	test("request and execute a settlement matrix", async () => {
+	test("request, close and settle a settlement matrix", async () => {
 		const reqTransferDto: ITransferDto = {
 			id: null,
 			transferId: randomUUID(),
@@ -579,14 +579,21 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		expect(matrix!.generationDurationSecs).toBeGreaterThan(-1);
 
 		// close the matrix:
-		await aggregate.settleSettlementMatrix(securityContext, matrixId);
+		await aggregate.closeSettlementMatrix(securityContext, matrixId);
 		const matrixClosed = await aggregate.getSettlementMatrix(securityContext, matrixId);
 		expect(matrixClosed).toBeDefined();
 		expect(matrixClosed!.id).toEqual(matrixId);
 		expect(matrixClosed!.state).toEqual('CLOSED');
+
+		// settle the matrix:
+		await aggregate.settleSettlementMatrix(securityContext, matrixId);
+		const matrixSettled = await aggregate.getSettlementMatrix(securityContext, matrixId);
+		expect(matrixSettled).toBeDefined();
+		expect(matrixSettled!.id).toEqual(matrixId);
+		expect(matrixSettled!.state).toEqual('SETTLED');
 	});
 
-	test("ensure executed matrix cannot be executed again", async () => {
+	test("ensure executed matrix cannot be settled again", async () => {
 		const reqTransferDto: ITransferDto = {
 			id: null,
 			transferId: randomUUID(),
@@ -620,7 +627,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		const matrixClosed = await aggregate.getSettlementMatrix(securityContext, matrixId);
 		expect(matrixClosed).toBeDefined();
 		expect(matrixClosed!.id).toEqual(matrixId);
-		expect(matrixClosed!.state).toEqual('CLOSED');
+		expect(matrixClosed!.state).toEqual('SETTLED');
 
 		// ensure the 2nd execute generates an error (SettlementMatrixRequestClosedError):
 		try {
@@ -629,7 +636,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		} catch (err :any) {
 			expect(err).toBeDefined();
 			expect(err instanceof SettlementMatrixIsClosedError).toEqual(true);
-			expect(err.message).toEqual('Cannot execute a closed/disputed matrix');
+			expect(err.message).toEqual('Cannot settle a settled matrix');
 		}
 
 		// ensure an invalid id generates an error (SettlementMatrixRequestClosedError):
@@ -680,7 +687,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		const matrixClosed = await aggregate.getSettlementMatrix(securityContext, matrixId);
 		expect(matrixClosed).toBeDefined();
 		expect(matrixClosed!.id).toEqual(matrixId);
-		expect(matrixClosed!.state).toEqual('CLOSED');
+		expect(matrixClosed!.state).toEqual('SETTLED');
 
 		// create another Transfer:
 		const newBatchId = await aggregate.handleTransfer(securityContext, reqTransferDto);
@@ -829,7 +836,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 			transferId: randomUUID(),
 			payerFspId: randomUUID(),
 			payeeFspId: randomUUID(),
-			currencyCode: 'EUR',
+			currencyCode: currency,
 			amount: '1000', //10 EURO
 			timestamp: Date.now(),
 			settlementModel: settleModel
@@ -859,7 +866,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 			transferId: randomUUID(),
 			payerFspId: randomUUID(),
 			payeeFspId: randomUUID(),
-			currencyCode: 'EUR',
+			currencyCode: currency,
 			amount: '1100', //11 EURO
 			timestamp: Date.now(),
 			settlementModel: settleModel
@@ -904,20 +911,22 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		const matrixIdDisp = await aggregate.createStaticSettlementMatrix(
 			securityContext,
 			null, // matrix-id
-			[batchId],
-			'DISPUTED'
+			[batchId]
 		);
 		expect(matrixIdDisp).toBeDefined();
 
 		// not allowed to create a duplicate dispute matrix:
 		try {
-			await aggregate.createStaticSettlementMatrix(securityContext, matrixIdDisp, [batchId], 'DISPUTED');
+			await aggregate.createStaticSettlementMatrix(securityContext, matrixIdDisp, [batchId]);
 			fail('Expected to throw error!');
 		} catch (err: any) {
 			expect(err).toBeDefined();
 			expect(err instanceof SettlementMatrixAlreadyExistsError).toEqual(true);
 			expect(err.message).toEqual('Matrix with the same id already exists');
 		}
+
+		// dispute the static matrix:
+		await aggregate.disputeSettlementMatrix(securityContext, matrixIdDisp);
 
 		const matrixDisp = await aggregate.getSettlementMatrix(securityContext, matrixIdDisp);
 		expect(matrixDisp).toBeDefined();
@@ -949,25 +958,26 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		const matrixIdUnDispute = await aggregate.createStaticSettlementMatrix(
 			securityContext,
 			null, //matrix-id
-			[batchId],
-			'SETTLED'
+			[batchId]
 		);
+		await aggregate.closeSettlementMatrix(securityContext, matrixIdUnDispute);
+
 		expect(matrixIdUnDispute).toBeDefined();
 		const matrixUnDispute = await aggregate.getSettlementMatrix(securityContext, matrixIdUnDispute);
 		expect(matrixUnDispute).toBeDefined();
 		expect(matrixUnDispute!.state).toEqual('CLOSED');
-		expect(matrixUnDispute!.currencyCode).toBeNull();
+		expect(matrixUnDispute!.currencyCode).toEqual('EUR');
 		expect(matrixUnDispute!.settlementModel).toBeNull();
 		expect(matrixUnDispute!.batches.length).toEqual(1);
 
 		const batchUnDispute = await aggregate.getSettlementBatch(securityContext, batchId);
 		expect(batchUnDispute).toBeDefined();
 		expect(batchUnDispute!.id).toEqual(batchId);
-		expect(batchUnDispute!.state).toEqual('SETTLED');
+		expect(batchUnDispute!.state).toEqual('CLOSED');
 
 		// not allowed to create a duplicate close specific matrix:
 		try {
-			await aggregate.createStaticSettlementMatrix(securityContext, matrixIdUnDispute, [batchId], 'SETTLED');
+			await aggregate.createStaticSettlementMatrix(securityContext, matrixIdUnDispute, [batchId]);
 			fail('Expected to throw error!');
 		} catch (err: any) {
 			expect(err).toBeDefined();

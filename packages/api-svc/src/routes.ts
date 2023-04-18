@@ -49,7 +49,7 @@ import {
 	RecalculateMatrixCmd,
 	CloseMatrixCmd,
 	CreateDynamicMatrixCmd,
-	CreateDynamicMatrixCmdPayload
+	CreateDynamicMatrixCmdPayload, SettleMatrixCmd, DisputeMatrixCmd
 } from "@mojaloop/settlements-bc-domain-lib";
 import {CallSecurityContext} from "@mojaloop/security-bc-public-types-lib";
 import {
@@ -113,14 +113,17 @@ export class ExpressRoutes {
 		this._router.get("/transfers", this.getSettlementBatchTransfers.bind(this));
 
 		// Settlement Matrix:
-		this._router.post("/matrix", this.postCreateDynamicMatrix.bind(this));
+		this._router.post("/matrix/dynamic", this.postCreateDynamicMatrix.bind(this));
+		this._router.post("/matrix/static", this.postCreateStaticMatrix.bind(this));
 
 		// request recalculation of matrix
 		this._router.post("/matrix/:id/recalculate", this.postRecalculateMatrix.bind(this));
-		// request execution/closure of matrix
+		// request closure of a matrix
 		this._router.post("/matrix/:id/close", this.postCloseSettlementMatrix.bind(this));
-		// request dispute of matrix
-		this._router.post("/matrix/static", this.postCreateStaticMatrix.bind(this));
+		// request settlement of a matrix
+		this._router.post("/matrix/:id/settle", this.postSettleSettlementMatrix.bind(this));
+		// request dispute of a matrix
+		this._router.post("/matrix/:id/dispute", this.postDisputeSettlementMatrix.bind(this));
 		// get matrix by id - static get, no recalculate
 		this._router.get("/matrix/:id", this.getSettlementMatrix.bind(this));
 		// get matrices - static get, no recalculate
@@ -372,19 +375,62 @@ export class ExpressRoutes {
 		}
 	}
 
-
 	private async postCloseSettlementMatrix(req: express.Request, res: express.Response): Promise<void> {
 		try {
 			const matrixId = req.params.id as string;
-
 			const matrix = await this._matrixRepo.getMatrixById(matrixId);
-			if(!matrix){
-				return this.sendErrorResponse(res,404, "Matrix not found");
-			}
+			if (!matrix) return this.sendErrorResponse(res,404, "Matrix not found");
 
 			const cmd = new CloseMatrixCmd({matrixId:matrixId});
 			await this._messageProducer.send(cmd);
 
+			this.sendSuccessResponse(res, 202, {id: matrixId});
+		} catch (error: any) {
+			this._logger.error(error);
+			if (error instanceof SettlementMatrixIsClosedError || error instanceof SettlementMatrixIsBusyError) {
+				this.sendErrorResponse(res, 406, error.message);
+			} else if (error instanceof SettlementMatrixNotFoundError) {
+				this.sendErrorResponse(res, 404, error.message);
+			} else if (error instanceof UnauthorizedError) {
+				this.sendErrorResponse(res, 403, "unauthorized"); // TODO: verify.
+			} else {
+				this.sendErrorResponse(res, 500, error.message || ExpressRoutes.UNKNOWN_ERROR_MESSAGE);
+			}
+		}
+	}
+
+	private async postSettleSettlementMatrix(req: express.Request, res: express.Response): Promise<void> {
+		try {
+			const matrixId = req.params.id as string;
+			const matrix = await this._matrixRepo.getMatrixById(matrixId);
+			if (!matrix) return this.sendErrorResponse(res,404, "Matrix not found");
+
+			const cmd = new SettleMatrixCmd({matrixId:matrixId});
+			await this._messageProducer.send(cmd);
+
+			this.sendSuccessResponse(res, 202, {id: matrixId});
+		} catch (error: any) {
+			this._logger.error(error);
+			if (error instanceof SettlementMatrixIsClosedError || error instanceof SettlementMatrixIsBusyError) {
+				this.sendErrorResponse(res, 406, error.message);
+			} else if (error instanceof SettlementMatrixNotFoundError) {
+				this.sendErrorResponse(res, 404, error.message);
+			} else if (error instanceof UnauthorizedError) {
+				this.sendErrorResponse(res, 403, "unauthorized"); // TODO: verify.
+			} else {
+				this.sendErrorResponse(res, 500, error.message || ExpressRoutes.UNKNOWN_ERROR_MESSAGE);
+			}
+		}
+	}
+
+	private async postDisputeSettlementMatrix(req: express.Request, res: express.Response): Promise<void> {
+		try {
+			const matrixId = req.params.id as string;
+			const matrix = await this._matrixRepo.getMatrixById(matrixId);
+			if (!matrix) return this.sendErrorResponse(res,404, "Matrix not found");
+
+			const cmd = new DisputeMatrixCmd({matrixId:matrixId});
+			await this._messageProducer.send(cmd);
 
 			this.sendSuccessResponse(res, 202, {id: matrixId});
 		} catch (error: any) {

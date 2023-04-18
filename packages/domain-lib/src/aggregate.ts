@@ -567,7 +567,7 @@ export class SettlementsAggregate {
 		await this._recalculateMatrix(matrix);
 
 		// first pass - close the open batches:
-		const batchesClosedNow: ISettlementBatch[] = [];
+		const batchesDisputedNow: ISettlementBatch[] = [];
 		for (const matrixBatch of matrix.batches) {
 			const batch = await this._batchRepo.getBatch(matrixBatch.id);
 			if (!batch) throw new SettlementBatchNotFoundError(`Unable to locate batch for id '${matrixBatch.id}'.`);
@@ -576,7 +576,7 @@ export class SettlementsAggregate {
 
 			batch.state = matrixBatch.state = 'DISPUTED';
 			await this._batchRepo.updateBatch(batch);
-			batchesClosedNow.push(batch);
+			batchesDisputedNow.push(batch);
 		}
 
 		// Dispute the Matrix Request to prevent further execution:
@@ -662,7 +662,7 @@ export class SettlementsAggregate {
 		return;
 	}
 
-		async settleSettlementMatrix(secCtx: CallSecurityContext, id: string): Promise<void> {
+	async settleSettlementMatrix(secCtx: CallSecurityContext, id: string): Promise<void> {
 		this._enforcePrivilege(secCtx, Privileges.SETTLEMENTS_SETTLE_MATRIX);
 
 		const matrixDto = await this._settlementMatrixReqRepo.getMatrixById(id);
@@ -712,6 +712,7 @@ export class SettlementsAggregate {
 
 		// TODO: close batch accounts in Accounts&Balances
 		// TODO send matrix executed event:
+		// TODO @jason -> See: https://github.com/mojaloop/project/issues/3280
 		//await this._participantAccNotifier.publishSettlementMatrixExecuteEvent(returnVal);
 
 		// Close the Matrix Request to prevent further execution:
@@ -763,8 +764,9 @@ export class SettlementsAggregate {
 			await this._updateBatchAccountBalances(batches);
 
 			for (const batch of batches) {
-				// skip closed batches:
+				// skip settled batches:
 				if (batch.state === 'SETTLED') continue;
+				else if (batch.state === 'DISPUTED' && matrix.type === 'DYNAMIC') continue;
 
 				let batchDebitBalance = 0n;
 				let batchCreditBalance = 0n;

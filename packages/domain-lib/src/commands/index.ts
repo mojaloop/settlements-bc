@@ -97,6 +97,33 @@ export class CreateDynamicMatrixCmd extends CommandMsg {
 	}
 }
 
+export type CreateStaticMatrixCmdPayload = {
+	matrixId: string;
+	batchIds: string[];
+}
+
+export class CreateStaticMatrixCmd extends CommandMsg {
+	boundedContextName: string = SETTLEMENTS_BOUNDED_CONTEXT_NAME;
+	aggregateId: string;
+	aggregateName: string = SETTLEMENTS_AGGREGATE_NAME;
+	msgKey: string;
+	msgTopic: string = SettlementsBCTopics.DomainRequests;
+	payload: CreateStaticMatrixCmdPayload;
+
+	constructor(payload: CreateStaticMatrixCmdPayload) {
+		super();
+
+		this.aggregateId = this.msgKey = payload.matrixId;
+		this.payload = payload;
+	}
+
+	validatePayload(): void {
+		// TODO Need to ensure the following is set;
+		// TODO payload
+		// TODO payload.matrixId is not blank
+		// TODO payload.batchIds is not empty
+	}
+}
 
 export type RecalculateMatrixCmdPayload = {
 	matrixId: string;
@@ -123,7 +150,6 @@ export class RecalculateMatrixCmd extends CommandMsg {
 	}
 }
 
-
 export type CloseMatrixCmdPayload = {
 	matrixId: string;
 }
@@ -148,20 +174,19 @@ export class CloseMatrixCmd extends CommandMsg {
 	}
 }
 
-export type CreateStaticMatrixCmdPayload = {
+export type SettleMatrixCmdPayload = {
 	matrixId: string;
-	batchIds: string[];
 }
 
-export class CreateStaticMatrixCmd extends CommandMsg {
+export class SettleMatrixCmd extends CommandMsg {
 	boundedContextName: string = SETTLEMENTS_BOUNDED_CONTEXT_NAME;
 	aggregateId: string;
 	aggregateName: string = SETTLEMENTS_AGGREGATE_NAME;
 	msgKey: string;
 	msgTopic: string = SettlementsBCTopics.DomainRequests;
-	payload: CreateStaticMatrixCmdPayload;
+	payload: SettleMatrixCmdPayload;
 
-	constructor(payload: CreateStaticMatrixCmdPayload) {
+	constructor(payload: SettleMatrixCmdPayload) {
 		super();
 
 		this.aggregateId = this.msgKey = payload.matrixId;
@@ -169,9 +194,30 @@ export class CreateStaticMatrixCmd extends CommandMsg {
 	}
 
 	validatePayload(): void {
-		// TODO Need to ensure the following is set;
-		// TODO payload
-		// TODO payload.matrixId is not blank
-		// TODO payload.batchIds is not empty
+		// TODO
+	}
+}
+
+export type DisputeMatrixCmdPayload = {
+	matrixId: string;
+}
+
+export class DisputeMatrixCmd extends CommandMsg {
+	boundedContextName: string = SETTLEMENTS_BOUNDED_CONTEXT_NAME;
+	aggregateId: string;
+	aggregateName: string = SETTLEMENTS_AGGREGATE_NAME;
+	msgKey: string;
+	msgTopic: string = SettlementsBCTopics.DomainRequests;
+	payload: DisputeMatrixCmdPayload;
+
+	constructor(payload: DisputeMatrixCmdPayload) {
+		super();
+
+		this.aggregateId = this.msgKey = payload.matrixId;
+		this.payload = payload;
+	}
+
+	validatePayload(): void {
+		// TODO
 	}
 }
