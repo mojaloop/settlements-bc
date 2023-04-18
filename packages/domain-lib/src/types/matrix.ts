@@ -92,6 +92,10 @@ export class SettlementMatrix implements ISettlementMatrix {
     });
   }
 
+  removeBatch(batch: ISettlementBatch): void {
+    this.batches = this.batches.filter(itm => itm.id !== batch.id)
+  }
+
   clear(){
     this.batches = [];
     this.participantBalances = [];

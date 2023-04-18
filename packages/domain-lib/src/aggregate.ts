@@ -88,6 +88,8 @@ enum AuditingActions {
 	SETTLEMENT_MATRIX_SETTLED = "SETTLEMENT_MATRIX_SETTLED",
 	SETTLEMENT_MATRIX_DISPUTED = "SETTLEMENT_MATRIX_DISPUTED",
 	SETTLEMENT_MATRIX_REQUEST_FETCH = "SETTLEMENT_MATRIX_REQUEST_FETCH",
+	SETTLEMENT_MATRIX_ADD_BATCHES = "SETTLEMENT_MATRIX_ADD_BATCHES",
+	SETTLEMENT_MATRIX_REMOVE_BATCHES = "SETTLEMENT_MATRIX_REMOVE_BATCHES",
 	BATCH_SPECIFIC_SETTLEMENT_MATRIX_REQUEST_FETCH = "BATCH_SPECIFIC_SETTLEMENT_MATRIX_REQUEST_FETCH",
 	SETTLEMENT_MATRIX_REQUEST_CREATED = "SETTLEMENT_MATRIX_REQUEST_CREATED",
 	STATIC_SETTLEMENT_MATRIX_REQUEST_CREATED = "STATIC_SETTLEMENT_MATRIX_REQUEST_CREATED"
@@ -434,7 +436,6 @@ export class SettlementsAggregate {
 		const matrix = SettlementMatrix.CreateFromDto(matrixDto);
 
 		matrix.state = "BUSY";
-
 		await this._settlementMatrixReqRepo.storeMatrix(matrix);
 
 		const batches = await this._batchRepo.getBatchesByIds(
@@ -442,7 +443,7 @@ export class SettlementsAggregate {
 		const newBatches = await this._batchRepo.getBatchesByIds(newBatchIds);
 		for (const newBatch of newBatches) {
 			const newFiltered = batches.find(itm => itm.id !== newBatch.id);
-			if (newFiltered === undefined || newFiltered === null) {
+			if (newFiltered !== undefined && newFiltered !== null) {
 				matrix.addBatch(newBatch, '0', '0');
 			}
 		}
@@ -455,7 +456,7 @@ export class SettlementsAggregate {
 
 		// We perform an async audit:
 		this._auditingClient.audit(
-			AuditingActions.SETTLEMENT_MATRIX_REQUEST_FETCH,
+			AuditingActions.SETTLEMENT_MATRIX_ADD_BATCHES,
 			true,
 			this._getAuditSecurityContext(secCtx), [
 				{key: "settlementModel", value: matrix.settlementModel === null ? '' : matrix.settlementModel},
@@ -465,7 +466,71 @@ export class SettlementsAggregate {
 		return;
 	}
 
-		async getSettlementMatrix(secCtx: CallSecurityContext, id: string): Promise<ISettlementMatrix | null> {
+	async removeBatchesFromStaticSettlementMatrix(
+		secCtx: CallSecurityContext,
+		matrixId: string,
+		batchIdsToRemove: string[]
+	): Promise<void> {
+		this._enforcePrivilege(secCtx, Privileges.SETTLEMENTS_REQUEST_STATIC_MATRIX);
+		const startTimestamp = Date.now();
+
+		const matrixDto = await this._settlementMatrixReqRepo.getMatrixById(matrixId);
+		if (!matrixDto) {
+			const err = new SettlementMatrixNotFoundError(`Matrix with id: ${matrixId} not found`);
+			this._logger.warn(err.message);
+			throw err; // not found
+		}
+
+		if (matrixDto.type !== "STATIC") {
+			const err = new SettlementMatrixIsClosedError("Cannot remove batches from a non-STATIC settlement matrix");
+			this._logger.warn(err.message);
+			throw err;
+		}
+		if (matrixDto.state === "SETTLED") {
+			const err = new SettlementMatrixIsClosedError("Cannot remove batches from a settled matrix");
+			this._logger.warn(err.message);
+			throw err;
+		}
+		if (matrixDto.state === "BUSY") {
+			const err = new SettlementMatrixIsBusyError("Matrix already being calculated");
+			this._logger.warn(err.message);
+			throw err;
+		}
+
+		const matrix = SettlementMatrix.CreateFromDto(matrixDto);
+
+		matrix.state = "BUSY";
+		await this._settlementMatrixReqRepo.storeMatrix(matrix);
+
+		const batches = await this._batchRepo.getBatchesByIds(
+			matrix.batches.map(value => value.id));
+		const toRemove = await this._batchRepo.getBatchesByIds(batchIdsToRemove);
+		for (const toRem of toRemove) {
+			const newFiltered = batches.find(itm => itm.id === toRem.id);
+			if (newFiltered !== undefined && newFiltered !== null) {
+				matrix.removeBatch(toRem);
+			}
+		}
+		await this._recalculateMatrix(matrix);
+
+		matrix.state = "IDLE";
+		matrix.updatedAt = Date.now();
+		matrix.generationDurationSecs = Math.floor((matrix.updatedAt - startTimestamp) / 1000);
+		await this._settlementMatrixReqRepo.storeMatrix(matrix);
+
+		// We perform an async audit:
+		this._auditingClient.audit(
+			AuditingActions.SETTLEMENT_MATRIX_REMOVE_BATCHES,
+			true,
+			this._getAuditSecurityContext(secCtx), [
+				{key: "settlementModel", value: matrix.settlementModel === null ? '' : matrix.settlementModel},
+				{key: "settlementMatrixReqId", value: matrix.id}
+			]
+		);
+		return;
+	}
+
+	async getSettlementMatrix(secCtx: CallSecurityContext, id: string): Promise<ISettlementMatrix | null> {
 		this._enforcePrivilege(secCtx, Privileges.GET_SETTLEMENT_MATRIX_REQUEST);
 
 		const matrixDto = await this._settlementMatrixReqRepo.getMatrixById(id);
@@ -1006,6 +1071,4 @@ export class SettlementsAggregate {
 		);
 		return Promise.resolve({batch: newBatch, created: true});
 	}
-
-
 }

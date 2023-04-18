@@ -35,15 +35,24 @@ import {IMessage,IMessageConsumer, CommandMsg} from "@mojaloop/platform-shared-l
 import {SettlementsBCTopics} from "@mojaloop/platform-shared-lib-public-messages-lib";
 
 import {
-	CloseMatrixCmd, CloseMatrixCmdPayload,
-	CreateStaticMatrixCmd, CreateStaticMatrixCmdPayload,
-	CreateDynamicMatrixCmd, CreateDynamicMatrixCmdPayload,
-	ProcessTransferCmd, RecalculateMatrixCmd, RecalculateMatrixCmdPayload,
+	CloseMatrixCmd,
+	CloseMatrixCmdPayload,
+	CreateStaticMatrixCmd,
+	CreateStaticMatrixCmdPayload,
+	CreateDynamicMatrixCmd,
+	CreateDynamicMatrixCmdPayload,
+	ProcessTransferCmd,
+	RecalculateMatrixCmd,
+	RecalculateMatrixCmdPayload,
 	SettlementsAggregate,
 	SettleMatrixCmd,
 	SettleMatrixCmdPayload,
 	DisputeMatrixCmd,
-	DisputeMatrixCmdPayload
+	DisputeMatrixCmdPayload,
+	AddBatchesToMatrixCmd,
+	AddBatchesToMatrixCmdPayload,
+	RemoveBatchesFromMatrixCmd,
+	RemoveBatchesFromMatrixCmdPayload
 } from "@mojaloop/settlements-bc-domain-lib";
 import {CallSecurityContext} from "@mojaloop/security-bc-public-types-lib/dist/index";
 import {MLKafkaJsonConsumer} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib/dist/rdkafka_json_consumer";
@@ -142,6 +151,24 @@ export class SettlementsCommandHandler{
 						await this._settlementsAgg.disputeSettlementMatrix(
 							sectCtx,
 							disputePayload.matrixId
+						);
+						break;
+					case AddBatchesToMatrixCmd.name:
+						// eslint-disable-next-line no-case-declarations
+						const addPayload = message.payload as AddBatchesToMatrixCmdPayload;
+						await this._settlementsAgg.addBatchesToStaticSettlementMatrix(
+							sectCtx,
+							addPayload.matrixId,
+							addPayload.batchIds
+						);
+						break;
+					case RemoveBatchesFromMatrixCmd.name:
+						// eslint-disable-next-line no-case-declarations
+						const removePayload = message.payload as RemoveBatchesFromMatrixCmdPayload;
+						await this._settlementsAgg.removeBatchesFromStaticSettlementMatrix(
+							sectCtx,
+							removePayload.matrixId,
+							removePayload.batchIds
 						);
 						break;
 					default: {

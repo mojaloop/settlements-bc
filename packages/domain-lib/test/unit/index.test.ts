@@ -915,7 +915,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		);
 		expect(matrixIdDisp).toBeDefined();
 
-		// not allowed to create a duplicate dispute matrix:
+		// not allowed to create a duplicate static matrix:
 		try {
 			await aggregate.createStaticSettlementMatrix(securityContext, matrixIdDisp, [batchId]);
 			fail('Expected to throw error!');
@@ -985,5 +985,56 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 			expect(err.message).toEqual('Matrix with the same id already exists');
 		}
 	});
-	
+
+	test("test static matrix batch add/remove", async () => {
+		const reqTransferDto: ITransferDto = {
+			id: null,
+			transferId: randomUUID(),
+			payerFspId: randomUUID(),
+			payeeFspId: randomUUID(),
+			currencyCode: 'EUR',
+			amount: '10000', //100 EURO
+			timestamp: Date.now(),
+			settlementModel: 'ADD-REMOVE-BATCHES-ME'
+		};
+		const batchId01: string = await aggregate.handleTransfer(securityContext, reqTransferDto);
+		expect(batchId01).toBeDefined();
+		reqTransferDto.transferId = randomUUID()
+		reqTransferDto.timestamp += 1_000_000_0
+		const batchId02: string = await aggregate.handleTransfer(securityContext, reqTransferDto);
+		expect(batchId02).toBeDefined();
+		expect(batchId01 === batchId02).toEqual(false);
+
+		// dispute the one and only batch:
+		const matrixId = await aggregate.createStaticSettlementMatrix(
+			securityContext,
+			null, // matrix-id
+			[batchId01]
+		);
+		expect(matrixId).toBeDefined();
+
+		let matrix01 = await aggregate.getSettlementMatrix(securityContext, matrixId);
+		expect(matrix01).toBeDefined();
+		expect(matrix01!.id).toEqual(matrixId);
+		expect(matrix01!.batches.length).toEqual(1);
+
+		// add the 2nd batch:
+		await aggregate.addBatchesToStaticSettlementMatrix(securityContext, matrixId, [batchId02]);
+
+		matrix01 = await aggregate.getSettlementMatrix(securityContext, matrixId);
+		expect(matrix01).toBeDefined();
+		expect(matrix01!.id).toEqual(matrixId);
+		expect(matrix01!.batches.length).toEqual(2);
+
+		// remove the 2nd batch:
+		await aggregate.removeBatchesFromStaticSettlementMatrix(securityContext, matrixId, [batchId02]);
+		matrix01 = await aggregate.getSettlementMatrix(securityContext, matrixId);
+		expect(matrix01).toBeDefined();
+		expect(matrix01!.id).toEqual(matrixId);
+		expect(matrix01!.batches.length).toEqual(1);
+	});
+
+	test("test matrix state machine", async () => {
+		// TODO
+	});
 });

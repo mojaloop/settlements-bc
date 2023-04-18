@@ -49,7 +49,12 @@ import {
 	RecalculateMatrixCmd,
 	CloseMatrixCmd,
 	CreateDynamicMatrixCmd,
-	CreateDynamicMatrixCmdPayload, SettleMatrixCmd, DisputeMatrixCmd
+	CreateDynamicMatrixCmdPayload,
+	SettleMatrixCmd,
+	DisputeMatrixCmd,
+	AddBatchesToMatrixCmdPayload,
+	AddBatchesToMatrixCmd,
+	RemoveBatchesFromMatrixCmdPayload, RemoveBatchesFromMatrixCmd
 } from "@mojaloop/settlements-bc-domain-lib";
 import {CallSecurityContext} from "@mojaloop/security-bc-public-types-lib";
 import {
@@ -115,6 +120,8 @@ export class ExpressRoutes {
 		// Settlement Matrix:
 		this._router.post("/matrix/dynamic", this.postCreateDynamicMatrix.bind(this));
 		this._router.post("/matrix/static", this.postCreateStaticMatrix.bind(this));
+		this._router.post("/matrix/static/:id/batch/add", this.postAddBatchToStaticMatrix.bind(this));
+		this._router.post("/matrix/static/:id/batch/remove", this.postRemoveBatchFromStaticMatrix.bind(this));
 
 		// request recalculation of matrix
 		this._router.post("/matrix/:id/recalculate", this.postRecalculateMatrix.bind(this));
@@ -405,7 +412,7 @@ export class ExpressRoutes {
 			const matrix = await this._matrixRepo.getMatrixById(matrixId);
 			if (!matrix) return this.sendErrorResponse(res,404, "Matrix not found");
 
-			const cmd = new SettleMatrixCmd({matrixId:matrixId});
+			const cmd = new SettleMatrixCmd({matrixId: matrixId});
 			await this._messageProducer.send(cmd);
 
 			this.sendSuccessResponse(res, 202, {id: matrixId});
@@ -429,7 +436,7 @@ export class ExpressRoutes {
 			const matrix = await this._matrixRepo.getMatrixById(matrixId);
 			if (!matrix) return this.sendErrorResponse(res,404, "Matrix not found");
 
-			const cmd = new DisputeMatrixCmd({matrixId:matrixId});
+			const cmd = new DisputeMatrixCmd({matrixId: matrixId});
 			await this._messageProducer.send(cmd);
 
 			this.sendSuccessResponse(res, 202, {id: matrixId});
@@ -453,6 +460,52 @@ export class ExpressRoutes {
 			const disputePayloadReq = req.body as CreateStaticMatrixCmdPayload;
 
 			const cmd = new CreateStaticMatrixCmd(disputePayloadReq);
+			await this._messageProducer.send(cmd);
+
+			this.sendSuccessResponse(res, 202, {id: matrixId});
+		} catch (error: any) {
+			this._logger.error(error);
+			if (error instanceof SettlementMatrixIsClosedError || error instanceof SettlementMatrixIsBusyError) {
+				this.sendErrorResponse(res, 406, error.message);
+			} else if (error instanceof SettlementMatrixNotFoundError) {
+				this.sendErrorResponse(res, 404, error.message);
+			} else if (error instanceof UnauthorizedError) {
+				this.sendErrorResponse(res, 403, "unauthorized"); // TODO: verify.
+			} else {
+				this.sendErrorResponse(res, 500, error.message || ExpressRoutes.UNKNOWN_ERROR_MESSAGE);
+			}
+		}
+	}
+
+	private async postAddBatchToStaticMatrix(req: express.Request, res: express.Response): Promise<void> {
+		try {
+			const matrixId = req.params.id as string;
+			const addReqPayload = req.body as AddBatchesToMatrixCmdPayload;
+
+			const cmd = new AddBatchesToMatrixCmd(addReqPayload);
+			await this._messageProducer.send(cmd);
+
+			this.sendSuccessResponse(res, 202, {id: matrixId});
+		} catch (error: any) {
+			this._logger.error(error);
+			if (error instanceof SettlementMatrixIsClosedError || error instanceof SettlementMatrixIsBusyError) {
+				this.sendErrorResponse(res, 406, error.message);
+			} else if (error instanceof SettlementMatrixNotFoundError) {
+				this.sendErrorResponse(res, 404, error.message);
+			} else if (error instanceof UnauthorizedError) {
+				this.sendErrorResponse(res, 403, "unauthorized"); // TODO: verify.
+			} else {
+				this.sendErrorResponse(res, 500, error.message || ExpressRoutes.UNKNOWN_ERROR_MESSAGE);
+			}
+		}
+	}
+
+	private async postRemoveBatchFromStaticMatrix(req: express.Request, res: express.Response): Promise<void> {
+		try {
+			const matrixId = req.params.id as string;
+			const removeReqPayload = req.body as RemoveBatchesFromMatrixCmdPayload;
+
+			const cmd = new RemoveBatchesFromMatrixCmd(removeReqPayload);
 			await this._messageProducer.send(cmd);
 
 			this.sendSuccessResponse(res, 202, {id: matrixId});

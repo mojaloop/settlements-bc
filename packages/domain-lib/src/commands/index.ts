@@ -221,3 +221,53 @@ export class DisputeMatrixCmd extends CommandMsg {
 		// TODO
 	}
 }
+
+export type AddBatchesToMatrixCmdPayload = {
+	matrixId: string;
+	batchIds: string[];
+}
+
+export class AddBatchesToMatrixCmd extends CommandMsg {
+	boundedContextName: string = SETTLEMENTS_BOUNDED_CONTEXT_NAME;
+	aggregateId: string;
+	aggregateName: string = SETTLEMENTS_AGGREGATE_NAME;
+	msgKey: string;
+	msgTopic: string = SettlementsBCTopics.DomainRequests;
+	payload: AddBatchesToMatrixCmdPayload;
+
+	constructor(payload: AddBatchesToMatrixCmdPayload) {
+		super();
+
+		this.aggregateId = this.msgKey = payload.matrixId;
+		this.payload = payload;
+	}
+
+	validatePayload(): void {
+		// TODO
+	}
+}
+
+export type RemoveBatchesFromMatrixCmdPayload = {
+	matrixId: string;
+	batchIds: string[];
+}
+
+export class RemoveBatchesFromMatrixCmd extends CommandMsg {
+	boundedContextName: string = SETTLEMENTS_BOUNDED_CONTEXT_NAME;
+	aggregateId: string;
+	aggregateName: string = SETTLEMENTS_AGGREGATE_NAME;
+	msgKey: string;
+	msgTopic: string = SettlementsBCTopics.DomainRequests;
+	payload: RemoveBatchesFromMatrixCmdPayload;
+
+	constructor(payload: RemoveBatchesFromMatrixCmdPayload) {
+		super();
+
+		this.aggregateId = this.msgKey = payload.matrixId;
+		this.payload = payload;
+	}
+
+	validatePayload(): void {
+		// TODO
+	}
+}
