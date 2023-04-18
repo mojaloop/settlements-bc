@@ -349,14 +349,6 @@ export class SettlementsAggregate {
 		return newMatrix.id;
 	}
 
-	/*
-		 * TODO @jason:
-		 * Change the implementation so that you can:
-		 * 1. Create a matrix without actioning it in a single step (IDLE)
-		 * 2. Perform an action on that matrix in a seperate command.
-		 * 3. Add command to Add/Remove batches from/to a [STATIC] matrix (validate that static only).
-		 */
-
 	async createStaticSettlementMatrix(
 		secCtx: CallSecurityContext,
 		matrixId: string | null,
