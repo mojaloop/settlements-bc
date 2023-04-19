@@ -79,9 +79,8 @@ import {
 } from "@mojaloop/settlements-bc-infrastructure-lib";
 import {
 	MongoSettlementTransferRepo
-} from "@mojaloop/settlements-bc-infrastructure-lib/dist/mongo_settlement_transfer_repo";
-import {MongoSettlementMatrixRepo} from "@mojaloop/settlements-bc-infrastructure-lib/dist/mongo_settlement_matrix_repo";
-import {MongoBatchSpecificSettlementMatrixRepo} from "@mojaloop/settlements-bc-infrastructure-lib/dist/mongo_batch_specific_settlement_matrix_repo";
+} from "@mojaloop/settlements-bc-infrastructure-lib";
+import {MongoSettlementMatrixRepo} from "@mojaloop/settlements-bc-infrastructure-lib";
 
 import configClient from "./config";
 const BC_NAME = configClient.boundedContextName;

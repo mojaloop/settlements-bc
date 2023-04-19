@@ -54,8 +54,8 @@ import {
 	RemoveBatchesFromMatrixCmd,
 	RemoveBatchesFromMatrixCmdPayload
 } from "@mojaloop/settlements-bc-domain-lib";
-import {CallSecurityContext} from "@mojaloop/security-bc-public-types-lib/dist/index";
-import {MLKafkaJsonConsumer} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib/dist/rdkafka_json_consumer";
+import {CallSecurityContext} from "@mojaloop/security-bc-public-types-lib";
+import {MLKafkaJsonConsumer} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 import {ILoginHelper, ITokenHelper, UnauthorizedError} from "@mojaloop/security-bc-public-types-lib";
 
 export class SettlementsCommandHandler{

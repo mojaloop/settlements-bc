@@ -64,7 +64,7 @@ import {
 	SettlementMatrixRequestRepoMock
 } from "@mojaloop/settlements-bc-shared-mocks-lib";
 import {ITransferDto} from "@mojaloop/settlements-bc-public-types-lib";
-import {IMessageProducer, MessageTypes} from "@mojaloop/platform-shared-lib-messaging-types-lib/dist/index";
+import {IMessageProducer, MessageTypes} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 
 let authorizationClient: IAuthorizationClient;
 let authorizationClientNoAuth: IAuthorizationClient;

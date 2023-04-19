@@ -73,7 +73,7 @@ import {AccountsAndBalancesAccountType} from "@mojaloop/accounts-and-balances-bc
 import {SettlementBatchTransfer} from "./types/transfer";
 import {SettlementMatrix} from "./types/matrix";
 import {ProcessTransferCmd} from "./commands";
-import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib/dist/index";
+import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 
 
 const CURRENCIES_FILE_NAME: string = "currencies.json";

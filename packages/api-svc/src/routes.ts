@@ -63,7 +63,7 @@ ISettlementBatchTransfer,
 import express from "express";
 import {ITokenHelper} from "@mojaloop/security-bc-public-types-lib";
 import {randomUUID} from "crypto";
-import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib/dist/index";
+import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 
 // Extend express request to include our security fields.
 declare module "express-serve-static-core" {
