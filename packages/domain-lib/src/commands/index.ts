@@ -127,7 +127,6 @@ export class CreateStaticMatrixCmd extends CommandMsg {
 
 export type RecalculateMatrixCmdPayload = {
 	matrixId: string;
-	includeNewBatches: boolean;
 }
 
 export class RecalculateMatrixCmd extends CommandMsg {

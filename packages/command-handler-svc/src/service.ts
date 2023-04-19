@@ -365,9 +365,14 @@ function addPrivileges(authorizationClient: AuthorizationClient): void {
 		"Allows the creation of a settlement transfer."
 	);
 	authorizationClient.addPrivilege(
-		Privileges.REQUEST_SETTLEMENT_MATRIX,
-		Privileges.REQUEST_SETTLEMENT_MATRIX,
-		"Allows the creation of a settlement matrix."
+		Privileges.CREATE_DYNAMIC_SETTLEMENT_MATRIX,
+		Privileges.CREATE_DYNAMIC_SETTLEMENT_MATRIX,
+		"Allows the creation of a dynamic settlement matrix."
+	);
+	authorizationClient.addPrivilege(
+		Privileges.CREATE_STATIC_SETTLEMENT_MATRIX,
+		Privileges.CREATE_STATIC_SETTLEMENT_MATRIX,
+		"Allows the creation of a static settlement matrix."
 	);
 	authorizationClient.addPrivilege(
 		Privileges.CREATE_SETTLEMENT_BATCH,
@@ -380,8 +385,8 @@ function addPrivileges(authorizationClient: AuthorizationClient): void {
 		"Allows the creation of a settlement batch account."
 	);
 	authorizationClient.addPrivilege(
-		Privileges.REQUEST_SETTLEMENT_MATRIX,
-		Privileges.REQUEST_SETTLEMENT_MATRIX,
+		Privileges.GET_SETTLEMENT_MATRIX,
+		Privileges.GET_SETTLEMENT_MATRIX,
 		"Allows the retrieval of a settlement matrix."
 	);
 	authorizationClient.addPrivilege(
@@ -400,8 +405,8 @@ function addPrivileges(authorizationClient: AuthorizationClient): void {
 		"Allows the dispute of a settlement matrix."
 	);
 	authorizationClient.addPrivilege(
-		Privileges.GET_SETTLEMENT_MATRIX_REQUEST,
-		Privileges.GET_SETTLEMENT_MATRIX_REQUEST,
+		Privileges.GET_SETTLEMENT_MATRIX,
+		Privileges.GET_SETTLEMENT_MATRIX,
 		"Allows the retrieval of a settlement matrix request."
 	);
 	authorizationClient.addPrivilege(

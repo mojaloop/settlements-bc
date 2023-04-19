@@ -32,6 +32,12 @@ export class InvalidCreditBalanceError extends Error {}
 export class InvalidDebitBalanceError extends Error {}
 // JournalEntry.
 
+export class CannotRecalculateSettlementMatrixError extends Error {}
+export class CannotRemoveBatchesFromSettlementMatrixError extends Error {}
+export class CannotAddBatchesToSettlementMatrixError extends Error {}
+export class CannotDisputeSettlementMatrixError extends Error {}
+export class CannotCloseSettlementMatrixError extends Error {}
+export class CannotSettleSettlementMatrixError extends Error {}
 
 export class SettlementMatrixIsClosedError extends Error {}
 export class SettlementMatrixIsBusyError extends Error {}

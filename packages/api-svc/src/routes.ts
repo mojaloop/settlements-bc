@@ -64,6 +64,7 @@ import express from "express";
 import {ITokenHelper} from "@mojaloop/security-bc-public-types-lib";
 import {randomUUID} from "crypto";
 import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
+import {CommandMsg} from "@mojaloop/platform-shared-lib-messaging-types-lib/dist/index";
 
 // Extend express request to include our security fields.
 declare module "express-serve-static-core" {
@@ -118,10 +119,9 @@ export class ExpressRoutes {
 		this._router.get("/transfers", this.getSettlementBatchTransfers.bind(this));
 
 		// Settlement Matrix:
-		this._router.post("/matrix/dynamic", this.postCreateDynamicMatrix.bind(this));
-		this._router.post("/matrix/static", this.postCreateStaticMatrix.bind(this));
-		this._router.post("/matrix/static/:id/batch/add", this.postAddBatchToStaticMatrix.bind(this));
-		this._router.post("/matrix/static/:id/batch/remove", this.postRemoveBatchFromStaticMatrix.bind(this));
+		this._router.post("/matrix", this.postCreateMatrix.bind(this));
+		this._router.post("/matrix/:id/batches", this.postAddBatchToStaticMatrix.bind(this));
+		this._router.delete("/matrix/:id/batches", this.postRemoveBatchFromStaticMatrix.bind(this));
 
 		// request recalculation of matrix
 		this._router.post("/matrix/:id/recalculate", this.postRecalculateMatrix.bind(this));
@@ -240,6 +240,10 @@ export class ExpressRoutes {
 		const fromDate = req.query.fromDate as string;
 		const toDate = req.query.toDate as string;
 
+		// TODO: add these filters
+		// const includeSettled = Boolean(req.query.includeSettled || false);
+		// const criteriaBatchId = req.query.criteriaBatchId as string;
+
 		// TODO enforce privileges
 
 		try {
@@ -314,29 +318,53 @@ export class ExpressRoutes {
 		}
 	}
 
-	private async postCreateDynamicMatrix(req: express.Request, res: express.Response): Promise<void> {
+	private async postCreateMatrix(req: express.Request, res: express.Response): Promise<void> {
 		// TODO enforce privileges
 
 		try {
 			const matrixId = req.body.matrixiId || randomUUID();
-			const currencyCode = req.body.currencyCode;
-			const settlementModel = req.body.settlementModel;
-			const fromDate = req.body.fromDate;
-			const toDate = req.body.toDate;
+			const type = req.body.type as string || null;
 
 			const matrix = await this._matrixRepo.getMatrixById(matrixId);
 			if (matrix) {
 				return this.sendErrorResponse(res,400, "Matrix with the same id already exists");
 			}
 
-			const cmdPayload:CreateDynamicMatrixCmdPayload = {
-				matrixId: matrixId,
-				fromDate: fromDate,
-				toDate: toDate,
-				currencyCode: currencyCode,
-				settlementModel: settlementModel
-			};
-			const cmd = new CreateDynamicMatrixCmd(cmdPayload);
+			if(!type){
+				return this.sendErrorResponse(res, 400, "Invalid Matrix type");
+			}
+
+			let cmd: CommandMsg;
+			if(type === "STATIC"){
+				// TODO: validate input params here before creating the cmd msg
+
+				const cmdPayload: CreateStaticMatrixCmdPayload = {
+					matrixId: matrixId,
+					batchIds: req.body.batchIds
+				};
+				cmd = new CreateStaticMatrixCmd(cmdPayload);
+			}else if (type==="DYNAMIC") {
+				// TODO: validate input params here before creating the cmd msg
+
+				const currencyCode = req.body.currencyCode;
+				const settlementModel = req.body.settlementModel;
+				const fromDate = req.body.fromDate;
+				const toDate = req.body.toDate;
+
+				const cmdPayload: CreateDynamicMatrixCmdPayload = {
+					matrixId: matrixId,
+					fromDate: fromDate,
+					toDate: toDate,
+					currencyCode: currencyCode,
+					settlementModel: settlementModel
+				};
+				cmd = new CreateDynamicMatrixCmd(cmdPayload);
+			}else{
+				return this.sendErrorResponse(res, 400, "Invalid Matrix type");
+			}
+
+			// TODO later implement the cmd.validatePayload();
+			// cmd.validatePayload();
 
 			await this._messageProducer.send(cmd);
 
@@ -354,7 +382,6 @@ export class ExpressRoutes {
 	private async postRecalculateMatrix(req: express.Request, res: express.Response): Promise<void> {
 		try {
 			const matrixId = req.params.id as string;
-			const includeNewBatches = req.body.includeNewBatches as string;
 
 			const matrix = await this._matrixRepo.getMatrixById(matrixId);
 			if(!matrix){
@@ -362,8 +389,7 @@ export class ExpressRoutes {
 			}
 
 			const cmd = new RecalculateMatrixCmd({
-				matrixId:matrixId,
-				includeNewBatches: Boolean(includeNewBatches) || true
+				matrixId:matrixId
 			});
 			await this._messageProducer.send(cmd);
 
@@ -437,29 +463,6 @@ export class ExpressRoutes {
 			if (!matrix) return this.sendErrorResponse(res,404, "Matrix not found");
 
 			const cmd = new DisputeMatrixCmd({matrixId: matrixId});
-			await this._messageProducer.send(cmd);
-
-			this.sendSuccessResponse(res, 202, {id: matrixId});
-		} catch (error: any) {
-			this._logger.error(error);
-			if (error instanceof SettlementMatrixIsClosedError || error instanceof SettlementMatrixIsBusyError) {
-				this.sendErrorResponse(res, 406, error.message);
-			} else if (error instanceof SettlementMatrixNotFoundError) {
-				this.sendErrorResponse(res, 404, error.message);
-			} else if (error instanceof UnauthorizedError) {
-				this.sendErrorResponse(res, 403, "unauthorized"); // TODO: verify.
-			} else {
-				this.sendErrorResponse(res, 500, error.message || ExpressRoutes.UNKNOWN_ERROR_MESSAGE);
-			}
-		}
-	}
-
-	private async postCreateStaticMatrix(req: express.Request, res: express.Response): Promise<void> {
-		try {
-			const matrixId = req.params.id as string;
-			const disputePayloadReq = req.body as CreateStaticMatrixCmdPayload;
-
-			const cmd = new CreateStaticMatrixCmd(disputePayloadReq);
 			await this._messageProducer.send(cmd);
 
 			this.sendSuccessResponse(res, 202, {id: matrixId});

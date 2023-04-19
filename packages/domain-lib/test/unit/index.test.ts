@@ -28,6 +28,7 @@
 "use strict";
 
 import {
+	CannotSettleSettlementMatrixError,
 	IAccountsBalancesAdapter,
 	InvalidAmountError,
 	InvalidBatchSettlementModelError,
@@ -635,8 +636,8 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 			fail('Expected to throw error!');
 		} catch (err :any) {
 			expect(err).toBeDefined();
-			expect(err instanceof SettlementMatrixIsClosedError).toEqual(true);
-			expect(err.message).toEqual('Cannot settle a settled matrix');
+			expect(err instanceof CannotSettleSettlementMatrixError).toEqual(true);
+			expect(err.message).toEqual("Can only settle an idle or closed matrix");
 		}
 
 		// ensure an invalid id generates an error (SettlementMatrixRequestClosedError):
@@ -952,7 +953,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		expect(matrix).toBeDefined();
 		expect(matrix!.id).toEqual(matrixId);
 		expect(matrix!.state).toEqual('IDLE');
-		expect(matrix!.batches.length).toEqual(0);
+		expect(matrix!.batches.length).toEqual(1);
 
 		// remove the batch from dispute and re-calculate the matrix:
 		const matrixIdUnDispute = await aggregate.createStaticSettlementMatrix(

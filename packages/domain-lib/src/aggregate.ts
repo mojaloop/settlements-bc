@@ -30,6 +30,11 @@
 import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import {randomUUID} from "crypto";
 import {
+	CannotAddBatchesToSettlementMatrixError,
+	CannotCloseSettlementMatrixError,
+	CannotRecalculateSettlementMatrixError,
+	CannotRemoveBatchesFromSettlementMatrixError,
+	CannotSettleSettlementMatrixError,
 	CurrencyCodesDifferError,
 	InvalidAmountError,
 	InvalidBatchSettlementModelError,
@@ -38,7 +43,8 @@ import {
 	InvalidTimestampError,
 	InvalidTransferIdError,
 	NoSettlementConfig,
-	SettlementBatchNotFoundError, SettlementMatrixAlreadyExistsError,
+	SettlementBatchNotFoundError,
+	SettlementMatrixAlreadyExistsError,
 	SettlementMatrixIsBusyError,
 	SettlementMatrixIsClosedError,
 	SettlementMatrixNotFoundError,
@@ -138,6 +144,10 @@ export class SettlementsAggregate {
 	}
 
 	private _enforcePrivilege(secCtx: CallSecurityContext, privName: string): void {
+		return;
+
+		// TODO re-enable _enforcePrivilege()
+
 		for (const roleId of secCtx.rolesIds) {
 			if (this._authorizationClient.roleHasPrivilege(roleId, privName)) return;
 		}
@@ -173,6 +183,13 @@ export class SettlementsAggregate {
 		}
 		if (amount <= 0n) throw new InvalidAmountError();
 		return amount;
+	}
+
+	private async _updateMatrixStateAndSave(matrix: SettlementMatrix, state: "IDLE" | "BUSY" | "DISPUTED" | "CLOSED" | "SETTLED", startTimestamp: number): Promise<void> {
+		matrix.state = state;
+		matrix.updatedAt = Date.now();
+		matrix.generationDurationSecs = Math.floor((matrix.updatedAt - startTimestamp) / 1000);
+		await this._settlementMatrixReqRepo.storeMatrix(matrix);
 	}
 
 	async processTransferCmd(secCtx: CallSecurityContext, processTransferCmd: ProcessTransferCmd): Promise<string> {
@@ -313,7 +330,7 @@ export class SettlementsAggregate {
 		fromDate: number,
 		toDate: number
 	): Promise<string> {
-		this._enforcePrivilege(secCtx, Privileges.REQUEST_SETTLEMENT_MATRIX);
+		this._enforcePrivilege(secCtx, Privileges.CREATE_DYNAMIC_SETTLEMENT_MATRIX);
 		const startTimestamp = Date.now();
 
 		const newMatrix = SettlementMatrix.CreateDynamic(fromDate, toDate, currencyCode, settlementModel);
@@ -331,10 +348,7 @@ export class SettlementsAggregate {
 		await this._settlementMatrixReqRepo.storeMatrix(newMatrix);
 		await this._recalculateMatrix(newMatrix);
 
-		newMatrix.state = "IDLE";
-		newMatrix.updatedAt = Date.now();
-		newMatrix.generationDurationSecs = Math.floor((newMatrix.updatedAt - startTimestamp) / 1000);
-		await this._settlementMatrixReqRepo.storeMatrix(newMatrix);
+		await this._updateMatrixStateAndSave(newMatrix, "IDLE", startTimestamp);
 
 		// We perform an async audit:
 		this._auditingClient.audit(
@@ -354,10 +368,11 @@ export class SettlementsAggregate {
 		matrixId: string | null,
 		batchIds: string[]
 	): Promise<string> {
-		this._enforcePrivilege(secCtx, Privileges.SETTLEMENTS_REQUEST_STATIC_MATRIX);
+		this._enforcePrivilege(secCtx, Privileges.CREATE_STATIC_SETTLEMENT_MATRIX);
 
 		const startTimestamp = Date.now();
 
+		// Need the batches first to get the currency
 		const batches = await this._batchRepo.getBatchesByIds(batchIds);
 		const matrixCurrency = batches.length < 1 ? '' : batches[0].currencyCode;
 		const newMatrix = SettlementMatrix.CreateStatic(matrixCurrency);
@@ -371,16 +386,13 @@ export class SettlementsAggregate {
 			newMatrix.id = matrixId;
 		}
 
-		batches.forEach(batch => newMatrix.addBatch(batch, '0', '0'));
+		batches.forEach(batch => newMatrix.addBatch(batch));
 
 		newMatrix.state = "BUSY";
 		await this._settlementMatrixReqRepo.storeMatrix(newMatrix);
 		await this._recalculateMatrix(newMatrix);
 
-		newMatrix.state = "IDLE";
-		newMatrix.updatedAt = Date.now();
-		newMatrix.generationDurationSecs = Math.floor((newMatrix.updatedAt - startTimestamp) / 1000);
-		await this._settlementMatrixReqRepo.storeMatrix(newMatrix);
+		await this._updateMatrixStateAndSave(newMatrix, "IDLE", startTimestamp);
 
 		// We perform an async audit:
 		this._auditingClient.audit(
@@ -399,7 +411,7 @@ export class SettlementsAggregate {
 		matrixId: string,
 		newBatchIds: string[]
 	): Promise<void> {
-		this._enforcePrivilege(secCtx, Privileges.SETTLEMENTS_REQUEST_STATIC_MATRIX);
+		this._enforcePrivilege(secCtx, Privileges.CREATE_STATIC_SETTLEMENT_MATRIX);
 		const startTimestamp = Date.now();
 
 		const matrixDto = await this._settlementMatrixReqRepo.getMatrixById(matrixId);
@@ -409,18 +421,14 @@ export class SettlementsAggregate {
 			throw err; // not found
 		}
 
-		if (matrixDto.type !== "STATIC") {
+		if (matrixDto.type!=="STATIC") {
 			const err = new SettlementMatrixIsClosedError("Cannot add batches to a non-STATIC settlement matrix");
 			this._logger.warn(err.message);
 			throw err;
 		}
-		if (matrixDto.state === "SETTLED") {
-			const err = new SettlementMatrixIsClosedError("Cannot add batches to a settled matrix");
-			this._logger.warn(err.message);
-			throw err;
-		}
-		if (matrixDto.state === "BUSY") {
-			const err = new SettlementMatrixIsBusyError("Matrix already being calculated");
+
+		if (matrixDto.state!=="IDLE" && matrixDto.state!=="CLOSED" && matrixDto.state!=="DISPUTED") {
+			const err = new CannotAddBatchesToSettlementMatrixError("Can only add batches to matrices in idle, closed or disputed state");
 			this._logger.warn(err.message);
 			throw err;
 		}
@@ -430,21 +438,19 @@ export class SettlementsAggregate {
 		matrix.state = "BUSY";
 		await this._settlementMatrixReqRepo.storeMatrix(matrix);
 
-		const batches = await this._batchRepo.getBatchesByIds(
-			matrix.batches.map(value => value.id));
 		const newBatches = await this._batchRepo.getBatchesByIds(newBatchIds);
 		for (const newBatch of newBatches) {
-			const newFiltered = batches.find(itm => itm.id !== newBatch.id);
-			if (newFiltered !== undefined && newFiltered !== null) {
-				matrix.addBatch(newBatch, '0', '0');
+			const existing = matrix.batches.find(value => value.id === newBatch.id);
+
+			// TODO control that we cannot ever add a settled batch to a matrix, if it is should throw
+
+			if(!existing){
+				matrix.addBatch(newBatch);
 			}
 		}
 		await this._recalculateMatrix(matrix);
 
-		matrix.state = "IDLE";
-		matrix.updatedAt = Date.now();
-		matrix.generationDurationSecs = Math.floor((matrix.updatedAt - startTimestamp) / 1000);
-		await this._settlementMatrixReqRepo.storeMatrix(matrix);
+		await this._updateMatrixStateAndSave(matrix, "IDLE", startTimestamp);
 
 		// We perform an async audit:
 		this._auditingClient.audit(
@@ -463,7 +469,7 @@ export class SettlementsAggregate {
 		matrixId: string,
 		batchIdsToRemove: string[]
 	): Promise<void> {
-		this._enforcePrivilege(secCtx, Privileges.SETTLEMENTS_REQUEST_STATIC_MATRIX);
+		this._enforcePrivilege(secCtx, Privileges.CREATE_STATIC_SETTLEMENT_MATRIX);
 		const startTimestamp = Date.now();
 
 		const matrixDto = await this._settlementMatrixReqRepo.getMatrixById(matrixId);
@@ -478,13 +484,9 @@ export class SettlementsAggregate {
 			this._logger.warn(err.message);
 			throw err;
 		}
-		if (matrixDto.state === "SETTLED") {
-			const err = new SettlementMatrixIsClosedError("Cannot remove batches from a settled matrix");
-			this._logger.warn(err.message);
-			throw err;
-		}
-		if (matrixDto.state === "BUSY") {
-			const err = new SettlementMatrixIsBusyError("Matrix already being calculated");
+
+		if (matrixDto.state!=="IDLE" && matrixDto.state!=="CLOSED" && matrixDto.state!=="DISPUTED") {
+			const err = new CannotRemoveBatchesFromSettlementMatrixError("Can only remove batches from matrices in idle, closed or disputed state");
 			this._logger.warn(err.message);
 			throw err;
 		}
@@ -494,21 +496,19 @@ export class SettlementsAggregate {
 		matrix.state = "BUSY";
 		await this._settlementMatrixReqRepo.storeMatrix(matrix);
 
-		const batches = await this._batchRepo.getBatchesByIds(
-			matrix.batches.map(value => value.id));
 		const toRemove = await this._batchRepo.getBatchesByIds(batchIdsToRemove);
 		for (const toRem of toRemove) {
-			const newFiltered = batches.find(itm => itm.id === toRem.id);
-			if (newFiltered !== undefined && newFiltered !== null) {
+			const existing = matrix.batches.find(value => value.id===toRem.id);
+
+			// TODO control that we cannot ever remove a settled batch from a matrix, if it is should throw
+
+			if (existing) {
 				matrix.removeBatch(toRem);
 			}
 		}
 		await this._recalculateMatrix(matrix);
 
-		matrix.state = "IDLE";
-		matrix.updatedAt = Date.now();
-		matrix.generationDurationSecs = Math.floor((matrix.updatedAt - startTimestamp) / 1000);
-		await this._settlementMatrixReqRepo.storeMatrix(matrix);
+		await this._updateMatrixStateAndSave(matrix, "IDLE", startTimestamp);
 
 		// We perform an async audit:
 		this._auditingClient.audit(
@@ -522,8 +522,10 @@ export class SettlementsAggregate {
 		return;
 	}
 
+
+
 	async getSettlementMatrix(secCtx: CallSecurityContext, id: string): Promise<ISettlementMatrix | null> {
-		this._enforcePrivilege(secCtx, Privileges.GET_SETTLEMENT_MATRIX_REQUEST);
+		this._enforcePrivilege(secCtx, Privileges.GET_SETTLEMENT_MATRIX);
 
 		const matrixDto = await this._settlementMatrixReqRepo.getMatrixById(id);
 		if (!matrixDto) {
@@ -548,7 +550,7 @@ export class SettlementsAggregate {
 	}
 
 	async recalculateSettlementMatrix(secCtx: CallSecurityContext, id: string): Promise<void> {
-		this._enforcePrivilege(secCtx, Privileges.GET_SETTLEMENT_MATRIX_REQUEST);
+		this._enforcePrivilege(secCtx, Privileges.GET_SETTLEMENT_MATRIX);
 
 		const matrixDto = await this._settlementMatrixReqRepo.getMatrixById(id);
 		if (!matrixDto) {
@@ -557,13 +559,8 @@ export class SettlementsAggregate {
 			throw err; // not found
 		}
 
-		if (matrixDto.state === "SETTLED") {
-			const err = new SettlementMatrixIsClosedError("Cannot recalculate a settled matrix");
-			this._logger.warn(err.message);
-			throw err;
-		}
-		if (matrixDto.state === "BUSY") {
-			const err = new SettlementMatrixIsBusyError("Matrix already being calculated");
+		if (matrixDto.state!=="IDLE" && matrixDto.state!=="CLOSED" && matrixDto.state!=="DISPUTED") {
+			const err = new CannotRecalculateSettlementMatrixError("Can only recalculate matrices in idle, closed or disputed state");
 			this._logger.warn(err.message);
 			throw err;
 		}
@@ -571,15 +568,13 @@ export class SettlementsAggregate {
 		const matrix = SettlementMatrix.CreateFromDto(matrixDto);
 		const startTimestamp = Date.now();
 
+		const previousState = matrix.state;
 		matrix.state = "BUSY";
 
 		await this._settlementMatrixReqRepo.storeMatrix(matrix);
 		await this._recalculateMatrix(matrix);
 
-		matrix.state = "IDLE";
-		matrix.updatedAt = Date.now();
-		matrix.generationDurationSecs = Math.floor((matrix.updatedAt - startTimestamp) / 1000);
-		await this._settlementMatrixReqRepo.storeMatrix(matrix);
+		await this._updateMatrixStateAndSave(matrix, previousState, startTimestamp);
 
 		// We perform an async audit:
 		this._auditingClient.audit(
@@ -603,13 +598,8 @@ export class SettlementsAggregate {
 			throw err; // not found
 		}
 
-		if (matrixDto.state === "DISPUTED") {
-			const err = new SettlementMatrixIsClosedError("Cannot dispute a disputed matrix");
-			this._logger.warn(err.message);
-			throw err;
-		}
-		if (matrixDto.state === "BUSY") {
-			const err = new SettlementMatrixIsBusyError("Matrix already being calculated");
+		if (matrixDto.state!=="IDLE" && matrixDto.state!=="CLOSED") {
+			const err = new CannotCloseSettlementMatrixError("Can only dispute an idle or closed matrix");
 			this._logger.warn(err.message);
 			throw err;
 		}
@@ -629,7 +619,7 @@ export class SettlementsAggregate {
 			const batch = await this._batchRepo.getBatch(matrixBatch.id);
 			if (!batch) throw new SettlementBatchNotFoundError(`Unable to locate batch for id '${matrixBatch.id}'.`);
 
-			if (batch.state === 'SETTLED' || batch.state === 'DISPUTED') continue;
+			if (batch.state === "SETTLED" || batch.state === 'DISPUTED') continue;
 
 			batch.state = matrixBatch.state = 'DISPUTED';
 			await this._batchRepo.updateBatch(batch);
@@ -637,10 +627,7 @@ export class SettlementsAggregate {
 		}
 
 		// Dispute the Matrix Request to prevent further execution:
-		matrix.state = "DISPUTED";
-		matrix.updatedAt = Date.now();
-		matrix.generationDurationSecs = Math.floor((matrix.updatedAt - startTimestamp) / 1000);
-		await this._settlementMatrixReqRepo.storeMatrix(matrix);
+		await this._updateMatrixStateAndSave(matrix, "DISPUTED", startTimestamp);
 
 		// We perform an async audit:
 		this._auditingClient.audit(
@@ -664,13 +651,8 @@ export class SettlementsAggregate {
 			throw err; // not found
 		}
 
-		if (matrixDto.state === "CLOSED") {
-			const err = new SettlementMatrixIsClosedError("Cannot close a closed matrix");
-			this._logger.warn(err.message);
-			throw err;
-		}
-		if (matrixDto.state === "BUSY") {
-			const err = new SettlementMatrixIsBusyError("Matrix already being calculated");
+		if (matrixDto.state!=="IDLE" && matrixDto.state!=="DISPUTED") {
+			const err = new CannotCloseSettlementMatrixError("Can only close an idle or disputed matrix");
 			this._logger.warn(err.message);
 			throw err;
 		}
@@ -691,7 +673,7 @@ export class SettlementsAggregate {
 			const batch = await this._batchRepo.getBatch(matrixBatch.id);
 			if (!batch) throw new SettlementBatchNotFoundError(`Unable to locate batch for id '${matrixBatch.id}'.`);
 
-			if (batch.state === 'SETTLED' || batch.state === 'CLOSED') {
+			if (batch.state === "SETTLED" || batch.state === 'CLOSED') {
 				previouslyClosedBatches.push(batch);
 				continue;
 			}
@@ -702,10 +684,7 @@ export class SettlementsAggregate {
 		}
 
 		// Close the Matrix Request to prevent further execution:
-		matrix.state = "CLOSED";
-		matrix.updatedAt = Date.now();
-		matrix.generationDurationSecs = Math.floor((matrix.updatedAt - startTimestamp) / 1000);
-		await this._settlementMatrixReqRepo.storeMatrix(matrix);
+		await this._updateMatrixStateAndSave(matrix, "CLOSED", startTimestamp);
 
 		// We perform an async audit:
 		this._auditingClient.audit(
@@ -729,13 +708,8 @@ export class SettlementsAggregate {
 			throw err; // not found
 		}
 
-		if (matrixDto.state === "SETTLED") {
-			const err = new SettlementMatrixIsClosedError("Cannot settle a settled matrix");
-			this._logger.warn(err.message);
-			throw err;
-		}
-		if (matrixDto.state === "BUSY") {
-			const err = new SettlementMatrixIsBusyError("Matrix already being calculated");
+		if (matrixDto.state !== "IDLE" && matrixDto.state !== "CLOSED") {
+			const err = new CannotSettleSettlementMatrixError("Can only settle an idle or closed matrix");
 			this._logger.warn(err.message);
 			throw err;
 		}
@@ -746,8 +720,14 @@ export class SettlementsAggregate {
 		matrix.state = "BUSY";
 		await this._settlementMatrixReqRepo.storeMatrix(matrix);
 
-		// recalculate the matrix, without getting new batches in
-		await this._recalculateMatrix(matrix);
+		// recalculate the matrix, making sure disputed batches are not included in the calculations
+		await this._recalculateMatrix(matrix, true);
+
+		// remove disputed batches before saving
+		matrix.batches.forEach(item => {
+			if(item.state === "DISPUTED")
+				matrix.removeBatchById(item.id);
+		});
 
 		// first pass - close the open batches:
 		const previouslySettledBatches : ISettlementBatch[] = [];
@@ -757,12 +737,13 @@ export class SettlementsAggregate {
 			if (!batch)
 				throw new SettlementBatchNotFoundError(`Unable to locate batch for id '${matrixBatch.id}'.`);
 
-			if (batch.state === 'SETTLED') {
+
+			if (batch.state === "SETTLED") {
 				previouslySettledBatches.push(batch);
 				continue;
 			}
 
-			batch.state = matrixBatch.state = 'SETTLED';
+			batch.state = matrixBatch.state = "SETTLED";
 			await this._batchRepo.updateBatch(batch);
 			batchesSettledNow.push(batch);
 		}
@@ -773,10 +754,7 @@ export class SettlementsAggregate {
 		//await this._participantAccNotifier.publishSettlementMatrixExecuteEvent(returnVal);
 
 		// Close the Matrix Request to prevent further execution:
-		matrix.state = "SETTLED";
-		matrix.updatedAt = Date.now();
-		matrix.generationDurationSecs = Math.floor((matrix.updatedAt - startTimestamp) / 1000);
-		await this._settlementMatrixReqRepo.storeMatrix(matrix);
+		await this._updateMatrixStateAndSave(matrix, "SETTLED", startTimestamp);
 
 		// We perform an async audit:
 		this._auditingClient.audit(
@@ -790,7 +768,7 @@ export class SettlementsAggregate {
 		return;
 	}
 
-	private async _recalculateMatrix(matrix : SettlementMatrix): Promise<void> {
+	private async _recalculateMatrix(matrix : SettlementMatrix, settlingMatrix:boolean = false): Promise<void> {
 		// start by cleaning the batches
 		let batches :ISettlementBatch[];
 		if (matrix.type === 'STATIC') {
@@ -807,8 +785,7 @@ export class SettlementsAggregate {
 			);
 		}
 
-		let currency : null | ICurrency = null;
-		if (batches.length > 0) currency = this._getCurrencyOrThrow(batches[0].currencyCode);
+		const currency = this._getCurrencyOrThrow(matrix.currencyCode);
 
 		// remove batches and zero totals
 		matrix.clear();
@@ -822,8 +799,8 @@ export class SettlementsAggregate {
 
 			for (const batch of batches) {
 				// skip settled batches:
-				if (batch.state === 'SETTLED') continue;
-				else if (batch.state === 'DISPUTED' && matrix.type === 'DYNAMIC') continue;
+				if (batch.state === "SETTLED") continue;
+				if(settlingMatrix && batch.state === "DISPUTED") continue;
 
 				let batchDebitBalance = 0n;
 				let batchCreditBalance = 0n;

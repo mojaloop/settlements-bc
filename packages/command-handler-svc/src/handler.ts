@@ -140,7 +140,7 @@ export class SettlementsCommandHandler{
 					case SettleMatrixCmd.name:
 						// eslint-disable-next-line no-case-declarations
 						const settlePayload = message.payload as SettleMatrixCmdPayload;
-						await this._settlementsAgg.closeSettlementMatrix(
+						await this._settlementsAgg.settleSettlementMatrix(
 							sectCtx,
 							settlePayload.matrixId
 						);

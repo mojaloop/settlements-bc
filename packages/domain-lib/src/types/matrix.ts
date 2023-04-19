@@ -51,7 +51,7 @@ export class SettlementMatrix implements ISettlementMatrix {
   participantBalances: ISettlementMatrixParticipantBalance[];
 
   state: "IDLE" | "BUSY" | "DISPUTED" | "CLOSED" | "SETTLED";
-  type: "STATIC" | "DYNAMIC"
+  type: "STATIC" | "DYNAMIC";
 
   generationDurationSecs: number | null;
   totalDebitBalance: string;
@@ -74,7 +74,7 @@ export class SettlementMatrix implements ISettlementMatrix {
     this.totalCreditBalance = "0";
   }
 
-  addBatch(batch: ISettlementBatch, debitBalance: string, creditBalance: string): void {
+  addBatch(batch: ISettlementBatch, debitBalance: string = "0", creditBalance: string = "0"): void {
     if (this.type === 'STATIC' && this.batches.length === 0) {
       this.currencyCode = batch.currencyCode;
     }
@@ -92,8 +92,12 @@ export class SettlementMatrix implements ISettlementMatrix {
     });
   }
 
+  removeBatchById(batchId: string):void{
+    this.batches = this.batches.filter(itm => itm.id!==batchId);
+  }
+
   removeBatch(batch: ISettlementBatch): void {
-    this.batches = this.batches.filter(itm => itm.id !== batch.id)
+    this.batches = this.batches.filter(itm => itm.id !== batch.id);
   }
 
   clear(){
