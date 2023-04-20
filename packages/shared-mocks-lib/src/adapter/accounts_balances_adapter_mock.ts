@@ -32,7 +32,7 @@ import {
 	AccountsAndBalancesAccount,
 	AccountsAndBalancesAccountType
 } from "@mojaloop/accounts-and-balances-bc-public-types-lib";
-import {AccountsAndBalancesJournalEntry} from "@mojaloop/accounts-and-balances-bc-public-types-lib/dist/types";
+import {AccountsAndBalancesJournalEntry} from "@mojaloop/accounts-and-balances-bc-public-types-lib";
 
 class ABAccount {
 	requestedId: string;

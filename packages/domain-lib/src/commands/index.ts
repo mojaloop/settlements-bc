@@ -68,7 +68,7 @@ export class ProcessTransferCmd extends CommandMsg {
 	}
 }
 
-export type CreateMatrixCmdPayload = {
+export type CreateDynamicMatrixCmdPayload = {
 	matrixId: string;
 	fromDate: number;
 	toDate: number;
@@ -77,15 +77,15 @@ export type CreateMatrixCmdPayload = {
 }
 
 
-export class CreateMatrixCmd extends CommandMsg {
+export class CreateDynamicMatrixCmd extends CommandMsg {
 	boundedContextName: string = SETTLEMENTS_BOUNDED_CONTEXT_NAME;
 	aggregateId: string;
 	aggregateName: string = SETTLEMENTS_AGGREGATE_NAME;
 	msgKey: string;
 	msgTopic: string = SettlementsBCTopics.DomainRequests;
-	payload: CreateMatrixCmdPayload;
+	payload: CreateDynamicMatrixCmdPayload;
 
-	constructor(payload: CreateMatrixCmdPayload) {
+	constructor(payload: CreateDynamicMatrixCmdPayload) {
 		super();
 
 		this.aggregateId = this.msgKey = payload.matrixId;
@@ -97,10 +97,36 @@ export class CreateMatrixCmd extends CommandMsg {
 	}
 }
 
+export type CreateStaticMatrixCmdPayload = {
+	matrixId: string;
+	batchIds: string[];
+}
+
+export class CreateStaticMatrixCmd extends CommandMsg {
+	boundedContextName: string = SETTLEMENTS_BOUNDED_CONTEXT_NAME;
+	aggregateId: string;
+	aggregateName: string = SETTLEMENTS_AGGREGATE_NAME;
+	msgKey: string;
+	msgTopic: string = SettlementsBCTopics.DomainRequests;
+	payload: CreateStaticMatrixCmdPayload;
+
+	constructor(payload: CreateStaticMatrixCmdPayload) {
+		super();
+
+		this.aggregateId = this.msgKey = payload.matrixId;
+		this.payload = payload;
+	}
+
+	validatePayload(): void {
+		// TODO Need to ensure the following is set;
+		// TODO payload
+		// TODO payload.matrixId is not blank
+		// TODO payload.batchIds is not empty
+	}
+}
 
 export type RecalculateMatrixCmdPayload = {
 	matrixId: string;
-	includeNewBatches: boolean;
 }
 
 export class RecalculateMatrixCmd extends CommandMsg {
@@ -122,7 +148,6 @@ export class RecalculateMatrixCmd extends CommandMsg {
 		// TODO
 	}
 }
-
 
 export type CloseMatrixCmdPayload = {
 	matrixId: string;
@@ -148,9 +173,32 @@ export class CloseMatrixCmd extends CommandMsg {
 	}
 }
 
+export type SettleMatrixCmdPayload = {
+	matrixId: string;
+}
+
+export class SettleMatrixCmd extends CommandMsg {
+	boundedContextName: string = SETTLEMENTS_BOUNDED_CONTEXT_NAME;
+	aggregateId: string;
+	aggregateName: string = SETTLEMENTS_AGGREGATE_NAME;
+	msgKey: string;
+	msgTopic: string = SettlementsBCTopics.DomainRequests;
+	payload: SettleMatrixCmdPayload;
+
+	constructor(payload: SettleMatrixCmdPayload) {
+		super();
+
+		this.aggregateId = this.msgKey = payload.matrixId;
+		this.payload = payload;
+	}
+
+	validatePayload(): void {
+		// TODO
+	}
+}
+
 export type DisputeMatrixCmdPayload = {
 	matrixId: string;
-	batchIds: string[];
 }
 
 export class DisputeMatrixCmd extends CommandMsg {
@@ -169,9 +217,56 @@ export class DisputeMatrixCmd extends CommandMsg {
 	}
 
 	validatePayload(): void {
-		// TODO Need to ensure the following is set;
-		// TODO payload
-		// TODO payload.matrixId is not blank
-		// TODO payload.batchIds is not empty
+		// TODO
+	}
+}
+
+export type AddBatchesToMatrixCmdPayload = {
+	matrixId: string;
+	batchIds: string[];
+}
+
+export class AddBatchesToMatrixCmd extends CommandMsg {
+	boundedContextName: string = SETTLEMENTS_BOUNDED_CONTEXT_NAME;
+	aggregateId: string;
+	aggregateName: string = SETTLEMENTS_AGGREGATE_NAME;
+	msgKey: string;
+	msgTopic: string = SettlementsBCTopics.DomainRequests;
+	payload: AddBatchesToMatrixCmdPayload;
+
+	constructor(payload: AddBatchesToMatrixCmdPayload) {
+		super();
+
+		this.aggregateId = this.msgKey = payload.matrixId;
+		this.payload = payload;
+	}
+
+	validatePayload(): void {
+		// TODO
+	}
+}
+
+export type RemoveBatchesFromMatrixCmdPayload = {
+	matrixId: string;
+	batchIds: string[];
+}
+
+export class RemoveBatchesFromMatrixCmd extends CommandMsg {
+	boundedContextName: string = SETTLEMENTS_BOUNDED_CONTEXT_NAME;
+	aggregateId: string;
+	aggregateName: string = SETTLEMENTS_AGGREGATE_NAME;
+	msgKey: string;
+	msgTopic: string = SettlementsBCTopics.DomainRequests;
+	payload: RemoveBatchesFromMatrixCmdPayload;
+
+	constructor(payload: RemoveBatchesFromMatrixCmdPayload) {
+		super();
+
+		this.aggregateId = this.msgKey = payload.matrixId;
+		this.payload = payload;
+	}
+
+	validatePayload(): void {
+		// TODO
 	}
 }

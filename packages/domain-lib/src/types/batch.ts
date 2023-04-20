@@ -51,7 +51,7 @@ export class SettlementBatch implements ISettlementBatch {
 	currencyCode: string;
 	batchName: string; // FX.XOF:RWF.2021.08.23.00.00 (minus seq)
 	batchSequence: number; // 1 (seq only)
-	state: "OPEN" | "DISPUTED" | "SETTLED";
+	state: "OPEN" | "DISPUTED" | "SETTLED" | "CLOSED";
 
 	accounts: ISettlementBatchAccount[];
 

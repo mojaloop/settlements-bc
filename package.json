@@ -13,7 +13,10 @@
   "private": true,
   "scripts": {
     "prepare": "husky install",
-    "clean:dist": "rm -fr dist/ && npm -ws -p run clean:dist",
+    "pre_commit_check": "npm run build && npm run lint && npm run test:unit",
+    "clean": "npm run clean:dist; npm run clean:npm",
+    "clean:npm": "rm -Rf node_modules; npm -ws run clean:npm",
+    "clean:dist": "rm -Rf dist; npm -ws run clean:dist",
     "dep:check": "ncu -e 2; npm -ws run dep:check",
     "dep:update": "ncu -e 2 -u; npm -ws run dep:update",
     "audit:check": "npm -ws -p run audit:check",
@@ -56,6 +59,7 @@
     "packages/domain-lib",
     "packages/infrastructure-lib",
     "packages/shared-mocks-lib",
+    "packages/settlements-bc-shared-mocks-lib",
     "packages/event-handler-svc",
     "packages/command-handler-svc",
     "packages/*"

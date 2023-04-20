@@ -58,15 +58,12 @@ import {
 	ParticipantAccountNotifierMock,
 	SettlementBatchRepoMock, SettlementMatrixRequestRepoMock, SettlementBatchTransferRepoMock
 } from "@mojaloop/settlements-bc-shared-mocks-lib";
-import {MongoSettlementMatrixRepo} from "@mojaloop/settlements-bc-infrastructure-lib/dist/mongo_settlement_matrix_repo";
+import {MongoSettlementMatrixRepo} from "@mojaloop/settlements-bc-infrastructure-lib";
 import {
 	MongoSettlementTransferRepo
-} from "@mojaloop/settlements-bc-infrastructure-lib/dist/mongo_settlement_transfer_repo";
-import {MLKafkaJsonProducer} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib/dist/index";
-import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib/dist/index";
-import {
-	MongoBatchSpecificSettlementMatrixRepo
-} from "@mojaloop/settlements-bc-infrastructure-lib/dist/mongo_batch_specific_settlement_matrix_repo";
+} from "@mojaloop/settlements-bc-infrastructure-lib";
+import {MLKafkaJsonProducer} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
+import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 
 
 
@@ -350,9 +347,14 @@ function addPrivileges(authorizationClient: AuthorizationClient): void {
 		"Allows the creation of a settlement transfer."
 	);
 	authorizationClient.addPrivilege(
-		Privileges.REQUEST_SETTLEMENT_MATRIX,
-		Privileges.REQUEST_SETTLEMENT_MATRIX,
-		"Allows the creation of a settlement matrix."
+		Privileges.CREATE_DYNAMIC_SETTLEMENT_MATRIX,
+		Privileges.CREATE_DYNAMIC_SETTLEMENT_MATRIX,
+		"Allows the creation of a dynamic settlement matrix."
+	);
+	authorizationClient.addPrivilege(
+		Privileges.CREATE_STATIC_SETTLEMENT_MATRIX,
+		Privileges.CREATE_STATIC_SETTLEMENT_MATRIX,
+		"Allows the creation of a static settlement matrix."
 	);
 	authorizationClient.addPrivilege(
 		Privileges.CREATE_SETTLEMENT_BATCH,
@@ -365,18 +367,28 @@ function addPrivileges(authorizationClient: AuthorizationClient): void {
 		"Allows the creation of a settlement batch account."
 	);
 	authorizationClient.addPrivilege(
-		Privileges.REQUEST_SETTLEMENT_MATRIX,
-		Privileges.REQUEST_SETTLEMENT_MATRIX,
+		Privileges.GET_SETTLEMENT_MATRIX,
+		Privileges.GET_SETTLEMENT_MATRIX,
 		"Allows the retrieval of a settlement matrix."
 	);
 	authorizationClient.addPrivilege(
-		Privileges.EXECUTE_SETTLEMENT_MATRIX,
-		Privileges.EXECUTE_SETTLEMENT_MATRIX,
-		"Allows the execution of a settlement matrix."
+		Privileges.SETTLEMENTS_CLOSE_MATRIX,
+		Privileges.SETTLEMENTS_CLOSE_MATRIX,
+		"Allows the settling of a settlement matrix."
 	);
 	authorizationClient.addPrivilege(
-		Privileges.GET_SETTLEMENT_MATRIX_REQUEST,
-		Privileges.GET_SETTLEMENT_MATRIX_REQUEST,
+		Privileges.SETTLEMENTS_SETTLE_MATRIX,
+		Privileges.SETTLEMENTS_SETTLE_MATRIX,
+		"Allows the dispute of a settlement matrix."
+	);
+	authorizationClient.addPrivilege(
+		Privileges.SETTLEMENTS_DISPUTE_MATRIX,
+		Privileges.SETTLEMENTS_DISPUTE_MATRIX,
+		"Allows the dispute of a settlement matrix."
+	);
+	authorizationClient.addPrivilege(
+		Privileges.GET_SETTLEMENT_MATRIX,
+		Privileges.GET_SETTLEMENT_MATRIX,
 		"Allows the retrieval of a settlement matrix request."
 	);
 	authorizationClient.addPrivilege(

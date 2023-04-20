@@ -44,7 +44,7 @@ import {
     GrpcCreateAccountArray
 } from "@mojaloop/accounts-and-balances-bc-grpc-client-lib";
 import {ILoginHelper, UnauthorizedError } from "@mojaloop/security-bc-public-types-lib";
-import {AccountsAndBalancesJournalEntry} from "@mojaloop/accounts-and-balances-bc-public-types-lib/dist/types";
+import {AccountsAndBalancesJournalEntry} from "@mojaloop/accounts-and-balances-bc-public-types-lib";
 
 export class GrpcAccountsAndBalancesAdapter implements IAccountsBalancesAdapter {
     private readonly _grpcUrl: string;

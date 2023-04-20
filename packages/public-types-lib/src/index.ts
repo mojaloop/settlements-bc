@@ -55,7 +55,7 @@ export interface ISettlementBatch {
 	currencyCode: string;
 	batchName: string; // FX.XOF:RWF.2021.08.23.00.00 (minus seq)
 	batchSequence: number; // 1 (seq only)
-	state: "OPEN" | "DISPUTED" | "SETTLED";
+	state: "OPEN" | "DISPUTED" | "SETTLED" | "CLOSED";
 	accounts: ISettlementBatchAccount[];
 }
 
@@ -93,11 +93,12 @@ export interface ISettlementMatrix {
 	// criteria
 	dateFrom: number | null;
 	dateTo: number | null;
-	currencyCode: string | null;
+	currencyCode: string;
 	settlementModel: string | null;
 	batches: ISettlementMatrixBatch[];
 	participantBalances: ISettlementMatrixParticipantBalance[];
-	state: "IDLE" | "CALCULATING" | "CLOSING" | "DISPUTED" | "CLOSED";
+	state: "IDLE" | "BUSY" | "DISPUTED" | "CLOSED" | "SETTLED";//TODO @jason: We only have final states (driven by commands)
+	type: "STATIC" | "DYNAMIC";
 	generationDurationSecs: number | null;
 	totalDebitBalance: string;
 	totalCreditBalance: string;
@@ -114,7 +115,7 @@ export interface ISettlementMatrixBatch {
 	name: string;
 	batchDebitBalance: string;
 	batchCreditBalance: string;
-	state: "OPEN" | "DISPUTED" | "SETTLED";
+	state: "OPEN" | "DISPUTED" | "SETTLED" | "CLOSED";
 	batchAccounts?: ISettlementMatrixBatchAccount[];
 }
 

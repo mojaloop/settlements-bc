@@ -35,15 +35,27 @@ import {IMessage,IMessageConsumer, CommandMsg} from "@mojaloop/platform-shared-l
 import {SettlementsBCTopics} from "@mojaloop/platform-shared-lib-public-messages-lib";
 
 import {
-	CloseMatrixCmd, CloseMatrixCmdPayload,
-	DisputeMatrixCmd, DisputeMatrixCmdPayload,
-	CreateMatrixCmd,
-	CreateMatrixCmdPayload,
-	ProcessTransferCmd, RecalculateMatrixCmd, RecalculateMatrixCmdPayload,
-	SettlementsAggregate
+	CloseMatrixCmd,
+	CloseMatrixCmdPayload,
+	CreateStaticMatrixCmd,
+	CreateStaticMatrixCmdPayload,
+	CreateDynamicMatrixCmd,
+	CreateDynamicMatrixCmdPayload,
+	ProcessTransferCmd,
+	RecalculateMatrixCmd,
+	RecalculateMatrixCmdPayload,
+	SettlementsAggregate,
+	SettleMatrixCmd,
+	SettleMatrixCmdPayload,
+	DisputeMatrixCmd,
+	DisputeMatrixCmdPayload,
+	AddBatchesToMatrixCmd,
+	AddBatchesToMatrixCmdPayload,
+	RemoveBatchesFromMatrixCmd,
+	RemoveBatchesFromMatrixCmdPayload
 } from "@mojaloop/settlements-bc-domain-lib";
-import {CallSecurityContext} from "@mojaloop/security-bc-public-types-lib/dist/index";
-import {MLKafkaJsonConsumer} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib/dist/rdkafka_json_consumer";
+import {CallSecurityContext} from "@mojaloop/security-bc-public-types-lib";
+import {MLKafkaJsonConsumer} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 import {ILoginHelper, ITokenHelper, UnauthorizedError} from "@mojaloop/security-bc-public-types-lib";
 
 export class SettlementsCommandHandler{
@@ -87,17 +99,26 @@ export class SettlementsCommandHandler{
 				switch (message.msgName) {
 					case ProcessTransferCmd.name:
 						await this._settlementsAgg.processTransferCmd(sectCtx, message as ProcessTransferCmd);
-						break;
-					case CreateMatrixCmd.name:
+					break;
+					case CreateDynamicMatrixCmd.name:
 						// eslint-disable-next-line no-case-declarations
-						const createPayload = message.payload as CreateMatrixCmdPayload;
-						await this._settlementsAgg.createSettlementMatrix(
+						const createPayload = message.payload as CreateDynamicMatrixCmdPayload;
+						await this._settlementsAgg.createDynamicSettlementMatrix(
 							sectCtx,
 							createPayload.matrixId,
 							createPayload.settlementModel,
 							createPayload.currencyCode,
 							createPayload.fromDate,
 							createPayload.toDate
+						);
+						break;
+					case CreateStaticMatrixCmd.name:
+						// eslint-disable-next-line no-case-declarations
+						const staticMatrix = message.payload as CreateStaticMatrixCmdPayload;
+						await this._settlementsAgg.createStaticSettlementMatrix(
+							sectCtx,
+							staticMatrix.matrixId,
+							staticMatrix.batchIds
 						);
 						break;
 					case RecalculateMatrixCmd.name:
@@ -116,13 +137,38 @@ export class SettlementsCommandHandler{
 							closePayload.matrixId
 						);
 						break;
+					case SettleMatrixCmd.name:
+						// eslint-disable-next-line no-case-declarations
+						const settlePayload = message.payload as SettleMatrixCmdPayload;
+						await this._settlementsAgg.settleSettlementMatrix(
+							sectCtx,
+							settlePayload.matrixId
+						);
+						break;
 					case DisputeMatrixCmd.name:
 						// eslint-disable-next-line no-case-declarations
 						const disputePayload = message.payload as DisputeMatrixCmdPayload;
-						await this._settlementsAgg.createDisputeSettlementMatrix(
+						await this._settlementsAgg.disputeSettlementMatrix(
 							sectCtx,
-							disputePayload.matrixId,
-							disputePayload.batchIds
+							disputePayload.matrixId
+						);
+						break;
+					case AddBatchesToMatrixCmd.name:
+						// eslint-disable-next-line no-case-declarations
+						const addPayload = message.payload as AddBatchesToMatrixCmdPayload;
+						await this._settlementsAgg.addBatchesToStaticSettlementMatrix(
+							sectCtx,
+							addPayload.matrixId,
+							addPayload.batchIds
+						);
+						break;
+					case RemoveBatchesFromMatrixCmd.name:
+						// eslint-disable-next-line no-case-declarations
+						const removePayload = message.payload as RemoveBatchesFromMatrixCmdPayload;
+						await this._settlementsAgg.removeBatchesFromStaticSettlementMatrix(
+							sectCtx,
+							removePayload.matrixId,
+							removePayload.batchIds
 						);
 						break;
 					default: {
