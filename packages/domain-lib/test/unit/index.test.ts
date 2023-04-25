@@ -881,13 +881,8 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 	});
 
 	test("test exceptions/errors responses for lookups", async () => {
-		try {
-			await aggregateNoAuth.getSettlementBatch(securityContext, '12345');
-			fail('Expected to throw error!');
-		} catch (err) {
-			expect(err).toBeDefined();
-			expect(err instanceof ForbiddenError).toEqual(true);
-		}
+		const batch = await aggregateNoAuth.getSettlementBatch(securityContext, '12345');
+		expect(batch).toBeNull();
 	});
 
 	test("send a settlement matrix request again, to show that the results are different from a previous matrix", async () => {
@@ -929,10 +924,30 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		// dispute the static matrix:
 		await aggregate.disputeSettlementMatrix(securityContext, matrixIdDisp);
 
-		const matrixDisp = await aggregate.getSettlementMatrix(securityContext, matrixIdDisp);
+		let matrixDisp = await aggregate.getSettlementMatrix(securityContext, matrixIdDisp);
 		expect(matrixDisp).toBeDefined();
 		expect(matrixDisp!.id).toEqual(matrixIdDisp);
 		expect(matrixDisp!.state).toEqual('DISPUTED');
+		expect(matrixDisp!.type).toEqual('STATIC');
+		expect(matrixDisp!.participantBalances.length).toEqual(2);
+		expect(matrixDisp!.totalDebitBalance).toEqual("10000");
+		expect(matrixDisp!.totalCreditBalance).toEqual("10000");
+		expect(matrixDisp!.participantBalancesDisputed.length).toEqual(0);
+		expect(matrixDisp!.totalDebitBalanceDisputed).toEqual("0");
+		expect(matrixDisp!.totalCreditBalanceDisputed).toEqual("0");
+
+		await aggregate.recalculateSettlementMatrix(securityContext, matrixIdDisp);
+		matrixDisp = await aggregate.getSettlementMatrix(securityContext, matrixIdDisp);
+		expect(matrixDisp).toBeDefined();
+		expect(matrixDisp!.id).toEqual(matrixIdDisp);
+		expect(matrixDisp!.state).toEqual('DISPUTED');
+		expect(matrixDisp!.type).toEqual('STATIC');
+		expect(matrixDisp!.participantBalances.length).toEqual(0);
+		expect(matrixDisp!.totalDebitBalance).toEqual("0");
+		expect(matrixDisp!.totalCreditBalance).toEqual("0");
+		expect(matrixDisp!.participantBalancesDisputed.length).toEqual(2);
+		expect(matrixDisp!.totalDebitBalanceDisputed).toEqual("10000");
+		expect(matrixDisp!.totalCreditBalanceDisputed).toEqual("10000");
 
 		const batchDisp = await aggregate.getSettlementBatch(securityContext, batchId);
 		expect(batchDisp).toBeDefined();
