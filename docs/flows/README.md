@@ -97,7 +97,7 @@ that interfaces with the Settlement-BC gets notified of the settlement transfers
 The flow below is how a Settlement Matrix is created for Central-Ledger:
 ## ![Settlement Matrix Flow for Central-Ledger](./02-settlement-matrix-cl.svg "ST CL")
 
-## Settlement Matrix - Participants BC
+### Settlement Matrix - Participants BC
 The flow below is how a fulfilled Matrix is created for Participants BC:
 ## ![Settlement Matrix Flow for Transfers BC](./02-settlement-matrix-bc.svg "ST TBC")
 
