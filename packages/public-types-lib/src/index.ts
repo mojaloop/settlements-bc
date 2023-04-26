@@ -62,7 +62,7 @@ export interface ISettlementBatch {
  // for use inside a ISettlementBatch
 export interface ISettlementBatchAccount {
 	accountExtId: string;
-	participantId:string;
+	participantId: string;
 	currencyCode: string;
 	creditBalance: string;
 	debitBalance: string;

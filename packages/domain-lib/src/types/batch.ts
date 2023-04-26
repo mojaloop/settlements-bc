@@ -75,7 +75,7 @@ export class SettlementBatch implements ISettlementBatch {
 		this.accounts = accounts ?? [];
 	}
 
-	addAccount(accountExtId: string, participantId:string, currencyCode:string) {
+	addAccount(accountExtId: string, participantId: string, currencyCode: string) {
 		this.accounts.push({
 			accountExtId: accountExtId,
 			participantId: participantId,
