@@ -34,8 +34,6 @@ The diagram below illustrates how Transfers that were cleared by the **Central-L
 ### Settlement Transfer Model
 A Settlement Transfer is the data object shared between the Settlement service and the service that it interacts with (e.g. Central-Ledger or the Transfers BC).    
 The table below gives a view of the Settlement Transfer fields:
- 
-> TODO @jason Add detailed section on what the settlement matrix generation even does 
 
 | Field              | Definition                         | Description                                                                                                                                          |
 |--------------------|------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------|

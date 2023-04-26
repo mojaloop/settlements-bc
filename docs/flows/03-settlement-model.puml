@@ -1,20 +1,21 @@
 @startuml
 
-object ISettlementTransferDto
-    ISettlementTransferDto : **//(PK)// id** = //uuid//
-    ISettlementTransferDto : **externalId** = //uuid//
-    ISettlementTransferDto : ...
-object ISettlementBatchAccountDto
-    ISettlementBatchAccountDto : **//(PK)// id** = //uuid//
-    ISettlementBatchAccountDto : **externalId** = //uuid//
-    ISettlementBatchAccountDto : ...
-object ISettlementBatchDto
-    ISettlementBatchDto : **//(PK)// id** = //uuid//
-    ISettlementBatchDto : ...
+object ITransferDto
+    ITransferDto : **//(PK)// id** = //uuid//
+    ITransferDto : **transferId** = //uuid//
+    ITransferDto : ...
+object ISettlementBatchAccount
+    ISettlementBatchAccount : **//(PK)// id** = //uuid//
+    ISettlementBatchAccount : **accountExtId** = //uuid - A&B//
+    ISettlementBatchAccount : **participantId** = //uuid - Participants//
+    ISettlementBatchAccount : ...
+object ISettlementBatch
+    ISettlementBatch : **//(PK)// id** = //uuid//
+    ISettlementBatch : ...
 
-ISettlementBatchAccountDto <|-- ISettlementTransferDto : //debitAccount//
-ISettlementBatchAccountDto <|-- ISettlementTransferDto : //creditAccount//
-ISettlementBatchDto <|-- ISettlementTransferDto : //batch (assigned during transfer)//
-ISettlementBatchDto <|-- ISettlementBatchAccountDto : //batch//
+ISettlementBatchAccount <|-- ITransferDto : //debitAccount//
+ISettlementBatchAccount <|-- ITransferDto : //creditAccount//
+ISettlementBatch <|-- ITransferDto : //batch (assigned during transfer) **[*..1]**//
+ISettlementBatch <|-- ISettlementBatchAccount : //batch **[*..1]**//
 
 @enduml
