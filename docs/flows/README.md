@@ -188,13 +188,13 @@ State transitions for settlement matrices and batches are allowed as follows:
 ### 4.1 Settlement Matrix
 The table below illustrates the state transitions for a settlement matrix:
 
-| State      | Description                                                                                                       | Allowed Transitions                        | 
-|------------|-------------------------------------------------------------------------------------------------------------------|--------------------------------------------|
-| `IDLE`     | Matrix is awaiting input (initial state)                                                                          | `BUSY` / `DISPUTED` / `CLOSED` / `SETTLED` |
-| `BUSY`     | Matrix is currently busy processing a request, all commands will be blocked until completed                       | `DISPUTED` / `CLOSED` / `SETTLED`          |
-| `DISPUTED` | Matrix has been actioned to dispute one or many batches                                                           | `CLOSED`                                   |
-| `CLOSED`   | Matrix has been actioned to close one or many batches (include un-disputing batches)                              | `SETTLED` / `DISPUTED`                     |
-| `SETTLED`  | Matrix has been actioned to settled all IDLE or CLOSED batches. Once a matrix is settled, it is considered final  | -                                          |
+| State      | Description                                                                                                       | Allowed Transitions               | 
+|------------|-------------------------------------------------------------------------------------------------------------------|-----------------------------------|
+| `IDLE`     | Matrix is awaiting input (initial state)                                                                          | `BUSY`                            |
+| `BUSY`     | Matrix is currently busy processing a request, all commands will be blocked until completed                       | `DISPUTED` / `CLOSED` / `SETTLED` |
+| `DISPUTED` | Matrix has been actioned to dispute one or many batches                                                           | `CLOSED`                          |
+| `CLOSED`   | Matrix has been actioned to close one or many batches (include un-disputing batches)                              | `SETTLED` / `DISPUTED`            |
+| `SETTLED`  | Matrix has been actioned to settled all IDLE or CLOSED batches. Once a matrix is settled, it is considered final  | -                                 |
 
 ### 4.2 Settlement Matrix Batch
 The table below illustrates the state transitions for a settlement batch:
