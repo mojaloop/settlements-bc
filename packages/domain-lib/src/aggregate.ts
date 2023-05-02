@@ -78,7 +78,7 @@ import {SettlementConfig} from "./types/settlement_config";
 import {AccountsAndBalancesAccountType} from "@mojaloop/accounts-and-balances-bc-public-types-lib";
 import {SettlementBatchTransfer} from "./types/transfer";
 import {SettlementMatrix} from "./types/matrix";
-import {ProcessTransferCmd} from "./commands";
+import {ProcessTransferCmd, RecalculateMatrixCmd, SettlementEventCmd} from "./commands";
 import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 
 
@@ -734,9 +734,7 @@ export class SettlementsAggregate {
 		const batchesSettledNow: ISettlementBatch[] = [];
 		for (const matrixBatch of matrix.batches) {
 			const batch = await this._batchRepo.getBatch(matrixBatch.id);
-			if (!batch)
-				throw new SettlementBatchNotFoundError(`Unable to locate batch for id '${matrixBatch.id}'.`);
-
+			if (!batch) throw new SettlementBatchNotFoundError(`Unable to locate batch for id '${matrixBatch.id}'.`);
 
 			if (batch.state === "SETTLED") {
 				previouslySettledBatches.push(batch);
@@ -747,11 +745,10 @@ export class SettlementsAggregate {
 			await this._batchRepo.updateBatch(batch);
 			batchesSettledNow.push(batch);
 		}
-
-		// TODO: close batch accounts in Accounts&Balances
-		// TODO send matrix executed event:
-		// TODO @jason -> See: https://github.com/mojaloop/project/issues/3280
-		//await this._participantAccNotifier.publishSettlementMatrixExecuteEvent(returnVal);
+		
+		// Send matrix event for settlement:
+		const cmd = new SettlementEventCmd({matrix: matrix});
+		await this._msgProducer.send(cmd);
 
 		// Close the Matrix Request to prevent further execution:
 		await this._updateMatrixStateAndSave(matrix, "SETTLED", startTimestamp);

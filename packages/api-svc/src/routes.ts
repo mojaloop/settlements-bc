@@ -29,14 +29,7 @@
 
 import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import {
-	SettlementsAggregate,
-	InvalidCreditAccountError,
-	InvalidCurrencyCodeError,
-	InvalidDebitAccountError,
-	InvalidExternalIdError,
-	InvalidTimestampError,
 	SettlementBatchNotFoundError,
-	UnableToGetAccountError,
 	UnauthorizedError,
 	SettlementMatrixNotFoundError,
 	SettlementMatrixIsBusyError,
@@ -90,8 +83,7 @@ export class ExpressRoutes {
 		batchRepo: ISettlementBatchRepo,
 		batchTransferRepo: ISettlementBatchTransferRepo,
 		matrixRepo: ISettlementMatrixRequestRepo,
-		messageProducer: IMessageProducer,
-		// aggregate: SettlementsAggregate
+		messageProducer: IMessageProducer
 	) {
 		this._logger = logger.createChild(this.constructor.name);
 		this._tokenHelper = tokenHelper;
@@ -99,7 +91,6 @@ export class ExpressRoutes {
 		this._batchTransferRepo = batchTransferRepo;
 		this._matrixRepo = matrixRepo;
 		this._messageProducer = messageProducer;
-		// this._aggregate = aggregate;
 
 		this._router = express.Router();
 
@@ -285,21 +276,21 @@ export class ExpressRoutes {
 		const matrixId = req.query.matrixId as string || req.query.matrixid as string;
 		try {
 			let settlementTransfers:ISettlementBatchTransfer[];
-			if(batchId){
+			if (batchId) {
 				settlementTransfers = await this._batchTransferRepo.getBatchTransfersByBatchIds([batchId]);
-			}else if(batchName){
+			} else if (batchName) {
 				settlementTransfers = await this._batchTransferRepo.getBatchTransfersByBatchNames([batchName]);
-			}else if(transferId){
+			} else if (transferId) {
 				settlementTransfers = await this._batchTransferRepo.getBatchTransfersByTransferId(transferId);
-			}else if(matrixId){
+			} else if (matrixId) {
 				const matrix = await this._matrixRepo.getMatrixById(matrixId);
-				if(!matrix){
+				if (!matrix) {
 					res.status(404).json({message: "matrix not found"});
 					return;
 				}
 				const batchIds = matrix.batches.map(item => item.id);
 				settlementTransfers = await this._batchTransferRepo.getBatchTransfersByBatchIds(batchIds);
-			}else{
+			} else {
 				settlementTransfers = await this._batchTransferRepo.getBatchTransfers();
 			}
 

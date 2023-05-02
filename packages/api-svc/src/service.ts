@@ -303,8 +303,7 @@ export class Service {
 				this.batchRepo,
 				this.batchTransferRepo,
 				this.matrixRepo,
-				this.messageProducer,
-				// this.aggregate
+				this.messageProducer
 			);
 
 			this.app.use("/", routes.MainRouter);

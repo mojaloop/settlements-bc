@@ -36,7 +36,7 @@ import {
 	SETTLEMENTS_AGGREGATE_NAME,
 	SettlementsBCTopics
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
-
+import {ISettlementMatrix} from "@mojaloop/settlements-bc-public-types-lib";
 
 export type ProcessTransferCmdPayload = {
 	transferId: string;
@@ -64,7 +64,7 @@ export class ProcessTransferCmd extends CommandMsg {
 	}
 
 	validatePayload(): void {
-		// TODO
+		// TODO @jason complete...
 	}
 }
 
@@ -93,7 +93,7 @@ export class CreateDynamicMatrixCmd extends CommandMsg {
 	}
 
 	validatePayload(): void {
-		// TODO
+		// TODO @jason complete...
 	}
 }
 
@@ -145,7 +145,7 @@ export class RecalculateMatrixCmd extends CommandMsg {
 	}
 
 	validatePayload(): void {
-		// TODO
+		// TODO @jason complete...
 	}
 }
 
@@ -169,7 +169,7 @@ export class CloseMatrixCmd extends CommandMsg {
 	}
 
 	validatePayload(): void {
-		// TODO
+		// TODO @jason complete...
 	}
 }
 
@@ -193,7 +193,7 @@ export class SettleMatrixCmd extends CommandMsg {
 	}
 
 	validatePayload(): void {
-		// TODO
+		// TODO @jason complete...
 	}
 }
 
@@ -217,7 +217,7 @@ export class DisputeMatrixCmd extends CommandMsg {
 	}
 
 	validatePayload(): void {
-		// TODO
+		// TODO @jason complete...
 	}
 }
 
@@ -242,7 +242,7 @@ export class AddBatchesToMatrixCmd extends CommandMsg {
 	}
 
 	validatePayload(): void {
-		// TODO
+		// TODO @jason complete...
 	}
 }
 
@@ -267,6 +267,32 @@ export class RemoveBatchesFromMatrixCmd extends CommandMsg {
 	}
 
 	validatePayload(): void {
-		// TODO
+		// TODO @jason complete...
 	}
 }
+
+export type SettlementEventCmdPayload = {
+	matrix: ISettlementMatrix;
+}
+
+export class SettlementEventCmd extends CommandMsg {
+	boundedContextName: string = SETTLEMENTS_BOUNDED_CONTEXT_NAME;
+	aggregateId: string;
+	aggregateName: string = SETTLEMENTS_AGGREGATE_NAME;
+	msgKey: string;
+	msgTopic: string = SettlementsBCTopics.DomainRequests;
+	payload: SettlementEventCmdPayload;
+
+	constructor(payload: SettlementEventCmdPayload) {
+		super();
+
+		this.aggregateId = this.msgKey = payload.matrix.id;
+		this.payload = payload;
+	}
+
+	validatePayload(): void {
+		// TODO @jason complete...
+	}
+}
+
+
