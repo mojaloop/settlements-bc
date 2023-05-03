@@ -271,19 +271,19 @@ export class RemoveBatchesFromMatrixCmd extends CommandMsg {
 	}
 }
 
-export type SettlementEventCmdPayload = {
+export type SettlementEventPayload = {
 	matrix: ISettlementMatrix;
 }
 
-export class SettlementEventCmd extends CommandMsg {
+export class SettlementEvent extends CommandMsg {
 	boundedContextName: string = SETTLEMENTS_BOUNDED_CONTEXT_NAME;
 	aggregateId: string;
 	aggregateName: string = SETTLEMENTS_AGGREGATE_NAME;
 	msgKey: string;
 	msgTopic: string = SettlementsBCTopics.DomainRequests;
-	payload: SettlementEventCmdPayload;
+	payload: SettlementEventPayload;
 
-	constructor(payload: SettlementEventCmdPayload) {
+	constructor(payload: SettlementEventPayload) {
 		super();
 
 		this.aggregateId = this.msgKey = payload.matrix.id;

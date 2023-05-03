@@ -78,7 +78,7 @@ import {SettlementConfig} from "./types/settlement_config";
 import {AccountsAndBalancesAccountType} from "@mojaloop/accounts-and-balances-bc-public-types-lib";
 import {SettlementBatchTransfer} from "./types/transfer";
 import {SettlementMatrix} from "./types/matrix";
-import {ProcessTransferCmd, RecalculateMatrixCmd, SettlementEventCmd} from "./commands";
+import {ProcessTransferCmd, SettlementEvent} from "./commands";
 import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 
 
@@ -747,7 +747,7 @@ export class SettlementsAggregate {
 		}
 		
 		// Send matrix event for settlement:
-		const cmd = new SettlementEventCmd({matrix: matrix});
+		const cmd = new SettlementEvent({matrix: matrix});
 		await this._msgProducer.send(cmd);
 
 		// Close the Matrix Request to prevent further execution:
