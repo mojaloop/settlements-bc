@@ -1,6 +1,6 @@
 @startuml
 
-title Settlement from the Transfers BC
+title Settlement Transfer from the Transfers BC
 
 participant "Transfers BC" as ext_transfers_bc
 note over ext_transfers_bc
@@ -47,7 +47,8 @@ autonumber
     sbc_app_logic <--> sbc_db : **Determine batch** using Settlement Transfer data.\n//Create new batch if no OPEN batch available//
     sbc_app_logic <-> abbc_grpc : Obtain **Settlement accounts** using Participant account
     abbc_grpc <--> abbc_tigerbeetle : Create account, if none exists
-    abbc_grpc -> sbc_app_logic : Return **Account** creation info
+    sbc_app_logic <--> sbc_db : Create or fetch **Settlement Batch Account** 
+    abbc_grpc -> sbc_app_logic : Return **Account** info
     sbc_app_logic -> abbc_grpc: Create Settlement Transfer
     abbc_grpc <-> abbc_tigerbeetle: Create Transfer: update accounts \nto DR payer & CR payee
     abbc_grpc -> sbc_app_logic : Return **Transfer** creation info

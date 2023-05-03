@@ -80,7 +80,7 @@ The table below gives a view of the Settlement Batch fields:
 
 ### Settlement Model Relationships
 The diagram below illustrates the relationships between persisted settlement data:
-## ![Settlement Data Relationships](./03-settlement-model.svg "Settlement Data Relationships")
+## ![Settlement Data Relationships](./10-settlement-model.svg "Settlement Data Relationships")
 
 ## 2. Fulfilling Settlement Obligations (TO BE UPDATED / @jason)
 This process begins with requesting the settlement matrix for a specified timespan __(Generate Settlement Matrix)__.    

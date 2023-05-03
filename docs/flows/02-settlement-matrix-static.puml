@@ -1,8 +1,8 @@
 @startuml
 
-title Settlement Matrix for Participants BC
+title Static Settlement Matrix
 
-participant "Transfer-BC" as ext_transfers_bc
+participant "Admin API" as ext_transfers_bc
 
 box Settlements BC #F9FFF9
 	participant "Rest API" as sbc_rest #D5E8D4
@@ -22,23 +22,23 @@ box Accounts and Balances BC #FFFFF9
     end note
 end box
 
-group 1. Trigger Settlement Matrix - Central Ledger / Admin API
+group 1. Trigger Settlement Matrix - Admin API
 autonumber
-    ext_transfers_bc -> sbc_rest : Request settlement matrix
+    ext_transfers_bc -> sbc_rest : **Settlement Matrix** - //STATIC//\n(batchId list)
     sbc_rest -> sbc_app_logic : Invoke the App layer
 end
 
 group 2. Settlement - App Logic
 autonumber
-    sbc_app_logic <--> sbc_app_logic: Settlement Matrix triggered with:\n-> **From Date** - From\n-> **To Date** - To\n-> **Settlement Model** - Model
-    sbc_app_logic <--> sbc_db : Fetch all batches that form part of the settlement criteria
-    sbc_app_logic <--> sbc_db : Close //OPEN// settlement batches which forms part \nof the settlement matrix request criteria
+    sbc_app_logic <--> sbc_app_logic: Settlement Matrix triggered with:\n-> **Batch ID** - List of existing batch id's
+    sbc_app_logic <--> sbc_db : Fetch all batches via provided batchId's
+
     sbc_app_logic <-> abbc_grpc : Obtain Debit/Credit **Settlement Accounts** based on batches
     abbc_grpc <-> abbc_tigerbeetle: Fetch **Settlement Accounts**
     abbc_grpc <-> sbc_app_logic : Return **Settlement Accounts** based on batches
     sbc_app_logic <--> sbc_app_logic : Prepare the Settlement Matrix
     sbc_app_logic -> sbc_rest : Return Settlement Matrix
-    sbc_rest -> ext_transfers_bc : Return Settlement Matrix for caller\n**//ISettlementMatrixDto//**
+    sbc_rest -> ext_transfers_bc : Matrix id returned in response
 end
 
 @enduml
