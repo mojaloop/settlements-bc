@@ -94,13 +94,26 @@ settlement account balances for those batches.
 Once the batches are closed, the external services (i.e. Central-Ledger, Transfers BC, Participants BC) 
 that interfaces with the Settlement-BC gets notified of the settlement transfers being fulfilled.
 
-### Settlement Matrix - Central-Ledger
-The flow below is how a Settlement Matrix is created for Central-Ledger:
-## ![Settlement Matrix Flow for Central-Ledger](./02-settlement-matrix-cl.svg "ST CL")
+### Settlement Matrix - Dynamic
+The flow below is how a Settlement Matrix is created using a `DYNAMIC` settlement matrix:
+## ![Settlement Matrix Dynamic](./02-settlement-matrix-dynamic.svg "Matrix Dynamic")
 
-### Settlement Matrix - Participants BC
-The flow below is how a fulfilled Matrix is created for Participants BC:
-## ![Settlement Matrix Flow for Transfers BC](./02-settlement-matrix-bc.svg "ST TBC")
+### Settlement Matrix - Static
+The flow below is how a Settlement Matrix is created using a `STATIC` settlement matrix (statically allocated batches):
+## ![Settlement Matrix Static](./02-settlement-matrix-static.svg "Matrix Static")
+
+### Settlement Matrix - Close
+The flow below is how a Settlement Matrix is `CLOSED`, based on an existing settlement matrix id:
+## ![Settlement Matrix Close](./03-settlement-matrix-close.svg "Matrix Close")
+
+### Settlement Matrix - Dispute
+The flow below is how a Settlement Matrix is `DISPUTED`, based on an existing settlement matrix id:
+## ![Settlement Matrix Dispute](./04-settlement-matrix-dispute.svg "Matrix Dispute")
+
+### Settlement Matrix - Settle
+The flow below is how a Settlement Matrix is `SETTLED`, based on an existing settlement matrix id:
+## ![Settlement Matrix Settle](./05-settlement-matrix-settle.svg "Matrix Settle")
+
 
 ### Settlement Matrix Model
 The settlement matrix is the data object shared between Settlement and the external services during settlement matrix generation.
