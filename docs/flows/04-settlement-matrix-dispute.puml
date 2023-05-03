@@ -41,10 +41,6 @@ group 2. Execute //DISPUTE// command on a Settlement Matrix - App Logic
     sbc_app_logic <--> sbc_app_logic : Prepare the Settlement Matrix
     sbc_app_logic -> sbc_rest : Return Settlement Matrix
     sbc_rest -> ext_cl : Return Settlement Matrix for caller\n**//ISettlementMatrix//**
-autonumber
-    == Publish Settlement Matrix Result for Liquidity Restoration ==
-    sbc_app_logic --> sbc_app_logic : Create events for each Settlement Batch Account Balance update
-    sbc_app_logic -> sbc_event : Publish event for each\nSettlement Batch Account\nBalance update
 end
 
 @enduml

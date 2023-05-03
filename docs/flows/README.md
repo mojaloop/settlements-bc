@@ -8,10 +8,11 @@ The sections that follow detail each stage of the settlement process.
 At a high level, the settlement process entails:
 - [Creating Settlement Transfers](#1-creating-settlement-transfers) 
 - [Fulfilling Settlement Obligations](#2-fulfilling-settlement-obligations) 
-- [Assigning Settlement Batches](#3-assigning-settlement-batches)
-- [Settlement State Machine](#4-settlement-state-machine)
-- [References](#5-references)
-- [API](#6-api)
+- [Assigning Dynamic Settlement Batches](#3-assigning-dynamic-settlement-batches)
+- [Assigning Static Settlement Batches](#4-assigning-static-settlement-batches)
+- [Settlement State Machine](#5-settlement-state-machine)
+- [References](#6-references)
+- [API](#7-api)
 
 The Settlement BC service is designed for use by one of two Mojaloop transaction clearing services.  
 This is dependent on which major version of the Mojaloop software has been deployed:
@@ -82,7 +83,7 @@ The table below gives a view of the Settlement Batch fields:
 The diagram below illustrates the relationships between persisted settlement data:
 ## ![Settlement Data Relationships](./10-settlement-model.svg "Settlement Data Relationships")
 
-## 2. Fulfilling Settlement Obligations (TO BE UPDATED / @jason)
+## 2. Fulfilling Settlement Obligations
 This process begins with requesting the settlement matrix for a specified timespan __(Generate Settlement Matrix)__.    
 
 For a specified period of time, requesting the settlement matrix closes any open batches and
@@ -154,7 +155,7 @@ The table below illustrates the Settlement Matrix Batch Account fields:
 | `creditBalance`  | `string`   | The settlement batch account credit balance amount in minor denomination format (cents/fills) as text (`string)                                        |
 * See `ISettlementMatrixBatchAccount` at https://github.com/mojaloop/settlements-bc/blob/main/packages/public-types-lib/src/index.ts
 
-## 3. Assigning Settlement Batches
+## 3. Assigning Dynamic Settlement Batches
 This section describes the process of assigning a Transfer to a batch, for settlement.
 
 In the previous implementation, the Settlement component always assigned a Transfer to the only open settlement window at the time of settlement.  
@@ -182,10 +183,16 @@ The above ensures the requirements are met:
 - Settlement batches that are in a `CLOSED` state cannot be altered 
 - Reconciliation is achieved by re-running the Settlement Matrix for the delayed transfer, which will automatically rectify settlement inconsistencies
 
-## 4. Settlement State Machine
+## 4. Assigning Static Settlement Batches
+This section describes the process of assigning a Batch to a static Settlement Matrix, for settlement.
+
+It is necessary to perform commands on a statically defined batch or batches for a Settlement Matrix.
+Once a Static Matrix has been created, batches may be added or removed from the static matrix. 
+
+## 5. Settlement State Machine
 State transitions for settlement matrices and batches are allowed as follows:  
 
-### 4.1 Settlement Matrix
+### 5.1 Settlement Matrix
 The table below illustrates the state transitions for a settlement matrix:
 
 | State      | Description                                                                                                       | Allowed Transitions               | 
@@ -196,7 +203,7 @@ The table below illustrates the state transitions for a settlement matrix:
 | `CLOSED`   | Matrix has been actioned to close one or many batches (include un-disputing batches)                              | `SETTLED` / `DISPUTED`            |
 | `SETTLED`  | Matrix has been actioned to settled all IDLE or CLOSED batches. Once a matrix is settled, it is considered final  | -                                 |
 
-### 4.2 Settlement Matrix Batch
+### 5.2 Settlement Matrix Batch
 The table below illustrates the state transitions for a settlement batch:
 
 | State      | Description                                                                                | Allowed Transitions               | 
@@ -206,25 +213,26 @@ The table below illustrates the state transitions for a settlement batch:
 | `DISPUTED` | Batch have been disputed. The dispute needs to be resolved before the batch can be settled | `CLOSED`                          |
 | `SETTLED`  | Batch is settled and considered as final                                                   | -                                 |
 
-## 5. References
+## 6. References
 The following documentation provides insight into Settlements.
 
-| Ref # | Document                                          | Link                                                                                                                                   | 
-|-------|---------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------|
-| `01.` | **Technical Flows**                               | `*.puml`                                                                                                                               |
-| `02.` | **Settlement Version 2**                          | `../Settlement Version 2.pptx`                                                                                                         |
-| `03.` | **Settlement Operational Implementation**         | https://docs.mojaloop.io/business-operations-framework-docs/guide/SettlementBC.html#core-settlement-operations                         |
-| `04.` | **Reference Architecture**                        | https://mojaloop.github.io/reference-architecture-doc/boundedContexts/settlements/                                                     |
-| `05.` | **MIRO Board (Reference Architecture)**           | https://miro.com/app/board/o9J_lJyA1TA=/                                                                                               |
-| `06.` | **Settlement Functionality in MJL**               | https://docs.google.com/presentation/d/19uy6pO_igmQ9uZRnKyZkXD8a8uyMKQcn/edit#slide=id.p1                                              |
-| `07.` | **DA Work Sessions**                              | https://docs.google.com/document/d/1Nm6B_tSR1mOM0LEzxZ9uQnGwXkruBeYB2slgYK1Kflo/edit#heading=h.6w64vxvw6er4                            |
-| `08.` | **Admin API - Settlement Models**                 | https://github.com/mojaloop/mojaloop-specification/blob/master/admin-api/admin-api-specification-v1.0.md#api-resource-settlementmodels |
-| `09.` | **Mojaloop Product Timeline**                     | https://miro.com/app/board/uXjVPA3hBgE=/                                                                                               |
-| `10.` | **Settlement Basic Concepts**                     | https://docs.mojaloop.io/mojaloop-business-docs/HubOperations/Settlement/settlement-basic-concepts.html                                |
-| `11.` | **Ledgers in the Hub**                            | https://docs.mojaloop.io/mojaloop-business-docs/HubOperations/Settlement/ledgers-in-the-hub.html                                       |
-| `12.` | **Mojaloop 2.0 Reference Architecture - Sheet 8** | https://docs.google.com/spreadsheets/d/1ITmAesHjRZICC0EUNV8vUVV8VDnKLjbSKu_dzhEa5Fw/edit#gid=580827044                                 |
+| Ref # | Document                                                             | Link                                                                                                                                   | 
+|-------|----------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------|
+| `01.` | **Technical Flows**                                                  | `*.puml`                                                                                                                               |
+| `02.` | **Settlement Version 2**                                             | `../Settlement Version 2.pptx`                                                                                                         |
+| `03.` | **Settlement Operational Implementation**                            | https://docs.mojaloop.io/business-operations-framework-docs/guide/SettlementBC.html#core-settlement-operations                         |
+| `04.` | **Reference Architecture**                                           | https://mojaloop.github.io/reference-architecture-doc/boundedContexts/settlements/                                                     |
+| `05.` | **MIRO Board (Reference Architecture)**                              | https://miro.com/app/board/o9J_lJyA1TA=/                                                                                               |
+| `06.` | **Settlement Functionality in MJL**                                  | https://docs.google.com/presentation/d/19uy6pO_igmQ9uZRnKyZkXD8a8uyMKQcn/edit#slide=id.p1                                              |
+| `07.` | **DA Work Sessions**                                                 | https://docs.google.com/document/d/1Nm6B_tSR1mOM0LEzxZ9uQnGwXkruBeYB2slgYK1Kflo/edit#heading=h.6w64vxvw6er4                            |
+| `08.` | **Admin API - Settlement Models**                                    | https://github.com/mojaloop/mojaloop-specification/blob/master/admin-api/admin-api-specification-v1.0.md#api-resource-settlementmodels |
+| `09.` | **Mojaloop Product Timeline**                                        | https://miro.com/app/board/uXjVPA3hBgE=/                                                                                               |
+| `10.` | **Settlement Basic Concepts**                                        | https://docs.mojaloop.io/mojaloop-business-docs/HubOperations/Settlement/settlement-basic-concepts.html                                |
+| `11.` | **Ledgers in the Hub**                                               | https://docs.mojaloop.io/mojaloop-business-docs/HubOperations/Settlement/ledgers-in-the-hub.html                                       |
+| `12.` | **Mojaloop 2.0 Reference Architecture - Sheet 8**                    | https://docs.google.com/spreadsheets/d/1ITmAesHjRZICC0EUNV8vUVV8VDnKLjbSKu_dzhEa5Fw/edit#gid=580827044                                 |
+| `13.` | **Change Request: Modifications to Admin API to support Settlement** | https://github.com/mojaloop/mojaloop-specification/issues/117                                                                          |
 
-## 6. API
+## 7. API
 The following REST API endpoints exists for Settlements.
 
 | Ref # | URL                         | Method   | Description                                                                                                                                                                                                                                                                                                                                         | 
