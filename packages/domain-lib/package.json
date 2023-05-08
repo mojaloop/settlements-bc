@@ -37,7 +37,7 @@
   "dependencies": {
     "@mojaloop/settlements-bc-model-lib": "*",
     "@mojaloop/settlements-bc-public-types-lib": "*",
-    "@mojaloop/platform-shared-lib-public-messages-lib": "~0.1.75",
+    "@mojaloop/platform-shared-lib-public-messages-lib": "~0.1.92",
     "@mojaloop/auditing-bc-public-types-lib": "~0.0.13",
     "@mojaloop/logging-bc-public-types-lib": "~0.1.16",
     "@mojaloop/security-bc-public-types-lib": "~0.1.19",

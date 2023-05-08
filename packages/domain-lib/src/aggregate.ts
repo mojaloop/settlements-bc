@@ -78,9 +78,9 @@ import {SettlementConfig} from "./types/settlement_config";
 import {AccountsAndBalancesAccountType} from "@mojaloop/accounts-and-balances-bc-public-types-lib";
 import {SettlementBatchTransfer} from "./types/transfer";
 import {SettlementMatrix} from "./types/matrix";
-import {ProcessTransferCmd, SettlementEvent} from "./commands";
+import {ProcessTransferCmd} from "./commands";
 import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
-
+import {SettlementMatrixSettledEvt, SettlementMatrixSettledParticipantEvtPayload} from "@mojaloop/platform-shared-lib-public-messages-lib";
 
 const CURRENCIES_FILE_NAME: string = "currencies.json";
 const SEQUENCE_STR_LENGTH = 3;
@@ -732,6 +732,9 @@ export class SettlementsAggregate {
 		// first pass - close the open batches:
 		const previouslySettledBatches : ISettlementBatch[] = [];
 		const batchesSettledNow: ISettlementBatch[] = [];
+		const participantBalances: Map<string, {cr: bigint, dr:bigint, accountExtId:string}> =
+			new Map<string, {cr: bigint; dr: bigint, accountExtId:string}>();
+		const currency = this._getCurrencyOrThrow(matrix.currencyCode);
 		for (const matrixBatch of matrix.batches) {
 			const batch = await this._batchRepo.getBatch(matrixBatch.id);
 			if (!batch) throw new SettlementBatchNotFoundError(`Unable to locate batch for id '${matrixBatch.id}'.`);
@@ -744,11 +747,39 @@ export class SettlementsAggregate {
 			batch.state = matrixBatch.state = "SETTLED";
 			await this._batchRepo.updateBatch(batch);
 			batchesSettledNow.push(batch);
+
+			batch.accounts.forEach(acc => {
+				const debit = stringToBigint(acc.debitBalance, currency!.decimals);
+				const credit = stringToBigint(acc.creditBalance, currency!.decimals);
+
+				const partBal = participantBalances.get(acc.participantId);
+				if (!partBal) {
+					participantBalances.set(acc.participantId, {dr:debit, cr: credit, accountExtId: acc.accountExtId});
+				} else {
+					participantBalances.set(acc.participantId, {dr: partBal.dr + debit, cr: partBal.cr + credit, accountExtId: acc.accountExtId});
+				}
+			})
 		}
-		
+
+		const participants: SettlementMatrixSettledParticipantEvtPayload[] = [];
+		// put per participant balances in the matrix:
+		participantBalances.forEach((value, key) => {
+			participants.push({
+				accountExtId: value.accountExtId,
+				participantId: key,
+				currencyCode: currency.code,
+				settledDebitBalance: bigintToString(value.dr, currency!.decimals),
+				settledCreditBalance: bigintToString(value.cr, currency!.decimals)
+			});
+		});
+
 		// Send matrix event for settlement:
-		const cmd = new SettlementEvent({matrix: matrix});
-		await this._msgProducer.send(cmd);
+		const event = new SettlementMatrixSettledEvt({
+			settlementMatrixId: matrix.id,
+			settledTimestamp: Date.now(),
+			participantList: participants
+		});
+		await this._msgProducer.send(event);
 
 		// Close the Matrix Request to prevent further execution:
 		await this._updateMatrixStateAndSave(matrix, "SETTLED", startTimestamp);
