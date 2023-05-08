@@ -760,6 +760,9 @@ export class SettlementsAggregate {
 			});
 		}
 
+		// Close the Matrix Request to prevent further execution:
+		await this._updateMatrixStateAndSave(matrix, "SETTLED", startTimestamp);
+
 		const participants: SettlementMatrixSettledParticipantEvtPayload[] = [];
 		// put per participant balances in the matrix:
 		participantBalances.forEach((value, key) => {
@@ -778,9 +781,6 @@ export class SettlementsAggregate {
 			participantList: participants
 		});
 		await this._msgProducer.send(event);
-
-		// Close the Matrix Request to prevent further execution:
-		await this._updateMatrixStateAndSave(matrix, "SETTLED", startTimestamp);
 
 		// We perform an async audit:
 		this._auditingClient.audit(
