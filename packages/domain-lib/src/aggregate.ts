@@ -757,7 +757,7 @@ export class SettlementsAggregate {
 				} else {
 					participantBalances.set(acc.participantId, {dr: partBal.dr + debit, cr: partBal.cr + credit});
 				}
-			})
+			});
 		}
 
 		const participants: SettlementMatrixSettledParticipantEvtPayload[] = [];
@@ -889,8 +889,8 @@ export class SettlementsAggregate {
 		participantBalancesDisputed.forEach((value, key) => {
 			matrix.participantBalancesDisputed.push({
 				participantId: key,
-				debitBalance: bigintToString(value.dr, currency!.decimals),
-				creditBalance: bigintToString(value.cr, currency!.decimals)
+				debitBalance: bigintToString(value.dr, currency.decimals),
+				creditBalance: bigintToString(value.cr, currency.decimals)
 			});
 		});
 	}
