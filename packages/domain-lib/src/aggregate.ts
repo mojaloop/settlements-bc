@@ -732,8 +732,7 @@ export class SettlementsAggregate {
 		// first pass - close the open batches:
 		const previouslySettledBatches : ISettlementBatch[] = [];
 		const batchesSettledNow: ISettlementBatch[] = [];
-		const participantBalances: Map<string, {cr: bigint, dr:bigint, accountExtId:string}> =
-			new Map<string, {cr: bigint; dr: bigint, accountExtId:string}>();
+		const participantBalances: Map<string, {cr: bigint, dr:bigint}> = new Map<string, {cr: bigint; dr: bigint}>();
 		const currency = this._getCurrencyOrThrow(matrix.currencyCode);
 		for (const matrixBatch of matrix.batches) {
 			const batch = await this._batchRepo.getBatch(matrixBatch.id);
@@ -749,14 +748,14 @@ export class SettlementsAggregate {
 			batchesSettledNow.push(batch);
 
 			batch.accounts.forEach(acc => {
-				const debit = stringToBigint(acc.debitBalance, currency!.decimals);
-				const credit = stringToBigint(acc.creditBalance, currency!.decimals);
+				const debit = stringToBigint(acc.debitBalance, currency.decimals);
+				const credit = stringToBigint(acc.creditBalance, currency.decimals);
 
 				const partBal = participantBalances.get(acc.participantId);
 				if (!partBal) {
-					participantBalances.set(acc.participantId, {dr:debit, cr: credit, accountExtId: acc.accountExtId});
+					participantBalances.set(acc.participantId, {dr:debit, cr: credit});
 				} else {
-					participantBalances.set(acc.participantId, {dr: partBal.dr + debit, cr: partBal.cr + credit, accountExtId: acc.accountExtId});
+					participantBalances.set(acc.participantId, {dr: partBal.dr + debit, cr: partBal.cr + credit});
 				}
 			})
 		}
@@ -765,11 +764,10 @@ export class SettlementsAggregate {
 		// put per participant balances in the matrix:
 		participantBalances.forEach((value, key) => {
 			participants.push({
-				accountExtId: value.accountExtId,
 				participantId: key,
 				currencyCode: currency.code,
-				settledDebitBalance: bigintToString(value.dr, currency!.decimals),
-				settledCreditBalance: bigintToString(value.cr, currency!.decimals)
+				settledDebitBalance: bigintToString(value.dr, currency.decimals),
+				settledCreditBalance: bigintToString(value.cr, currency.decimals)
 			});
 		});
 
@@ -834,8 +832,8 @@ export class SettlementsAggregate {
 
 				let batchDebitBalance = 0n, batchCreditBalance = 0n;
 				batch.accounts.forEach(acc => {
-					const debit = stringToBigint(acc.debitBalance, currency!.decimals);
-					const credit = stringToBigint(acc.creditBalance, currency!.decimals);
+					const debit = stringToBigint(acc.debitBalance, currency.decimals);
+					const credit = stringToBigint(acc.creditBalance, currency.decimals);
 
 					batchDebitBalance += debit;
 					batchCreditBalance += credit;
@@ -860,8 +858,8 @@ export class SettlementsAggregate {
 
 				matrix.addBatch(
 					batch,
-					bigintToString(batchDebitBalance, currency!.decimals),
-					bigintToString(batchCreditBalance, currency!.decimals)
+					bigintToString(batchDebitBalance, currency.decimals),
+					bigintToString(batchCreditBalance, currency.decimals)
 				);
 
 				if (batchDisputed) {
@@ -875,17 +873,17 @@ export class SettlementsAggregate {
 		}
 
 		// update main balances for standard matrix:
-		matrix.totalDebitBalance = bigintToString(totalDebit, currency!.decimals);
-		matrix.totalCreditBalance = bigintToString(totalCredit, currency!.decimals);
-		matrix.totalDebitBalanceDisputed = bigintToString(totalDebitDisputed, currency!.decimals);
-		matrix.totalCreditBalanceDisputed = bigintToString(totalCreditDisputed, currency!.decimals);
+		matrix.totalDebitBalance = bigintToString(totalDebit, currency.decimals);
+		matrix.totalCreditBalance = bigintToString(totalCredit, currency.decimals);
+		matrix.totalDebitBalanceDisputed = bigintToString(totalDebitDisputed, currency.decimals);
+		matrix.totalCreditBalanceDisputed = bigintToString(totalCreditDisputed, currency.decimals);
 
 		// put per participant balances in the matrix:
 		participantBalances.forEach((value, key) => {
 			matrix.participantBalances.push({
 				participantId: key,
-				debitBalance: bigintToString(value.dr, currency!.decimals),
-				creditBalance: bigintToString(value.cr, currency!.decimals)
+				debitBalance: bigintToString(value.dr, currency.decimals),
+				creditBalance: bigintToString(value.cr, currency.decimals)
 			});
 		});
 		participantBalancesDisputed.forEach((value, key) => {
