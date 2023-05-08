@@ -49,6 +49,7 @@ export class SettlementMatrix implements ISettlementMatrix {
 
   batches: ISettlementMatrixBatch[];
   participantBalances: ISettlementMatrixParticipantBalance[];
+  participantBalancesDisputed: ISettlementMatrixParticipantBalance[];
 
   state: "IDLE" | "BUSY" | "DISPUTED" | "CLOSED" | "SETTLED";
   type: "STATIC" | "DYNAMIC";
@@ -56,6 +57,8 @@ export class SettlementMatrix implements ISettlementMatrix {
   generationDurationSecs: number | null;
   totalDebitBalance: string;
   totalCreditBalance: string;
+  totalDebitBalanceDisputed: string;
+  totalCreditBalanceDisputed: string;
 
   protected constructor(type: "STATIC" | "DYNAMIC", currency: string) {
     this.id = randomUUID();
@@ -70,11 +73,18 @@ export class SettlementMatrix implements ISettlementMatrix {
 
     this.batches  = [];
     this.participantBalances = [];
+    this.participantBalancesDisputed = [];
     this.totalDebitBalance = "0";
     this.totalCreditBalance = "0";
+    this.totalDebitBalanceDisputed = "0";
+    this.totalCreditBalanceDisputed = "0";
   }
 
-  addBatch(batch: ISettlementBatch, debitBalance: string = "0", creditBalance: string = "0"): void {
+  addBatch(
+    batch: ISettlementBatch,
+    debitBalance: string = "0",
+    creditBalance: string = "0"
+  ): void {
     if (this.type === 'STATIC' && this.batches.length === 0) {
       this.currencyCode = batch.currencyCode;
     }
@@ -103,8 +113,11 @@ export class SettlementMatrix implements ISettlementMatrix {
   clear(){
     this.batches = [];
     this.participantBalances = [];
+    this.participantBalancesDisputed = [];
     this.totalDebitBalance = "0";
     this.totalCreditBalance = "0";
+    this.totalDebitBalanceDisputed = "0";
+    this.totalCreditBalanceDisputed = "0";
   }
 
   static CreateStatic(currency: string): SettlementMatrix {
@@ -138,10 +151,13 @@ export class SettlementMatrix implements ISettlementMatrix {
 
     newInstance.batches = dto.batches;
     newInstance.participantBalances = dto.participantBalances;
+    newInstance.participantBalancesDisputed = dto.participantBalancesDisputed;
 
     newInstance.generationDurationSecs = dto.generationDurationSecs;
     newInstance.totalDebitBalance = dto.totalDebitBalance;
     newInstance.totalCreditBalance = dto.totalCreditBalance;
+    newInstance.totalDebitBalanceDisputed = dto.totalDebitBalanceDisputed;
+    newInstance.totalCreditBalanceDisputed = dto.totalCreditBalanceDisputed;
 
     return newInstance;
   }

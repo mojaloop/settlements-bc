@@ -62,7 +62,7 @@ export interface ISettlementBatch {
  // for use inside a ISettlementBatch
 export interface ISettlementBatchAccount {
 	accountExtId: string;
-	participantId:string;
+	participantId: string;
 	currencyCode: string;
 	creditBalance: string;
 	debitBalance: string;
@@ -97,11 +97,14 @@ export interface ISettlementMatrix {
 	settlementModel: string | null;
 	batches: ISettlementMatrixBatch[];
 	participantBalances: ISettlementMatrixParticipantBalance[];
-	state: "IDLE" | "BUSY" | "DISPUTED" | "CLOSED" | "SETTLED";//TODO @jason: We only have final states (driven by commands)
+	participantBalancesDisputed: ISettlementMatrixParticipantBalance[];
+	state: "IDLE" | "BUSY" | "DISPUTED" | "CLOSED" | "SETTLED";
 	type: "STATIC" | "DYNAMIC";
 	generationDurationSecs: number | null;
 	totalDebitBalance: string;
 	totalCreditBalance: string;
+	totalDebitBalanceDisputed: string;
+	totalCreditBalanceDisputed: string;
 }
 
 export interface ISettlementMatrixParticipantBalance {
