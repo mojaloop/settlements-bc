@@ -74,6 +74,7 @@ import {IMessageConsumer, IMessageProducer} from "@mojaloop/platform-shared-lib-
 import {ParticipantAccountNotifierMock} from "@mojaloop/settlements-bc-shared-mocks-lib";
 import {
 	GrpcAccountsAndBalancesAdapter,
+	TigerBeetleAccountsAndBalancesAdapter,
 	MongoSettlementBatchRepo,
 	MongoSettlementConfigRepo
 } from "@mojaloop/settlements-bc-infrastructure-lib";
@@ -111,6 +112,10 @@ const PARTICIPANTS_SVC_URL = process.env["PARTICIPANTS_SVC_URL"] || "http://loca
 const SVC_CLIENT_ID = process.env["SVC_CLIENT_ID"] || "settlements-bc-command-handler-svc";
 const SVC_CLIENT_SECRET = process.env["SVC_CLIENT_ID"] || "superServiceSecret";
 
+const USE_TIGERBEETLE = process.env["USE_TIGERBEETLE"] || false;
+const TIGERBEETLE_CLUSTER_ID = process.env["TIGERBEETLE_CLUSTER_ID"] || 0;
+const TIGERBEETLE_CLUSTER_REPLICA_ADDRESSES = process.env["TIGERBEETLE_CLUSTER_REPLICA_ADDRESSES"] || "default_CHANGEME";
+
 
 const DB_NAME: string = "settlements";
 const SETTLEMENT_CONFIGS_COLLECTION_NAME: string = "configs";
@@ -118,7 +123,6 @@ const SETTLEMENT_BATCHES_COLLECTION_NAME: string = "batches";
 const SETTLEMENT_MATRICES_COLLECTION_NAME: string = "matrices";
 const BATCH_SPECIFIC_SETTLEMENT_MATRICES_COLLECTION_NAME: string = "batch_specific_matrices";
 const SETTLEMENT_TRANSFERS_COLLECTION_NAME: string = "transfers";
-
 
 const kafkaConsumerOptions: MLKafkaJsonConsumerOptions = {
 	kafkaBrokerList: KAFKA_URL,
@@ -245,8 +249,17 @@ export class Service {
 		this.auditClient = auditClient;
 
 		if (!accountsAndBalancesAdapter) {
-			accountsAndBalancesAdapter = new GrpcAccountsAndBalancesAdapter(ACCOUNTS_BALANCES_COA_SVC_URL, this.loginHelper as LoginHelper, this.logger);
-			await accountsAndBalancesAdapter.init();
+			if (USE_TIGERBEETLE) {
+				accountsAndBalancesAdapter = new TigerBeetleAccountsAndBalancesAdapter(
+					Number(TIGERBEETLE_CLUSTER_ID),
+					[TIGERBEETLE_CLUSTER_REPLICA_ADDRESSES],
+					this.logger
+				);
+				await accountsAndBalancesAdapter.init();
+			} else {
+				accountsAndBalancesAdapter = new GrpcAccountsAndBalancesAdapter(ACCOUNTS_BALANCES_COA_SVC_URL, this.loginHelper as LoginHelper, this.logger);
+				await accountsAndBalancesAdapter.init();
+			}
 		}
 		this.accountsAndBalancesAdapter = accountsAndBalancesAdapter;
 

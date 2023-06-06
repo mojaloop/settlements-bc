@@ -54,7 +54,6 @@ import express, {Express} from "express";
 import {ExpressRoutes} from "./routes";
 import {ITokenHelper} from "@mojaloop/security-bc-public-types-lib/";
 import {
-	AccountsBalancesAdapterMock,
 	ParticipantAccountNotifierMock,
 	SettlementBatchRepoMock, SettlementMatrixRequestRepoMock, SettlementBatchTransferRepoMock
 } from "@mojaloop/settlements-bc-shared-mocks-lib";

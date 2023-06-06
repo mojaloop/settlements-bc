@@ -35,7 +35,6 @@ import {
 	CannotRecalculateSettlementMatrixError,
 	CannotRemoveBatchesFromSettlementMatrixError,
 	CannotSettleSettlementMatrixError,
-	CurrencyCodesDifferError,
 	InvalidAmountError,
 	InvalidBatchSettlementModelError,
 	InvalidCurrencyCodeError,
@@ -45,7 +44,6 @@ import {
 	NoSettlementConfig,
 	SettlementBatchNotFoundError,
 	SettlementMatrixAlreadyExistsError,
-	SettlementMatrixIsBusyError,
 	SettlementMatrixIsClosedError,
 	SettlementMatrixNotFoundError,
 
@@ -185,7 +183,7 @@ export class SettlementsAggregate {
 		return amount;
 	}
 
-	private async _updateMatrixStateAndSave(matrix: SettlementMatrix, state: "IDLE" | "BUSY" | "DISPUTED" | "CLOSED" | "SETTLED", startTimestamp: number): Promise<void> {
+	private async _updateMatrixStateAndSave(matrix: SettlementMatrix, state: "IDLE" | "BUSY" | "DISPUTED" | "CLOSED" | "AWAITING_SETTLEMENT" | "SETTLED", startTimestamp: number): Promise<void> {
 		matrix.state = state;
 		matrix.updatedAt = Date.now();
 		matrix.generationDurationSecs = Math.floor((matrix.updatedAt - startTimestamp) / 1000);
@@ -519,9 +517,7 @@ export class SettlementsAggregate {
 				{key: "settlementMatrixReqId", value: matrix.id}
 			]
 		);
-		return;
 	}
-
 
 
 	async getSettlementMatrix(secCtx: CallSecurityContext, id: string): Promise<ISettlementMatrix | null> {
@@ -599,6 +595,59 @@ export class SettlementsAggregate {
 		}
 
 		if (matrixDto.state!=="IDLE" && matrixDto.state!=="CLOSED") {
+			const err = new CannotCloseSettlementMatrixError("Can only dispute an idle or closed matrix");
+			this._logger.warn(err.message);
+			throw err;
+		}
+
+		const matrix = SettlementMatrix.CreateFromDto(matrixDto);
+		const startTimestamp = Date.now();
+
+		matrix.state = "BUSY";
+		await this._settlementMatrixReqRepo.storeMatrix(matrix);
+
+		// recalculate the matrix, without getting new batches in
+		await this._recalculateMatrix(matrix);
+
+		// first pass - close the open batches:
+		const batchesDisputedNow: ISettlementBatch[] = [];
+		for (const matrixBatch of matrix.batches) {
+			const batch = await this._batchRepo.getBatch(matrixBatch.id);
+			if (!batch) throw new SettlementBatchNotFoundError(`Unable to locate batch for id '${matrixBatch.id}'.`);
+
+			if (batch.state === "SETTLED" || batch.state === 'DISPUTED') continue;
+
+			batch.state = matrixBatch.state = 'DISPUTED';
+			await this._batchRepo.updateBatch(batch);
+			batchesDisputedNow.push(batch);
+		}
+
+		// Dispute the Matrix Request to prevent further execution:
+		await this._updateMatrixStateAndSave(matrix, "DISPUTED", startTimestamp);
+
+		// We perform an async audit:
+		this._auditingClient.audit(
+			AuditingActions.SETTLEMENT_MATRIX_DISPUTED,
+			true,
+			this._getAuditSecurityContext(secCtx), [
+				{key: "settlementModel", value: matrix.settlementModel === null ? '' : matrix.settlementModel},
+				{key: "settlementMatrixReqId", value: id}
+			]
+		);
+		return;
+	}
+
+	async lockSettlementMatrixForAwaitingSettlement(secCtx: CallSecurityContext, id: string): Promise<void> {
+		this._enforcePrivilege(secCtx, Privileges.SETTLEMENTS_LOCK_MATRIX);
+
+		const matrixDto = await this._settlementMatrixReqRepo.getMatrixById(id);
+		if (!matrixDto) {
+			const err = new SettlementMatrixNotFoundError(`Matrix with id: ${id} not found`);
+			this._logger.warn(err.message);
+			throw err; // not found
+		}
+
+		if (matrixDto.state !== "IDLE" && matrixDto.state !== "CLOSED") {
 			const err = new CannotCloseSettlementMatrixError("Can only dispute an idle or closed matrix");
 			this._logger.warn(err.message);
 			throw err;

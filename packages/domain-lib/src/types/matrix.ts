@@ -51,7 +51,7 @@ export class SettlementMatrix implements ISettlementMatrix {
   participantBalances: ISettlementMatrixParticipantBalance[];
   participantBalancesDisputed: ISettlementMatrixParticipantBalance[];
 
-  state: "IDLE" | "BUSY" | "DISPUTED" | "CLOSED" | "SETTLED";
+  state: "IDLE" | "BUSY" | "DISPUTED" | "CLOSED" | "AWAITING_SETTLEMENT" | "SETTLED";
   type: "STATIC" | "DYNAMIC";
 
   generationDurationSecs: number | null;
