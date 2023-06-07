@@ -55,7 +55,7 @@ export interface ISettlementBatch {
 	currencyCode: string;
 	batchName: string; // FX.XOF:RWF.2021.08.23.00.00 (minus seq)
 	batchSequence: number; // 1 (seq only)
-	state: "OPEN" | "DISPUTED" | "SETTLED" | "CLOSED";
+	state: "OPEN" | "CLOSED" | "DISPUTED" | "AWAITING_SETTLEMENT" | "SETTLED";
 	accounts: ISettlementBatchAccount[];
 }
 
@@ -128,6 +128,12 @@ export interface ISettlementMatrixBatchAccount {
 	accountExtId: string;
 	debitBalance: string;
 	creditBalance: string;
+}
+
+export interface IAwaitingSettlement {
+	id: string;
+	matrix: ISettlementMatrix;
+	batch: ISettlementMatrixBatch;
 }
 
 

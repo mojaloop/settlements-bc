@@ -183,7 +183,11 @@ export class SettlementsAggregate {
 		return amount;
 	}
 
-	private async _updateMatrixStateAndSave(matrix: SettlementMatrix, state: "IDLE" | "BUSY" | "DISPUTED" | "CLOSED" | "AWAITING_SETTLEMENT" | "SETTLED", startTimestamp: number): Promise<void> {
+	private async _updateMatrixStateAndSave(
+		matrix: SettlementMatrix,
+		state: "IDLE" | "BUSY" | "DISPUTED" | "CLOSED" | "AWAITING_SETTLEMENT" | "SETTLED",
+		startTimestamp: number
+	): Promise<void> {
 		matrix.state = state;
 		matrix.updatedAt = Date.now();
 		matrix.generationDurationSecs = Math.floor((matrix.updatedAt - startTimestamp) / 1000);
@@ -205,7 +209,6 @@ export class SettlementsAggregate {
 
 		return this.handleTransfer(secCtx, transferDto);
 	}
-
 
 	async handleTransfer(secCtx: CallSecurityContext, transferDto: ITransferDto): Promise<string> {
 		this._enforcePrivilege(secCtx, Privileges.CREATE_SETTLEMENT_TRANSFER);
@@ -615,9 +618,9 @@ export class SettlementsAggregate {
 			const batch = await this._batchRepo.getBatch(matrixBatch.id);
 			if (!batch) throw new SettlementBatchNotFoundError(`Unable to locate batch for id '${matrixBatch.id}'.`);
 
-			if (batch.state === "SETTLED" || batch.state === 'DISPUTED') continue;
+			if (batch.state === "SETTLED" || batch.state === "DISPUTED") continue;
 
-			batch.state = matrixBatch.state = 'DISPUTED';
+			batch.state = matrixBatch.state = "DISPUTED";
 			await this._batchRepo.updateBatch(batch);
 			batchesDisputedNow.push(batch);
 		}
@@ -648,7 +651,7 @@ export class SettlementsAggregate {
 		}
 
 		if (matrixDto.state !== "IDLE" && matrixDto.state !== "CLOSED") {
-			const err = new CannotCloseSettlementMatrixError("Can only dispute an idle or closed matrix");
+			const err = new CannotCloseSettlementMatrixError("Can only lock an idle or closed matrix");
 			this._logger.warn(err.message);
 			throw err;
 		}
@@ -663,20 +666,25 @@ export class SettlementsAggregate {
 		await this._recalculateMatrix(matrix);
 
 		// first pass - close the open batches:
-		const batchesDisputedNow: ISettlementBatch[] = [];
+		const batchesLockedNow: ISettlementBatch[] = [];
 		for (const matrixBatch of matrix.batches) {
 			const batch = await this._batchRepo.getBatch(matrixBatch.id);
 			if (!batch) throw new SettlementBatchNotFoundError(`Unable to locate batch for id '${matrixBatch.id}'.`);
 
-			if (batch.state === "SETTLED" || batch.state === 'DISPUTED') continue;
+			switch (batch.state) {
+				case "SETTLED":
+				case "AWAITING_SETTLEMENT":
+				case "DISPUTED":
+					continue;
+			}
 
-			batch.state = matrixBatch.state = 'DISPUTED';
+			batch.state = matrixBatch.state = "AWAITING_SETTLEMENT";
 			await this._batchRepo.updateBatch(batch);
-			batchesDisputedNow.push(batch);
+			batchesLockedNow.push(batch);
 		}
 
 		// Dispute the Matrix Request to prevent further execution:
-		await this._updateMatrixStateAndSave(matrix, "DISPUTED", startTimestamp);
+		await this._updateMatrixStateAndSave(matrix, "AWAITING_SETTLEMENT", startTimestamp);
 
 		// We perform an async audit:
 		this._auditingClient.audit(
@@ -774,8 +782,7 @@ export class SettlementsAggregate {
 
 		// remove disputed batches before saving
 		matrix.batches.forEach(item => {
-			if (item.state === "DISPUTED")
-				matrix.removeBatchById(item.id);
+			if (item.state !== "AWAITING_SETTLEMENT") matrix.removeBatchById(item.id);
 		});
 
 		// first pass - close the open batches:
@@ -801,11 +808,8 @@ export class SettlementsAggregate {
 				const credit = stringToBigint(acc.creditBalance, currency.decimals);
 
 				const partBal = participantBalances.get(acc.participantId);
-				if (!partBal) {
-					participantBalances.set(acc.participantId, {dr:debit, cr: credit});
-				} else {
-					participantBalances.set(acc.participantId, {dr: partBal.dr + debit, cr: partBal.cr + credit});
-				}
+				if (!partBal) participantBalances.set(acc.participantId, {dr:debit, cr: credit});
+				else participantBalances.set(acc.participantId, {dr: partBal.dr + debit, cr: partBal.cr + credit});
 			});
 		}
 
@@ -874,10 +878,11 @@ export class SettlementsAggregate {
 			await this._updateBatchAccountBalances(batches);
 
 			for (const batch of batches) {
-				// skip settled batches:
 				const batchDisputed = batch.state === "DISPUTED";
-				if (batch.state === "SETTLED") continue;
-				else if (settlingMatrix && batchDisputed) continue;
+				if (batch.state === "SETTLED" || settlingMatrix && batch.state !== "AWAITING_SETTLEMENT") continue;
+				else if (batch.state === "AWAITING_SETTLEMENT") {
+					// TODO need to look at the locked vs non-locked matrixes
+				}
 
 				let batchDebitBalance = 0n, batchCreditBalance = 0n;
 				batch.accounts.forEach(acc => {

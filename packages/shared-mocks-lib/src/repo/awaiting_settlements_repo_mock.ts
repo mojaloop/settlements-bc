@@ -27,11 +27,11 @@
 
 "use strict";
 
-import {ISettlementMatrixRequestRepo} from "@mojaloop/settlements-bc-domain-lib";
-import {ISettlementMatrix} from "@mojaloop/settlements-bc-public-types-lib";
+import {IAwaitingSettlementRepo} from "@mojaloop/settlements-bc-domain-lib";
+import {IAwaitingSettlement} from "@mojaloop/settlements-bc-public-types-lib";
 
-export class SettlementMatrixRequestRepoMock implements ISettlementMatrixRequestRepo {
-	matrixRequests: Array<ISettlementMatrix> = [];
+export class AwaitingSettlementRepoMock implements IAwaitingSettlementRepo {
+	awaitingSettlements: Array<IAwaitingSettlement> = [];
 
 	async init(): Promise<void> {
 		return Promise.resolve();
@@ -40,34 +40,31 @@ export class SettlementMatrixRequestRepoMock implements ISettlementMatrixRequest
 		return Promise.resolve();
 	}
 
-	async storeMatrix(matrixReq: ISettlementMatrix): Promise<void> {
-		if (matrixReq === undefined) return Promise.resolve();
+	storeAwaitingSettlement(awaitSettlement: IAwaitingSettlement): Promise<void>{
+		if (awaitSettlement === undefined) return Promise.resolve();
 
-		const newArray: Array<ISettlementMatrix> = this.matrixRequests.filter(value => value.id !== matrixReq.id);
-		newArray.push(matrixReq)
-		this.matrixRequests = newArray;
+		const newArray: Array<IAwaitingSettlement> = this.awaitingSettlements.filter(value => value.id !== awaitSettlement.id);
+		newArray.push(awaitSettlement)
+		this.awaitingSettlements = newArray;
 		return Promise.resolve();
 	}
 
-	async getMatrixById(settlementMatrixReqId: string): Promise<ISettlementMatrix | null> {
-		if (settlementMatrixReqId === undefined) return Promise.resolve(null);
+	removeAwaitingSettlementByMatrixId(matrixId: string): Promise<void>{
+		if (matrixId === undefined) return Promise.resolve();
 
-		for (const matrixReqIter of this.matrixRequests) {
-			if (matrixReqIter.id === settlementMatrixReqId) {
-				return Promise.resolve(matrixReqIter);
+		const newArray: Array<IAwaitingSettlement> = this.awaitingSettlements.filter(value => value.matrix.id !== matrixId);
+		this.awaitingSettlements = newArray;
+		return Promise.resolve();
+	}
+
+	getAwaitingSettlementByBatchId(batchId: string): Promise<IAwaitingSettlement | null>{
+		if (batchId === undefined) return Promise.resolve(null);
+
+		for (const awaitIter of this.awaitingSettlements) {
+			if (awaitIter.batch.id === batchId) {
+				return Promise.resolve(awaitIter);
 			}
 		}
 		return Promise.resolve(null);
-	}
-
-	async getMatrices(state?:string): Promise<ISettlementMatrix[]>{
-		const ret: ISettlementMatrix[] = [];
-
-		for (const matrixReqIter of this.matrixRequests) {
-			if (!state || matrixReqIter.state.toUpperCase() !== state.toUpperCase()) {
-				ret.push(matrixReqIter);
-			}
-		}
-		return Promise.resolve(ret);
 	}
 }

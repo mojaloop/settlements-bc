@@ -31,7 +31,8 @@ import {
 	ISettlementConfig,
 	ISettlementBatch,
 	ISettlementBatchTransfer,
-	ISettlementMatrix
+	ISettlementMatrix,
+	IAwaitingSettlement
 } from "@mojaloop/settlements-bc-public-types-lib";
 
 import {
@@ -71,7 +72,6 @@ export interface ISettlementConfigRepo {
 	storeConfig(config: ISettlementConfig):Promise<void>;
 	getSettlementConfigByModel(model: string): Promise<ISettlementConfig | null>;
 }
-
 
 export interface ISettlementBatchRepo {
 	init(): Promise<void>;
@@ -117,7 +117,12 @@ export interface ISettlementMatrixRequestRepo {
 	storeMatrix(matrix: ISettlementMatrix): Promise<void>; // Throws if account.id is not unique.
 	getMatrixById(id: string): Promise<ISettlementMatrix | null>;
 	getMatrices(state?:string): Promise<ISettlementMatrix[]>;
+}
 
-// this is not the job of a repo, should be at aggregate level
-//	closeSettlementMatrixRequest(matrixReq: ISettlementMatrixRequestDto): Promise<void>;
+export interface IAwaitingSettlementRepo {
+	init(): Promise<void>;
+	destroy(): Promise<void>;
+	storeAwaitingSettlement(awaitSettlement: IAwaitingSettlement):Promise<void>;
+	removeAwaitingSettlementByMatrixId(matrixId: string):Promise<void>;
+	getAwaitingSettlementByBatchId(batchId: string): Promise<IAwaitingSettlement | null>;
 }

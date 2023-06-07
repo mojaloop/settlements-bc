@@ -20,26 +20,28 @@
  optionally within square brackets <email>.
 
  * Coil
- * - Jason Bruwer <jason.bruwer@coil.com>
+ *  - Jason Bruwer <jason.bruwer@coil.com>
 
  --------------
  ******/
 
 "use strict";
 
-export * from "./audit_client_mock";
-export * from "./authentication_service_mock";
-export * from "./token_helper_mock";
-export * from "./message_mock";
+import {
+  IAwaitingSettlement,
+  ISettlementMatrix,
+  ISettlementMatrixBatch
+} from "@mojaloop/settlements-bc-public-types-lib";
+import {randomUUID} from "crypto";
 
-export * from "./authorization_client_mock";
-export * from "./repo/config_repo_mock";
-export * from "./repo/participant_account_notifier_mock";
+export class AwaitingSettlement implements IAwaitingSettlement {
+  id: string;
+  matrix: ISettlementMatrix;
+  batch: ISettlementMatrixBatch;
 
-export * from "./repo/settlement_batch_repo_mock";
-export * from "./repo/settlement_batch_transfer_repo_mock";
-
-export * from "./repo/awaiting_settlements_repo_mock";
-
-export * from "./repo/settlement_matrix_request_repo_mock";
-export * from "./adapter/accounts_balances_adapter_mock";
+  constructor(matrix: ISettlementMatrix, batch: ISettlementMatrixBatch) {
+    this.id = randomUUID();
+    this.matrix = matrix;
+    this.batch = batch;
+  }
+}
