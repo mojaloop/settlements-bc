@@ -1053,4 +1053,143 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 	test("test matrix state machine", async () => {
 		// TODO
 	});
+	test("disputed batch not to settle", async () => {
+		const reqTransferDto: ITransferDto = {
+			id: null,
+			transferId: randomUUID(),
+			payerFspId: randomUUID(),
+			payeeFspId: randomUUID(),
+			currencyCode: 'EUR',
+			amount: '10000', //100 EURO
+			timestamp: Date.now(),
+			settlementModel: 'DISPUTE-ME'
+		};
+		const batchId: string = await aggregate.handleTransfer(securityContext, reqTransferDto);
+		expect(batchId).toBeDefined();
+
+		const reqTransferDto2: ITransferDto = {
+			id: null,
+			transferId: randomUUID(),
+			payerFspId: randomUUID(),
+			payeeFspId: randomUUID(),
+			currencyCode: 'EUR',
+			amount: '10000', //100 EURO
+			timestamp: Date.now(),
+			settlementModel: 'NO-DISPUTE'
+		};
+		const batchId2: string = await aggregate.handleTransfer(securityContext, reqTransferDto2);
+		expect(batchId2).toBeDefined();
+
+		// create a settlement matrix with batches:
+		const matrixIdDisp = await aggregate.createStaticSettlementMatrix(
+			securityContext,
+			null, // matrix-id
+			[batchId,batchId2]
+		);
+		expect(matrixIdDisp).toBeDefined();
+
+		let matrixDisp = await aggregate.getSettlementMatrix(securityContext, matrixIdDisp);
+		expect(matrixDisp).toBeDefined();
+		expect(matrixDisp!.id).toEqual(matrixIdDisp);
+		expect(matrixDisp!.state).toEqual('IDLE');
+		expect(matrixDisp!.type).toEqual('STATIC');
+		expect(matrixDisp!.participantBalances.length).toEqual(4);
+		expect(matrixDisp!.totalDebitBalance).toEqual("20000");
+		expect(matrixDisp!.totalCreditBalance).toEqual("20000");
+		expect(matrixDisp!.participantBalancesDisputed.length).toEqual(0);
+		expect(matrixDisp!.totalDebitBalanceDisputed).toEqual("0");
+		expect(matrixDisp!.totalCreditBalanceDisputed).toEqual("0");
+
+		// create another settlement matrix with first batch:
+		const matrixIdDisp2 = await aggregate.createStaticSettlementMatrix(
+			securityContext,
+			null, // matrix-id
+			[batchId]
+		);
+		expect(matrixIdDisp2).toBeDefined();
+
+		let matrixDisp2 = await aggregate.getSettlementMatrix(securityContext, matrixIdDisp2);
+		expect(matrixDisp2).toBeDefined();
+		expect(matrixDisp2!.id).toEqual(matrixIdDisp2);
+		expect(matrixDisp2!.state).toEqual('IDLE');
+		expect(matrixDisp2!.type).toEqual('STATIC');
+		expect(matrixDisp2!.participantBalances.length).toEqual(2);
+		expect(matrixDisp2!.totalDebitBalance).toEqual("10000");
+		expect(matrixDisp2!.totalCreditBalance).toEqual("10000");
+		expect(matrixDisp2!.participantBalancesDisputed.length).toEqual(0);
+		expect(matrixDisp2!.totalDebitBalanceDisputed).toEqual("0");
+		expect(matrixDisp2!.totalCreditBalanceDisputed).toEqual("0");
+		// dispute the metrix2
+		await aggregate.disputeSettlementMatrix(securityContext, matrixIdDisp2);
+
+		//check disputed batch
+		const batchDisp = await aggregate.getSettlementBatch(securityContext, batchId);
+		expect(batchDisp).toBeDefined();
+		expect(batchDisp!.id).toEqual(batchId);
+		expect(batchDisp!.state).toEqual('DISPUTED');
+
+		//check matrix2 before reclaculate
+		matrixDisp2 = await aggregate.getSettlementMatrix(securityContext, matrixIdDisp2);
+		expect(matrixDisp2).toBeDefined();
+		expect(matrixDisp2!.id).toEqual(matrixIdDisp2);
+		expect(matrixDisp2!.state).toEqual('DISPUTED');
+		expect(matrixDisp2!.type).toEqual('STATIC');
+		expect(matrixDisp2!.participantBalances.length).toEqual(2);
+		expect(matrixDisp2!.totalDebitBalance).toEqual("10000");
+		expect(matrixDisp2!.totalCreditBalance).toEqual("10000");
+		expect(matrixDisp2!.participantBalancesDisputed.length).toEqual(0);
+		expect(matrixDisp2!.totalDebitBalanceDisputed).toEqual("0");
+		expect(matrixDisp2!.totalCreditBalanceDisputed).toEqual("0");
+		
+		await aggregate.recalculateSettlementMatrix(securityContext, matrixIdDisp2);
+
+		//check matrix2 after reclaculate
+		matrixDisp2 = await aggregate.getSettlementMatrix(securityContext, matrixIdDisp2);
+		expect(matrixDisp2).toBeDefined();
+		expect(matrixDisp2!.id).toEqual(matrixIdDisp2);
+		expect(matrixDisp2!.state).toEqual('DISPUTED');
+		expect(matrixDisp2!.type).toEqual('STATIC');
+		expect(matrixDisp2!.participantBalances.length).toEqual(0);
+		expect(matrixDisp2!.totalDebitBalance).toEqual("0");
+		expect(matrixDisp2!.totalCreditBalance).toEqual("0");
+		expect(matrixDisp2!.participantBalancesDisputed.length).toEqual(2);
+		expect(matrixDisp2!.totalDebitBalanceDisputed).toEqual("10000");
+		expect(matrixDisp2!.totalCreditBalanceDisputed).toEqual("10000");
+
+		//check matrix1 again
+		await aggregate.recalculateSettlementMatrix(securityContext, matrixIdDisp);
+
+		matrixDisp = await aggregate.getSettlementMatrix(securityContext, matrixIdDisp);
+
+		//check before settlement
+		expect(matrixDisp).toBeDefined();
+		expect(matrixDisp!.id).toEqual(matrixIdDisp);
+		expect(matrixDisp!.state).toEqual('IDLE');
+		expect(matrixDisp!.type).toEqual('STATIC');
+		expect(matrixDisp!.participantBalances.length).toEqual(2);
+		expect(matrixDisp!.totalDebitBalance).toEqual("10000");
+		expect(matrixDisp!.totalCreditBalance).toEqual("10000");
+		expect(matrixDisp!.participantBalancesDisputed.length).toEqual(2);
+		expect(matrixDisp!.totalDebitBalanceDisputed).toEqual("10000");
+		expect(matrixDisp!.totalCreditBalanceDisputed).toEqual("10000");
+		
+		//settle matrix1
+		await aggregate.settleSettlementMatrix(securityContext, matrixIdDisp);
+		
+		matrixDisp = await aggregate.getSettlementMatrix(securityContext, matrixIdDisp);
+
+		//check the settled matrix1 again
+		expect(matrixDisp).toBeDefined();
+		expect(matrixDisp!.id).toEqual(matrixIdDisp);
+		expect(matrixDisp!.state).toEqual('SETTLED');
+		expect(matrixDisp!.type).toEqual('STATIC');
+		expect(matrixDisp!.participantBalances.length).toEqual(2);
+		expect(matrixDisp!.totalDebitBalance).toEqual("10000");
+		expect(matrixDisp!.totalCreditBalance).toEqual("10000");
+		expect(matrixDisp!.participantBalancesDisputed.length).toEqual(2);
+		expect(matrixDisp!.totalDebitBalanceDisputed).toEqual("10000");
+		expect(matrixDisp!.totalCreditBalanceDisputed).toEqual("10000");
+
+
+	});
 });
