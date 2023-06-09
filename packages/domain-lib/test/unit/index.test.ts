@@ -1021,7 +1021,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		expect(batchId02).toBeDefined();
 		expect(batchId01 === batchId02).toEqual(false);
 
-		// dispute the one and only batch:
+		// Dispute the one and only batch:
 		const matrixId = await aggregate.createStaticSettlementMatrix(
 			securityContext,
 			null, // matrix-id
@@ -1034,7 +1034,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		expect(matrix01!.id).toEqual(matrixId);
 		expect(matrix01!.batches.length).toEqual(1);
 
-		// add the 2nd batch:
+		// Add the 2nd batch:
 		await aggregate.addBatchesToStaticSettlementMatrix(securityContext, matrixId, [batchId02]);
 
 		matrix01 = await aggregate.getSettlementMatrix(securityContext, matrixId);
@@ -1042,7 +1042,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		expect(matrix01!.id).toEqual(matrixId);
 		expect(matrix01!.batches.length).toEqual(2);
 
-		// remove the 2nd batch:
+		// Remove the 2nd batch:
 		await aggregate.removeBatchesFromStaticSettlementMatrix(securityContext, matrixId, [batchId02]);
 		matrix01 = await aggregate.getSettlementMatrix(securityContext, matrixId);
 		expect(matrix01).toBeDefined();
@@ -1053,6 +1053,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 	test("test matrix state machine", async () => {
 		// TODO
 	});
+
 	test("disputed batch not to settle", async () => {
 		const reqTransferDto: ITransferDto = {
 			id: null,
@@ -1080,11 +1081,11 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		const batchId2: string = await aggregate.handleTransfer(securityContext, reqTransferDto2);
 		expect(batchId2).toBeDefined();
 
-		// create a settlement matrix with batches:
+		// Create a settlement matrix with batches:
 		const matrixIdDisp = await aggregate.createStaticSettlementMatrix(
 			securityContext,
 			null, // matrix-id
-			[batchId,batchId2]
+			[batchId, batchId2]
 		);
 		expect(matrixIdDisp).toBeDefined();
 
@@ -1100,7 +1101,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		expect(matrixDisp!.totalDebitBalanceDisputed).toEqual("0");
 		expect(matrixDisp!.totalCreditBalanceDisputed).toEqual("0");
 
-		// create another settlement matrix with first batch:
+		// Create another settlement matrix with first batch:
 		const matrixIdDisp2 = await aggregate.createStaticSettlementMatrix(
 			securityContext,
 			null, // matrix-id
@@ -1119,16 +1120,16 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		expect(matrixDisp2!.participantBalancesDisputed.length).toEqual(0);
 		expect(matrixDisp2!.totalDebitBalanceDisputed).toEqual("0");
 		expect(matrixDisp2!.totalCreditBalanceDisputed).toEqual("0");
-		// dispute the metrix2
+		// Dispute the matrixIdDisp2:
 		await aggregate.disputeSettlementMatrix(securityContext, matrixIdDisp2);
 
-		//check disputed batch
+		// Verify disputed batch:
 		const batchDisp = await aggregate.getSettlementBatch(securityContext, batchId);
 		expect(batchDisp).toBeDefined();
 		expect(batchDisp!.id).toEqual(batchId);
 		expect(batchDisp!.state).toEqual('DISPUTED');
 
-		//check matrix2 before reclaculate
+		// Verify matrix2 before re-calculate:
 		matrixDisp2 = await aggregate.getSettlementMatrix(securityContext, matrixIdDisp2);
 		expect(matrixDisp2).toBeDefined();
 		expect(matrixDisp2!.id).toEqual(matrixIdDisp2);
@@ -1143,7 +1144,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		
 		await aggregate.recalculateSettlementMatrix(securityContext, matrixIdDisp2);
 
-		//check matrix2 after reclaculate
+		// Verify matrix2 after re-calculate:
 		matrixDisp2 = await aggregate.getSettlementMatrix(securityContext, matrixIdDisp2);
 		expect(matrixDisp2).toBeDefined();
 		expect(matrixDisp2!.id).toEqual(matrixIdDisp2);
@@ -1156,12 +1157,12 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		expect(matrixDisp2!.totalDebitBalanceDisputed).toEqual("10000");
 		expect(matrixDisp2!.totalCreditBalanceDisputed).toEqual("10000");
 
-		//check matrix1 again
+		// Verify matrix1 again:
 		await aggregate.recalculateSettlementMatrix(securityContext, matrixIdDisp);
 
 		matrixDisp = await aggregate.getSettlementMatrix(securityContext, matrixIdDisp);
 
-		//check before settlement
+		// Verify before settlement:
 		expect(matrixDisp).toBeDefined();
 		expect(matrixDisp!.id).toEqual(matrixIdDisp);
 		expect(matrixDisp!.state).toEqual('IDLE');
@@ -1173,7 +1174,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		expect(matrixDisp!.totalDebitBalanceDisputed).toEqual("10000");
 		expect(matrixDisp!.totalCreditBalanceDisputed).toEqual("10000");
 		
-		//settle matrix1
+		// Settle matrix1:
 		await aggregate.settleSettlementMatrix(securityContext, matrixIdDisp);
 		
 		matrixDisp = await aggregate.getSettlementMatrix(securityContext, matrixIdDisp);
@@ -1183,13 +1184,24 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		expect(matrixDisp!.id).toEqual(matrixIdDisp);
 		expect(matrixDisp!.state).toEqual('SETTLED');
 		expect(matrixDisp!.type).toEqual('STATIC');
+		// We only expect a single batch (the settled batch, since the disputed batch is excluded).
+		expect(matrixDisp!.batches.length).toEqual(1);
 		expect(matrixDisp!.participantBalances.length).toEqual(2);
+		expect(matrixDisp!.participantBalancesDisputed.length).toEqual(0);
 		expect(matrixDisp!.totalDebitBalance).toEqual("10000");
 		expect(matrixDisp!.totalCreditBalance).toEqual("10000");
-		expect(matrixDisp!.participantBalancesDisputed.length).toEqual(2);
-		expect(matrixDisp!.totalDebitBalanceDisputed).toEqual("10000");
-		expect(matrixDisp!.totalCreditBalanceDisputed).toEqual("10000");
+		expect(matrixDisp!.participantBalancesDisputed.length).toEqual(0);
+		expect(matrixDisp!.participantBalances.length).toEqual(2);
+		expect(matrixDisp!.totalDebitBalanceDisputed).toEqual("0");
+		expect(matrixDisp!.totalCreditBalanceDisputed).toEqual("0");
 
+		// Ensure that the disputed batch was not settled, even though it was originally part of [matrixIdDisp]:
+		const batchExpDisputed = await aggregate.getSettlementBatch(securityContext, batchId);
+		expect(batchExpDisputed).toBeDefined();
+		expect(batchExpDisputed!.state).toEqual('DISPUTED');
 
+		const batchExpSettled = await aggregate.getSettlementBatch(securityContext, batchId2);
+		expect(batchExpSettled).toBeDefined();
+		expect(batchExpSettled!.state).toEqual('SETTLED');
 	});
 });
