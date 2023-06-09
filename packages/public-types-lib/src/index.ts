@@ -132,3 +132,18 @@ export interface ISettlementMatrixBatchAccount {
 
 
 
+/* ISettlementModelClient for settlement-model-lib */
+
+
+export interface ISettlementModelClient {
+	init(): Promise<void>;
+
+	destroy(): Promise<void>;
+
+	getSettlementModel(
+		transferAmount: bigint,
+		payerCurrency: string | null,
+		payeeCurrency: string | null,
+		extensionList: { key: string; value: string; }[]
+	): Promise<string>;
+}

@@ -26,11 +26,42 @@
  ******/
 
 "use strict";
+import {ISettlementModelClient} from "@mojaloop/settlements-bc-public-types-lib";
 
+export class SettlementModelClient implements ISettlementModelClient {
+	private _settlementsApiUrl:string;
+
+	constructor(settlementsApiUrl:string){
+		this._settlementsApiUrl = settlementsApiUrl;
+	}
+
+	async init(): Promise<void> {
+		// TODO fetch the available models from the settlements api
+		return Promise.resolve();
+	}
+
+	async destroy(): Promise<void> {
+		return Promise.resolve();
+	}
+
+	getSettlementModel(
+		transferAmount: bigint,
+		payerCurrency: string | null,
+		payeeCurrency: string | null,
+		extensionList: { key: string; value: string; }[]
+	): Promise<string> {
+		// TODO decide model based on conditions - use models from initialization step (sourced from settlements' api)
+
+		return Promise.resolve("DEFAULT");
+	}
+}
+
+/*
 export function obtainSettlementModelFrom(
 	transferAmount: bigint,
 	debitAccountCurrency: string | null,
-	creditAccountCurrency: string | null
+	creditAccountCurrency: string | null,
+	extensionList: { key: string; value: string;}[]
 ) : Promise<string> {
 	if (debitAccountCurrency === null || creditAccountCurrency===null)
 		return Promise.resolve('DEFAULT');
@@ -41,3 +72,4 @@ export function obtainSettlementModelFrom(
 
 	// TODO we need to unpack REMITTANCE
 }
+*/
