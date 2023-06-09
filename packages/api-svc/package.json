@@ -11,6 +11,9 @@
     "Jason Bruwer <jason.bruwer@coil.com>"
   ],
   "private": true,
+  "mojaloop": {
+    "publish_to_dockerhub": true
+  },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "files": [

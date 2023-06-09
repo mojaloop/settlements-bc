@@ -5,6 +5,9 @@
   "license": "Apache-2.0",
   "homepage": "https://github.com/mojaloop/settlements-bc/event-handler-svc",
   "private": true,
+  "mojaloop": {
+    "publish_to_dockerhub": true
+  },
   "bugs": {
     "url": "https://github.com/mojaloop/settlements-bc/issues#readme"
   },
