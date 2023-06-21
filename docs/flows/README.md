@@ -36,16 +36,16 @@ The diagram below illustrates how Transfers that were cleared by the **Central-L
 A Settlement Transfer is the data object shared between the Settlement service and the service that it interacts with (e.g. Central-Ledger or the Transfers BC).    
 The table below gives a view of the Settlement Transfer fields:
 
-| Field              | Definition                         | Description                                                                                                                                          |
-|--------------------|------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `id`               | `null / string`                    | The global unique identifier for settlement transfer. Assigned by Settlement                                                                         |
-| `transferId`       | `string`                           | An external id used by the external services (Central-Ledger / Transfers BC) used to identify a transaction                                          |
-| `payerFspId`       | `string`                           | The participant account to be debited. The actual settlement account will be derived from the provided debit account during a transfer               |
-| `payeeFspId`       | `string`                           | The participant account to be credited. The actual settlement account will be derived from the provided credit account during a transfer             |
-| `currencyCode`     | `string`                           | The currency code for a settlement transfer as described in ISO-4217                                                                                 |
-| `amount`           | `string`                           | The transfer amount in minor denomination format (cents/fills) as text (`string)                                                                     |
-| `timestamp`        | `number`                           | The timestamp of the original committed/fulfilled transfer. Settlement batch processing make use of the timestamp to allocate transfers to batches   |
-| `settlementModel`  | `string`                           | The settlement model assigned to the transfer (Examples include `DEFAULT`, `FX` and `REMITTENCE`). Mandatory for a transfer create                   |
+| Field              | Definition                         | Description                                                                                                                                        |
+|--------------------|------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
+| `id`               | `null / string`                    | The global unique identifier for settlement transfer. Assigned by Settlement                                                                       |
+| `transferId`       | `string`                           | An external id used by the external services (Central-Ledger / Transfers BC) used to uniquely identify a transfer                                  |
+| `payerFspId`       | `string`                           | The participant account to be debited. The actual settlement account will be derived from the provided debit account during a transfer             |
+| `payeeFspId`       | `string`                           | The participant account to be credited. The actual settlement account will be derived from the provided credit account during a transfer           |
+| `currencyCode`     | `string`                           | The currency code for a settlement transfer as described in ISO-4217                                                                               |
+| `amount`           | `string`                           | The transfer amount in minor denomination format (cents/fills) as text (`string)                                                                   |
+| `timestamp`        | `number`                           | The timestamp of the original committed/fulfilled transfer. Settlement batch processing make use of the timestamp to allocate transfers to batches |
+| `settlementModel`  | `string`                           | The settlement model assigned to the transfer (Examples include `DEFAULT`, `FX` and `REMITTENCE`). Mandatory for a transfer create                 |
 * See `ITransferDto` at https://github.com/mojaloop/settlements-bc/blob/main/packages/public-types-lib/src/index.ts
 
 ### Settlement Batch Account Model
@@ -167,6 +167,42 @@ The table below illustrates the Settlement Matrix Batch Account fields:
 | `debitBalance`   | `string`   | The settlement batch account debit balance amount in minor denomination format (cents/fills) as text (`string)                                         |
 | `creditBalance`  | `string`   | The settlement batch account credit balance amount in minor denomination format (cents/fills) as text (`string)                                        |
 * See `ISettlementMatrixBatchAccount` at https://github.com/mojaloop/settlements-bc/blob/main/packages/public-types-lib/src/index.ts
+
+### Transfer Prepared Event Payload Model
+The Transfer Prepared Event Payload Model is published at the time a 2-phase Transfer has been fulfilled. This event signifies the settlement obligation has been created as a result of a successful transfer.
+The table below illustrates the Transfer Prepared Event Payload Model fields:
+
+| Field            | Definition  | Description                                                                                                                              |
+|------------------|-------------|------------------------------------------------------------------------------------------------------------------------------------------|
+| `transferId`     | `string`    | An external id used by the external services (Central-Ledger / Transfers BC) used to uniquely identify a transfer                        |
+| `payeeFsp`       | `string`    | An participantId id used by the external services (Central-Ledger / Transfers BC) used to identify the payer DFSP                        |
+| `payerFsp`       | `string`    | An participantId id used by the external services (Central-Ledger / Transfers BC) used to identify the payee DFSP                        |
+| `amount`         | `string`    | The transfer amount in minor denomination format (cents/fills) as text (`string)                                                         |
+| `currencyCode`   | `string`    | The currency code as described in ISO-4217                                                                                               |
+| `ilpPacket`      | `string`    | The ILP packet transmitted *(optional)*. See https://interledger.org/rfcs/0003-interledger-protocol/                                     |
+| `condition`      | `string`    | The cryptographic condition set on the ILP packet by the sender *(optional)*.                                                            |
+| `expiration`     | `number`    | The timestamp when the transfer fulfill would have expired, which would have resulted in a rollback (no fulfill post the prepare event). |
+| `extensionList`  | `extension` | The list of optional name/value pair extensions that may be added as part of the transfer fulfill *(optional)*.                          |
+* See `TransferPreparedEvtPayload` at https://github.com/mojaloop/platform-shared-lib/blob/main/packages/public-messages-lib/src/transfers-bc/responses.ts
+
+### Settlement Matrix Settled Participant Event Payload Model
+The Settlement Matrix Settled Participant Event Payload Model is published at the time a settlement batch have been `SETTLED` (final stage). 
+This event signifies the settlement obligation has been fulfilled as a result of a successful settlement.
+The table below illustrates the Settlement Matrix Settled Participant Event Payload Model fields:
+
+| Field            | Definition  | Description                                                                                                                              |
+|------------------|-------------|------------------------------------------------------------------------------------------------------------------------------------------|
+| `transferId`     | `string`    | An external id used by the external services (Central-Ledger / Transfers BC) used to uniquely identify a transfer                        |
+| `payeeFsp`       | `string`    | An participantId id used by the external services (Central-Ledger / Transfers BC) used to identify the payer DFSP                        |
+| `payerFsp`       | `string`    | An participantId id used by the external services (Central-Ledger / Transfers BC) used to identify the payee DFSP                        |
+| `amount`         | `string`    | The transfer amount in minor denomination format (cents/fills) as text (`string)                                                         |
+| `currencyCode`   | `string`    | The currency code as described in ISO-4217                                                                                               |
+| `ilpPacket`      | `string`    | The ILP packet transmitted *(optional)*. See https://interledger.org/rfcs/0003-interledger-protocol/                                     |
+| `condition`      | `string`    | The cryptographic condition set on the ILP packet by the sender *(optional)*.                                                            |
+| `expiration`     | `number`    | The timestamp when the transfer fulfill would have expired, which would have resulted in a rollback (no fulfill post the prepare event). |
+| `extensionList`  | `extension` | The list of optional name/value pair extensions that may be added as part of the transfer fulfill *(optional)*.                          |
+* See `SettlementMatrixSettledParticipantEvtPayload` at https://github.com/mojaloop/platform-shared-lib/blob/main/packages/public-messages-lib/src/settlements-bc/requests.ts
+
 
 ## 3. Assigning Dynamic Settlement Batches
 This section describes the process of assigning a Transfer to a batch, for settlement.
