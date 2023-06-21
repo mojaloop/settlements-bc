@@ -33,11 +33,11 @@ This process is initiated when the Settlement component receives cleared Transfe
 The process creates settlement obligations between the payer (debtor) and payee (creditor) DFSPs 
 by creating settlement transfers which are deterministically allocated to settlement batches. 
 
-## Settlement from Transfers BC
+## `TransferPreparedEvtPayload` from Transfers BC
 The diagram below illustrates how Transfers that were cleared by the **Transfers BC** get settled:
 ## ![Settlement Transfer Flow for Transfers BC](./01-settlement-transfer-bc.svg "Settlement Transfer Transfers BC")
 
-### Settlement from Central-Ledger
+### `TransferPreparedEvtPayload` from Central-Ledger
 The diagram below illustrates how Transfers that were cleared by the **Central-Ledger** service get settled:
 ## ![Settlement Transfer Flow for Central-Ledger](./01-settlement-transfer-cl.svg "Settlement Transfer Central-Ledger")
 

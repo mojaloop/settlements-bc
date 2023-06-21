@@ -1,5 +1,9 @@
 @startuml
 
+object ISettlementMatrix
+    ISettlementMatrix : **//(PK)// id** = //uuid//
+    ISettlementMatrix : **batches** = //uuid - Batches//
+    ISettlementMatrix : ...
 object ITransferDto
     ITransferDto : **//(PK)// id** = //uuid//
     ITransferDto : **transferId** = //uuid//
@@ -12,10 +16,18 @@ object ISettlementBatchAccount
 object ISettlementBatch
     ISettlementBatch : **//(PK)// id** = //uuid//
     ISettlementBatch : ...
+object IAwaitingSettlement
+    IAwaitingSettlement : **//(PK)// id** = //uuid//
+    IAwaitingSettlement : **matrix** = //uuid - Settlement Matrix//
+    IAwaitingSettlement : **batch** = //uuid - Settlement Matrix Batch//
 
 ISettlementBatchAccount <|-- ITransferDto : //debitAccount//
 ISettlementBatchAccount <|-- ITransferDto : //creditAccount//
 ISettlementBatch <|-- ITransferDto : //batch (assigned during transfer) **[*..1]**//
 ISettlementBatch <|-- ISettlementBatchAccount : //batch **[*..1]**//
+
+ISettlementBatch <|-- IAwaitingSettlement : //batch **[1..*]**//
+ISettlementMatrix <|-- IAwaitingSettlement : //matrix **[1..1]**//
+ISettlementBatch <|-- ISettlementMatrix : //matrix **[1..*]**//
 
 @enduml

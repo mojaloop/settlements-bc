@@ -1,5 +1,10 @@
 @startuml
 
+skinparam TitleFontSize 20
+skinparam titleBorderRoundCorner 15
+skinparam titleBorderThickness 2
+skinparam titleBorderColor Aqua-CadetBlue
+skinparam titleBackgroundColor Aqua-CadetBlue
 title Settle Settlement Matrix
 
 participant "Admin API" as ext_cl
