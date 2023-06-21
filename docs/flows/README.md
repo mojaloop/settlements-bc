@@ -249,7 +249,10 @@ The above ensures the requirements are met:
 This section describes the process of assigning a Batch to a static Settlement Matrix, for settlement.
 
 It is necessary to perform commands on a statically defined batch or batches for a Settlement Matrix.
-Once a Static Matrix has been created, batches may be added or removed from the static matrix. 
+Once a Static Matrix has been created, batches may be added or removed from the static matrix.
+
+A static settlement matrix is useful when the Hub operator knows the exact batches to be included as part of a matrix.
+The static matrix is especially useful when disputing one or more batches in order to isolate those batches from other batches that may be settled.
 
 ## 5. Settlement State Machine
 State transitions for settlement matrices and batches are described in the following sections.
