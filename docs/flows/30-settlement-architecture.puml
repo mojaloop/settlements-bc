@@ -1,0 +1,44 @@
+@startmindmap
++[#Orange] **Settlements-BC**
+++[#Lightblue] Database
++++_ MongoDB
++++_ TigerBeetle
++++_ Mock (//Testing Purposes//)
+++[#Lightblue] Kafka
++++_ //public-messages-lib//
+++[#Orange] Auditing-BC
++++[#Lightblue] Kafka
+++++_ //public-messages-lib//
+++[#Orange] Logging-BC
++++[#Lightblue] Kafka
+++++_ //public-messages-lib//
+++[#Orange] Security-BC
++++[#Lightblue] Kafka
+++++_ //public-messages-lib//
+++[#LightGreen] Ledger Adapter
+***_ TigerBeetle
+***_ Accounts & Balances
+***_ Mock (//Testing Purposes//)
+--[#FFBBCC] Central-Ledger
+---[#Lightblue] Database
+----_ MySQL
+----_ TigerBeetle
+---[#Lightblue] Kafka
+----_ //public-messages-lib//
+---[#Lightblue] Redis
+--[#Orange] Transfers-BC
+---[#Lightblue] Kafka
+----_ //public-messages-lib//
+--[#Orange] Participants-BC
+---[#Lightblue] Kafka
+----_ //public-messages-lib//
+
+legend left
+**Orange** = vNext
+**Blue** = 3rd Party Components
+**Red** = Central-Services //(Current implementation)//
+**Green** = Settlement Components (Features)
+**//public-messages-lib//** = Core MJL library
+endlegend
+
+@endmindmap

@@ -6,7 +6,8 @@ The current design of the new Settlement component expects use or integration wi
 
 The sections that follow detail each stage of the settlement process.  
 At a high level, the settlement process entails:
-- [Creating Settlement Transfers](#1-creating-settlement-transfers) 
+- [Settlement Services](#settlement-services)
+- [Creating Settlement Transfers](#1-creating-settlement-transfers)
 - [Fulfilling Settlement Obligations](#2-fulfilling-settlement-obligations) 
 - [Assigning Dynamic Settlement Batches](#3-assigning-dynamic-settlement-batches)
 - [Assigning Static Settlement Batches](#4-assigning-static-settlement-batches)
@@ -18,6 +19,14 @@ The Settlement BC service is designed for use by one of two Mojaloop transaction
 This is dependent on which major version of the Mojaloop software has been deployed:
 - The `Central-Ledger` service records all cleared transactions for the current production Mojaloop major version 1.
 - The `Transfers BC` service records all cleared transactions for the anticipated, not yet released Mojaloop major version 'vNext'. 
+
+## Settlement Services
+The diagram below illustrates the various components required by Settlement to function:
+## ![Settlement Components](./30-settlement-architecture.svg "Settlement Components")
+
+> One would either run Transfer-BC or Central-Ledger BC, but not both. 
+
+> The components on the left are client components for the Settlement-BC, whilst the components on the right represent core Settlement compments.  
 
 ## 1. Creating Settlement Transfers
 This process is initiated when the Settlement component receives cleared Transfers to settle.  
@@ -113,7 +122,6 @@ The flow below is how a Settlement Matrix is `DISPUTED`, based on an existing se
 ### Settlement Matrix - Settle
 The flow below is how a Settlement Matrix is `SETTLED`, based on an existing settlement matrix id:
 ## ![Settlement Matrix Settle](./05-settlement-matrix-settle.svg "Matrix Settle")
-
 
 ### Settlement Matrix Model
 The settlement matrix is the data object shared between Settlement and the external services during settlement matrix generation.
@@ -242,10 +250,10 @@ It is necessary to perform commands on a statically defined batch or batches for
 Once a Static Matrix has been created, batches may be added or removed from the static matrix. 
 
 ## 5. Settlement State Machine
-State transitions for settlement matrices and batches are allowed as follows:  
+State transitions for settlement matrices and batches are described in the following sections.
 
 ### 5.1 Settlement Matrix
-The table below illustrates the state transitions for a settlement matrix:
+The table below illustrates the states for a settlement matrix:
 
 | State      | Description                                                                                                       | 
 |------------|-------------------------------------------------------------------------------------------------------------------|
@@ -254,17 +262,18 @@ The table below illustrates the state transitions for a settlement matrix:
 | `SETTLED`  | Matrix has been actioned to settled all IDLE or CLOSED batches. Once a matrix is settled, it is considered final  |
 
 ### 5.2 Settlement Matrix Batch
-The table below illustrates the state transitions for a settlement batch:
+The table below illustrates the states for a settlement batch:
 
-| State                 | Description                                                                                                                                                | 
-|-----------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `OPEN`                | Batch is open and may receive settlement transfers                                                                                                         |
-| `CLOSED`              | Batch is closed and no more transactions will be allocated to the closed batch                                                                             |
-| `DISPUTED`            | Batch have been disputed. The dispute needs to be resolved before the batch can be settled                                                                 |
-| `AWAITING_SETTLEMENT` | Batch has been marked as final, lock relationship is created between batch and matrix. Only the matrix linked to the batch is allowed to release the batch |
-| `SETTLED`             | Batch is settled and considered as final                                                                                                                   |
+| State                 | Description                                                                                                                                                          | 
+|-----------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `OPEN`                | Batch is open and may receive settlement transfers                                                                                                                   |
+| `CLOSED`              | Batch is closed and no more transactions will be allocated to the closed batch                                                                                       |
+| `DISPUTED`            | Batch have been disputed. The dispute needs to be resolved before the batch can be settled                                                                           |
+| `AWAITING_SETTLEMENT` | Batch has been marked for final approval, lock relationship is created between batch and matrix. Only the matrix linked to the batch is allowed to release the batch |
+| `SETTLED`             | Batch is settled and considered as final                                                                                                                             |
 
 ### 5.3 Settlement Batch State Transitions
+The diagram below illustrates the state transitions for a settlement batch:
 ## ![Settlement Batch State Transitions](./20-batch-statemachine.svg "Settlement Batch State Transitions")
 
 ## 6. References

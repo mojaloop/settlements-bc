@@ -26,5 +26,3 @@ state VerifyAndExecuteSettlementMatrix {
 SETTLED --> [*] : Obligation fulfilled
 
 @enduml
-
- "OPEN" | "DISPUTED" | "SETTLED" | "CLOSED"
