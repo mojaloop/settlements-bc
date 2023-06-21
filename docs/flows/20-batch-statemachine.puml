@@ -1,0 +1,30 @@
+@startuml
+
+state ReceivingTransfers {
+    [*] --> OPEN : TransferFulfill
+    OPEN : Batch is ready to consume/receive transfers
+}
+
+state CreateSettlementMatrix {
+    OPEN -> CLOSED : Manual or via Batch schedule
+    CLOSED : Not receiving any more transfers
+    CLOSED -> DISPUTED : Operator action
+    DISPUTED -> CLOSED : Operator action
+    DISPUTED : Not able to settle
+    OPEN -> DISPUTED : Manual operator action
+}
+
+state VerifyAndExecuteSettlementMatrix {
+    SETTLED : Final Step
+    SETTLED : Settlement matrix with D/C balances published
+    AWAITING_SETTLEMENT -> CLOSED : Lock released
+    CLOSED -> AWAITING_SETTLEMENT : Locked via matrix
+        AWAITING_SETTLEMENT : Only owner matrix may release batch from awaiting settlement (to **CLOSED**)
+    AWAITING_SETTLEMENT -> SETTLED
+}
+
+SETTLED --> [*] : Obligation fulfilled
+
+@enduml
+
+ "OPEN" | "DISPUTED" | "SETTLED" | "CLOSED"
