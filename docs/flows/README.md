@@ -180,9 +180,9 @@ The table below illustrates the Transfer Prepared Event Payload Model fields:
 | `amount`         | `string`    | The transfer amount in minor denomination format (cents/fills) as text (`string)                                                         |
 | `currencyCode`   | `string`    | The currency code as described in ISO-4217                                                                                               |
 | `ilpPacket`      | `string`    | The ILP packet transmitted *(optional)*. See https://interledger.org/rfcs/0003-interledger-protocol/                                     |
-| `condition`      | `string`    | The cryptographic condition set on the ILP packet by the sender *(optional)*.                                                            |
+| `condition`      | `string`    | The cryptographic condition set on the ILP packet by the sender *(optional)*                                                             |
 | `expiration`     | `number`    | The timestamp when the transfer fulfill would have expired, which would have resulted in a rollback (no fulfill post the prepare event). |
-| `extensionList`  | `extension` | The list of optional name/value pair extensions that may be added as part of the transfer fulfill *(optional)*.                          |
+| `extensionList`  | `extension` | The list of optional name/value pair extensions that may be added as part of the transfer fulfill *(optional)*                           |
 * See `TransferPreparedEvtPayload` at https://github.com/mojaloop/platform-shared-lib/blob/main/packages/public-messages-lib/src/transfers-bc/responses.ts
 
 ### Settlement Matrix Settled Participant Event Payload Model
@@ -190,19 +190,22 @@ The Settlement Matrix Settled Participant Event Payload Model is published at th
 This event signifies the settlement obligation has been fulfilled as a result of a successful settlement.
 The table below illustrates the Settlement Matrix Settled Participant Event Payload Model fields:
 
-| Field            | Definition  | Description                                                                                                                              |
-|------------------|-------------|------------------------------------------------------------------------------------------------------------------------------------------|
-| `transferId`     | `string`    | An external id used by the external services (Central-Ledger / Transfers BC) used to uniquely identify a transfer                        |
-| `payeeFsp`       | `string`    | An participantId id used by the external services (Central-Ledger / Transfers BC) used to identify the payer DFSP                        |
-| `payerFsp`       | `string`    | An participantId id used by the external services (Central-Ledger / Transfers BC) used to identify the payee DFSP                        |
-| `amount`         | `string`    | The transfer amount in minor denomination format (cents/fills) as text (`string)                                                         |
-| `currencyCode`   | `string`    | The currency code as described in ISO-4217                                                                                               |
-| `ilpPacket`      | `string`    | The ILP packet transmitted *(optional)*. See https://interledger.org/rfcs/0003-interledger-protocol/                                     |
-| `condition`      | `string`    | The cryptographic condition set on the ILP packet by the sender *(optional)*.                                                            |
-| `expiration`     | `number`    | The timestamp when the transfer fulfill would have expired, which would have resulted in a rollback (no fulfill post the prepare event). |
-| `extensionList`  | `extension` | The list of optional name/value pair extensions that may be added as part of the transfer fulfill *(optional)*.                          |
-* See `SettlementMatrixSettledParticipantEvtPayload` at https://github.com/mojaloop/platform-shared-lib/blob/main/packages/public-messages-lib/src/settlements-bc/requests.ts
+The table below illustrates the Settlement Matrix Settled Event Model fields:
 
+| Field                | Definition                                       | Description                                               |
+|----------------------|--------------------------------------------------|-----------------------------------------------------------|
+| `settlementMatrixId` | `string`                                         | The unique settlement matrix id that was settled          |
+| `settledTimestamp`   | `number`                                         | The timestamp at which the settlement took place          |
+| `participantList`    | `SettlementMatrixSettledParticipantEvtPayload[]` | The list of participants with their debit/credit balances |
+* See `SettlementMatrixSettledEvt` at https://github.com/mojaloop/platform-shared-lib/blob/main/packages/public-messages-lib/src/settlements-bc/requests.ts
+
+| Field                  | Definition  | Description                                                                                                                            |
+|------------------------|-------------|----------------------------------------------------------------------------------------------------------------------------------------|
+| `participantId`        | `string`    | An participantId id used by the external services (Central-Ledger / Transfers BC) used to identify the DFSP position balance to update |
+| `currencyCode`         | `string`    | The currency code as described in ISO-4217                                                                                             |
+| `settledDebitBalance`  | `string`    | The net debit balance for all batches settled for the `participantId`                                                                  |
+| `settledCreditBalance` | `string`    | The net credit balance for all batches settled for the `participantId`                                                                 |
+* See `SettlementMatrixSettledParticipantEvtPayload` at https://github.com/mojaloop/platform-shared-lib/blob/main/packages/public-messages-lib/src/settlements-bc/requests.ts
 
 ## 3. Assigning Dynamic Settlement Batches
 This section describes the process of assigning a Transfer to a batch, for settlement.
