@@ -2,7 +2,7 @@
 This document describes how the Settlement component functions, including detailing how data flows as cleared transfers are processed through settlement.    
 The current design of the new Settlement component expects use or integration with one of the following two Mojaloop transaction clearing services:
 - The `Central-Ledger` service which records cleared transactions for the current Production version, as at Februar 2023.
-- The `Transfers BC` service which records cleared transactions for the not yet released Mojaloop major version that aligns with the full implementation of the Reference Architecture (informally referred to as `vNext`).
+- The `Transfers BC / Participants BC` service which records cleared transactions for the not yet released Mojaloop major version that aligns with the full implementation of the Reference Architecture (informally referred to as `vNext`).
 
 The sections that follow detail each stage of the settlement process.  
 At a high level, the settlement process entails:
