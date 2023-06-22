@@ -1,8 +1,10 @@
 @startmindmap
 +[#Orange] **Settlements-BC**
 ++[#Lightblue] Database
++++[#LightGreen] Ledger Adapter
+++++[#Orange] Accounts & Balances BC
+*****_ TigerBeetle
 +++_ MongoDB
-+++_ Mock (//Testing Purposes//)
 ++[#Lightblue] Kafka
 +++_ //public-messages-lib//
 ++[#Orange] Auditing-BC
@@ -14,10 +16,6 @@
 ++[#Orange] Security-BC
 +++[#Lightblue] Kafka
 ++++_ //public-messages-lib//
-++[#LightGreen] Ledger Adapter
-+++[#Orange] Accounts & Balances
-****_ TigerBeetle
-***_ Mock (//Testing Purposes//)
 --[#Orange] Transfers-BC
 ---[#Lightblue] Kafka
 ----_ //public-messages-lib//
@@ -26,7 +24,7 @@
 ----_ //public-messages-lib//
 
 legend left
-**Orange** = vNext
+**Orange** = Bounded Context
 **Blue** = 3rd Party Components
 **Green** = Settlement Components (Features)
 **//public-messages-lib//** = Core MJL library
