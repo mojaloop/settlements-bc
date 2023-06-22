@@ -17,7 +17,6 @@
 ++++_ //public-messages-lib//
 ++[#LightGreen] Ledger Adapter
 ***_ TigerBeetle
-***_ Accounts & Balances
 ***_ Mock (//Testing Purposes//)
 --[#FFBBCC] Central-Ledger
 ---[#Lightblue] Database
@@ -26,12 +25,6 @@
 ---[#Lightblue] Kafka
 ----_ //public-messages-lib//
 ---[#Lightblue] Redis
---[#Orange] Transfers-BC
----[#Lightblue] Kafka
-----_ //public-messages-lib//
---[#Orange] Participants-BC
----[#Lightblue] Kafka
-----_ //public-messages-lib//
 
 legend left
 **Orange** = vNext

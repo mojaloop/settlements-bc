@@ -21,8 +21,11 @@ This is dependent on which major version of the Mojaloop software has been deplo
 - The `Transfers BC` service records all cleared transactions for the anticipated, not yet released Mojaloop major version 'vNext'. 
 
 ## Settlement Services
-The diagram below illustrates the various components required by Settlement to function:
-## ![Settlement Components](./30-settlement-architecture.svg "Settlement Components")
+The diagram below illustrates the various components required by Settlement to function in a Central-Ledger environment:
+## ![Settlement Components](./30-settlement-architecture-cl.svg "Settlement Components")
+
+The diagram below illustrates the various components required by Settlement to function in a vNext environment:
+## ![Settlement Components](./30-settlement-architecture-vnext.svg "Settlement Components")
 
 > One would either run Transfer-BC or Central-Ledger BC, but not both. 
 
