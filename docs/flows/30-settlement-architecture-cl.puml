@@ -6,15 +6,6 @@
 +++_ Mock (//Testing Purposes//)
 ++[#Lightblue] Kafka
 +++_ //public-messages-lib//
-++[#Orange] Auditing-BC
-+++[#Lightblue] Kafka
-++++_ //public-messages-lib//
-++[#Orange] Logging-BC
-+++[#Lightblue] Kafka
-++++_ //public-messages-lib//
-++[#Orange] Security-BC
-+++[#Lightblue] Kafka
-++++_ //public-messages-lib//
 ++[#LightGreen] Ledger Adapter
 ***_ TigerBeetle
 ***_ Mock (//Testing Purposes//)
