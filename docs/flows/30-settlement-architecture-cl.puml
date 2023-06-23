@@ -7,6 +7,7 @@
 ++[#Lightblue] Kafka
 +++_ //public-messages-lib//
 --[#FFBBCC] Central-Ledger
+---_ //settlement-model-rules-engine//
 ---[#Lightblue] Database
 ----_ MySQL
 ---[#Lightblue] Kafka

@@ -17,6 +17,7 @@
 +++[#Lightblue] Kafka
 ++++_ //public-messages-lib//
 --[#Orange] Transfers-BC
+---_ //settlement-model-lib//
 ---[#Lightblue] Kafka
 ----_ //public-messages-lib//
 --[#Orange] Participants-BC
