@@ -69,7 +69,14 @@ export interface ISettlementConfigRepo {
 	init(): Promise<void>;
 	destroy(): Promise<void>;
 	storeConfig(config: ISettlementConfig):Promise<void>;
-	getSettlementConfigByModel(model: string): Promise<ISettlementConfig | null>;
+
+	getAllSettlementConfigs(): Promise<ISettlementConfig[]>;
+	/**
+	 * @todo rename to getSettlementConfigByModelName
+	 * @param model Model name
+	 */
+	getSettlementConfig(id: string): Promise<ISettlementConfig | null>;
+	getSettlementConfigByModelName(modelName: string): Promise<ISettlementConfig | null>;
 }
 
 

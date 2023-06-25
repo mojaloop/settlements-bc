@@ -27,6 +27,9 @@
 
 "use strict";
 
+export const DEFAULT_SETTLEMENT_MODEL_ID = "DEFAULT";
+export const DEFAULT_SETTLEMENT_MODEL_NAME = DEFAULT_SETTLEMENT_MODEL_ID;
+
 // to be replaced by the TransferCommitFulfiledEvt, sent by transfers
 export interface ITransferDto {
 	id: string | null;
@@ -42,9 +45,20 @@ export interface ITransferDto {
 	settlementModel: string;
 }
 
+/**
+ * @todo Rename to ISettlementModel
+ */
 export interface ISettlementConfig {
 	id: string;
+	/**
+	 * Settlement model name, should be unique.
+	 * @todo rename to modelName
+	 */
 	settlementModel: string;
+	/**
+	 * Batch duration interval in seconds
+	 * @todo rename to batchCreateIntervalSecs
+	 */
 	batchCreateInterval: number;
 }
 
@@ -140,7 +154,7 @@ export interface ISettlementModelClient {
 
 	destroy(): Promise<void>;
 
-	getSettlementModel(
+	getSettlementModelId(
 		transferAmount: bigint,
 		payerCurrency: string | null,
 		payeeCurrency: string | null,

@@ -26,17 +26,67 @@
  ******/
 
 "use strict";
-import {ISettlementModelClient} from "@mojaloop/settlements-bc-public-types-lib";
+import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
+import {IAuthenticatedHttpRequester} from "@mojaloop/security-bc-public-types-lib";
+import {
+	DEFAULT_SETTLEMENT_MODEL_ID,
+	ISettlementConfig,
+	ISettlementModelClient
+} from "@mojaloop/settlements-bc-public-types-lib";
+
+// default 1 minute cache
+const MAX_CACHE_AGE_MS = 1 * 60 * 1000;
 
 export class SettlementModelClient implements ISettlementModelClient {
-	private _settlementsApiUrl:string;
+	private readonly _logger: ILogger;
+	private readonly _baseUrlHttpService: string;
+	private readonly _authRequester: IAuthenticatedHttpRequester;
+	private readonly _cacheTimeoutMs: number;
 
-	constructor(settlementsApiUrl:string){
-		this._settlementsApiUrl = settlementsApiUrl;
+	private _models:ISettlementConfig[] = [];
+	private _lastFetchTimestamp: number = 0;
+
+	constructor(
+		logger: ILogger,
+		baseUrlHttpService: string,
+		authRequester: IAuthenticatedHttpRequester,
+		cacheTimeoutMs: number = MAX_CACHE_AGE_MS
+	) {
+		this._logger = logger;
+		this._baseUrlHttpService = baseUrlHttpService;
+		this._authRequester = authRequester;
+		this._cacheTimeoutMs = cacheTimeoutMs;
+	}
+
+	private async _update():Promise<void>{
+		if(this._models.length>0 && (Date.now() <= this._lastFetchTimestamp + this._cacheTimeoutMs)){
+			return;
+		}
+
+		try {
+			const url = new URL("/models/", this._baseUrlHttpService).toString();
+			const resp = await this._authRequester.fetch(url);
+
+			if(resp.status != 200){
+				throw new Error("SettlementModelClient could not get settlement models");
+			}
+
+			const data = await resp.json();
+			this._models = data;
+			this._lastFetchTimestamp = Date.now();
+		} catch (e: any) {
+			this._logger.error(e);
+			if (e instanceof Error) throw e;
+
+			// handle everything else
+			throw new Error("SettlementModelClient could not get settlement models - " + e.toString());
+		}
 	}
 
 	async init(): Promise<void> {
-		// TODO fetch the available models from the settlements api
+		// do a first update, to fail at start if auth or api is bad
+		await this._update();
+
 		return Promise.resolve();
 	}
 
@@ -44,15 +94,18 @@ export class SettlementModelClient implements ISettlementModelClient {
 		return Promise.resolve();
 	}
 
-	getSettlementModel(
+	async getSettlementModelId(
 		transferAmount: bigint,
 		payerCurrency: string | null,
 		payeeCurrency: string | null,
 		extensionList: { key: string; value: string; }[]
 	): Promise<string> {
+		await this._update(); // won't do anything if cache is still valid
+
 		// TODO decide model based on conditions - use models from initialization step (sourced from settlements' api)
 
-		return Promise.resolve("DEFAULT");
+		// For now, just return the default id
+		return Promise.resolve(DEFAULT_SETTLEMENT_MODEL_ID);
 	}
 }
 

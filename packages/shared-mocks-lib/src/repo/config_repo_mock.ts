@@ -28,7 +28,11 @@
 "use strict";
 
 import {ISettlementConfigRepo} from "@mojaloop/settlements-bc-domain-lib";
-import {ISettlementConfig} from "@mojaloop/settlements-bc-public-types-lib";
+import {
+	DEFAULT_SETTLEMENT_MODEL_ID,
+	DEFAULT_SETTLEMENT_MODEL_NAME,
+	ISettlementConfig
+} from "@mojaloop/settlements-bc-public-types-lib";
 
 export class SettlementConfigRepoMock implements ISettlementConfigRepo {
 
@@ -43,10 +47,27 @@ export class SettlementConfigRepoMock implements ISettlementConfigRepo {
 		throw new Error("not implemented");
 	}
 
-	async getSettlementConfigByModel(model: string): Promise<ISettlementConfig | null> {
+	async getAllSettlementConfigs(): Promise<ISettlementConfig[]>{
+		return Promise.resolve([{
+			id: DEFAULT_SETTLEMENT_MODEL_ID,
+			settlementModel: DEFAULT_SETTLEMENT_MODEL_NAME,
+			batchCreateInterval: 5000
+		}]);
+	}
+
+	async getSettlementConfig(id: string): Promise<ISettlementConfig | null> {
 		const returnVal : ISettlementConfig = {
-			id: "1",
-			settlementModel: model,
+			id: id,
+			settlementModel: DEFAULT_SETTLEMENT_MODEL_NAME,
+			batchCreateInterval: 5000
+		};
+		return Promise.resolve(returnVal);
+	}
+
+	async getSettlementConfigByModelName(modelName: string): Promise<ISettlementConfig | null> {
+		const returnVal : ISettlementConfig = {
+			id: DEFAULT_SETTLEMENT_MODEL_ID,
+			settlementModel: modelName,
 			batchCreateInterval: 5000
 		};
 		return Promise.resolve(returnVal);

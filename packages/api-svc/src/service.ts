@@ -30,6 +30,10 @@
 
 "use strict";
 
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const packageJSON = require("../package.json");
+
+
 import { IAuditClient } from "@mojaloop/auditing-bc-public-types-lib";
 import { KafkaLogger } from "@mojaloop/logging-bc-client-lib";
 import {ILogger, LogLevel} from "@mojaloop/logging-bc-public-types-lib";
@@ -66,11 +70,9 @@ import {MLKafkaJsonProducer} from "@mojaloop/platform-shared-lib-nodejs-kafka-cl
 import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 
 
-
-
 const BC_NAME = "settlements-bc";
 const APP_NAME = "settlements-api-svc";
-const APP_VERSION = process.env.npm_package_version || "0.0.0";
+const APP_VERSION = packageJSON.version;
 const PRODUCTION_MODE = process.env["PRODUCTION_MODE"] || false;
 const LOG_LEVEL: LogLevel = process.env["LOG_LEVEL"] as LogLevel || LogLevel.DEBUG;
 const ENV_NAME = process.env["ENV_NAME"] || "dev";
@@ -300,6 +302,7 @@ export class Service {
 			const routes = new ExpressRoutes(
 				this.logger,
 				this.tokenHelper,
+				this.configRepo,
 				this.batchRepo,
 				this.batchTransferRepo,
 				this.matrixRepo,

@@ -224,7 +224,9 @@ export class SettlementsAggregate {
 		const currency = this._getCurrencyOrThrow(transferDto.currencyCode);
 		this._getAmountOrThrow(transferDto.amount, currency);
 
-		const configDto = await this._configRepo.getSettlementConfigByModel(transferDto.settlementModel);
+
+		// TODO implement cache and cache invalidation
+		const configDto = await this._configRepo.getSettlementConfigByModelName(transferDto.settlementModel);
 		if (!configDto) {
 			throw new NoSettlementConfig(`No settlement config for model '${transferDto.settlementModel}'.`);
 		}
