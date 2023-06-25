@@ -1,6 +1,6 @@
 {
   "name": "@mojaloop/settlements-bc-model-lib",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Settlements BC - Settlement Model Library",
   "license": "Apache-2.0",
   "homepage": "https://github.com/mojaloop/settlements-bc/tree/main/packages/settlement-model-lib",
@@ -30,9 +30,7 @@
     "test:unit:domain": "echo 'skpping'",
     "test:unit-single": "jest --coverage false -t"
   },
-  "devDependencies": {
-
-  },
+  "devDependencies": {},
   "dependencies": {
     "@mojaloop/logging-bc-public-types-lib": "~0.1.19",
     "@mojaloop/security-bc-public-types-lib": "~0.2.1",
