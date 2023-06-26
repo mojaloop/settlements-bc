@@ -52,7 +52,7 @@ export class SettlementModelClient implements ISettlementModelClient {
 		authRequester: IAuthenticatedHttpRequester,
 		cacheTimeoutMs: number = MAX_CACHE_AGE_MS
 	) {
-		this._logger = logger;
+		this._logger = logger.createChild(this.constructor.name);
 		this._baseUrlHttpService = baseUrlHttpService;
 		this._authRequester = authRequester;
 		this._cacheTimeoutMs = cacheTimeoutMs;
