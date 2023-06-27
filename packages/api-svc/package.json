@@ -1,6 +1,6 @@
 {
   "name": "@mojaloop/settlements-bc-settlements-api-svc",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Settlements BC - HTTP Service",
   "license": "Apache-2.0",
   "homepage": "https://github.com/mojaloop/settlements-bc/tree/main/packages/http-svc",
