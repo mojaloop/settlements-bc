@@ -300,8 +300,9 @@ The following documentation provides insight into Settlements.
 | `09.` | **Mojaloop Product Timeline**                                        | https://miro.com/app/board/uXjVPA3hBgE=/                                                                                               |
 | `10.` | **Settlement Basic Concepts**                                        | https://docs.mojaloop.io/mojaloop-business-docs/HubOperations/Settlement/settlement-basic-concepts.html                                |
 | `11.` | **Ledgers in the Hub**                                               | https://docs.mojaloop.io/mojaloop-business-docs/HubOperations/Settlement/ledgers-in-the-hub.html                                       |
-| `12.` | **Mojaloop 2.0 Reference Architecture - Sheet 8**                    | https://docs.google.com/spreadsheets/d/1ITmAesHjRZICC0EUNV8vUVV8VDnKLjbSKu_dzhEa5Fw/edit#gid=580827044                                 |
+| `12.` | **Mojaloop 2.0 Reference Architecture - Session With MR - Agreed**   | https://docs.google.com/spreadsheets/d/1ITmAesHjRZICC0EUNV8vUVV8VDnKLjbSKu_dzhEa5Fw/edit#gid=580827044                                 |
 | `13.` | **Change Request: Modifications to Admin API to support Settlement** | https://github.com/mojaloop/mojaloop-specification/issues/117                                                                          |
+| `14.` | **Scenarios**                                                        | `../SCENARIONS.md`                                                                                                                     |
 
 ## 7. API
 The following REST API endpoints exists for Settlements.
