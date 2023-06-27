@@ -30,6 +30,9 @@
 
 "use strict";
 
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const packageJSON = require("../../package.json");
+
 import {
     ConfigurationClient,
     DefaultConfigProvider
@@ -39,7 +42,7 @@ import {
 // configs - constants / code dependent
 const BC_NAME = "settlements-bc";
 const APP_NAME = "event-handler-svc";
-const APP_VERSION = process.env.npm_package_version || "0.0.1";
+const APP_VERSION = packageJSON.versiontorr;
 const CONFIGSET_VERSION = "0.0.1";
 
 // configs - non-constants

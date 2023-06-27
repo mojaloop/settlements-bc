@@ -63,7 +63,7 @@ export class SettlementsEventHandler{
 
 		this._messageConsumer.setCallbackFn(this._msgHandler.bind(this));
 		await this._messageConsumer.connect();
-		await this._messageConsumer.start();
+		await this._messageConsumer.startAndWaitForRebalance();
 	}
 
 	private async _msgHandler(message: IMessage): Promise<void>{

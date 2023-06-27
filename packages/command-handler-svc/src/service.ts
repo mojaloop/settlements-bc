@@ -126,7 +126,6 @@ const kafkaProducerOptions: MLKafkaJsonProducerOptions = {
 	kafkaBrokerList: KAFKA_URL
 };
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 let globalLogger: ILogger;
 
 export class Service {
@@ -423,6 +422,7 @@ function addPrivileges(authorizationClient: AuthorizationClient): void {
 	);
 }
 
+
 /**
  * process termination and cleanup
  */
@@ -431,7 +431,7 @@ async function _handle_int_and_term_signals(signal: NodeJS.Signals): Promise<voi
 	console.info(`Service - ${signal} received - cleaning up...`);
 	let clean_exit = false;
 	setTimeout(() => {
-		clean_exit || process.abort();
+		clean_exit || process.exit(99);
 	}, 5000);
 
 	// call graceful stop routine
@@ -448,10 +448,10 @@ process.on("SIGTERM", _handle_int_and_term_signals);
 
 //do something when app is closing
 process.on("exit", async () => {
-	console.info("Microservice - exiting...");
+	globalLogger.info("Microservice - exiting...");
 });
 process.on("uncaughtException", (err: Error) => {
-	console.error(err, "UncaughtException - EXITING...");
+	globalLogger.error(err);
+	console.log("UncaughtException - EXITING...");
 	process.exit(999);
 });
-

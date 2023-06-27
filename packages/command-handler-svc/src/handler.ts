@@ -74,19 +74,10 @@ export class SettlementsCommandHandler{
 	}
 
 	async start():Promise<void>{
-		this._messageConsumer.setTopics([SettlementsBCTopics.DomainRequests]);
+		this._messageConsumer.setTopics([SettlementsBCTopics.Commands]);
 		this._messageConsumer.setCallbackFn(this._msgHandler.bind(this));
 		await this._messageConsumer.connect();
-		await this._messageConsumer.start();
-
-		return new Promise<void>((resolve, reject) => {
-			// create and start the consumer handler
-			(this._messageConsumer as MLKafkaJsonConsumer).on("rebalance", async (type: "assign" | "revoke", assignments: any) => {
-				if (type==="assign") {
-					resolve();
-				}
-			});
-		});
+		await this._messageConsumer.startAndWaitForRebalance();
 	}
 
 	private async _msgHandler(message: IMessage): Promise<void>{
@@ -99,7 +90,7 @@ export class SettlementsCommandHandler{
 				switch (message.msgName) {
 					case ProcessTransferCmd.name:
 						await this._settlementsAgg.processTransferCmd(sectCtx, message as ProcessTransferCmd);
-					break;
+						break;
 					case CreateDynamicMatrixCmd.name:
 						// eslint-disable-next-line no-case-declarations
 						const createPayload = message.payload as CreateDynamicMatrixCmdPayload;

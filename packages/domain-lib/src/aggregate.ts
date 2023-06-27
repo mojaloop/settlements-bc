@@ -80,7 +80,10 @@ import {SettlementBatchTransfer} from "./types/transfer";
 import {SettlementMatrix} from "./types/matrix";
 import {ProcessTransferCmd} from "./commands";
 import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
-import {SettlementMatrixSettledEvt, SettlementMatrixSettledParticipantEvtPayload} from "@mojaloop/platform-shared-lib-public-messages-lib";
+import {
+	SettlementMatrixSettledEvt,
+	SettlementMatrixSettledEvtPayload, SettlementMatrixSettledEvtPayloadParticipantItem
+} from "@mojaloop/platform-shared-lib-public-messages-lib";
 
 const CURRENCIES_FILE_NAME: string = "currencies.json";
 const SEQUENCE_STR_LENGTH = 3;
@@ -749,30 +752,32 @@ export class SettlementsAggregate {
 			await this._batchRepo.updateBatch(batch);
 			batchesSettledNow.push(batch);
 
-			batch.accounts.forEach(acc => {
-				const debit = stringToBigint(acc.debitBalance, currency.decimals);
-				const credit = stringToBigint(acc.creditBalance, currency.decimals);
-
-				const partBal = participantBalances.get(acc.participantId);
-				if (!partBal) {
-					participantBalances.set(acc.participantId, {dr:debit, cr: credit});
-				} else {
-					participantBalances.set(acc.participantId, {dr: partBal.dr + debit, cr: partBal.cr + credit});
-				}
-			});
+			// FIXME pedro: didn't we just recalculate participantBalances in the _recalculateMatrix() above?
+			// batch.accounts.forEach(acc => {
+			// 	const debit = stringToBigint(acc.debitBalance, currency.decimals);
+			// 	const credit = stringToBigint(acc.creditBalance, currency.decimals);
+			//
+			// 	const partBal = participantBalances.get(acc.participantId);
+			// 	if (!partBal) {
+			// 		participantBalances.set(acc.participantId, {dr:debit, cr: credit});
+			// 	} else {
+			// 		participantBalances.set(acc.participantId, {dr: partBal.dr + debit, cr: partBal.cr + credit});
+			// 	}
+			// });
 		}
 
 		// Close the Matrix Request to prevent further execution:
 		await this._updateMatrixStateAndSave(matrix, "SETTLED", startTimestamp);
 
-		const participants: SettlementMatrixSettledParticipantEvtPayload[] = [];
+		const participants: SettlementMatrixSettledEvtPayloadParticipantItem[] = [];
 		// put per participant balances in the matrix:
-		participantBalances.forEach((value, key) => {
+		// participantBalances.forEach((value, key) => {
+		matrix.participantBalances.forEach((item) => {
 			participants.push({
-				participantId: key,
+				participantId: item.participantId,
 				currencyCode: currency.code,
-				settledDebitBalance: bigintToString(value.dr, currency.decimals),
-				settledCreditBalance: bigintToString(value.cr, currency.decimals)
+				settledDebitBalance: item.debitBalance,
+				settledCreditBalance: item.creditBalance
 			});
 		});
 
@@ -785,6 +790,7 @@ export class SettlementsAggregate {
 		await this._msgProducer.send(event);
 
 		// We perform an async audit:
+		// @esli
 		this._auditingClient.audit(
 			AuditingActions.SETTLEMENT_MATRIX_SETTLED,
 			true,

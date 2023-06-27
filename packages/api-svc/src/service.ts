@@ -34,39 +34,41 @@
 const packageJSON = require("../package.json");
 
 
-import { IAuditClient } from "@mojaloop/auditing-bc-public-types-lib";
-import { KafkaLogger } from "@mojaloop/logging-bc-client-lib";
+import {IAuditClient} from "@mojaloop/auditing-bc-public-types-lib";
+import {KafkaLogger} from "@mojaloop/logging-bc-client-lib";
 import {ILogger, LogLevel} from "@mojaloop/logging-bc-public-types-lib";
-import { MLKafkaJsonProducerOptions } from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
+import {MLKafkaJsonProducer, MLKafkaJsonProducerOptions} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 import {AuthorizationClient, LoginHelper, TokenHelper} from "@mojaloop/security-bc-client-lib";
 import {
-	IAccountsBalancesAdapter, IParticipantAccountNotifier,
-	ISettlementBatchRepo, ISettlementConfigRepo, ISettlementMatrixRequestRepo,
-	SettlementsAggregate, Privileges, ISettlementBatchTransferRepo
+	IAccountsBalancesAdapter,
+	IParticipantAccountNotifier,
+	ISettlementBatchRepo,
+	ISettlementBatchTransferRepo,
+	ISettlementConfigRepo,
+	ISettlementMatrixRequestRepo,
+	Privileges,
+	SettlementsAggregate
 } from "@mojaloop/settlements-bc-domain-lib";
 import process from "process";
 import {existsSync} from "fs";
-import {AuditClient, KafkaAuditClientDispatcher, LocalAuditClientCryptoProvider } from "@mojaloop/auditing-bc-client-lib";
+import {
+	AuditClient,
+	KafkaAuditClientDispatcher,
+	LocalAuditClientCryptoProvider
+} from "@mojaloop/auditing-bc-client-lib";
 import {
 	GrpcAccountsAndBalancesAdapter,
+	MongoSettlementBatchRepo,
 	MongoSettlementConfigRepo,
-	MongoSettlementBatchRepo
+	MongoSettlementMatrixRepo,
+	MongoSettlementTransferRepo
 } from "@mojaloop/settlements-bc-infrastructure-lib";
 import {IAuthorizationClient} from "@mojaloop/security-bc-public-types-lib";
 import {Server} from "net";
 import express, {Express} from "express";
 import {ExpressRoutes} from "./routes";
 import {ITokenHelper} from "@mojaloop/security-bc-public-types-lib/";
-import {
-	AccountsBalancesAdapterMock,
-	ParticipantAccountNotifierMock,
-	SettlementBatchRepoMock, SettlementMatrixRequestRepoMock, SettlementBatchTransferRepoMock
-} from "@mojaloop/settlements-bc-shared-mocks-lib";
-import {MongoSettlementMatrixRepo} from "@mojaloop/settlements-bc-infrastructure-lib";
-import {
-	MongoSettlementTransferRepo
-} from "@mojaloop/settlements-bc-infrastructure-lib";
-import {MLKafkaJsonProducer} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
+import {ParticipantAccountNotifierMock} from "@mojaloop/settlements-bc-shared-mocks-lib";
 import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 
 
@@ -271,7 +273,9 @@ export class Service {
 		this.participantAccountNotifier = participantAccountNotifier;
 
 		if (!messageProducer) {
-			messageProducer = new MLKafkaJsonProducer(kafkaProducerOptions, this.logger);
+			const producerLogger = this.logger.createChild("messageProducer");
+			producerLogger.setLogLevel(LogLevel.INFO);
+			messageProducer = new MLKafkaJsonProducer(kafkaProducerOptions, producerLogger);
 			await messageProducer.connect();
 		}
 		this.messageProducer = messageProducer;
