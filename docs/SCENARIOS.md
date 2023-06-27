@@ -109,7 +109,7 @@ Hub operator `SuperBigHubs` is able to record and withdraw the liquidity for Tsh
 ```
 Balances:
             - Hub    -> DR 60 TZS (Reconcilation) (CR for [90 TZS] for withdraw caused 60 balance)
-            - Bank A -> --   0 TZS (Liquidity) (Liquidity and Position account at 0)
+            - Bank A -> --   0 TZS (Liquidity) (DR for [90 TZS] for withdraw caused 0 balance)
             - Bank B -> CR  60 TZS (Liquidity) 
 ```
 
