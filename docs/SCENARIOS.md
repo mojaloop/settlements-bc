@@ -103,7 +103,8 @@ Balances:
 16. Now that the settlement obligation has been fulfilled, `Bank B` is allowed to spend the full `60 TZS`
 
 # Withdraw
-Tshepo from `Bank A` is ready for retirement after participating on the Mojaloop Hub for 12 years.
+Tshepo from `Bank A` is ready for retirement after participating on the Mojaloop Hub for 12 years. Tshepo would like to 
+withdraw and close his `SuperBigHubs` DFSP account.
 Hub operator `SuperBigHubs` is able to record and withdraw the liquidity for Tshepo / `Bank A`.
 
 ```
