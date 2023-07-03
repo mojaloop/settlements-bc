@@ -29,11 +29,6 @@
 
 import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import {
-	SettlementBatchNotFoundError,
-	UnauthorizedError,
-	SettlementMatrixNotFoundError,
-	SettlementMatrixIsBusyError,
-	SettlementMatrixIsClosedError,
 	ISettlementBatchRepo,
 	ISettlementMatrixRequestRepo,
 	ISettlementBatchTransferRepo,
