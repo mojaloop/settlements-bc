@@ -42,6 +42,76 @@
   },
   "devDependencies": {
     "@types/jest": "~29.5.0",
+    {
+  "name": "@mojaloop/settlements-bc",
+  "version": "0.0.1",
+  "description": "Settlements Bounded Context",
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/mojaloop/settlements-bc",
+  "bugs": {
+    "url": "https://github.com/mojaloop/settlements-bc/issues#readme"
+  },
+  "contributors": [
+    "Jason Bruwer <jason.bruwer@coil.com>"
+  ],
+  "private": true,
+  "scripts": {
+    "prepare": "husky install",
+    "pre_commit_check": "npm run build && npm run lint && npm run test:unit",
+    "clean": "npm run clean:dist; npm run clean:npm",
+    "clean:npm": "rm -Rf node_modules; npm -ws run clean:npm",
+    "clean:dist": "rm -Rf dist; npm -ws run clean:dist",
+    "dep:check": "ncu -e 2; npm -ws run dep:check",
+    "dep:update": "ncu -e 2 -u; npm -ws run dep:update",
+    "audit:check": "npm -ws -p run audit:check",
+    "audit:fix": "npm -ws -p run audit:fix",
+    "lint": "npm -ws -p run lint",
+    "build": "npm -ws run build",
+    "test:unit": "npm -ws -p run test:unit",
+    "test:unit:domain": "npm -ws -p run test:unit:domain",
+    "test:integration": "jest test/integration/",
+    "test:integration-http": "jest test/integration/http.test.ts",
+    "test:integration-grpc": "jest test/integration/grpc.test.ts",
+    "publish:grpc-client-lib": "npm -w @mojaloop/settlements-grpc-client-lib run pub",
+    "publish:http-client-lib": "npm -w @mojaloop/settlements-bc-http-client-lib run pub",
+    "publish:grpc-common-lib": "npm -w @mojaloop/settlements-bc-grpc-common-lib run pub",
+    "publish:public-types-lib": "npm -w @mojaloop/settlements-bc-public-types-lib run pub",
+    "posttest": "npm run coverage:merge && npm run coverage:gen-report",
+    "coverage:merge": "nyc merge ./coverage/ ./coverage/coverage.json",
+    "coverage:gen-report": "nyc report --reporter=lcov --temp-dir=./coverage",
+    "test": "npm run test:unit",
+    "start:api-svc": "npm -w @mojaloop/settlements-bc-settlements-api-svc run start",
+    "start:command-handler-svc": "npm -w packages/command-handler-svc run start",
+    "start:event-handler-svc": "npm -w packages/event-handler-svc run start"
+  },
+  "devDependencies": {
+    "@types/jest": "~29.5.0",
+    "@types/supertest": "^2.0.12",
+    "@types/node": "^18.15.11",
+    "@typescript-eslint/eslint-plugin": "~5.57.1",
+    "@typescript-eslint/parser": "~5.57.1",
+    "eslint": "~8.37.0",
+    "husky": "~8.0.3",
+    "jest": "~29.5.0",
+    "npm-check-updates": "~16.10.1",
+    "nyc": "^15.1.0",
+    "supertest": "^6.3.3",
+    "ts-jest": "~29.1.0",
+    "tslib": "~2.5.0",
+    "typescript": "~5.0.3"
+  },
+  "workspaces": [
+    "packages/public-types-lib",
+    "packages/domain-lib",
+    "packages/infrastructure-lib",
+    "packages/shared-mocks-lib",
+    "packages/settlements-bc-shared-mocks-lib",
+    "packages/event-handler-svc",
+    "packages/command-handler-svc",
+    "packages/*"
+  ]
+}
+
     "@types/node": "^18.15.11",
     "@typescript-eslint/eslint-plugin": "~5.57.1",
     "@typescript-eslint/parser": "~5.57.1",
