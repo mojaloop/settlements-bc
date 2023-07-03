@@ -301,11 +301,7 @@ export class ExpressRoutes {
 			this.sendSuccessResponse(res, 200, settlementTransfers);// OK
 		} catch (error: any) {
 			this._logger.error(error);
-			if (error instanceof SettlementBatchNotFoundError) {
-				this.sendErrorResponse(res, 400, error.message);
-			} else {
-				this.sendErrorResponse(res, 500, error.message || ExpressRoutes.UNKNOWN_ERROR_MESSAGE);
-			}
+			this.sendErrorResponse(res, 500, error.message || ExpressRoutes.UNKNOWN_ERROR_MESSAGE);
 		}
 	}
 
@@ -362,11 +358,7 @@ export class ExpressRoutes {
 			this.sendSuccessResponse(res, 202, {id: matrixId});
 		} catch (error: any) {
 			this._logger.error(error);
-			if (error instanceof UnauthorizedError) {
-				this.sendErrorResponse(res, 403, "unauthorized"); // TODO: verify.
-			} else {
-				this.sendErrorResponse(res, 500, error.message || ExpressRoutes.UNKNOWN_ERROR_MESSAGE);
-			}
+			this.sendErrorResponse(res, 500, error.message || ExpressRoutes.UNKNOWN_ERROR_MESSAGE);
 		}
 	}
 
@@ -387,15 +379,7 @@ export class ExpressRoutes {
 			this.sendSuccessResponse(res, 202, {id: matrixId});
 		} catch (error: any) {
 			this._logger.error(error);
-			if (error instanceof SettlementMatrixIsClosedError || error instanceof SettlementMatrixIsBusyError) {
-				this.sendErrorResponse(res, 406, error.message);
-			} else if (error instanceof SettlementMatrixNotFoundError) {
-				this.sendErrorResponse(res, 404, error.message);
-			}else if (error instanceof UnauthorizedError) {
-				this.sendErrorResponse(res, 403, "unauthorized"); // TODO: verify.
-			}else {
-				this.sendErrorResponse(res, 500, error.message || ExpressRoutes.UNKNOWN_ERROR_MESSAGE);
-			}
+			this.sendErrorResponse(res, 500, error.message || ExpressRoutes.UNKNOWN_ERROR_MESSAGE);
 		}
 	}
 
@@ -411,15 +395,7 @@ export class ExpressRoutes {
 			this.sendSuccessResponse(res, 202, {id: matrixId});
 		} catch (error: any) {
 			this._logger.error(error);
-			if (error instanceof SettlementMatrixIsClosedError || error instanceof SettlementMatrixIsBusyError) {
-				this.sendErrorResponse(res, 406, error.message);
-			} else if (error instanceof SettlementMatrixNotFoundError) {
-				this.sendErrorResponse(res, 404, error.message);
-			} else if (error instanceof UnauthorizedError) {
-				this.sendErrorResponse(res, 403, "unauthorized"); // TODO: verify.
-			} else {
-				this.sendErrorResponse(res, 500, error.message || ExpressRoutes.UNKNOWN_ERROR_MESSAGE);
-			}
+			this.sendErrorResponse(res, 500, error.message || ExpressRoutes.UNKNOWN_ERROR_MESSAGE);
 		}
 	}
 
@@ -435,15 +411,7 @@ export class ExpressRoutes {
 			this.sendSuccessResponse(res, 202, {id: matrixId});
 		} catch (error: any) {
 			this._logger.error(error);
-			if (error instanceof SettlementMatrixIsClosedError || error instanceof SettlementMatrixIsBusyError) {
-				this.sendErrorResponse(res, 406, error.message);
-			} else if (error instanceof SettlementMatrixNotFoundError) {
-				this.sendErrorResponse(res, 404, error.message);
-			} else if (error instanceof UnauthorizedError) {
-				this.sendErrorResponse(res, 403, "unauthorized"); // TODO: verify.
-			} else {
-				this.sendErrorResponse(res, 500, error.message || ExpressRoutes.UNKNOWN_ERROR_MESSAGE);
-			}
+			this.sendErrorResponse(res, 500, error.message || ExpressRoutes.UNKNOWN_ERROR_MESSAGE);
 		}
 	}
 
@@ -459,15 +427,7 @@ export class ExpressRoutes {
 			this.sendSuccessResponse(res, 202, {id: matrixId});
 		} catch (error: any) {
 			this._logger.error(error);
-			if (error instanceof SettlementMatrixIsClosedError || error instanceof SettlementMatrixIsBusyError) {
-				this.sendErrorResponse(res, 406, error.message);
-			} else if (error instanceof SettlementMatrixNotFoundError) {
-				this.sendErrorResponse(res, 404, error.message);
-			} else if (error instanceof UnauthorizedError) {
-				this.sendErrorResponse(res, 403, "unauthorized"); // TODO: verify.
-			} else {
-				this.sendErrorResponse(res, 500, error.message || ExpressRoutes.UNKNOWN_ERROR_MESSAGE);
-			}
+			this.sendErrorResponse(res, 500, error.message || ExpressRoutes.UNKNOWN_ERROR_MESSAGE);
 		}
 	}
 
@@ -482,15 +442,7 @@ export class ExpressRoutes {
 			this.sendSuccessResponse(res, 202, {id: matrixId});
 		} catch (error: any) {
 			this._logger.error(error);
-			if (error instanceof SettlementMatrixIsClosedError || error instanceof SettlementMatrixIsBusyError) {
-				this.sendErrorResponse(res, 406, error.message);
-			} else if (error instanceof SettlementMatrixNotFoundError) {
-				this.sendErrorResponse(res, 404, error.message);
-			} else if (error instanceof UnauthorizedError) {
-				this.sendErrorResponse(res, 403, "unauthorized"); // TODO: verify.
-			} else {
-				this.sendErrorResponse(res, 500, error.message || ExpressRoutes.UNKNOWN_ERROR_MESSAGE);
-			}
+			this.sendErrorResponse(res, 500, error.message || ExpressRoutes.UNKNOWN_ERROR_MESSAGE);
 		}
 	}
 
@@ -505,15 +457,7 @@ export class ExpressRoutes {
 			this.sendSuccessResponse(res, 202, {id: matrixId});
 		} catch (error: any) {
 			this._logger.error(error);
-			if (error instanceof SettlementMatrixIsClosedError || error instanceof SettlementMatrixIsBusyError) {
-				this.sendErrorResponse(res, 406, error.message);
-			} else if (error instanceof SettlementMatrixNotFoundError) {
-				this.sendErrorResponse(res, 404, error.message);
-			} else if (error instanceof UnauthorizedError) {
-				this.sendErrorResponse(res, 403, "unauthorized"); // TODO: verify.
-			} else {
-				this.sendErrorResponse(res, 500, error.message || ExpressRoutes.UNKNOWN_ERROR_MESSAGE);
-			}
+			this.sendErrorResponse(res, 500, error.message || ExpressRoutes.UNKNOWN_ERROR_MESSAGE);
 		}
 	}
 
@@ -530,13 +474,7 @@ export class ExpressRoutes {
 			this.sendSuccessResponse(res, 200, resp);// OK
 		} catch (error: any) {
 			this._logger.error(error);
-			if (error instanceof UnauthorizedError) {
-				this.sendErrorResponse(res, 403, "unauthorized"); // TODO: verify.
-			} else if (error instanceof SettlementMatrixNotFoundError) {
-				this.sendErrorResponse(res, 404, error.message);
-			} else {
-				this.sendErrorResponse(res, 500, error.message || ExpressRoutes.UNKNOWN_ERROR_MESSAGE);
-			}
+			this.sendErrorResponse(res, 500, error.message || ExpressRoutes.UNKNOWN_ERROR_MESSAGE);
 		}
 	}
 
@@ -554,13 +492,7 @@ export class ExpressRoutes {
 			this.sendSuccessResponse(res, 200, resp);// OK
 		} catch (error: any) {
 			this._logger.error(error);
-			if (error instanceof UnauthorizedError) {
-				this.sendErrorResponse(res, 403, "unauthorized"); // TODO: verify.
-			} else if (error instanceof SettlementMatrixNotFoundError) {
-				this.sendErrorResponse(res, 404, error.message);
-			} else {
-				this.sendErrorResponse(res, 500, error.message || ExpressRoutes.UNKNOWN_ERROR_MESSAGE);
-			}
+			this.sendErrorResponse(res, 500, error.message || ExpressRoutes.UNKNOWN_ERROR_MESSAGE);
 		}
 	}
 
