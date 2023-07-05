@@ -191,7 +191,7 @@ describe("Settlement BC api-svc route test", () => {
     test("GET /batches/:id - should fetch settlement batch by id", async () => {
 
         //Arrange
-        let mockBatches: ISettlementBatch[] = [
+        const mockBatches: ISettlementBatch[] = [
             {
                 id: "DEFAULT.USD.2023.06.19.08.30.001",
                 timestamp: Date.now(),
@@ -234,7 +234,7 @@ describe("Settlement BC api-svc route test", () => {
     test("GET /batches/:id - should send a 500 error response", async () => {
 
         //Act - request with non-existing batchId
-        let response = await request(server)
+        const response = await request(server)
             .get(`/batches`)
             .query({id:123})
             .set('authorization', AUTH_TOKEN);
@@ -247,7 +247,7 @@ describe("Settlement BC api-svc route test", () => {
 
         //Arrange
 
-        let mockBatches: ISettlementBatch[] = [
+        const mockBatches: ISettlementBatch[] = [
             {
                 id: "DEFAULT.USD.2023.06.19.08.30.001",
                 timestamp: Date.now(),
@@ -376,7 +376,7 @@ describe("Settlement BC api-svc route test", () => {
         //Arrange
 
         //Prepare mocked Settlement Matrix Account
-        let settlementMatrixBatchAccount: ISettlementMatrixBatchAccount[] = [
+        const settlementMatrixBatchAccount: ISettlementMatrixBatchAccount[] = [
             {
                 id: "SMBA001",
                 participantId: "FSP-A",
@@ -394,7 +394,7 @@ describe("Settlement BC api-svc route test", () => {
         ];
 
         //Prepare mocked Settlement Matrix Participant Balances
-        let settlementMatrixParticipantBalances: ISettlementMatrixParticipantBalance[] = [
+        const settlementMatrixParticipantBalances: ISettlementMatrixParticipantBalance[] = [
             {
                 participantId: "FSP-A",
                 debitBalance: "5",
@@ -408,7 +408,7 @@ describe("Settlement BC api-svc route test", () => {
         ];
 
         //Prepare mocked Settlement Matrix batch
-        let settlementSettlementMatrixBatches: ISettlementMatrixBatch[] = [{
+        const settlementSettlementMatrixBatches: ISettlementMatrixBatch[] = [{
             id: "DEFAULT.EUR.2023.06.19.08.30.001",
             name: "DEFAULT.EUR.2023.06.19.08.30",
             batchDebitBalance: "5",
@@ -417,9 +417,9 @@ describe("Settlement BC api-svc route test", () => {
             batchAccounts: settlementMatrixBatchAccount
         }];
 
-        let newMatrixId = randomUUID();
+        const newMatrixId = randomUUID();
 
-        let newMatrix: ISettlementMatrix = {
+        const newMatrix: ISettlementMatrix = {
             id: newMatrixId,
             createdAt: new Date().getTime() / 1000,
             updatedAt: 0,
@@ -459,7 +459,7 @@ describe("Settlement BC api-svc route test", () => {
         //Arrange
 
         //Prepare mocked Settlement Matrix batches
-        let settlementSettlementMatrixBatches: ISettlementMatrixBatch[] = [
+        const settlementSettlementMatrixBatches: ISettlementMatrixBatch[] = [
             {
                 id: "DEFAULT.EUR.2023.06.19.08.30.001",
                 name: "DEFAULT.EUR.2023.06.19.08.30",
@@ -480,9 +480,9 @@ describe("Settlement BC api-svc route test", () => {
 
         //Prepare mocked Matrix
 
-        let newMatrixId = randomUUID();
+        const newMatrixId = randomUUID();
 
-        let newMatrix: ISettlementMatrix = {
+        const newMatrix: ISettlementMatrix = {
             id: newMatrixId,
             createdAt: new Date().getTime() / 1000,
             updatedAt: 0,
@@ -502,7 +502,7 @@ describe("Settlement BC api-svc route test", () => {
             totalCreditBalanceDisputed: "0"
         };
 
-        let payload: AddBatchesToMatrixCmdPayload = {
+        const payload: AddBatchesToMatrixCmdPayload = {
             matrixId: newMatrix.id,
             batchIds: [
                 settlementSettlementMatrixBatches[0].id,
@@ -527,7 +527,7 @@ describe("Settlement BC api-svc route test", () => {
         //Arrange
 
         //Prepare mocked Settlement Matrix batches
-        let settlementSettlementMatrixBatches: ISettlementMatrixBatch[] = [
+        const settlementSettlementMatrixBatches: ISettlementMatrixBatch[] = [
             {
                 id: "DEFAULT.EUR.2023.06.21.08.30.001",
                 name: "DEFAULT.EUR.2023.06.21.08.30",
@@ -548,9 +548,9 @@ describe("Settlement BC api-svc route test", () => {
 
         //Prepare mocked Matrix
 
-        let newMatrixId = randomUUID();
+        const newMatrixId = randomUUID();
 
-        let newMatrix: ISettlementMatrix = {
+        const newMatrix: ISettlementMatrix = {
             id: newMatrixId,
             createdAt: new Date().getTime() / 1000,
             updatedAt: 0,
@@ -570,7 +570,7 @@ describe("Settlement BC api-svc route test", () => {
             totalCreditBalanceDisputed: "0"
         };
 
-        let payload: AddBatchesToMatrixCmdPayload = {
+        const payload: AddBatchesToMatrixCmdPayload = {
             matrixId: newMatrix.id,
             batchIds: [
                 settlementSettlementMatrixBatches[0].id,
@@ -594,7 +594,7 @@ describe("Settlement BC api-svc route test", () => {
         //Arrange
 
         //Prepare mocked Settlement Matrix batches
-        let settlementSettlementMatrixBatches: ISettlementMatrixBatch[] = [
+        const settlementSettlementMatrixBatches: ISettlementMatrixBatch[] = [
             {
                 id: "DEFAULT.EUR.2023.06.21.08.30.001",
                 name: "DEFAULT.EUR.2023.06.21.08.30",
@@ -615,7 +615,7 @@ describe("Settlement BC api-svc route test", () => {
 
         //Prepare mocked Matrix
 
-        let newMatrix: ISettlementMatrix = {
+        const newMatrix: ISettlementMatrix = {
             id: "TestMatrix",
             createdAt: new Date().getTime() / 1000,
             updatedAt: 0,
@@ -637,7 +637,7 @@ describe("Settlement BC api-svc route test", () => {
 
         await mockMatrixRequestRepo.storeMatrix(newMatrix);
 
-        let payload: AddBatchesToMatrixCmdPayload = {
+        const payload: AddBatchesToMatrixCmdPayload = {
             matrixId: "TestMatrix",
             batchIds: [
                 settlementSettlementMatrixBatches[0].id,
@@ -662,7 +662,7 @@ describe("Settlement BC api-svc route test", () => {
         //Arrange
 
         //Prepare mocked Settlement Matrix batches
-        let settlementSettlementMatrixBatches: ISettlementMatrixBatch[] = [
+        const settlementSettlementMatrixBatches: ISettlementMatrixBatch[] = [
             {
                 id: "DEFAULT.EUR.2023.06.21.08.30.001",
                 name: "DEFAULT.EUR.2023.06.21.08.30",
@@ -683,7 +683,7 @@ describe("Settlement BC api-svc route test", () => {
 
         //Prepare mocked Matrix
 
-        let newMatrix: ISettlementMatrix = {
+        const newMatrix: ISettlementMatrix = {
             id: "TestMatrix1",
             createdAt: new Date().getTime() / 1000,
             updatedAt: 0,
@@ -705,7 +705,7 @@ describe("Settlement BC api-svc route test", () => {
 
         await mockMatrixRequestRepo.storeMatrix(newMatrix);
 
-        let payload: AddBatchesToMatrixCmdPayload = {
+        const payload: AddBatchesToMatrixCmdPayload = {
             matrixId: "TestMatrix1",
             batchIds: [
                 settlementSettlementMatrixBatches[0].id,
@@ -729,7 +729,7 @@ describe("Settlement BC api-svc route test", () => {
         //Arrange
 
         //Prepare mocked Settlement Matrix batches
-        let settlementSettlementMatrixBatches: ISettlementMatrixBatch[] = [
+        const settlementSettlementMatrixBatches: ISettlementMatrixBatch[] = [
             {
                 id: "DEFAULT.EUR.2023.06.21.08.30.001",
                 name: "DEFAULT.EUR.2023.06.21.08.30",
@@ -750,7 +750,7 @@ describe("Settlement BC api-svc route test", () => {
 
         //Prepare mocked Matrix
 
-        let newMatrix: ISettlementMatrix = {
+        const newMatrix: ISettlementMatrix = {
             id: "TestMatrix2",
             createdAt: new Date().getTime() / 1000,
             updatedAt: 0,
@@ -772,7 +772,7 @@ describe("Settlement BC api-svc route test", () => {
 
         await mockMatrixRequestRepo.storeMatrix(newMatrix);
 
-        let payload: AddBatchesToMatrixCmdPayload = {
+        const payload: AddBatchesToMatrixCmdPayload = {
             matrixId: "TestMatrix2",
             batchIds: [
                 settlementSettlementMatrixBatches[0].id,
@@ -796,7 +796,7 @@ describe("Settlement BC api-svc route test", () => {
         //Arrange
 
         //Prepare mocked Settlement Matrix batches
-        let settlementSettlementMatrixBatches: ISettlementMatrixBatch[] = [
+        const settlementSettlementMatrixBatches: ISettlementMatrixBatch[] = [
             {
                 id: "DEFAULT.EUR.2023.06.21.08.30.001",
                 name: "DEFAULT.EUR.2023.06.21.08.30",
@@ -817,7 +817,7 @@ describe("Settlement BC api-svc route test", () => {
 
         //Prepare mocked Matrix
 
-        let newMatrix: ISettlementMatrix = {
+        const newMatrix: ISettlementMatrix = {
             id: "TestMatrix3",
             createdAt: new Date().getTime() / 1000,
             updatedAt: 0,
@@ -839,7 +839,7 @@ describe("Settlement BC api-svc route test", () => {
 
         await mockMatrixRequestRepo.storeMatrix(newMatrix);
 
-        let payload: AddBatchesToMatrixCmdPayload = {
+        const payload: AddBatchesToMatrixCmdPayload = {
             matrixId: "TestMatrix3",
             batchIds: [
                 settlementSettlementMatrixBatches[0].id,
@@ -863,7 +863,7 @@ describe("Settlement BC api-svc route test", () => {
         //Arrange
 
         //Prepare mocked Settlement Matrix batches
-        let settlementSettlementMatrixBatches: ISettlementMatrixBatch[] = [
+        const settlementSettlementMatrixBatches: ISettlementMatrixBatch[] = [
             {
                 id: "DEFAULT.EUR.2023.06.21.08.30.001",
                 name: "DEFAULT.EUR.2023.06.21.08.30",
@@ -884,7 +884,7 @@ describe("Settlement BC api-svc route test", () => {
 
         //Prepare mocked Matrix
 
-        let newMatrix: ISettlementMatrix = {
+        const newMatrix: ISettlementMatrix = {
             id: "TestMatrix4",
             createdAt: new Date().getTime() / 1000,
             updatedAt: 0,
@@ -905,15 +905,7 @@ describe("Settlement BC api-svc route test", () => {
         };
 
         await mockMatrixRequestRepo.storeMatrix(newMatrix);
-
-        let payload: AddBatchesToMatrixCmdPayload = {
-            matrixId: "TestMatrix4",
-            batchIds: [
-                settlementSettlementMatrixBatches[0].id,
-                settlementSettlementMatrixBatches[1].id
-            ]
-        }
-
+        
         //Act
         const response = await request(server)
             .get(`/matrix/TestMatrix4`)
@@ -926,7 +918,7 @@ describe("Settlement BC api-svc route test", () => {
 
     test("GET /matrix should get list of Matrices", async () => {
         //Arrange
-        let matrix1: ISettlementMatrix = {
+        const matrix1: ISettlementMatrix = {
             id: "matrix1",
             createdAt: new Date().getTime() / 1000,
             updatedAt: 0,
@@ -946,7 +938,7 @@ describe("Settlement BC api-svc route test", () => {
             totalCreditBalanceDisputed: "0"
         };
 
-        let matrix2: ISettlementMatrix = {
+        const matrix2: ISettlementMatrix = {
             id: "matrix2",
             createdAt: new Date().getTime() / 1000,
             updatedAt: 0,
