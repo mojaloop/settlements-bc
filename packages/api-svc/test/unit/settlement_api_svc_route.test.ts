@@ -113,8 +113,8 @@ describe("Settlement BC api-svc route test", () => {
             }
         ];
 
-        await mockBatchTransferRepo.storeBatchTransfer(mockedSettlementBatchTransfers[0]);
-        await mockBatchTransferRepo.storeBatchTransfer(mockedSettlementBatchTransfers[1]);
+        await mockBatchTransferRepo.storeBatchTransfer(mockedSettlementBatchTransfers[0], mockedSettlementBatchTransfers[1]);
+       
 
         //Prepare mocked Settlement Matrix Account
         mockedSettlementMatrixBatchAccount = [
