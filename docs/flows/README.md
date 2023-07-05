@@ -2,11 +2,12 @@
 This document describes how the Settlement component functions, including detailing how data flows as cleared transfers are processed through settlement.    
 The current design of the new Settlement component expects use or integration with one of the following two Mojaloop transaction clearing services:
 - The `Central-Ledger` service which records cleared transactions for the current Production version, as at Februar 2023.
-- The `Transfers BC` service which records cleared transactions for the not yet released Mojaloop major version that aligns with the full implementation of the Reference Architecture (informally referred to as `vNext`).
+- The `Transfers BC / Participants BC` service which records cleared transactions for the not yet released Mojaloop major version that aligns with the full implementation of the Reference Architecture (informally referred to as `vNext`).
 
 The sections that follow detail each stage of the settlement process.  
 At a high level, the settlement process entails:
-- [Creating Settlement Transfers](#1-creating-settlement-transfers) 
+- [Settlement Services](#settlement-services)
+- [Creating Settlement Transfers](#1-creating-settlement-transfers)
 - [Fulfilling Settlement Obligations](#2-fulfilling-settlement-obligations) 
 - [Assigning Dynamic Settlement Batches](#3-assigning-dynamic-settlement-batches)
 - [Assigning Static Settlement Batches](#4-assigning-static-settlement-batches)
@@ -19,16 +20,27 @@ This is dependent on which major version of the Mojaloop software has been deplo
 - The `Central-Ledger` service records all cleared transactions for the current production Mojaloop major version 1.
 - The `Transfers BC` service records all cleared transactions for the anticipated, not yet released Mojaloop major version 'vNext'. 
 
+## Settlement Services
+The diagram below illustrates the various components required by Settlement to function in a Central-Ledger environment:
+## ![Settlement Components](./30-settlement-architecture-cl.svg "Settlement Components")
+
+The diagram below illustrates the various components required by Settlement to function in a vNext environment:
+## ![Settlement Components](./30-settlement-architecture-vnext.svg "Settlement Components")
+
+> One would either run Transfer-BC or Central-Ledger BC, but not both. 
+
+> The components on the left are client components for the Settlement-BC, whilst the components on the right represent core Settlement compments.  
+
 ## 1. Creating Settlement Transfers
 This process is initiated when the Settlement component receives cleared Transfers to settle.  
 The process creates settlement obligations between the payer (debtor) and payee (creditor) DFSPs 
 by creating settlement transfers which are deterministically allocated to settlement batches. 
 
-## Settlement from Transfers BC
+## `TransferPreparedEvtPayload` from Transfers BC
 The diagram below illustrates how Transfers that were cleared by the **Transfers BC** get settled:
 ## ![Settlement Transfer Flow for Transfers BC](./01-settlement-transfer-bc.svg "Settlement Transfer Transfers BC")
 
-### Settlement from Central-Ledger
+### `TransferPreparedEvtPayload` from Central-Ledger
 The diagram below illustrates how Transfers that were cleared by the **Central-Ledger** service get settled:
 ## ![Settlement Transfer Flow for Central-Ledger](./01-settlement-transfer-cl.svg "Settlement Transfer Central-Ledger")
 
@@ -36,16 +48,16 @@ The diagram below illustrates how Transfers that were cleared by the **Central-L
 A Settlement Transfer is the data object shared between the Settlement service and the service that it interacts with (e.g. Central-Ledger or the Transfers BC).    
 The table below gives a view of the Settlement Transfer fields:
 
-| Field              | Definition                         | Description                                                                                                                                          |
-|--------------------|------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `id`               | `null / string`                    | The global unique identifier for settlement transfer. Assigned by Settlement                                                                         |
-| `transferId`       | `string`                           | An external id used by the external services (Central-Ledger / Transfers BC) used to identify a transaction                                          |
-| `payerFspId`       | `string`                           | The participant account to be debited. The actual settlement account will be derived from the provided debit account during a transfer               |
-| `payeeFspId`       | `string`                           | The participant account to be credited. The actual settlement account will be derived from the provided credit account during a transfer             |
-| `currencyCode`     | `string`                           | The currency code for a settlement transfer as described in ISO-4217                                                                                 |
-| `amount`           | `string`                           | The transfer amount in minor denomination format (cents/fills) as text (`string)                                                                     |
-| `timestamp`        | `number`                           | The timestamp of the original committed/fulfilled transfer. Settlement batch processing make use of the timestamp to allocate transfers to batches   |
-| `settlementModel`  | `string`                           | The settlement model assigned to the transfer (Examples include `DEFAULT`, `FX` and `REMITTENCE`). Mandatory for a transfer create                   |
+| Field              | Definition                         | Description                                                                                                                                        |
+|--------------------|------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
+| `id`               | `null / string`                    | The global unique identifier for settlement transfer. Assigned by Settlement                                                                       |
+| `transferId`       | `string`                           | An external id used by the external services (Central-Ledger / Transfers BC) used to uniquely identify a transfer                                  |
+| `payerFspId`       | `string`                           | The participant account to be debited. The actual settlement account will be derived from the provided debit account during a transfer             |
+| `payeeFspId`       | `string`                           | The participant account to be credited. The actual settlement account will be derived from the provided credit account during a transfer           |
+| `currencyCode`     | `string`                           | The currency code for a settlement transfer as described in ISO-4217                                                                               |
+| `amount`           | `string`                           | The transfer amount in minor denomination format (cents/fills) as text (`string)                                                                   |
+| `timestamp`        | `number`                           | The timestamp of the original committed/fulfilled transfer. Settlement batch processing make use of the timestamp to allocate transfers to batches |
+| `settlementModel`  | `string`                           | The settlement model assigned to the transfer (Examples include `DEFAULT`, `FX` and `REMITTENCE`). Mandatory for a transfer create                 |
 * See `ITransferDto` at https://github.com/mojaloop/settlements-bc/blob/main/packages/public-types-lib/src/index.ts
 
 ### Settlement Batch Account Model
@@ -114,30 +126,29 @@ The flow below is how a Settlement Matrix is `DISPUTED`, based on an existing se
 The flow below is how a Settlement Matrix is `SETTLED`, based on an existing settlement matrix id:
 ## ![Settlement Matrix Settle](./05-settlement-matrix-settle.svg "Matrix Settle")
 
-
 ### Settlement Matrix Model
 The settlement matrix is the data object shared between Settlement and the external services during settlement matrix generation.
 The table below illustrates the Settlement Matrix fields:
 
-| Field                         | Definition                                            | Description                                                                                                                                                                                                                                         |
-|-------------------------------|-------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `id`                          | `string`                                              | The global unique identifier for settlement matrix. Generated by Settlement                                                                                                                                                                         |
-| `createdAt`                   | `number`                                              | The timestamp when the matrix was created                                                                                                                                                                                                           |
-| `updatedAt`                   | `number`                                              | The timestamp when the matrix was last updated                                                                                                                                                                                                      |
-| `dateFrom`                    | `number / null`                                       | The date to which to generate the settlement matrix from                                                                                                                                                                                            |
-| `dateTo`                      | `number / null`                                       | The date to which to generate the settlement matrix until                                                                                                                                                                                           |
-| `currencyCode`                | `string`                                              | The currency code as described in ISO-4217                                                                                                                                                                                                          |
-| `settlementModel`             | `string / null`                                       | The settlement model for which the settlement model is generated                                                                                                                                                                                    |
-| `batches`                     | `ISettlementMatrixBatch[]`                            | The settlement matrix batches that were processed                                                                                                                                                                                                   |
-| `participantBalances`         | `ISettlementMatrixParticipantBalance[]`               | The debit and credit balances for a participant.                                                                                                                                                                                                    |
-| `participantBalancesDisputed` | `ISettlementMatrixParticipantBalance[]`               | The disputed debit and credit balances for a participant.                                                                                                                                                                                           |
-| `state`                       | `"IDLE" / "BUSY" / "DISPUTED" / "CLOSED" / "SETTLED"` | See section [Batch State Machine](#4-settlement-state-machine)                                                                                                                                                                                      |
-| `type`                        | `"STATIC" / "DYNAMIC"`                                | The type of matrix. `STATIC` = A matrix that has one or many batches statically allocated (batches are not assigned automatically), `DYNAMIC` = A matrix that obtains batches via lookup criteria (currency, settlementModel, fromDate, toDate etc) |
-| `generationDurationSecs`      | `number`                                              | The time in seconds it took to generate the settlement matrix                                                                                                                                                                                       |
-| `totalDebitBalance`           | `string`                                              | The sum of all batch debit balances that hasn't been disputed.                                                                                                                                                                                      |
-| `totalCreditBalance`          | `string`                                              | The sum of all batch credit balances that hasn't been disputed.                                                                                                                                                                                     |
-| `totalDebitBalanceDisputed`   | `string`                                              | The sum of all batch debit balances that has been disputed.                                                                                                                                                                                         |
-| `totalCreditBalanceDisputed`  | `string`                                              | The sum of all batch credit balances that has been disputed.                                                                                                                                                                                        |
+| Field                         | Definition                              | Description                                                                                                                                                                                                                                         |
+|-------------------------------|-----------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `id`                          | `string`                                | The global unique identifier for settlement matrix. Generated by Settlement                                                                                                                                                                         |
+| `createdAt`                   | `number`                                | The timestamp when the matrix was created                                                                                                                                                                                                           |
+| `updatedAt`                   | `number`                                | The timestamp when the matrix was last updated                                                                                                                                                                                                      |
+| `dateFrom`                    | `number / null`                         | The date to which to generate the settlement matrix from                                                                                                                                                                                            |
+| `dateTo`                      | `number / null`                         | The date to which to generate the settlement matrix until                                                                                                                                                                                           |
+| `currencyCode`                | `string`                                | The currency code as described in ISO-4217                                                                                                                                                                                                          |
+| `settlementModel`             | `string / null`                         | The settlement model for which the settlement model is generated                                                                                                                                                                                    |
+| `batches`                     | `ISettlementMatrixBatch[]`              | The settlement matrix batches that were processed                                                                                                                                                                                                   |
+| `participantBalances`         | `ISettlementMatrixParticipantBalance[]` | The debit and credit balances for a participant.                                                                                                                                                                                                    |
+| `participantBalancesDisputed` | `ISettlementMatrixParticipantBalance[]` | The disputed debit and credit balances for a participant.                                                                                                                                                                                           |
+| `state`                       | `"IDLE" / "BUSY" / "SETTLED"`           | See section [Batch State Machine](#5-settlement-state-machine)                                                                                                                                                                                      |
+| `type`                        | `"STATIC" / "DYNAMIC"`                  | The type of matrix. `STATIC` = A matrix that has one or many batches statically allocated (batches are not assigned automatically), `DYNAMIC` = A matrix that obtains batches via lookup criteria (currency, settlementModel, fromDate, toDate etc) |
+| `generationDurationSecs`      | `number`                                | The time in seconds it took to generate the settlement matrix                                                                                                                                                                                       |
+| `totalDebitBalance`           | `string`                                | The sum of all batch debit balances that hasn't been disputed.                                                                                                                                                                                      |
+| `totalCreditBalance`          | `string`                                | The sum of all batch credit balances that hasn't been disputed.                                                                                                                                                                                     |
+| `totalDebitBalanceDisputed`   | `string`                                | The sum of all batch debit balances that has been disputed.                                                                                                                                                                                         |
+| `totalCreditBalanceDisputed`  | `string`                                | The sum of all batch credit balances that has been disputed.                                                                                                                                                                                        |
 * See `ISettlementMatrix` at https://github.com/mojaloop/settlements-bc/blob/main/packages/public-types-lib/src/index.ts
 
 ### Settlement Matrix Batch Model
@@ -145,14 +156,14 @@ The settlement matrix batch data object is a child object for the [Settlement Ma
 The Settlement Matrix Batch has numerous Settlement Accounts associated with the batch. 
 The table below illustrates the Settlement Matrix Batch fields:
 
-| Field                | Definition                                 | Description                                                                                                                                                                                                                                                                                                     |
-|----------------------|--------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `id`                 | `string`                                   | The global unique identifier for settlement matrix batch. Generated by Settlement                                                                                                                                                                                                                               |
-| `name`               | `string`                                   | The name of the batch `e.g DEFAULT.USD:USD.2023.1.24.14.28.1`                                                                                                                                                                                                                                                   |
-| `batchDebitBalance`  | `string`                                   | The settlement batch debit balance amount in minor denomination format (cents/fills) as text (`string)                                                                                                                                                                                                          |
-| `batchCreditBalance` | `string`                                   | The settlement batch credit balance amount in minor denomination format (cents/fills) as text (`string)                                                                                                                                                                                                         |
-| `state`              | `OPEN" / "DISPUTED" / "SETTLED" / "CLOSED` | The status for a settlement batch. `OPEN` = Batch is open and may receive settlement transfers, `CLOSED` = Batch is closed and no more transactions will be allocated to a closed batch, `DISPUTED` = Batch have been disputed (and will not be settled), `SETTLED` = Batch is settled and considered as final. |
-| `batchAccounts`      | `ISettlementMatrixBatchAccount[]`          | The settlement batch accounts linked to the batch.                                                                                                                                                                                                                                                              |
+| Field                | Definition                                                           | Description                                                                                                                                                                                                                                                                                                     |
+|----------------------|----------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `id`                 | `string`                                                             | The global unique identifier for settlement matrix batch. Generated by Settlement                                                                                                                                                                                                                               |
+| `name`               | `string`                                                             | The name of the batch `e.g DEFAULT.USD:USD.2023.1.24.14.28.1`                                                                                                                                                                                                                                                   |
+| `batchDebitBalance`  | `string`                                                             | The settlement batch debit balance amount in minor denomination format (cents/fills) as text (`string)                                                                                                                                                                                                          |
+| `batchCreditBalance` | `string`                                                             | The settlement batch credit balance amount in minor denomination format (cents/fills) as text (`string)                                                                                                                                                                                                         |
+| `state`              | `"OPEN" / "DISPUTED" / "SETTLED" / "CLOSED" / "AWAITING_SETTLEMENT"` | The status for a settlement batch. `OPEN` = Batch is open and may receive settlement transfers, `CLOSED` = Batch is closed and no more transactions will be allocated to a closed batch, `DISPUTED` = Batch have been disputed (and will not be settled), `SETTLED` = Batch is settled and considered as final. |
+| `batchAccounts`      | `ISettlementMatrixBatchAccount[]`                                    | The settlement batch accounts linked to the batch.                                                                                                                                                                                                                                                              |
 * See `ISettlementMatrixBatch` at https://github.com/mojaloop/settlements-bc/blob/main/packages/public-types-lib/src/index.ts
 
 ### Settlement Matrix Batch Account Model
@@ -167,6 +178,47 @@ The table below illustrates the Settlement Matrix Batch Account fields:
 | `debitBalance`   | `string`   | The settlement batch account debit balance amount in minor denomination format (cents/fills) as text (`string)                                         |
 | `creditBalance`  | `string`   | The settlement batch account credit balance amount in minor denomination format (cents/fills) as text (`string)                                        |
 * See `ISettlementMatrixBatchAccount` at https://github.com/mojaloop/settlements-bc/blob/main/packages/public-types-lib/src/index.ts
+
+### Transfer Prepared Event Payload Model
+The Transfer Prepared Event Payload Model is published at the time a 2-phase Transfer has been fulfilled. This event signifies the settlement obligation has been created as a result of a successful transfer.
+The table below illustrates the Transfer Prepared Event Payload Model fields:
+
+| Field            | Definition  | Description                                                                                                                              |
+|------------------|-------------|------------------------------------------------------------------------------------------------------------------------------------------|
+| `transferId`     | `string`    | An external id used by the external services (Central-Ledger / Transfers BC) used to uniquely identify a transfer                        |
+| `payeeFsp`       | `string`    | An participantId id used by the external services (Central-Ledger / Transfers BC) used to identify the payer DFSP                        |
+| `payerFsp`       | `string`    | An participantId id used by the external services (Central-Ledger / Transfers BC) used to identify the payee DFSP                        |
+| `amount`         | `string`    | The transfer amount in minor denomination format (cents/fills) as text (`string)                                                         |
+| `currencyCode`   | `string`    | The currency code as described in ISO-4217                                                                                               |
+| `ilpPacket`      | `string`    | The ILP packet transmitted *(optional)*. See https://interledger.org/rfcs/0003-interledger-protocol/                                     |
+| `condition`      | `string`    | The cryptographic condition set on the ILP packet by the sender *(optional)*                                                             |
+| `expiration`     | `number`    | The timestamp when the transfer fulfill would have expired, which would have resulted in a rollback (no fulfill post the prepare event). |
+| `extensionList`  | `extension` | The list of optional name/value pair extensions that may be added as part of the transfer fulfill *(optional)*                           |
+* See `TransferPreparedEvtPayload` at https://github.com/mojaloop/platform-shared-lib/blob/main/packages/public-messages-lib/src/transfers-bc/responses.ts
+
+### Settlement Matrix Settled Participant Event Payload Model
+The Settlement Matrix Settled Participant Event Payload Model is published at the time a settlement batch have been `SETTLED` (final stage). 
+This event signifies the settlement obligation has been fulfilled as a result of a successful settlement.
+The table below illustrates the Settlement Matrix Settled Participant Event Payload Model fields:
+
+The table below illustrates the Settlement Matrix Settled Event Model fields:
+
+| Field                | Definition                                       | Description                                               |
+|----------------------|--------------------------------------------------|-----------------------------------------------------------|
+| `settlementMatrixId` | `string`                                         | The unique settlement matrix id that was settled          |
+| `settledTimestamp`   | `number`                                         | The timestamp at which the settlement took place          |
+| `participantList`    | `SettlementMatrixSettledParticipantEvtPayload[]` | The list of participants with their debit/credit balances |
+* See `SettlementMatrixSettledEvt` at https://github.com/mojaloop/platform-shared-lib/blob/main/packages/public-messages-lib/src/settlements-bc/requests.ts
+
+The table below illustrates the Settlement Matrix Settled Participant Event Payload Model fields:
+
+| Field                  | Definition  | Description                                                                                                                            |
+|------------------------|-------------|----------------------------------------------------------------------------------------------------------------------------------------|
+| `participantId`        | `string`    | An participantId id used by the external services (Central-Ledger / Transfers BC) used to identify the DFSP position balance to update |
+| `currencyCode`         | `string`    | The currency code as described in ISO-4217                                                                                             |
+| `settledDebitBalance`  | `string`    | The net debit balance for all batches settled for the `participantId`                                                                  |
+| `settledCreditBalance` | `string`    | The net credit balance for all batches settled for the `participantId`                                                                 |
+* See `SettlementMatrixSettledParticipantEvtPayload` at https://github.com/mojaloop/platform-shared-lib/blob/main/packages/public-messages-lib/src/settlements-bc/requests.ts
 
 ## 3. Assigning Dynamic Settlement Batches
 This section describes the process of assigning a Transfer to a batch, for settlement.
@@ -200,31 +252,37 @@ The above ensures the requirements are met:
 This section describes the process of assigning a Batch to a static Settlement Matrix, for settlement.
 
 It is necessary to perform commands on a statically defined batch or batches for a Settlement Matrix.
-Once a Static Matrix has been created, batches may be added or removed from the static matrix. 
+Once a Static Matrix has been created, batches may be added or removed from the static matrix.
+
+A static settlement matrix is useful when the Hub operator knows the exact batches to be included as part of a matrix.
+The static matrix is especially useful when disputing one or more batches in order to isolate those batches from other batches that may be settled.
 
 ## 5. Settlement State Machine
-State transitions for settlement matrices and batches are allowed as follows:  
+State transitions for settlement matrices and batches are described in the following sections.
 
 ### 5.1 Settlement Matrix
-The table below illustrates the state transitions for a settlement matrix:
+The table below illustrates the states for a settlement matrix:
 
-| State      | Description                                                                                                       | Allowed Transitions               | 
-|------------|-------------------------------------------------------------------------------------------------------------------|-----------------------------------|
-| `IDLE`     | Matrix is awaiting input (initial state)                                                                          | `BUSY`                            |
-| `BUSY`     | Matrix is currently busy processing a request, all commands will be blocked until completed                       | `DISPUTED` / `CLOSED` / `SETTLED` |
-| `DISPUTED` | Matrix has been actioned to dispute one or many batches                                                           | `CLOSED`                          |
-| `CLOSED`   | Matrix has been actioned to close one or many batches (include un-disputing batches)                              | `SETTLED` / `DISPUTED`            |
-| `SETTLED`  | Matrix has been actioned to settled all IDLE or CLOSED batches. Once a matrix is settled, it is considered final  | -                                 |
+| State      | Description                                                                                                       | 
+|------------|-------------------------------------------------------------------------------------------------------------------|
+| `IDLE`     | Matrix is awaiting input (initial state)                                                                          |
+| `BUSY`     | Matrix is currently busy processing a request, all commands will be blocked until completed                       |
+| `SETTLED`  | Matrix has been actioned to settled all IDLE or CLOSED batches. Once a matrix is settled, it is considered final  |
 
 ### 5.2 Settlement Matrix Batch
-The table below illustrates the state transitions for a settlement batch:
+The table below illustrates the states for a settlement batch:
 
-| State      | Description                                                                                | Allowed Transitions               | 
-|------------|--------------------------------------------------------------------------------------------|-----------------------------------|
-| `OPEN`     | Batch is open and may receive settlement transfers                                         | `CLOSED` / `DISPUTED` / `SETTLED` |
-| `CLOSED`   | Batch is closed and no more transactions will be allocated to the closed batch             | `DISPUTED` / `SETTLED`            |
-| `DISPUTED` | Batch have been disputed. The dispute needs to be resolved before the batch can be settled | `CLOSED`                          |
-| `SETTLED`  | Batch is settled and considered as final                                                   | -                                 |
+| State                 | Description                                                                                                                                                          | 
+|-----------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `OPEN`                | Batch is open and may receive settlement transfers                                                                                                                   |
+| `CLOSED`              | Batch is closed and no more transactions will be allocated to the closed batch                                                                                       |
+| `DISPUTED`            | Batch have been disputed. The dispute needs to be resolved before the batch can be settled                                                                           |
+| `AWAITING_SETTLEMENT` | Batch has been marked for final approval, lock relationship is created between batch and matrix. Only the matrix linked to the batch is allowed to release the batch |
+| `SETTLED`             | Batch is settled and considered as final                                                                                                                             |
+
+### 5.3 Settlement Batch State Transitions
+The diagram below illustrates the state transitions for a settlement batch:
+## ![Settlement Batch State Transitions](./20-batch-statemachine.svg "Settlement Batch State Transitions")
 
 ## 6. References
 The following documentation provides insight into Settlements.
@@ -242,8 +300,9 @@ The following documentation provides insight into Settlements.
 | `09.` | **Mojaloop Product Timeline**                                        | https://miro.com/app/board/uXjVPA3hBgE=/                                                                                               |
 | `10.` | **Settlement Basic Concepts**                                        | https://docs.mojaloop.io/mojaloop-business-docs/HubOperations/Settlement/settlement-basic-concepts.html                                |
 | `11.` | **Ledgers in the Hub**                                               | https://docs.mojaloop.io/mojaloop-business-docs/HubOperations/Settlement/ledgers-in-the-hub.html                                       |
-| `12.` | **Mojaloop 2.0 Reference Architecture - Sheet 8**                    | https://docs.google.com/spreadsheets/d/1ITmAesHjRZICC0EUNV8vUVV8VDnKLjbSKu_dzhEa5Fw/edit#gid=580827044                                 |
+| `12.` | **Mojaloop 2.0 Reference Architecture - Session With MR - Agreed**   | https://docs.google.com/spreadsheets/d/1ITmAesHjRZICC0EUNV8vUVV8VDnKLjbSKu_dzhEa5Fw/edit#gid=580827044                                 |
 | `13.` | **Change Request: Modifications to Admin API to support Settlement** | https://github.com/mojaloop/mojaloop-specification/issues/117                                                                          |
+| `14.` | **Scenarios**                                                        | `../SCENARIONS.md`                                                                                                                     |
 
 ## 7. API
 The following REST API endpoints exists for Settlements.

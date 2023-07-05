@@ -30,7 +30,6 @@
 
 "use strict";
 
-import {randomUUID} from "crypto";
 import {existsSync} from "fs";
 import {IAuditClient} from "@mojaloop/auditing-bc-public-types-lib";
 import {ILogger, LogLevel} from "@mojaloop/logging-bc-public-types-lib";
@@ -50,8 +49,6 @@ import {
 import process from "process";
 import {SettlementsCommandHandler} from "./handler";
 import {
-	AuthenticatedHttpRequester,
-	IAuthenticatedHttpRequester,
     LoginHelper
 } from "@mojaloop/security-bc-client-lib";
 
@@ -84,6 +81,7 @@ import {
 import {MongoSettlementMatrixRepo} from "@mojaloop/settlements-bc-infrastructure-lib";
 
 import configClient from "./config";
+import {DEFAULT_SETTLEMENT_MODEL_ID, DEFAULT_SETTLEMENT_MODEL_NAME} from "@mojaloop/settlements-bc-public-types-lib";
 const BC_NAME = configClient.boundedContextName;
 const APP_NAME = configClient.applicationName;
 const APP_VERSION = configClient.applicationVersion;
@@ -107,7 +105,6 @@ const AUTH_N_SVC_JWKS_URL = process.env["AUTH_N_SVC_JWKS_URL"] || `${AUTH_N_SVC_
 const AUTH_Z_SVC_BASEURL = process.env["AUTH_Z_SVC_BASEURL"] || "http://localhost:3202";
 
 const ACCOUNTS_BALANCES_COA_SVC_URL = process.env["ACCOUNTS_BALANCES_COA_SVC_URL"] || "localhost:3300";
-const PARTICIPANTS_SVC_URL = process.env["PARTICIPANTS_SVC_URL"] || "http://localhost:3010";
 
 const SVC_CLIENT_ID = process.env["SVC_CLIENT_ID"] || "settlements-bc-command-handler-svc";
 const SVC_CLIENT_SECRET = process.env["SVC_CLIENT_ID"] || "superServiceSecret";
@@ -133,7 +130,6 @@ const kafkaProducerOptions: MLKafkaJsonProducerOptions = {
 	kafkaBrokerList: KAFKA_URL
 };
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 let globalLogger: ILogger;
 
 export class Service {
@@ -274,12 +270,12 @@ export class Service {
 			await configRepo.init();
 
 			if (!PRODUCTION_MODE){
-				const defaultModel = await configRepo.getSettlementConfigByModel("DEFAULT");
+				const defaultModel = await configRepo.getSettlementConfigByModelName(DEFAULT_SETTLEMENT_MODEL_NAME);
 				if(!defaultModel){
 					// create default model with 5 mins
 					await configRepo.storeConfig({
-						id: randomUUID(),
-						settlementModel: "DEFAULT",
+						id: DEFAULT_SETTLEMENT_MODEL_ID,
+						settlementModel: DEFAULT_SETTLEMENT_MODEL_NAME,
 						batchCreateInterval: 300
 					});
 				}
@@ -439,6 +435,7 @@ function addPrivileges(authorizationClient: AuthorizationClient): void {
 	);
 }
 
+
 /**
  * process termination and cleanup
  */
@@ -447,7 +444,7 @@ async function _handle_int_and_term_signals(signal: NodeJS.Signals): Promise<voi
 	console.info(`Service - ${signal} received - cleaning up...`);
 	let clean_exit = false;
 	setTimeout(() => {
-		clean_exit || process.abort();
+		clean_exit || process.exit(99);
 	}, 5000);
 
 	// call graceful stop routine
@@ -464,9 +461,10 @@ process.on("SIGTERM", _handle_int_and_term_signals);
 
 //do something when app is closing
 process.on("exit", async () => {
-	console.info("Microservice - exiting...");
+	globalLogger.info("Microservice - exiting...");
 });
 process.on("uncaughtException", (err: Error) => {
-	console.error(err, "UncaughtException - EXITING...");
+	globalLogger.error(err);
+	console.log("UncaughtException - EXITING...");
 	process.exit(999);
 });

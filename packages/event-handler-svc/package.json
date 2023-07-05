@@ -1,10 +1,13 @@
 {
   "name": "@mojaloop/settlements-bc-event-handler-svc",
-  "version": "0.1.2",
+  "version": "0.1.4",
   "description": "Mojaloop vNext Settlements BC - Event Handler Service",
   "license": "Apache-2.0",
   "homepage": "https://github.com/mojaloop/settlements-bc/event-handler-svc",
   "private": true,
+  "mojaloop": {
+    "publish_to_dockerhub": true
+  },
   "bugs": {
     "url": "https://github.com/mojaloop/settlements-bc/issues#readme"
   },
@@ -17,16 +20,14 @@
     "/dist"
   ],
   "scripts": {
-    "clean": "npm run clean:npm; npm run clean:dist",
+    "clean": "rm -Rf dist",
     "clean:dist": "rm -rf dist",
-    "clean:npm": "rm -rf node_modules",
+    "clean:npm": "rm -Rf node_modules",
     "start": "npm run service",
     "start:dev": "npm run build && AUDIT_KEY_FILE_PATH=./dist/tmp_audit_key_file npm run service",
     "service": "node dist/index.js",
     "build": "tsc",
     "watch": "tsc -w",
-    "clean:npm": "rm -Rf node_modules",
-    "clean": "rm -Rf dist",
     "pretest": "npm run build",
     "standard": "npm run lint",
     "lint": "npm run build && npx eslint ./src",
@@ -38,26 +39,26 @@
   },
   "dependencies": {
     "@mojaloop/settlements-bc-domain-lib": "*",
-    "@mojaloop/auditing-bc-client-lib": "~0.0.12",
-    "@mojaloop/auditing-bc-public-types-lib": "~0.0.13",
-    "@mojaloop/logging-bc-client-lib": "~0.1.19",
-    "@mojaloop/logging-bc-public-types-lib": "~0.1.16",
-    "@mojaloop/platform-configuration-bc-public-types-lib": "~0.2.3",
-    "@mojaloop/platform-configuration-bc-client-lib": "~0.1.20",
-    "@mojaloop/platform-shared-lib-messaging-types-lib": "~0.2.75",
-    "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib": "~0.3.53",
-    "@mojaloop/security-bc-public-types-lib": "~0.1.19"
+    "@mojaloop/auditing-bc-client-lib": "~0.0.14",
+    "@mojaloop/auditing-bc-public-types-lib": "~0.0.15",
+    "@mojaloop/logging-bc-client-lib": "~0.1.24",
+    "@mojaloop/logging-bc-public-types-lib": "~0.1.19",
+    "@mojaloop/platform-configuration-bc-public-types-lib": "~0.2.5",
+    "@mojaloop/platform-configuration-bc-client-lib": "~0.1.22",
+    "@mojaloop/platform-shared-lib-messaging-types-lib": "~0.2.100",
+    "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib": "~0.3.65",
+    "@mojaloop/security-bc-public-types-lib": "~0.2.1"
   },
   "devDependencies": {
-    "@types/jest": "^29.5.0",
-    "@types/node": "^18.15.11",
+    "@types/jest": "^29.5.2",
+    "@types/node": "^18.15.13",
     "@typescript-eslint/eslint-plugin": "^5.57.1",
     "@typescript-eslint/parser": "^5.57.1",
     "eslint": "^8.37.0",
     "husky": "^8.0.3",
     "jest": "^29.5.0",
-    "npm-check-updates": "^16.10.1",
+    "npm-check-updates": "^16.10.13",
     "ts-jest": "^29.1.0",
-    "typescript": "^5.0.3"
+    "typescript": "^5.0.4"
   }
 }

@@ -1,0 +1,24 @@
+@startmindmap
++[#Orange] **Settlements-BC**
+++[#Lightblue] Database
++++[#LightGreen] Ledger Adapter
+****_ TigerBeetle
++++_ MongoDB
+++[#Lightblue] Kafka
++++_ //public-messages-lib//
+--[#FFBBCC] Central-Ledger
+---_ //settlement-model-rules-engine//
+---[#Lightblue] Database
+----_ MySQL
+---[#Lightblue] Kafka
+----_ //public-messages-lib//
+---[#Lightblue] Redis
+
+legend left
+**Blue** = 3rd Party Components
+**Red** = Central-Services //(Current implementation)//
+**Green** = Settlement Components (Features)
+**//public-messages-lib//** = Core MJL library
+endlegend
+
+@endmindmap

@@ -36,7 +36,6 @@ import {
 	SETTLEMENTS_AGGREGATE_NAME,
 	SettlementsBCTopics
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
-import {ISettlementMatrix} from "@mojaloop/settlements-bc-public-types-lib";
 
 export type ProcessTransferCmdPayload = {
 	transferId: string;
@@ -53,7 +52,7 @@ export class ProcessTransferCmd extends CommandMsg {
 	aggregateId: string;
 	aggregateName: string = SETTLEMENTS_AGGREGATE_NAME;
 	msgKey: string;
-	msgTopic: string = SettlementsBCTopics.DomainRequests;
+	msgTopic: string = SettlementsBCTopics.Commands;
 	payload: ProcessTransferCmdPayload;
 
 	constructor(payload: ProcessTransferCmdPayload) {
@@ -82,7 +81,7 @@ export class CreateDynamicMatrixCmd extends CommandMsg {
 	aggregateId: string;
 	aggregateName: string = SETTLEMENTS_AGGREGATE_NAME;
 	msgKey: string;
-	msgTopic: string = SettlementsBCTopics.DomainRequests;
+	msgTopic: string = SettlementsBCTopics.Commands;
 	payload: CreateDynamicMatrixCmdPayload;
 
 	constructor(payload: CreateDynamicMatrixCmdPayload) {
@@ -107,7 +106,7 @@ export class CreateStaticMatrixCmd extends CommandMsg {
 	aggregateId: string;
 	aggregateName: string = SETTLEMENTS_AGGREGATE_NAME;
 	msgKey: string;
-	msgTopic: string = SettlementsBCTopics.DomainRequests;
+	msgTopic: string = SettlementsBCTopics.Commands;
 	payload: CreateStaticMatrixCmdPayload;
 
 	constructor(payload: CreateStaticMatrixCmdPayload) {
@@ -134,7 +133,7 @@ export class RecalculateMatrixCmd extends CommandMsg {
 	aggregateId: string;
 	aggregateName: string = SETTLEMENTS_AGGREGATE_NAME;
 	msgKey: string;
-	msgTopic: string = SettlementsBCTopics.DomainRequests;
+	msgTopic: string = SettlementsBCTopics.Commands;
 	payload: RecalculateMatrixCmdPayload;
 
 	constructor(payload: RecalculateMatrixCmdPayload) {
@@ -158,7 +157,7 @@ export class CloseMatrixCmd extends CommandMsg {
 	aggregateId: string;
 	aggregateName: string = SETTLEMENTS_AGGREGATE_NAME;
 	msgKey: string;
-	msgTopic: string = SettlementsBCTopics.DomainRequests;
+	msgTopic: string = SettlementsBCTopics.Commands;
 	payload: CloseMatrixCmdPayload;
 
 	constructor(payload: CloseMatrixCmdPayload) {
@@ -182,7 +181,7 @@ export class SettleMatrixCmd extends CommandMsg {
 	aggregateId: string;
 	aggregateName: string = SETTLEMENTS_AGGREGATE_NAME;
 	msgKey: string;
-	msgTopic: string = SettlementsBCTopics.DomainRequests;
+	msgTopic: string = SettlementsBCTopics.Commands;
 	payload: SettleMatrixCmdPayload;
 
 	constructor(payload: SettleMatrixCmdPayload) {
@@ -206,7 +205,7 @@ export class DisputeMatrixCmd extends CommandMsg {
 	aggregateId: string;
 	aggregateName: string = SETTLEMENTS_AGGREGATE_NAME;
 	msgKey: string;
-	msgTopic: string = SettlementsBCTopics.DomainRequests;
+	msgTopic: string = SettlementsBCTopics.Commands;
 	payload: DisputeMatrixCmdPayload;
 
 	constructor(payload: DisputeMatrixCmdPayload) {
@@ -231,7 +230,7 @@ export class AddBatchesToMatrixCmd extends CommandMsg {
 	aggregateId: string;
 	aggregateName: string = SETTLEMENTS_AGGREGATE_NAME;
 	msgKey: string;
-	msgTopic: string = SettlementsBCTopics.DomainRequests;
+	msgTopic: string = SettlementsBCTopics.Commands;
 	payload: AddBatchesToMatrixCmdPayload;
 
 	constructor(payload: AddBatchesToMatrixCmdPayload) {
@@ -256,7 +255,7 @@ export class RemoveBatchesFromMatrixCmd extends CommandMsg {
 	aggregateId: string;
 	aggregateName: string = SETTLEMENTS_AGGREGATE_NAME;
 	msgKey: string;
-	msgTopic: string = SettlementsBCTopics.DomainRequests;
+	msgTopic: string = SettlementsBCTopics.Commands;
 	payload: RemoveBatchesFromMatrixCmdPayload;
 
 	constructor(payload: RemoveBatchesFromMatrixCmdPayload) {

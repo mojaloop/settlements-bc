@@ -51,13 +51,14 @@ import {
 } from "@mojaloop/settlements-bc-domain-lib";
 import {CallSecurityContext} from "@mojaloop/security-bc-public-types-lib";
 import {
-ISettlementBatchTransfer,
+	ISettlementBatchTransfer, ISettlementConfig,
 } from "@mojaloop/settlements-bc-public-types-lib";
 import express from "express";
 import {ITokenHelper} from "@mojaloop/security-bc-public-types-lib";
 import {randomUUID} from "crypto";
 import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import {CommandMsg} from "@mojaloop/platform-shared-lib-messaging-types-lib/dist/index";
+import {ISettlementConfigRepo} from "@mojaloop/settlements-bc-domain-lib/dist/index";
 
 // Extend express request to include our security fields.
 declare module "express-serve-static-core" {
@@ -70,6 +71,7 @@ export class ExpressRoutes {
 	private readonly _logger: ILogger;
 	private readonly _tokenHelper: ITokenHelper;
 	// private readonly _aggregate: SettlementsAggregate;
+	private readonly _configRepo: ISettlementConfigRepo;
 	private readonly _batchRepo: ISettlementBatchRepo;
 	private readonly _batchTransferRepo: ISettlementBatchTransferRepo;
 	private readonly _matrixRepo: ISettlementMatrixRequestRepo;
@@ -80,6 +82,7 @@ export class ExpressRoutes {
 	constructor(
 		logger: ILogger,
 		tokenHelper: ITokenHelper,
+		configRepo: ISettlementConfigRepo,
 		batchRepo: ISettlementBatchRepo,
 		batchTransferRepo: ISettlementBatchTransferRepo,
 		matrixRepo: ISettlementMatrixRequestRepo,
@@ -88,6 +91,7 @@ export class ExpressRoutes {
 		this._logger = logger.createChild(this.constructor.name);
 		this._tokenHelper = tokenHelper;
 		this._batchRepo = batchRepo;
+		this._configRepo = configRepo;
 		this._batchTransferRepo = batchTransferRepo;
 		this._matrixRepo = matrixRepo;
 		this._messageProducer = messageProducer;
@@ -102,6 +106,11 @@ export class ExpressRoutes {
 		// transfer inject
 		// this is for tests only, normal path is though events (event/command handler)
 		// this._router.post("/transfer", this.postHandleTransfer.bind(this));
+
+		// models
+		this._router.get("/models", this.getSettlementModels.bind(this));
+		this._router.get("/models/:id", this.getSettlementModelById.bind(this));
+		// this._router.post("/models", this.postCreateModel.bind(this));
 
 		// Batches
 		this._router.get("/batches/:id", this.getSettlementBatch.bind(this));
@@ -204,6 +213,50 @@ export class ExpressRoutes {
 			}
 		}
 	}
+	*/
+
+	private async getSettlementModels(req: express.Request, res: express.Response): Promise<void>{
+		// TODO enforce privileges
+
+		const name = req.query.name as string;
+		try {
+			let retModels: ISettlementConfig[] = [];
+			if(name){
+				this._logger.debug(`Got getSettlementModels request for model name: ${name}`);
+				const found = await this._configRepo.getSettlementConfigByModelName(name);
+				if(found) retModels.push(found);
+			}else{
+				this._logger.debug("Got getSettlementModels request");
+				retModels = await this._configRepo.getAllSettlementConfigs();
+			}
+
+			this.sendSuccessResponse(res, 200, retModels);
+		} catch (error: any) {
+			this._logger.error(error);
+			this.sendErrorResponse(res, 500, error.message || ExpressRoutes.UNKNOWN_ERROR_MESSAGE);
+		}
+	}
+
+	private async getSettlementModelById(req: express.Request, res: express.Response): Promise<void>{
+		// TODO enforce privileges
+
+		const modelId = req.params.id as string;
+		try {
+			this._logger.debug(`Got getSettlementModels request for modelId: ${modelId}`);
+			const settlementModel = await this._configRepo.getSettlementConfig(modelId);
+			if(!settlementModel){
+				res.sendStatus(404);
+				return;
+			}
+			this.sendSuccessResponse(res, 200, settlementModel);// OK
+		} catch (error: any) {
+			this._logger.error(error);
+			this.sendErrorResponse(res, 500, error.message || ExpressRoutes.UNKNOWN_ERROR_MESSAGE);
+		}
+	}
+
+	/*
+	private async postCreateModel(req: express.Request, res: express.Response): Promise<void>{}
 	*/
 
 	private async getSettlementBatch(req: express.Request, res: express.Response): Promise<void> {

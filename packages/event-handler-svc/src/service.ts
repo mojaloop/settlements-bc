@@ -68,6 +68,8 @@ const AUDIT_KEY_FILE_PATH = process.env["AUDIT_KEY_FILE_PATH"] || "/app/data/aud
 const SVC_CLIENT_ID = process.env["SVC_CLIENT_ID"] || "settlements-event-handler-svc";
 const SVC_CLIENT_SECRET = process.env["SVC_CLIENT_ID"] || "superServiceSecret";
 
+const SERVICE_START_TIMEOUT_MS = 30_000;
+
 const kafkaConsumerOptions: MLKafkaJsonConsumerOptions = {
 	kafkaBrokerList: KAFKA_URL,
 	kafkaGroupId: `${BC_NAME}_${APP_NAME}`
@@ -77,7 +79,6 @@ const kafkaProducerOptions: MLKafkaJsonProducerOptions = {
 	kafkaBrokerList: KAFKA_URL
 };
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 let globalLogger: ILogger;
 
 export class Service {
@@ -86,6 +87,7 @@ export class Service {
 	static messageConsumer: IMessageConsumer;
 	static messageProducer: IMessageProducer;
 	static handler: SettlementsEventHandler;
+	static startupTimer: NodeJS.Timeout;
 
 	static async start(
 		logger?: ILogger,
@@ -94,6 +96,10 @@ export class Service {
 		messageProducer?: IMessageProducer
 	): Promise<void> {
 		console.log(`Service starting with PID: ${process.pid}`);
+
+		this.startupTimer = setTimeout(()=>{
+			throw new Error("Service start timed-out");
+		}, SERVICE_START_TIMEOUT_MS);
 
 		/// start config client - this is not mockable (can use STANDALONE MODE if desired)
 		await configClient.init();
@@ -152,16 +158,21 @@ export class Service {
 		await this.handler.start();
 
 		this.logger.info(`Settlement Event Handler Service started, version: ${configClient.applicationVersion}`);
+
+		// remove startup timeout
+		clearTimeout(this.startupTimer);
 	}
 
 	static async stop() {
 		if (this.handler) await this.handler.stop();
 		if (this.messageConsumer) await this.messageConsumer.destroy(true);
+		if (this.messageProducer) await this.messageProducer.destroy();
 
 		if (this.auditClient) await this.auditClient.destroy();
 		if (this.logger && this.logger instanceof KafkaLogger) await this.logger.destroy();
 	}
 }
+
 
 
 /**
@@ -172,7 +183,7 @@ async function _handle_int_and_term_signals(signal: NodeJS.Signals): Promise<voi
 	console.info(`Service - ${signal} received - cleaning up...`);
 	let clean_exit = false;
 	setTimeout(() => {
-		clean_exit || process.abort();
+		clean_exit || process.exit(99);
 	}, 5000);
 
 	// call graceful stop routine
@@ -189,9 +200,10 @@ process.on("SIGTERM", _handle_int_and_term_signals);
 
 //do something when app is closing
 process.on("exit", async () => {
-	console.info("Microservice - exiting...");
+	globalLogger.info("Microservice - exiting...");
 });
 process.on("uncaughtException", (err: Error) => {
-	console.error(err, "UncaughtException - EXITING...");
+	globalLogger.error(err);
+	console.log("UncaughtException - EXITING...");
 	process.exit(999);
 });

@@ -30,23 +30,37 @@
 
 "use strict";
 
-import { IAuditClient } from "@mojaloop/auditing-bc-public-types-lib";
-import { KafkaLogger } from "@mojaloop/logging-bc-client-lib";
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const packageJSON = require("../package.json");
+
+import {IAuditClient} from "@mojaloop/auditing-bc-public-types-lib";
+import {KafkaLogger} from "@mojaloop/logging-bc-client-lib";
 import {ILogger, LogLevel} from "@mojaloop/logging-bc-public-types-lib";
-import { MLKafkaJsonProducerOptions } from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
+import {MLKafkaJsonProducer, MLKafkaJsonProducerOptions} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 import {AuthorizationClient, LoginHelper, TokenHelper} from "@mojaloop/security-bc-client-lib";
 import {
-	IAccountsBalancesAdapter, IParticipantAccountNotifier,
-	ISettlementBatchRepo, ISettlementConfigRepo, ISettlementMatrixRequestRepo,
-	SettlementsAggregate, Privileges, ISettlementBatchTransferRepo
+	IAccountsBalancesAdapter,
+	IParticipantAccountNotifier,
+	ISettlementBatchRepo,
+	ISettlementBatchTransferRepo,
+	ISettlementConfigRepo,
+	ISettlementMatrixRequestRepo,
+	Privileges,
+	SettlementsAggregate
 } from "@mojaloop/settlements-bc-domain-lib";
 import process from "process";
 import {existsSync} from "fs";
-import {AuditClient, KafkaAuditClientDispatcher, LocalAuditClientCryptoProvider } from "@mojaloop/auditing-bc-client-lib";
+import {
+	AuditClient,
+	KafkaAuditClientDispatcher,
+	LocalAuditClientCryptoProvider
+} from "@mojaloop/auditing-bc-client-lib";
 import {
 	GrpcAccountsAndBalancesAdapter,
+	MongoSettlementBatchRepo,
 	MongoSettlementConfigRepo,
-	MongoSettlementBatchRepo
+	MongoSettlementMatrixRepo,
+	MongoSettlementTransferRepo
 } from "@mojaloop/settlements-bc-infrastructure-lib";
 import {IAuthorizationClient} from "@mojaloop/security-bc-public-types-lib";
 import {Server} from "net";
@@ -65,11 +79,9 @@ import {MLKafkaJsonProducer} from "@mojaloop/platform-shared-lib-nodejs-kafka-cl
 import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 
 
-
-
 const BC_NAME = "settlements-bc";
 const APP_NAME = "settlements-api-svc";
-const APP_VERSION = process.env.npm_package_version || "0.0.0";
+const APP_VERSION = packageJSON.version;
 const PRODUCTION_MODE = process.env["PRODUCTION_MODE"] || false;
 const LOG_LEVEL: LogLevel = process.env["LOG_LEVEL"] as LogLevel || LogLevel.DEBUG;
 const ENV_NAME = process.env["ENV_NAME"] || "dev";
@@ -268,7 +280,9 @@ export class Service {
 		this.participantAccountNotifier = participantAccountNotifier;
 
 		if (!messageProducer) {
-			messageProducer = new MLKafkaJsonProducer(kafkaProducerOptions, this.logger);
+			const producerLogger = this.logger.createChild("messageProducer");
+			producerLogger.setLogLevel(LogLevel.INFO);
+			messageProducer = new MLKafkaJsonProducer(kafkaProducerOptions, producerLogger);
 			await messageProducer.connect();
 		}
 		this.messageProducer = messageProducer;
@@ -299,6 +313,7 @@ export class Service {
 			const routes = new ExpressRoutes(
 				this.logger,
 				this.tokenHelper,
+				this.configRepo,
 				this.batchRepo,
 				this.batchTransferRepo,
 				this.matrixRepo,

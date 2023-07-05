@@ -1,6 +1,11 @@
 @startuml
 
-title Settlement Transfer from Central-Ledger
+skinparam TitleFontSize 20
+skinparam titleBorderRoundCorner 15
+skinparam titleBorderThickness 2
+skinparam titleBorderColor Aqua-CadetBlue
+skinparam titleBackgroundColor Aqua-CadetBlue
+title Settlement Transfer from \nCentral-Ledger
 
 participant "Central-Ledger" as ext_cl
 note over ext_cl
@@ -20,45 +25,29 @@ box Settlements BC #F9FFF9
     database "Settlements-Database" as sbc_db #DAE8FC
 end box
 
-box Accounts & Balances BC #FFFFF9
-    participant "A&B SVC" as abbc_grpc #D5E8D4
-    database "A&B-Ledger" as abbc_tigerbeetle #DAE8FC
+box Settlements-BC - Ledger Adapter #FFFFF9
+    participant "TigerBeetle Cluster" as abbc_grpc #D5E8D4
+    database "TigerBeetle Nodes" as abbc_tigerbeetle #DAE8FC
     note over abbc_grpc
-        gRPC interface for
-        Accounts & Balances
+        Invoke native TigerBeetle NodeJS
+        client from Settlement Ledger Adapter.
     end note
     note over abbc_tigerbeetle
-        TigerBeetle 
-        enabled/disabled
+        TigerBeetle enabled
     end note
-end box
-
-box Auditing BC #E6E6E6
-    participant "Auditing SVC" as audit_svc #D5E8D4
-    database "Audit-Log" as audit_db #DAE8FC
-end box
-
-box Logging BC #E6E6E6
-    participant "Logging SVC" as logging_svc #D5E8D4
-    database "Logging-Database" as logging_db #DAE8FC
-end box
-
-box Security BC #E6E6E6
-    participant "Security SVC" as security_svc #D5E8D4
-    database "Security-Database" as security_db #DAE8FC
 end box
 
 group 1. Create Settlement Transfer - Central Ledger
 autonumber
     ext_cl <--> ext_cl : **Transfer prepare**. \nObtain settlement model and allocation data\nvia Central-Ledger rules engine
     ext_cl <--> ext_cl : **Transfer fulfil**. \nAt this point, the transfer has cleared
-    ext_cl -> sbc_event : \n//publishEvent// will all necessary data as\n**//ISettlementTransferDto//**
+    ext_cl -> sbc_event : \n//publishEvent// will all necessary data as\n**//TransferPreparedEvtPayload//**
 autonumber
     sbc_app_logic -> sbc_event : Listen for Settlement Transfer event
 end
 
 group 2. Settlement - App Logic
-    sbc_app_logic <--> sbc_app_logic: Settlement Transfer event triggered
+    sbc_app_logic <--> sbc_app_logic: Settlement Transfer event triggered\nconverted as **//ITransferDto//**
     sbc_app_logic --> sbc_app_logic : Validate Settlement Transfer data
     sbc_app_logic <--> sbc_db : Fetch & cache settlement config\n**Platform Config BC / Admin API**
     sbc_app_logic <--> sbc_db : **Obtain open batch** based on Settlement Transfer data.\n//Create new batch if no OPEN batch available//
@@ -71,20 +60,6 @@ group 2. Settlement - App Logic
     abbc_grpc -> sbc_app_logic : Return **Transfer** creation info
     sbc_app_logic <-> sbc_app_logic: Prepare **Transfer/Account** response data
     sbc_app_logic -> sbc_event : Publish **Settlement Transfer** data
-end
-
-group 3. Settlement - Retrieve Batches
-autonumber
-    ext_cl -> sbc_rest : At time of fulfil:\n//retrieveSettlementBatches// \nINPUT:\n-> **From Date** - From\n-> **To Date** - To\n-> **Settlement Model** - Model //(optional)//\nOUTPUT:\n-> **Settlement Batches** - Batches
-    sbc_rest -> sbc_app_logic : Request settlement batches
-    sbc_app_logic -> abbc_grpc : Retrieve Settlement batch accounts
-    abbc_grpc <-> abbc_tigerbeetle : Retrieve Settlement accounts & balances
-    abbc_grpc -> sbc_app_logic : Return **Account** data
-    sbc_app_logic --> sbc_app_logic : Prepare batch response data
-    sbc_app_logic -> sbc_rest : Return **Batch** data
-    sbc_rest -> ext_cl : Return **Batch** data
-autonumber
-
 end
 
 @enduml

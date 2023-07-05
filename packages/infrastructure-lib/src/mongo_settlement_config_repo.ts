@@ -94,9 +94,27 @@ export class MongoSettlementConfigRepo implements ISettlementConfigRepo {
 		await this.configsCollection.insertOne(config);
 	}
 
-	async getSettlementConfigByModel(model: string): Promise<ISettlementConfig | null> {
+	async getAllSettlementConfigs(): Promise<ISettlementConfig[]>{
 		try {
-			const config = await this.configsCollection.findOne({settlementModel: model}, {projection: {_id: 0}});
+			const configs = await this.configsCollection.find({}, {projection: {_id: 0}}).toArray();
+			return configs as unknown as ISettlementConfig[];
+		} catch (error: unknown) {
+			throw new UnableToGetSettlementConfigError((error as any)?.message);
+		}
+	}
+
+	async getSettlementConfig(id: string): Promise<ISettlementConfig | null>{
+		try {
+			const config = await this.configsCollection.findOne({id: id}, {projection: {_id: 0}});
+			return config as (ISettlementConfig | null);
+		} catch (error: unknown) {
+			throw new UnableToGetSettlementConfigError((error as any)?.message);
+		}
+	}
+
+	async getSettlementConfigByModelName(modelName: string): Promise<ISettlementConfig | null> {
+		try {
+			const config = await this.configsCollection.findOne({settlementModel: modelName}, {projection: {_id: 0}});
 			return config as (ISettlementConfig | null);
 		} catch (error: unknown) {
 			throw new UnableToGetSettlementConfigError((error as any)?.message);
