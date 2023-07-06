@@ -40,8 +40,8 @@ export class SettlementBatchTransferRepoMock implements ISettlementBatchTransfer
 		return Promise.resolve();
 	}
 
-	async storeBatchTransfer(batchTransfer: ISettlementBatchTransfer): Promise<void> {
-		this._list.push(batchTransfer);
+	async storeBatchTransfer(...batchTransfer: ISettlementBatchTransfer[]): Promise<void> {
+		this._list.push(...batchTransfer);
 		return Promise.resolve();
 	}
 
