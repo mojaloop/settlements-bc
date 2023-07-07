@@ -1,7 +1,7 @@
 # Settlement Flows
 This document describes how the Settlement component functions, including detailing how data flows as cleared transfers are processed through settlement.    
 The current design of the new Settlement component expects use or integration with one of the following two Mojaloop transaction clearing services:
-- The `Central-Ledger` service which records cleared transactions for the current Production version, as at Februar 2023.
+- The `Central-Ledger` service which records cleared transactions for the current Production version, as at February 2023.
 - The `Transfers BC / Participants BC` service which records cleared transactions for the not yet released Mojaloop major version that aligns with the full implementation of the Reference Architecture (informally referred to as `vNext`).
 
 The sections that follow detail each stage of the settlement process.  
@@ -29,7 +29,7 @@ The diagram below illustrates the various components required by Settlement to f
 
 > One would either run Transfer-BC or Central-Ledger BC, but not both. 
 
-> The components on the left are client components for the Settlement-BC, whilst the components on the right represent core Settlement compments.  
+> The components on the left are client components for the Settlement-BC, whilst the components on the right represent core Settlement components.  
 
 ## 1. Creating Settlement Transfers
 This process is initiated when the Settlement component receives cleared Transfers to settle.  
@@ -320,4 +320,3 @@ The following REST API endpoints exists for Settlements.
 | `09.` | **/batches**                | `GET`    | Retrieve all settlement batches.                                                                                                                                                                                                                                                                                                                    |
 | `10.` | **/transfers**              | `GET`    | Retrieve all settlement transfers by batch id, batch name, transfer id or matrix id.                                                                                                                                                                                                                                                                |
 | `11.` | **/matrix/:id**             | `GET`    | Retrieve the settlement matrix by UUID. If the settlement matrix is not in a closed state, the batch and account balances for the open batches may change due to new transfers.                                                                                                                                                                     |
-
