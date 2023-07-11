@@ -71,11 +71,6 @@ import {
 	ParticipantAccountNotifierMock,
 	SettlementBatchRepoMock, SettlementMatrixRequestRepoMock, SettlementBatchTransferRepoMock
 } from "@mojaloop/settlements-bc-shared-mocks-lib";
-import {MongoSettlementMatrixRepo} from "@mojaloop/settlements-bc-infrastructure-lib";
-import {
-	MongoSettlementTransferRepo
-} from "@mojaloop/settlements-bc-infrastructure-lib";
-import {MLKafkaJsonProducer} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 
 
