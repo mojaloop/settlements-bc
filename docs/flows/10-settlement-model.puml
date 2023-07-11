@@ -7,6 +7,8 @@ object ISettlementMatrix
 object ITransferDto
     ITransferDto : **//(PK)// id** = //uuid//
     ITransferDto : **transferId** = //uuid//
+    ITransferDto : **debitAccount** = //uuid//
+    ITransferDto : **creditAccount** = //uuid//
     ITransferDto : ...
 object ISettlementBatchAccount
     ISettlementBatchAccount : **//(PK)// id** = //uuid//
