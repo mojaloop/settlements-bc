@@ -131,5 +131,6 @@ export interface IAwaitingSettlementRepo {
 	destroy(): Promise<void>;
 	storeAwaitingSettlement(awaitSettlement: IAwaitingSettlement):Promise<void>;
 	removeAwaitingSettlementByMatrixId(matrixId: string):Promise<void>;
+	removeAwaitingSettlementByBatchId(batchId: string):Promise<void>;
 	getAwaitingSettlementByBatchId(batchId: string): Promise<IAwaitingSettlement | null>;
 }

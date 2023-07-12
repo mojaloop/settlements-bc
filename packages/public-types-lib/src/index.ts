@@ -147,10 +147,8 @@ export interface ISettlementMatrixBatchAccount {
 export interface IAwaitingSettlement {
 	id: string;
 	matrix: ISettlementMatrix;
-	batch: ISettlementMatrixBatch;
+	batch: ISettlementBatch;
 }
-
-
 
 /* ISettlementModelClient for settlement-model-lib */
 

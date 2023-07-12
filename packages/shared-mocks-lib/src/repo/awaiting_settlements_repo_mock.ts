@@ -50,9 +50,17 @@ export class AwaitingSettlementRepoMock implements IAwaitingSettlementRepo {
 	}
 
 	removeAwaitingSettlementByMatrixId(matrixId: string): Promise<void>{
-		if (matrixId === undefined) return Promise.resolve();
+		if (!matrixId) return Promise.resolve();
 
 		const newArray: Array<IAwaitingSettlement> = this.awaitingSettlements.filter(value => value.matrix.id !== matrixId);
+		this.awaitingSettlements = newArray;
+		return Promise.resolve();
+	}
+
+	removeAwaitingSettlementByBatchId(batchId: string): Promise<void>{
+		if (!batchId) return Promise.resolve();
+
+		const newArray: Array<IAwaitingSettlement> = this.awaitingSettlements.filter(value => value.batch.id !== batchId);
 		this.awaitingSettlements = newArray;
 		return Promise.resolve();
 	}

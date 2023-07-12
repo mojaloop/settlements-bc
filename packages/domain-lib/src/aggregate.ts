@@ -49,7 +49,7 @@ import {
 
 } from "./types/errors";
 import {
-	IAccountsBalancesAdapter,
+	IAccountsBalancesAdapter, IAwaitingSettlementRepo,
 	IParticipantAccountNotifier,
 	ISettlementBatchRepo,
 	ISettlementBatchTransferRepo,
@@ -59,6 +59,7 @@ import {
 import {SettlementBatch} from "./types/batch";
 
 import {
+	IAwaitingSettlement,
 	ISettlementBatch,
 	ISettlementBatchTransfer,
 	ISettlementMatrix,
@@ -112,6 +113,7 @@ export class SettlementsAggregate {
 	private readonly _batchTransferRepo: ISettlementBatchTransferRepo;
 	private readonly _configRepo: ISettlementConfigRepo;
 	private readonly _settlementMatrixReqRepo: ISettlementMatrixRequestRepo;
+	private readonly _awaitingRepo: IAwaitingSettlementRepo;
 	private readonly _abAdapter: IAccountsBalancesAdapter;
 	private readonly _msgProducer: IMessageProducer;
 	private readonly _currencies: ICurrency[];
@@ -124,6 +126,7 @@ export class SettlementsAggregate {
 		batchTransferRepo: ISettlementBatchTransferRepo,
 		configRepo: ISettlementConfigRepo,
 		settlementMatrixReqRepo: ISettlementMatrixRequestRepo,
+		awaitingSettlementRepo: IAwaitingSettlementRepo,
 		participantAccNotifier: IParticipantAccountNotifier,
 		abAdapter: IAccountsBalancesAdapter,
 		msgProducer: IMessageProducer
@@ -136,6 +139,7 @@ export class SettlementsAggregate {
 		this._batchTransferRepo = batchTransferRepo;
 		this._configRepo = configRepo;
 		this._settlementMatrixReqRepo = settlementMatrixReqRepo;
+		this._awaitingRepo = awaitingSettlementRepo;
 		this._abAdapter = abAdapter;
 		this._msgProducer = msgProducer;
 
@@ -668,7 +672,7 @@ export class SettlementsAggregate {
 		await this._settlementMatrixReqRepo.storeMatrix(matrix);
 
 		// recalculate the matrix, without getting new batches in
-		await this._recalculateMatrix(matrix);
+		await this._recalculateMatrix(matrix, false, true);
 
 		// first pass - close the open batches:
 		const batchesLockedNow: ISettlementBatch[] = [];
@@ -688,6 +692,15 @@ export class SettlementsAggregate {
 			batchesLockedNow.push(batch);
 		}
 
+		for (const batch of batchesLockedNow) {
+			const awaitSettle: IAwaitingSettlement = {
+				id: randomUUID(),
+				matrix: matrixDto,
+				batch: batch
+			}
+			await this._awaitingRepo.storeAwaitingSettlement(awaitSettle);
+		}
+
 		// Dispute the Matrix Request to prevent further execution:
 		await this._updateMatrixStateAndSave(matrix, "AWAITING_SETTLEMENT", startTimestamp);
 
@@ -702,6 +715,67 @@ export class SettlementsAggregate {
 		);
 		return;
 	}
+
+	async unLockSettlementMatrixFromAwaitingSettlement(secCtx: CallSecurityContext, id: string): Promise<void> {
+		this._enforcePrivilege(secCtx, Privileges.SETTLEMENTS_UNLOCK_MATRIX);
+
+		const matrixDto = await this._settlementMatrixReqRepo.getMatrixById(id);
+		if (!matrixDto) {
+			const err = new SettlementMatrixNotFoundError(`Matrix with id: ${id} not found`);
+			this._logger.warn(err.message);
+			throw err; // not found
+		}
+
+		if (matrixDto.state !== "IDLE" && matrixDto.state !== "AWAITING_SETTLEMENT") {
+			const err = new CannotCloseSettlementMatrixError("Can only unlock an idle or awaiting matrix");
+			this._logger.warn(err.message);
+			throw err;
+		}
+
+		const matrix = SettlementMatrix.CreateFromDto(matrixDto);
+		const startTimestamp = Date.now();
+
+		matrix.state = "BUSY";
+		await this._settlementMatrixReqRepo.storeMatrix(matrix);
+
+		// recalculate the matrix, without getting new batches in
+		await this._recalculateMatrix(matrix, false, false, true);
+
+		// first pass - close the open batches:
+		const batchesUnLockedNow: ISettlementBatch[] = [];
+		for (const matrixBatch of matrix.batches) {
+			const batch = await this._batchRepo.getBatch(matrixBatch.id);
+			if (!batch) throw new SettlementBatchNotFoundError(`Unable to locate batch for id '${matrixBatch.id}'.`);
+
+			switch (batch.state) {
+				case "AWAITING_SETTLEMENT":
+					batch.state = matrixBatch.state = "CLOSED";
+					await this._batchRepo.updateBatch(batch);
+					batchesUnLockedNow.push(batch);
+					break;
+				default: continue;
+			}
+		}
+
+		for (const batch of batchesUnLockedNow) {
+			await this._awaitingRepo.removeAwaitingSettlementByBatchId(batch.id);
+		}
+
+		// Dispute the Matrix Request to prevent further execution:
+		await this._updateMatrixStateAndSave(matrix, "CLOSED", startTimestamp);
+
+		// We perform an async audit:
+		this._auditingClient.audit(
+			AuditingActions.SETTLEMENT_MATRIX_DISPUTED,
+			true,
+			this._getAuditSecurityContext(secCtx), [
+				{key: "settlementModel", value: matrix.settlementModel === null ? '' : matrix.settlementModel},
+				{key: "settlementMatrixReqId", value: id}
+			]
+		);
+		return;
+	}
+
 
 	async closeSettlementMatrix(secCtx: CallSecurityContext, id: string): Promise<void> {
 		this._enforcePrivilege(secCtx, Privileges.SETTLEMENTS_CLOSE_MATRIX);
@@ -858,7 +932,12 @@ export class SettlementsAggregate {
 		return;
 	}
 
-	private async _recalculateMatrix(matrix : SettlementMatrix, settlingMatrix: boolean = false): Promise<void> {
+	private async _recalculateMatrix(
+		matrix : SettlementMatrix,
+		settlingMatrix: boolean = false,
+		lockingMatrix: boolean = false,
+		unLockingMatrix: boolean = false
+	): Promise<void> {
 		// start by cleaning the batches
 		let batches :ISettlementBatch[];
 		if (matrix.type === 'STATIC') {
@@ -866,7 +945,7 @@ export class SettlementsAggregate {
 			const batchIds = matrix.batches.map(value => value.id);
 			batches = await this._batchRepo.getBatchesByIds(batchIds);
 		} else {
-			// this will pick-up any new batches:
+			// this will pick up any new batches:
 			batches = await this._batchRepo.getBatchesByCriteria(
 				matrix.dateFrom!,
 				matrix.dateTo!,
@@ -891,8 +970,12 @@ export class SettlementsAggregate {
 			for (const batch of batches) {
 				const batchDisputed = batch.state === "DISPUTED";
 				if (batch.state === "SETTLED" || settlingMatrix && batch.state !== "AWAITING_SETTLEMENT") continue;
-				else if (batch.state === "AWAITING_SETTLEMENT") {
-					// TODO need to look at the locked vs non-locked matrixes
+				else if (lockingMatrix) {
+					const awaitByBatch = await this._awaitingRepo.getAwaitingSettlementByBatchId(batch.id);
+					if (awaitByBatch) continue; // already locked
+				} else if (unLockingMatrix) {
+					const awaitByBatch = await this._awaitingRepo.getAwaitingSettlementByBatchId(batch.id);
+					if (!awaitByBatch || awaitByBatch.matrix.id !== matrix.id) continue;
 				}
 
 				let batchDebitBalance = 0n, batchCreditBalance = 0n;

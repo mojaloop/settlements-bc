@@ -29,6 +29,7 @@
 
 import {
   IAwaitingSettlement,
+  ISettlementBatch,
   ISettlementMatrix,
   ISettlementMatrixBatch
 } from "@mojaloop/settlements-bc-public-types-lib";
@@ -37,9 +38,9 @@ import {randomUUID} from "crypto";
 export class AwaitingSettlement implements IAwaitingSettlement {
   id: string;
   matrix: ISettlementMatrix;
-  batch: ISettlementMatrixBatch;
+  batch: ISettlementBatch;
 
-  constructor(matrix: ISettlementMatrix, batch: ISettlementMatrixBatch) {
+  constructor(matrix: ISettlementMatrix, batch: ISettlementBatch) {
     this.id = randomUUID();
     this.matrix = matrix;
     this.batch = batch;

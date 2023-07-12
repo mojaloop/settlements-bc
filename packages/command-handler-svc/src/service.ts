@@ -53,7 +53,7 @@ import {
 } from "@mojaloop/security-bc-client-lib";
 
 import {
-	IAccountsBalancesAdapter, IParticipantAccountNotifier,
+	IAccountsBalancesAdapter, IAwaitingSettlementRepo, IParticipantAccountNotifier,
 	ISettlementBatchRepo,
 	ISettlementBatchTransferRepo,
 	ISettlementConfigRepo,
@@ -82,6 +82,9 @@ import {MongoSettlementMatrixRepo} from "@mojaloop/settlements-bc-infrastructure
 
 import configClient from "./config";
 import {DEFAULT_SETTLEMENT_MODEL_ID, DEFAULT_SETTLEMENT_MODEL_NAME} from "@mojaloop/settlements-bc-public-types-lib";
+import {
+	MongoAwaitingSettlementRepo
+} from "@mojaloop/settlements-bc-infrastructure-lib/dist/mongo_awaiting_settlements_repo";
 const BC_NAME = configClient.boundedContextName;
 const APP_NAME = configClient.applicationName;
 const APP_VERSION = configClient.applicationVersion;
@@ -118,6 +121,7 @@ const DB_NAME: string = "settlements";
 const SETTLEMENT_CONFIGS_COLLECTION_NAME: string = "configs";
 const SETTLEMENT_BATCHES_COLLECTION_NAME: string = "batches";
 const SETTLEMENT_MATRICES_COLLECTION_NAME: string = "matrices";
+const AWAITING_SETTLEMENTS_COLLECTION_NAME: string = "awaiting_settlements";
 const BATCH_SPECIFIC_SETTLEMENT_MATRICES_COLLECTION_NAME: string = "batch_specific_matrices";
 const SETTLEMENT_TRANSFERS_COLLECTION_NAME: string = "transfers";
 
@@ -146,6 +150,7 @@ export class Service {
 	static participantAccountNotifier: IParticipantAccountNotifier;
 	static batchTransferRepo: ISettlementBatchTransferRepo;
 	static matrixRepo: ISettlementMatrixRequestRepo;
+	static awaitingRepo: IAwaitingSettlementRepo;
 	static messageConsumer: IMessageConsumer;
 	static messageProducer: IMessageProducer;
 	static aggregate: SettlementsAggregate;
@@ -163,6 +168,7 @@ export class Service {
 		batchTransferRepo?: ISettlementBatchTransferRepo,
 		participantAccountNotifier?: IParticipantAccountNotifier,
 		matrixRepo?: ISettlementMatrixRequestRepo,
+		awaitingRepo?: IAwaitingSettlementRepo,
 		messageConsumer?: IMessageConsumer,
 		messageProducer?: IMessageProducer,
 	): Promise<void> {
@@ -305,6 +311,17 @@ export class Service {
 		}
 		this.matrixRepo = matrixRepo;
 
+		if (!awaitingRepo) {
+			awaitingRepo = new MongoAwaitingSettlementRepo(
+				this.logger,
+				MONGO_URL,
+				DB_NAME,
+				AWAITING_SETTLEMENTS_COLLECTION_NAME
+			);
+			await awaitingRepo.init();
+		}
+		this.awaitingRepo = awaitingRepo;
+
 		if (!batchTransferRepo) {
 			batchTransferRepo = new MongoSettlementTransferRepo(
 				this.logger,
@@ -345,6 +362,7 @@ export class Service {
 			this.batchTransferRepo,
 			this.configRepo,
 			this.matrixRepo,
+			this.awaitingRepo,
 			this.participantAccountNotifier,
 			this.accountsAndBalancesAdapter,
 			this.messageProducer
