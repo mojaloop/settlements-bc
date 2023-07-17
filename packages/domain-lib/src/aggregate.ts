@@ -40,6 +40,7 @@ import {
 	InvalidBatchSettlementModelError,
 	InvalidCurrencyCodeError,
 	InvalidIdError,
+	InvalidSettlementModelError,
 	InvalidTimestampError,
 	InvalidTransferIdError,
 	NoSettlementConfig,
@@ -48,6 +49,7 @@ import {
 	SettlementMatrixIsBusyError,
 	SettlementMatrixIsClosedError,
 	SettlementMatrixNotFoundError,
+	SettlementModelAlreadyExistError,
 
 } from "./types/errors";
 import {
@@ -75,6 +77,7 @@ import {readFileSync} from "fs";
 import {ICurrency} from "./types/currency";
 import {bigintToString, stringToBigint} from "./converters";
 import {SettlementConfig} from "./types/settlement_config";
+import {ISettlementConfig} from "@mojaloop/settlements-bc-public-types-lib";
 import {AccountsAndBalancesAccountType} from "@mojaloop/accounts-and-balances-bc-public-types-lib";
 import {SettlementBatchTransfer} from "./types/transfer";
 import {SettlementMatrix} from "./types/matrix";
@@ -101,7 +104,8 @@ enum AuditingActions {
 	SETTLEMENT_MATRIX_REMOVE_BATCHES = "SETTLEMENT_MATRIX_REMOVE_BATCHES",
 	BATCH_SPECIFIC_SETTLEMENT_MATRIX_REQUEST_FETCH = "BATCH_SPECIFIC_SETTLEMENT_MATRIX_REQUEST_FETCH",
 	SETTLEMENT_MATRIX_REQUEST_CREATED = "SETTLEMENT_MATRIX_REQUEST_CREATED",
-	STATIC_SETTLEMENT_MATRIX_REQUEST_CREATED = "STATIC_SETTLEMENT_MATRIX_REQUEST_CREATED"
+	STATIC_SETTLEMENT_MATRIX_REQUEST_CREATED = "STATIC_SETTLEMENT_MATRIX_REQUEST_CREATED",
+	SETTLEMENT_MODEL_CREATED = "SETTLEMENT_MODEL_CREATED"
 }
 
 export class SettlementsAggregate {
@@ -325,6 +329,50 @@ export class SettlementsAggregate {
 		);
 
 		return batch.id;
+	}
+
+	async createSettlementModel(
+		secCtx: CallSecurityContext,
+		settlementModel: ISettlementConfig,
+	): Promise<void> {
+		this._enforcePrivilege(secCtx, Privileges.CREATE_SETTLEMENT_MODEL);
+
+		if (!settlementModel) {
+			const err = new InvalidSettlementModelError("Invalid settlement model");
+			this._logger.warn(err.message);
+			throw err;
+		}
+
+		if (!settlementModel.settlementModel) {
+			const err = new InvalidSettlementModelError("Invalid settlement model name");
+			this._logger.warn(err.message);
+			throw err;
+		}
+
+		if (!settlementModel.batchCreateInterval){
+			const err = new InvalidTimestampError("Invalid settlement batch timestamp");
+			this._logger.warn(err.message);
+			throw err;
+		}
+
+		const existingModel = await this._configRepo.getSettlementConfigByModelName(settlementModel.settlementModel);
+		if (existingModel) {
+			const err = new SettlementModelAlreadyExistError("Settlement model with the same name already exists");
+			this._logger.warn(err.message);
+			throw err;
+		}
+
+		await this._configRepo.storeConfig(settlementModel);
+
+		// We perform an async audit:
+		this._auditingClient.audit(
+			AuditingActions.SETTLEMENT_MODEL_CREATED,
+			true,
+			this._getAuditSecurityContext(secCtx), [
+				{key: "settlementModelName", value: settlementModel.settlementModel}
+			]
+		);
+		// return settlementModel.settlementModel;
 	}
 
 	async createDynamicSettlementMatrix(

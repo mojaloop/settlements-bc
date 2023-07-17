@@ -45,6 +45,11 @@ export interface ITransferDto {
 	settlementModel: string;
 }
 
+export interface ICustomSettlementField {
+    key: string;
+    value: ICustomSettlementField | ICustomSettlementField[] | string | number;
+  }
+
 /**
  * @todo Rename to ISettlementModel
  */
@@ -60,6 +65,20 @@ export interface ISettlementConfig {
 	 * @todo rename to batchCreateIntervalSecs
 	 */
 	batchCreateInterval: number;
+
+	settlementTime: string | null;
+	isActive: boolean;
+    customSettlementField: ICustomSettlementField[] | null;
+    createdBy: string;
+	createdDate: number;
+    changeLog: ISettlementModelActivityLogEntry[];
+}
+
+export declare interface ISettlementModelActivityLogEntry {
+    changeType: "CREATE" | "APPROVE" | "ACTIVATE" | "DEACTIVATE" | "UPDATE";
+    user: string;
+    timestamp: number;
+    notes: string | null;
 }
 
 export interface ISettlementBatch {

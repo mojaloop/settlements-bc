@@ -27,28 +27,52 @@
 
 "use strict";
 
-import {ISettlementConfig} from "@mojaloop/settlements-bc-public-types-lib";
+import {ICustomSettlementField, ISettlementConfig, ISettlementModelActivityLogEntry} from "@mojaloop/settlements-bc-public-types-lib";
 
 export class SettlementConfig implements ISettlementConfig{
 	id: string;
 	settlementModel: string;
 	batchCreateInterval: number;// [seconds]
+	settlementTime: string | null;
+	isActive: boolean;
+	customSettlementField: ICustomSettlementField[] | null;
+	createdBy: string;
+    createdDate: number;
+	changeLog: SettlementModelActivityLogEntry[];
 
 	constructor(
 		id: string,
 		model: string,
-		batchCreateInterval: number
+		batchCreateInterval: number,
+		settlementTime: string | null,
+		isActive: boolean,
+		customSettlementField: ICustomSettlementField[] | null,
+		createdBy: string,
+    	createdDate: number,
+		changelog: SettlementModelActivityLogEntry[],
 	) {
 		this.id = id;
 		this.settlementModel = model;
 		this.batchCreateInterval = batchCreateInterval;
+		this.settlementTime = settlementTime;
+		this.isActive = isActive;
+		this.customSettlementField = customSettlementField;
+		this.createdBy = createdBy;
+		this.createdDate = createdDate;
+		this.changeLog = changelog;
 	}
 
 	static fromDto(dto: ISettlementConfig): SettlementConfig{
 		return new SettlementConfig(
 			dto.id,
 			dto.settlementModel,
-			dto.batchCreateInterval
+			dto.batchCreateInterval,
+			dto.settlementTime,
+			dto.isActive,
+			dto.customSettlementField,
+			dto.createdBy,
+    		dto.createdDate,
+			dto.changeLog
 		);
 	}
 
@@ -68,7 +92,20 @@ export class SettlementConfig implements ISettlementConfig{
 			id: this.id,
 			settlementModel: this.settlementModel,
 			batchCreateInterval: this.batchCreateInterval,
+			settlementTime: this.settlementTime,
+			isActive: this.isActive,
+			customSettlementField: this.customSettlementField,
+			createdBy: this.createdBy,
+			createdDate: this.createdDate,
+			changeLog: this.changeLog
 		};
 		return configDto;
 	}
+}
+
+export declare class SettlementModelActivityLogEntry implements ISettlementModelActivityLogEntry{
+	changeType: "CREATE" | "APPROVE" | "ACTIVATE" | "DEACTIVATE" | "UPDATE";
+	user: string;
+	timestamp: number;
+	notes: string | null;
 }

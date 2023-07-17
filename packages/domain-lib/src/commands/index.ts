@@ -36,6 +36,7 @@ import {
 	SETTLEMENTS_AGGREGATE_NAME,
 	SettlementsBCTopics
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
+import { ICustomSettlementField, ISettlementConfig } from "@mojaloop/settlements-bc-public-types-lib";
 
 export type ProcessTransferCmdPayload = {
 	transferId: string;
@@ -59,6 +60,34 @@ export class ProcessTransferCmd extends CommandMsg {
 		super();
 
 		this.aggregateId = this.msgKey = payload.transferId;
+		this.payload = payload;
+	}
+
+	validatePayload(): void {
+		// TODO @jason complete...
+	}
+}
+
+// export type CreateSettlementModelCmdPayload = {
+// 	id: string,
+// 	model: string,
+// 	batchCreateInterval: number,
+// 	settlementTime: string | null,
+// 	customSettlementField: ICustomSettlementField[] | null
+// }
+
+export class CreateSettlementModelCmd extends CommandMsg {
+	boundedContextName: string = SETTLEMENTS_BOUNDED_CONTEXT_NAME;
+	aggregateId: string;
+	aggregateName: string = SETTLEMENTS_AGGREGATE_NAME;
+	msgKey: string;
+	msgTopic: string = SettlementsBCTopics.Commands;
+	payload: ISettlementConfig;
+
+	constructor(payload: ISettlementConfig) {
+		super();
+
+		this.aggregateId = this.msgKey = payload.id;
 		this.payload = payload;
 	}
 

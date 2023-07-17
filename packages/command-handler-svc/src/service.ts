@@ -263,7 +263,13 @@ export class Service {
 					await configRepo.storeConfig({
 						id: DEFAULT_SETTLEMENT_MODEL_ID,
 						settlementModel: DEFAULT_SETTLEMENT_MODEL_NAME,
-						batchCreateInterval: 300
+						batchCreateInterval: 300,
+						settlementTime: null,
+						isActive: true,
+						customSettlementField: null,
+						createdBy: "user",
+						createdDate: 1686654836126,
+						changeLog: []
 					});
 				}
 			}

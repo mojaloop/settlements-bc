@@ -110,7 +110,7 @@ export class ExpressRoutes {
 		// models
 		this._router.get("/models", this.getSettlementModels.bind(this));
 		this._router.get("/models/:id", this.getSettlementModelById.bind(this));
-		// this._router.post("/models", this.postCreateModel.bind(this));
+		this._router.post("/models", this.postCreateSettlementModel.bind(this));
 
 		// Batches
 		this._router.get("/batches/:id", this.getSettlementBatch.bind(this));
@@ -214,6 +214,28 @@ export class ExpressRoutes {
 		}
 	}
 	*/
+
+	private async postCreateSettlementModel(req: express.Request, res: express.Response): Promise<void>{
+		// TODO enforce privileges
+
+		const name = req.query.name as string;
+		try {
+			let retModels: ISettlementConfig[] = [];
+			if(name){
+				this._logger.debug(`Got postCreateSettlementModel request for model name: ${name}`);
+				const found = await this._configRepo.getSettlementConfigByModelName(name);
+				if(found) retModels.push(found);
+			}else{
+				this._logger.debug("Got postSettlementModels request");
+				retModels = await this._configRepo.getAllSettlementConfigs();
+			}
+
+			this.sendSuccessResponse(res, 200, retModels);
+		} catch (error: any) {
+			this._logger.error(error);
+			this.sendErrorResponse(res, 500, error.message || ExpressRoutes.UNKNOWN_ERROR_MESSAGE);
+		}
+	}
 
 	private async getSettlementModels(req: express.Request, res: express.Response): Promise<void>{
 		// TODO enforce privileges
