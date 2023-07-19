@@ -1,65 +1,62 @@
-@startuml
+@startuml Settle_with_Transfers_BC
 
 skinparam TitleFontSize 20
-skinparam titleBorderRoundCorner 15
-skinparam titleBorderThickness 2
-skinparam titleBorderColor Aqua-CadetBlue
-skinparam titleBackgroundColor Aqua-CadetBlue
-title Settlement Transfer from \nTransfers BC
+skinparam TitleFontColor #FFFFFF
+skinparam titleBorderRoundCorner 10
+skinparam titleBorderThickness 6
+skinparam titleBorderColor #005B96
+skinparam titleBackgroundColor #005B96
+title Settlement from \nTransfers BC
 
-participant "Transfers BC" as ext_transfers_bc
+participant "Transfers BC" as ext_transfers_bc #C1C7C9
 note over ext_transfers_bc
-    //TransferPreparedEvtPayload//
-    event published
+    transaction clearing & publish event
 end note
 
 box Settlements BC #F9FFF9
-	participant "Settlements Command Handler" as sbc_grpc #D5E8D4
-    note over sbc_grpc
-        //TransferPreparedEvtPayload//
-        consumer for Settlement Transfer
-    end note
-	participant "Settlements BC\nApp Logic" as sbc_app_logic #EDC54D
-	database "Settlements-Database" as sbc_db #DAE8FC
+	participant "Settlements \nCommand Handler" as sbc_grpc #F5FFF5
+	participant "Settlements BC\nApp Logic" as sbc_app_logic #D2E5D3
+	database "Settlements \nDatabase" as sbc_db #94C195
+    participant "Ledger \nAdapter" as sbc_adptr #66A767
 end box
 
-box Settlements-BC - Ledger Adapter #FFFFF9
-    participant "A&B SVC" as abbc_grpc #D5E8D4
-    database "A&B-Ledger" as abbc_tigerbeetle #DAE8FC
-    note over abbc_grpc
-        gRPC interface for 
-        Accounts & Balances
-    end note
-    note over abbc_tigerbeetle
-        TigerBeetle 
-        enabled/disabled
-    end note
-end box
+participant "Platform \nConfig BC" as pc_bc #93CEFF
+participant "Accounts & \nBalances BC" as ab_bc #CC7722
 
-group 1. Create Settlement Transfer - Transfers BC
+group 1. Create Settlement Transfer
 autonumber
-    ext_transfers_bc <--> ext_transfers_bc : Transfer fulfil occurred
-    ext_transfers_bc <--> ext_transfers_bc : Obtain Settlement model\nvia //settlement-model-lib//
-    ext_transfers_bc -> sbc_grpc : At time of fulfil://publish//\n**//TransferPreparedEvtPayload//**
-    sbc_grpc --> sbc_app_logic : //TransferPreparedEvtPayload//\n consumed and App layer\ninvoked (__aggregate__) **//ITransferDto//**
+    ext_transfers_bc <--> ext_transfers_bc : Prepare transfer
+    ext_transfers_bc <--> ext_transfers_bc : Obtain \nsettlement model
+'    ext_transfers_bc <--> ext_transfers_bc : Obtain Settlement model\nvia //settlement-model-lib//
+    ext_transfers_bc -> sbc_grpc : Fulfil transfer & \npublish event
+    sbc_grpc --> sbc_app_logic : Consume \npublished event
+    'sbc_grpc --> sbc_app_logic : //TransferPreparedEvtPayload//\n consumed and App layer\ninvoked (__aggregate__) **//ITransferDto//**
 end
 
 group 2. Settlement - App Logic
 autonumber
-    sbc_app_logic <--> sbc_app_logic: Settlement Transfer event triggered
-    sbc_app_logic --> sbc_app_logic : Validate settlement Transfer data
-    sbc_app_logic <--> sbc_db : Fetch & cache settlement config\n**Platform Config BC**
-    sbc_app_logic <--> sbc_db : **Determine batch** using **//ITransferDto//**.\n//Create new batch if no **OPEN** batch available//
-    sbc_app_logic <-> abbc_grpc : Obtain **Settlement accounts** using Participant account
-    abbc_grpc <--> abbc_tigerbeetle : Create account, if none exists
-    sbc_app_logic <--> sbc_db : Create or fetch **Settlement Batch Account** 
-    abbc_grpc -> sbc_app_logic : Return **Account** info
-    sbc_app_logic -> abbc_grpc: Create Settlement Transfer
-    abbc_grpc <-> abbc_tigerbeetle: Create Transfer: update accounts \nto DR payer & CR payee
-    abbc_grpc -> sbc_app_logic : Return **Transfer** creation info
-    sbc_app_logic <--> sbc_app_logic: Prepare response data
-    sbc_app_logic --> sbc_grpc: Return **Transfer/** \n**Account** data
-    sbc_grpc -> ext_transfers_bc: Publish **Transfer/** \n**Account** response data
+    sbc_app_logic --> sbc_app_logic: Trigger settlement transfer \nevent & validate transfer data
+    sbc_app_logic --> sbc_db : Lookup cached config
+    sbc_db <-> pc_bc : Retrieve uncached config
+    sbc_app_logic <-- sbc_db : Return config
+    sbc_app_logic <--> sbc_db : Determine settlement batches
+    'sbc_app_logic <--> sbc_db : **Determine batch** using **//ITransferDto//**.\n//Create new batch if no **OPEN** batch available//
+    sbc_app_logic -> sbc_adptr : Request settlement accounts
+    sbc_adptr -> ab_bc : Request settlement accounts
+    'sbc_app_logic <-> abbc_grpc : Obtain **Settlement accounts** using Participant account
+    ab_bc --> ab_bc : Retrieve / create \naccounts
+    'abbc_grpc <--> abbc_tigerbeetle : Create settlement account, if none exists
+    'sbc_app_logic <--> sbc_db : Create or fetch **Settlement Batch Account**
+    ab_bc -> sbc_adptr : Return settlement accounts
+    sbc_adptr -> sbc_app_logic : Return settlement accounts
+    sbc_app_logic -> sbc_adptr: Create settlement transfer
+    sbc_adptr -> ab_bc: Create settlement transfer
+    ab_bc --> sbc_adptr: Created transfer
+    sbc_adptr --> sbc_app_logic: Created transfer
+    'ab_bc <-> ab_bc: Create Transfer: update accounts \nto DR payer & CR payee
+    sbc_app_logic --> sbc_app_logic: Prepare response data
+    sbc_app_logic --> sbc_grpc: Return **Transfer** data
+    sbc_grpc -> ext_transfers_bc: Publish settled transfer event
 end
 
-@enduml
+@enduml 
