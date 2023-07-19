@@ -47,7 +47,11 @@ import {
 	DisputeMatrixCmd,
 	AddBatchesToMatrixCmdPayload,
 	AddBatchesToMatrixCmd,
-	RemoveBatchesFromMatrixCmdPayload, RemoveBatchesFromMatrixCmd
+	RemoveBatchesFromMatrixCmdPayload,
+	RemoveBatchesFromMatrixCmd,
+	LockAwaitingMatrixCmd,
+	UnlockAwaitingMatrixCmd,
+	UnlockAwaitingMatrixCmdPayload
 } from "@mojaloop/settlements-bc-domain-lib";
 import {CallSecurityContext} from "@mojaloop/security-bc-public-types-lib";
 import {
@@ -102,21 +106,19 @@ export class ExpressRoutes {
 
 		// Inject authentication - all requests require a valid token.
 		this._router.use(this._authenticationMiddleware.bind(this)); // All requests require authentication.
-		
-		// transfer inject
-		// this is for tests only, normal path is though events (event/command handler)
-		// this._router.post("/transfer", this.postHandleTransfer.bind(this));
 
-		// models
+		// Transfers:
+		this._router.get("/transfers", this.getSettlementBatchTransfers.bind(this));
+
+		// Models:
 		this._router.get("/models", this.getSettlementModels.bind(this));
 		this._router.get("/models/:id", this.getSettlementModelById.bind(this));
 		// this._router.post("/models", this.postCreateModel.bind(this));
 
 		// Batches
-		this._router.get("/batches/:id", this.getSettlementBatch.bind(this));
 		this._router.get("/batches", this.getSettlementBatches.bind(this));
+		this._router.get("/batches/:id", this.getSettlementBatch.bind(this));
 		// this._router.get("/settlement_accounts", this.getSettlementBatchAccounts.bind(this)); // TODO is this necessary? batches already have the accounts
-		this._router.get("/transfers", this.getSettlementBatchTransfers.bind(this));
 
 		// Settlement Matrix:
 		this._router.post("/matrix", this.postCreateMatrix.bind(this));
@@ -131,6 +133,10 @@ export class ExpressRoutes {
 		this._router.post("/matrix/:id/settle", this.postSettleSettlementMatrix.bind(this));
 		// request dispute of a matrix
 		this._router.post("/matrix/:id/dispute", this.postDisputeSettlementMatrix.bind(this));
+		// request lock of a matrix
+		this._router.post("/matrix/:id/await_settlement", this.postAwaitSettlementMatrix.bind(this));
+		// request un-lock of a matrix
+		this._router.delete("/matrix/:id/await_settlement", this.deleteReleaseAwaitSettlementMatrix.bind(this));
 		// get matrix by id - static get, no recalculate
 		this._router.get("/matrix/:id", this.getSettlementMatrix.bind(this));
 		// get matrices - static get, no recalculate
@@ -484,6 +490,37 @@ export class ExpressRoutes {
 		}
 	}
 
+	private async postAwaitSettlementMatrix(req: express.Request, res: express.Response): Promise<void> {
+		try {
+			const matrixId = req.params.id as string;
+			const matrix = await this._matrixRepo.getMatrixById(matrixId);
+			if (!matrix) return this.sendErrorResponse(res,404, "Matrix not found");
+
+			const cmd = new LockAwaitingMatrixCmd({matrixId: matrixId});
+			await this._messageProducer.send(cmd);
+
+			this.sendSuccessResponse(res, 202, {id: matrixId});
+		} catch (error: any) {
+			this._logger.error(error);
+			this.sendErrorResponse(res, 500, error.message || ExpressRoutes.UNKNOWN_ERROR_MESSAGE);
+		}
+	}
+
+	private async deleteReleaseAwaitSettlementMatrix(req: express.Request, res: express.Response): Promise<void> {
+		try {
+			const matrixId = req.params.id as string;
+			const removeReqPayload = req.body as UnlockAwaitingMatrixCmdPayload;
+
+			const cmd = new UnlockAwaitingMatrixCmd(removeReqPayload);
+			await this._messageProducer.send(cmd);
+
+			this.sendSuccessResponse(res, 202, {id: matrixId});
+		} catch (error: any) {
+			this._logger.error(error);
+			this.sendErrorResponse(res, 500, error.message || ExpressRoutes.UNKNOWN_ERROR_MESSAGE);
+		}
+	}
+
 	private async postAddBatchToStaticMatrix(req: express.Request, res: express.Response): Promise<void> {
 		try {
 			const matrixId = req.params.id as string;
@@ -539,7 +576,7 @@ export class ExpressRoutes {
 
 			const resp = await this._matrixRepo.getMatrices(state ?? null);
 
-			if(!resp || resp.length<=0){
+			if(!resp || resp.length <= 0){
 				return this.sendErrorResponse(res, 404, "No matrices found");
 			}
 			this.sendSuccessResponse(res, 200, resp);// OK
