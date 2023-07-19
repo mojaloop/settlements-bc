@@ -1,17 +1,29 @@
 import request from "supertest";
 
-import { AccountsBalancesAdapterMock, AuditClientMock, AuthenticationServiceMock, AuthorizationClientMock, MessageCache, MessageProducerMock, ParticipantAccountNotifierMock, SettlementBatchRepoMock, SettlementBatchTransferRepoMock, SettlementConfigRepoMock, SettlementMatrixRequestRepoMock, TokenHelperMock } from "@mojaloop/settlements-bc-shared-mocks-lib";
+import {
+    AccountsBalancesAdapterMock,
+    AuditClientMock,
+    AuthorizationClientMock,
+    AwaitingSettlementRepoMock,
+    MessageCache,
+    MessageProducerMock,
+    ParticipantAccountNotifierMock,
+    SettlementBatchRepoMock,
+    SettlementBatchTransferRepoMock,
+    SettlementConfigRepoMock,
+    SettlementMatrixRequestRepoMock,
+    TokenHelperMock
+} from "@mojaloop/settlements-bc-shared-mocks-lib";
 import { IMessageProducer } from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import { ITokenHelper } from "@mojaloop/security-bc-public-types-lib";
 import { ConsoleLogger, ILogger } from "@mojaloop/logging-bc-public-types-lib";
 import {
     AddBatchesToMatrixCmdPayload,
-    IAccountsBalancesAdapter,
+    IAccountsBalancesAdapter, IAwaitingSettlementRepo,
     IParticipantAccountNotifier,
     ISettlementBatchRepo,
     ISettlementConfigRepo,
-    ISettlementMatrixRequestRepo,
-    SettlementsAggregate
+    ISettlementMatrixRequestRepo
 } from "@mojaloop/settlements-bc-domain-lib";
 import { IAuthorizationClient, CallSecurityContext } from "@mojaloop/security-bc-public-types-lib";
 import { IAuditClient } from "@mojaloop/auditing-bc-public-types-lib";
@@ -34,6 +46,7 @@ const tokenHelper: ITokenHelper = new TokenHelperMock();
 const mockBatchRepo: ISettlementBatchRepo = new SettlementBatchRepoMock();
 const mockBatchTransferRepo = new SettlementBatchTransferRepoMock();
 const mockMatrixRequestRepo: ISettlementMatrixRequestRepo = new SettlementMatrixRequestRepoMock();
+const mockAwaitRepo: IAwaitingSettlementRepo = new AwaitingSettlementRepoMock();
 
 const mockMessageProducer: IMessageProducer = new MessageProducerMock(logger, msgCache);
 
@@ -67,8 +80,9 @@ describe("Settlement BC api-svc route test", () => {
             mockConfigRepo,
             mockBatchRepo,
             mockBatchTransferRepo,
-            mockParticipantAccountNotifier,
             mockMatrixRequestRepo,
+            mockAwaitRepo,
+            mockParticipantAccountNotifier,
             mockMessageProducer
         );
 

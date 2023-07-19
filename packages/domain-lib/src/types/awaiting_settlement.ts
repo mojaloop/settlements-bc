@@ -30,8 +30,7 @@
 import {
   IAwaitingSettlement,
   ISettlementBatch,
-  ISettlementMatrix,
-  ISettlementMatrixBatch
+  ISettlementMatrix
 } from "@mojaloop/settlements-bc-public-types-lib";
 import {randomUUID} from "crypto";
 

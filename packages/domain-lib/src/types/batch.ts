@@ -29,20 +29,8 @@
 
 import {
 	ISettlementBatch,
-	ISettlementBatchAccount,
-	ISettlementBatchTransfer
+	ISettlementBatchAccount
 } from "@mojaloop/settlements-bc-public-types-lib";
-
-
-/*
-
-Future batch states:
-- open - can have more transfers allocated to it
-- closed - cannot have more transfers allocated to it (might be from matrix close command, or
-- settled - was settled with a parent matrix (settle matrix command)
-- disputed - closed and marked as in dispute
-
-*/
 
 export class SettlementBatch implements ISettlementBatch {
 	id: string; // FX.XOF:RWF.2021.08.23.00.00.001

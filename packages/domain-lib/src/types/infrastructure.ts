@@ -115,7 +115,7 @@ export interface ISettlementBatchTransferRepo {
 export interface IParticipantAccountNotifier {
 	init(): Promise<void>;
 	destroy(): Promise<void>;
-	publishSettlementMatrixExecuteEvent(matrix: any): Promise<void>;
+	publishSettlementMatrixExecuteEvent(matrix: ISettlementMatrix): Promise<void>;
 }
 
 export interface ISettlementMatrixRequestRepo {

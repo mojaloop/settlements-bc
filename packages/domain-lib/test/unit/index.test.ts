@@ -41,10 +41,10 @@ import {
 	ISettlementBatchTransferRepo,
 	ISettlementConfigRepo,
 	ISettlementMatrixRequestRepo,
+	IAwaitingSettlementRepo,
 	ProcessTransferCmd,
 	ProcessTransferCmdPayload, SettlementBatchNotFoundError,
 	SettlementMatrixAlreadyExistsError,
-	SettlementMatrixIsClosedError,
 	SettlementMatrixNotFoundError,
 	SettlementsAggregate
 } from "../../src/index";
@@ -55,7 +55,7 @@ import {CallSecurityContext, ForbiddenError, IAuthorizationClient} from "@mojalo
 import {
 	AccountsBalancesAdapterMock,
 	AuditClientMock,
-	AuthorizationClientMock,
+	AuthorizationClientMock, AwaitingSettlementRepoMock,
 	MessageCache,
 	MessageProducerMock,
 	ParticipantAccountNotifierMock,
@@ -73,6 +73,7 @@ let configRepo: ISettlementConfigRepo;
 let settleBatchRepo: ISettlementBatchRepo;
 let settleTransferRepo: ISettlementBatchTransferRepo;
 let settleMatrixReqRepo: ISettlementMatrixRequestRepo;
+let awaitSettleRepo: IAwaitingSettlementRepo;
 let partNotifier: IParticipantAccountNotifier;
 let abAdapter: IAccountsBalancesAdapter;
 let msgCache: MessageCache;
@@ -102,6 +103,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		settleBatchRepo = new SettlementBatchRepoMock();
 		settleTransferRepo = new SettlementBatchTransferRepoMock();
 		settleMatrixReqRepo = new SettlementMatrixRequestRepoMock();
+		awaitSettleRepo = new AwaitingSettlementRepoMock();
 
 		// adapters:
 		partNotifier = new ParticipantAccountNotifierMock();
@@ -120,6 +122,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 			settleTransferRepo,
 			configRepo,
 			settleMatrixReqRepo,
+			awaitSettleRepo,
 			partNotifier,
 			abAdapter,
 			msgProducer
@@ -132,6 +135,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 			settleTransferRepo,
 			configRepo,
 			settleMatrixReqRepo,
+			awaitSettleRepo,
 			partNotifier,
 			abAdapter,
 			msgProducer
@@ -586,6 +590,8 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		expect(matrixClosed!.id).toEqual(matrixId);
 		expect(matrixClosed!.state).toEqual('CLOSED');
 
+		// lock the matrix:
+		await aggregate.lockSettlementMatrixForAwaitingSettlement(securityContext, matrixId);
 		// settle the matrix:
 		await aggregate.settleSettlementMatrix(securityContext, matrixId);
 		const matrixSettled = await aggregate.getSettlementMatrix(securityContext, matrixId);
@@ -623,7 +629,9 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		expect(matrix!.id).toEqual(matrixId);
 		expect(matrix!.state).toEqual('IDLE');
 
-		// execute the matrix (occurs on close):
+		// lock the matrix:
+		await aggregate.lockSettlementMatrixForAwaitingSettlement(securityContext, matrixId);
+		// execute the matrix:
 		await aggregate.settleSettlementMatrix(securityContext, matrixId);
 		const matrixClosed = await aggregate.getSettlementMatrix(securityContext, matrixId);
 		expect(matrixClosed).toBeDefined();
@@ -637,7 +645,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		} catch (err :any) {
 			expect(err).toBeDefined();
 			expect(err instanceof CannotSettleSettlementMatrixError).toEqual(true);
-			expect(err.message).toEqual("Can only settle an idle or closed matrix");
+			expect(err.message).toEqual("Can only settle an awaiting settlement matrix");
 		}
 
 		// ensure an invalid id generates an error (SettlementMatrixRequestClosedError):
@@ -681,6 +689,13 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		expect(matrix).toBeDefined();
 		expect(matrix!.id).toEqual(matrixId);
 		expect(matrix!.state).toEqual('IDLE');
+
+		// lock the matrix for settlement:
+		await aggregate.lockSettlementMatrixForAwaitingSettlement(securityContext, matrixId);
+		const matrixLocked = await aggregate.getSettlementMatrix(securityContext, matrixId);
+		expect(matrixLocked).toBeDefined();
+		expect(matrixLocked!.id).toEqual(matrixId);
+		expect(matrixLocked!.state).toEqual('AWAITING_SETTLEMENT');
 
 		// execute the matrix:
 		await aggregate.settleSettlementMatrix(securityContext, matrixId);
@@ -748,6 +763,9 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		);
 		expect(matrixId).toBeDefined();
 
+		// lock:
+		await aggregate.lockSettlementMatrixForAwaitingSettlement(securityContext, matrixId);
+		// settle:
 		await aggregate.settleSettlementMatrix(securityContext, matrixId);
 
 		// New Transfer under a new batch but same participants:
@@ -1175,8 +1193,9 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		expect(matrixDisp!.totalCreditBalanceDisputed).toEqual("10000");
 		
 		// Settle matrix1:
+		await aggregate.lockSettlementMatrixForAwaitingSettlement(securityContext, matrixIdDisp);
 		await aggregate.settleSettlementMatrix(securityContext, matrixIdDisp);
-		
+
 		matrixDisp = await aggregate.getSettlementMatrix(securityContext, matrixIdDisp);
 
 		//check the settled matrix1 again

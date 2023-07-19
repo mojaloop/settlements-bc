@@ -51,7 +51,7 @@ export class TigerBeetleAccountsAndBalancesAdapter implements IAccountsBalancesA
         { currency: 'USD', code: 840 },
         { currency: 'EUR', code: 978 },
         { currency: 'GBP', code: 826 }
-    ]
+    ];
 
     constructor(clusterId: number, replicaAddresses: string[], logger: ILogger) {
         this._clusterId = clusterId;
@@ -64,7 +64,7 @@ export class TigerBeetleAccountsAndBalancesAdapter implements IAccountsBalancesA
 
         await this._parseAndLookupReplicaAddresses();
 
-        this._logger.info(`TigerBeetleAdapter.init() creating client instance to clusterId: ${this._clusterId} and replica addresses: ${this._replicaAddresses}...`)
+        this._logger.info(`TigerBeetleAdapter.init() creating client instance to clusterId: ${this._clusterId} and replica addresses: ${this._replicaAddresses}...`);
         this._client = TB.createClient({
             cluster_id: this._clusterId,
             replica_addresses: this._replicaAddresses

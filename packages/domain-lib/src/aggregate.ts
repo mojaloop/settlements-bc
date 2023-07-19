@@ -81,7 +81,7 @@ import {ProcessTransferCmd} from "./commands";
 import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import {
 	SettlementMatrixSettledEvt,
-	SettlementMatrixSettledEvtPayload, SettlementMatrixSettledEvtPayloadParticipantItem
+	SettlementMatrixSettledEvtPayloadParticipantItem
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 
 const CURRENCIES_FILE_NAME: string = "currencies.json";
@@ -697,7 +697,7 @@ export class SettlementsAggregate {
 				id: randomUUID(),
 				matrix: matrixDto,
 				batch: batch
-			}
+			};
 			await this._awaitingRepo.storeAwaitingSettlement(awaitSettle);
 		}
 
@@ -844,8 +844,8 @@ export class SettlementsAggregate {
 			throw err; // not found
 		}
 
-		if (matrixDto.state !== "IDLE" && matrixDto.state !== "CLOSED") {
-			const err = new CannotSettleSettlementMatrixError("Can only settle an idle or closed matrix");
+		if (matrixDto.state !== "AWAITING_SETTLEMENT") {
+			const err = new CannotSettleSettlementMatrixError("Can only settle an awaiting settlement matrix");
 			this._logger.warn(err.message);
 			throw err;
 		}
@@ -867,7 +867,6 @@ export class SettlementsAggregate {
 		// first pass - close the open batches:
 		const previouslySettledBatches : ISettlementBatch[] = [];
 		const batchesSettledNow: ISettlementBatch[] = [];
-		const participantBalances: Map<string, {cr: bigint, dr:bigint}> = new Map<string, {cr: bigint; dr: bigint}>();
 		const currency = this._getCurrencyOrThrow(matrix.currencyCode);
 		for (const matrixBatch of matrix.batches) {
 			const batch = await this._batchRepo.getBatch(matrixBatch.id);
@@ -881,19 +880,6 @@ export class SettlementsAggregate {
 			batch.state = matrixBatch.state = "SETTLED";
 			await this._batchRepo.updateBatch(batch);
 			batchesSettledNow.push(batch);
-
-			// FIXME pedro: didn't we just recalculate participantBalances in the _recalculateMatrix() above?
-			// batch.accounts.forEach(acc => {
-			// 	const debit = stringToBigint(acc.debitBalance, currency.decimals);
-			// 	const credit = stringToBigint(acc.creditBalance, currency.decimals);
-			//
-			// 	const partBal = participantBalances.get(acc.participantId);
-			// 	if (!partBal) {
-			// 		participantBalances.set(acc.participantId, {dr:debit, cr: credit});
-			// 	} else {
-			// 		participantBalances.set(acc.participantId, {dr: partBal.dr + debit, cr: partBal.cr + credit});
-			// 	}
-			// });
 		}
 
 		// Close the Matrix Request to prevent further execution:
