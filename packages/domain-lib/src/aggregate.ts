@@ -672,7 +672,7 @@ export class SettlementsAggregate {
 		await this._settlementMatrixReqRepo.storeMatrix(matrix);
 
 		// recalculate the matrix, without getting new batches in
-		await this._recalculateMatrix(matrix, false, true);
+		await this._recalculateMatrix(matrix);
 
 		// first pass - close the open batches:
 		const batchesLockedNow: ISettlementBatch[] = [];
@@ -739,7 +739,7 @@ export class SettlementsAggregate {
 		await this._settlementMatrixReqRepo.storeMatrix(matrix);
 
 		// recalculate the matrix, without getting new batches in
-		await this._recalculateMatrix(matrix, false, false, true);
+		await this._recalculateMatrix(matrix);
 
 		// first pass - close the open batches:
 		const batchesUnLockedNow: ISettlementBatch[] = [];
@@ -749,6 +749,10 @@ export class SettlementsAggregate {
 
 			switch (batch.state) {
 				case "AWAITING_SETTLEMENT":
+					// cannot unlock if not locked by the owning matrix:
+					const awaitByBatch = await this._awaitingRepo.getAwaitingSettlementByBatchId(batch.id);
+					if (!awaitByBatch || awaitByBatch.matrix.id !== matrix.id) continue;
+
 					batch.state = matrixBatch.state = "CLOSED";
 					await this._batchRepo.updateBatch(batch);
 					batchesUnLockedNow.push(batch);
@@ -920,9 +924,7 @@ export class SettlementsAggregate {
 
 	private async _recalculateMatrix(
 		matrix : SettlementMatrix,
-		settlingMatrix: boolean = false,
-		lockingMatrix: boolean = false,
-		unLockingMatrix: boolean = false
+		settlingMatrix: boolean = false
 	): Promise<void> {
 		// start by cleaning the batches
 		let batches :ISettlementBatch[];
@@ -955,11 +957,8 @@ export class SettlementsAggregate {
 
 			for (const batch of batches) {
 				const batchDisputed = batch.state === "DISPUTED";
-				if (batch.state === "SETTLED" || settlingMatrix && batch.state !== "AWAITING_SETTLEMENT") continue;
-				else if (lockingMatrix) {
-					const awaitByBatch = await this._awaitingRepo.getAwaitingSettlementByBatchId(batch.id);
-					if (awaitByBatch) continue; // already locked
-				} else if (unLockingMatrix) {
+				if (batch.state === "SETTLED" || (settlingMatrix && batch.state !== "AWAITING_SETTLEMENT")) continue;
+				else if (settlingMatrix) {
 					const awaitByBatch = await this._awaitingRepo.getAwaitingSettlementByBatchId(batch.id);
 					if (!awaitByBatch || awaitByBatch.matrix.id !== matrix.id) continue;
 				}
