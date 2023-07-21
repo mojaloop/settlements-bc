@@ -43,7 +43,8 @@ import {ILogger, LogLevel} from "@mojaloop/logging-bc-public-types-lib";
 import {MLKafkaJsonProducer, MLKafkaJsonProducerOptions} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 import {AuthorizationClient, LoginHelper, TokenHelper} from "@mojaloop/security-bc-client-lib";
 import {
-	IAccountsBalancesAdapter, IAwaitingSettlementRepo,
+	IAccountsBalancesAdapter,
+	IAwaitingSettlementRepo,
 	IParticipantAccountNotifier,
 	ISettlementBatchRepo,
 	ISettlementBatchTransferRepo,

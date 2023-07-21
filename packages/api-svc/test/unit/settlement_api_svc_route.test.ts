@@ -19,7 +19,8 @@ import { ITokenHelper } from "@mojaloop/security-bc-public-types-lib";
 import { ConsoleLogger, ILogger } from "@mojaloop/logging-bc-public-types-lib";
 import {
     AddBatchesToMatrixCmdPayload,
-    IAccountsBalancesAdapter, IAwaitingSettlementRepo,
+    IAccountsBalancesAdapter,
+    IAwaitingSettlementRepo,
     IParticipantAccountNotifier,
     ISettlementBatchRepo,
     ISettlementConfigRepo,

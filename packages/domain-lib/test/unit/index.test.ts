@@ -43,7 +43,8 @@ import {
 	ISettlementMatrixRequestRepo,
 	IAwaitingSettlementRepo,
 	ProcessTransferCmd,
-	ProcessTransferCmdPayload, SettlementBatchNotFoundError,
+	ProcessTransferCmdPayload,
+	SettlementBatchNotFoundError,
 	SettlementMatrixAlreadyExistsError,
 	SettlementMatrixNotFoundError,
 	SettlementsAggregate
@@ -55,7 +56,8 @@ import {CallSecurityContext, ForbiddenError, IAuthorizationClient} from "@mojalo
 import {
 	AccountsBalancesAdapterMock,
 	AuditClientMock,
-	AuthorizationClientMock, AwaitingSettlementRepoMock,
+	AuthorizationClientMock,
+	AwaitingSettlementRepoMock,
 	MessageCache,
 	MessageProducerMock,
 	ParticipantAccountNotifierMock,
@@ -1220,7 +1222,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		expect(batchExpSettled!.state).toEqual('SETTLED');
 	});
 
-	test("test awaiting settlement lock and unlock", async () => {
+	test("test awaiting settlement lock and unlock (awaiting settlement)", async () => {
 		const reqTransferDto: ITransferDto = {
 			id: null,
 			transferId: randomUUID(),
@@ -1299,10 +1301,6 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		expect(matrixNoLock!.type).toEqual('STATIC');
 		expect(matrixNoLock!.participantBalances.length).toEqual(2);
 		expect(matrixNoLock!.batches.length).toEqual(1);
-
-		
-
-		
 	});
 
 	test("test matrix state machine", async () => {

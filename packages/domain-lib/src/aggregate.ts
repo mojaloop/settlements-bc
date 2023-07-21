@@ -49,7 +49,8 @@ import {
 
 } from "./types/errors";
 import {
-	IAccountsBalancesAdapter, IAwaitingSettlementRepo,
+	IAccountsBalancesAdapter,
+	IAwaitingSettlementRepo,
 	IParticipantAccountNotifier,
 	ISettlementBatchRepo,
 	ISettlementBatchTransferRepo,
@@ -675,7 +676,6 @@ export class SettlementsAggregate {
 		await this._recalculateMatrix(matrix);
 
 		// first pass - close the open batches:
-		const batchesLockedNow: ISettlementBatch[] = [];
 		for (const matrixBatch of matrix.batches) {
 			const batch = await this._batchRepo.getBatch(matrixBatch.id);
 			if (!batch) throw new SettlementBatchNotFoundError(`Unable to locate batch for id '${matrixBatch.id}'.`);
@@ -689,10 +689,8 @@ export class SettlementsAggregate {
 
 			batch.state = matrixBatch.state = "AWAITING_SETTLEMENT";
 			await this._batchRepo.updateBatch(batch);
-			batchesLockedNow.push(batch);
-		}
 
-		for (const batch of batchesLockedNow) {
+			// create the lock:
 			const awaitSettle: IAwaitingSettlement = {
 				id: randomUUID(),
 				matrix: matrixDto,
@@ -742,7 +740,6 @@ export class SettlementsAggregate {
 		await this._recalculateMatrix(matrix);
 
 		// first pass - close the open batches:
-		const batchesUnLockedNow: ISettlementBatch[] = [];
 		for (const matrixBatch of matrix.batches) {
 			const batch = await this._batchRepo.getBatch(matrixBatch.id);
 			if (!batch) throw new SettlementBatchNotFoundError(`Unable to locate batch for id '${matrixBatch.id}'.`);
@@ -755,14 +752,11 @@ export class SettlementsAggregate {
 
 					batch.state = matrixBatch.state = "CLOSED";
 					await this._batchRepo.updateBatch(batch);
-					batchesUnLockedNow.push(batch);
+					// remove the lock:
+					await this._awaitingRepo.removeAwaitingSettlementByBatchId(batch.id);
 					break;
 				default: continue;
 			}
-		}
-
-		for (const batch of batchesUnLockedNow) {
-			await this._awaitingRepo.removeAwaitingSettlementByBatchId(batch.id);
 		}
 
 		// Dispute the Matrix Request to prevent further execution:
