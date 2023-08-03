@@ -52,9 +52,7 @@ export class SettlementConfigRepoMock implements ISettlementConfigRepo {
 			id: DEFAULT_SETTLEMENT_MODEL_ID,
 			settlementModel: DEFAULT_SETTLEMENT_MODEL_NAME,
 			batchCreateInterval: 5000,
-			settlementTime: null,
 			isActive: true,
-			customSettlementField: null,
 			createdBy: "admin",
 			createdDate: 1686654836126,
 			changeLog: []
@@ -66,9 +64,7 @@ export class SettlementConfigRepoMock implements ISettlementConfigRepo {
 			id: id,
 			settlementModel: DEFAULT_SETTLEMENT_MODEL_NAME,
 			batchCreateInterval: 5000,
-			settlementTime: null,
 			isActive: true,
-			customSettlementField: null,
 			createdBy: "admin",
 			createdDate: 1686654836126,
 			changeLog: []
@@ -81,9 +77,7 @@ export class SettlementConfigRepoMock implements ISettlementConfigRepo {
 			id: DEFAULT_SETTLEMENT_MODEL_ID,
 			settlementModel: modelName,
 			batchCreateInterval: 5000,
-			settlementTime: null,
 			isActive: true,
-			customSettlementField: null,
 			createdBy: "admin",
 			createdDate: 1686654836126,
 			changeLog: []

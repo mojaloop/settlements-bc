@@ -47,7 +47,7 @@ import {
 	DisputeMatrixCmd,
 	AddBatchesToMatrixCmdPayload,
 	AddBatchesToMatrixCmd,
-	RemoveBatchesFromMatrixCmdPayload, RemoveBatchesFromMatrixCmd
+	RemoveBatchesFromMatrixCmdPayload, RemoveBatchesFromMatrixCmd, CreateSettlementModelCmd
 } from "@mojaloop/settlements-bc-domain-lib";
 import {CallSecurityContext} from "@mojaloop/security-bc-public-types-lib";
 import {
@@ -218,19 +218,38 @@ export class ExpressRoutes {
 	private async postCreateSettlementModel(req: express.Request, res: express.Response): Promise<void>{
 		// TODO enforce privileges
 
-		const name = req.query.name as string;
+		const name = req.body.settlementModel;
 		try {
 			let retModels: ISettlementConfig[] = [];
+			let cmd: CommandMsg;
+			const id = req.body.id;
 			if(name){
 				this._logger.debug(`Got postCreateSettlementModel request for model name: ${name}`);
-				const found = await this._configRepo.getSettlementConfigByModelName(name);
-				if(found) retModels.push(found);
+
+				const batchCreateInterval = req.body.batchCreateInterval;
+				const isActive = req.body.isActive;
+				const createdBy = req.body.createdBy;
+				const createdDate = req.body.createdDate;
+				const changeLog = req.body.changeLog;
+
+				const cmdPayload: ISettlementConfig = {
+					id: id,
+					settlementModel: name,
+					batchCreateInterval: batchCreateInterval,
+					isActive: isActive,
+					createdBy: createdBy,
+					createdDate: createdDate,
+					changeLog: changeLog,
+				};
+				cmd = new CreateSettlementModelCmd(cmdPayload);
 			}else{
 				this._logger.debug("Got postSettlementModels request");
-				retModels = await this._configRepo.getAllSettlementConfigs();
+				return this.sendErrorResponse(res, 400, " Settlement Model createion failed");
 			}
 
-			this.sendSuccessResponse(res, 200, retModels);
+			await this._messageProducer.send(cmd);
+
+			this.sendSuccessResponse(res, 202, {id: id});
 		} catch (error: any) {
 			this._logger.error(error);
 			this.sendErrorResponse(res, 500, error.message || ExpressRoutes.UNKNOWN_ERROR_MESSAGE);

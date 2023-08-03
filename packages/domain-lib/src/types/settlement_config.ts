@@ -27,15 +27,13 @@
 
 "use strict";
 
-import {ICustomSettlementField, ISettlementConfig, ISettlementModelActivityLogEntry} from "@mojaloop/settlements-bc-public-types-lib";
+import {ISettlementConfig, ISettlementModelActivityLogEntry} from "@mojaloop/settlements-bc-public-types-lib";
 
 export class SettlementConfig implements ISettlementConfig{
 	id: string;
 	settlementModel: string;
 	batchCreateInterval: number;// [seconds]
-	settlementTime: string | null;
 	isActive: boolean;
-	customSettlementField: ICustomSettlementField[] | null;
 	createdBy: string;
     createdDate: number;
 	changeLog: SettlementModelActivityLogEntry[];
@@ -44,9 +42,7 @@ export class SettlementConfig implements ISettlementConfig{
 		id: string,
 		model: string,
 		batchCreateInterval: number,
-		settlementTime: string | null,
 		isActive: boolean,
-		customSettlementField: ICustomSettlementField[] | null,
 		createdBy: string,
     	createdDate: number,
 		changelog: SettlementModelActivityLogEntry[],
@@ -54,9 +50,7 @@ export class SettlementConfig implements ISettlementConfig{
 		this.id = id;
 		this.settlementModel = model;
 		this.batchCreateInterval = batchCreateInterval;
-		this.settlementTime = settlementTime;
 		this.isActive = isActive;
-		this.customSettlementField = customSettlementField;
 		this.createdBy = createdBy;
 		this.createdDate = createdDate;
 		this.changeLog = changelog;
@@ -67,9 +61,7 @@ export class SettlementConfig implements ISettlementConfig{
 			dto.id,
 			dto.settlementModel,
 			dto.batchCreateInterval,
-			dto.settlementTime,
 			dto.isActive,
-			dto.customSettlementField,
 			dto.createdBy,
     		dto.createdDate,
 			dto.changeLog
@@ -92,9 +84,7 @@ export class SettlementConfig implements ISettlementConfig{
 			id: this.id,
 			settlementModel: this.settlementModel,
 			batchCreateInterval: this.batchCreateInterval,
-			settlementTime: this.settlementTime,
 			isActive: this.isActive,
-			customSettlementField: this.customSettlementField,
 			createdBy: this.createdBy,
 			createdDate: this.createdDate,
 			changeLog: this.changeLog

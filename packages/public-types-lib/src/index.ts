@@ -45,32 +45,42 @@ export interface ITransferDto {
 	settlementModel: string;
 }
 
-export interface ICustomSettlementField {
-    key: string;
-    value: ICustomSettlementField | ICustomSettlementField[] | string | number;
-  }
+// export interface ICustomSettlementField {
+//     key: string;
+//     value: ICustomSettlementField | ICustomSettlementField[] | string | number;
+//   }
 
 /**
  * @todo Rename to ISettlementModel
  */
 export interface ISettlementConfig {
 	id: string;
-	/**
-	 * Settlement model name, should be unique.
-	 * @todo rename to modelName
-	 */
-	settlementModel: string;
-	/**
-	 * Batch duration interval in seconds
-	 * @todo rename to batchCreateIntervalSecs
-	 */
-	batchCreateInterval: number;
+    /**
+     * Settlement model name, should be unique.
+     * @todo rename to modelName
+     */
+    settlementModel: string;
+    /**
+     * Batch duration interval in seconds
+     * @todo rename to batchCreateIntervalSecs
+     */
+    batchCreateInterval: number;
+    // isAutoClose: boolean;
+    // settlementTime: string | null;
+    isActive: boolean;
+    // remove custom customSettlementField
+    //customSettlementField: ICustomSettlementField[] | null;
 
-	settlementTime: string | null;
-	isActive: boolean;
-    customSettlementField: ICustomSettlementField[] | null;
+    // // will put fixed matching field temporary and will replace with flexibility later
+    // matchingPayeeFspId: string | null;
+    // matchingPayerFspId: string | null;
+    // matchingCurrency: string | null;
+    // matchingAmount: number | null;
+    // // matchingTransactionType: string | null;
+    // // matchingExtensionList: [];
+
     createdBy: string;
-	createdDate: number;
+    createdDate: number;
     changeLog: ISettlementModelActivityLogEntry[];
 }
 

@@ -58,7 +58,7 @@ import {
 import {CallSecurityContext} from "@mojaloop/security-bc-public-types-lib";
 import {MLKafkaJsonConsumer} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 import {ILoginHelper, ITokenHelper, UnauthorizedError} from "@mojaloop/security-bc-public-types-lib";
-import { ICustomSettlementField, ISettlementConfig } from "@mojaloop/settlements-bc-public-types-lib";
+import {ISettlementConfig } from "@mojaloop/settlements-bc-public-types-lib";
 
 export class SettlementsCommandHandler{
 	private _logger: ILogger;

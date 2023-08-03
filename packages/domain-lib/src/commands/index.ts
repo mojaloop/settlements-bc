@@ -36,7 +36,7 @@ import {
 	SETTLEMENTS_AGGREGATE_NAME,
 	SettlementsBCTopics
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
-import { ICustomSettlementField, ISettlementConfig } from "@mojaloop/settlements-bc-public-types-lib";
+import { ISettlementConfig } from "@mojaloop/settlements-bc-public-types-lib";
 
 export type ProcessTransferCmdPayload = {
 	transferId: string;
