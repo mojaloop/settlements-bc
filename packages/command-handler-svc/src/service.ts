@@ -82,9 +82,7 @@ import {MongoSettlementMatrixRepo} from "@mojaloop/settlements-bc-infrastructure
 
 import configClient from "./config";
 import {DEFAULT_SETTLEMENT_MODEL_ID, DEFAULT_SETTLEMENT_MODEL_NAME} from "@mojaloop/settlements-bc-public-types-lib";
-import {
-	MongoAwaitingSettlementRepo
-} from "@mojaloop/settlements-bc-infrastructure-lib/dist/mongo_awaiting_settlements_repo";
+
 const BC_NAME = configClient.boundedContextName;
 const APP_NAME = configClient.applicationName;
 const APP_VERSION = configClient.applicationVersion;
