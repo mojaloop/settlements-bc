@@ -1,6 +1,18 @@
 import request from "supertest";
 
-import { AccountsBalancesAdapterMock, AuditClientMock, AuthenticationServiceMock, AuthorizationClientMock, MessageCache, MessageProducerMock, ParticipantAccountNotifierMock, SettlementBatchRepoMock, SettlementBatchTransferRepoMock, SettlementConfigRepoMock, SettlementMatrixRequestRepoMock, TokenHelperMock } from "@mojaloop/settlements-bc-shared-mocks-lib";
+import {
+    AccountsBalancesAdapterMock,
+    AuditClientMock,
+    AuthorizationClientMock,
+    MessageCache,
+    MessageProducerMock,
+    ParticipantAccountNotifierMock,
+    SettlementBatchRepoMock,
+    SettlementBatchTransferRepoMock,
+    SettlementConfigRepoMock,
+    SettlementMatrixRequestRepoMock,
+    TokenHelperMock
+} from "@mojaloop/settlements-bc-shared-mocks-lib";
 import { IMessageProducer } from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import { ITokenHelper } from "@mojaloop/security-bc-public-types-lib";
 import { ConsoleLogger, ILogger } from "@mojaloop/logging-bc-public-types-lib";
@@ -10,8 +22,7 @@ import {
     IParticipantAccountNotifier,
     ISettlementBatchRepo,
     ISettlementConfigRepo,
-    ISettlementMatrixRequestRepo,
-    SettlementsAggregate
+    ISettlementMatrixRequestRepo
 } from "@mojaloop/settlements-bc-domain-lib";
 import { IAuthorizationClient, CallSecurityContext } from "@mojaloop/security-bc-public-types-lib";
 import { IAuditClient } from "@mojaloop/auditing-bc-public-types-lib";
@@ -67,8 +78,8 @@ describe("Settlement BC api-svc route test", () => {
             mockConfigRepo,
             mockBatchRepo,
             mockBatchTransferRepo,
-            mockParticipantAccountNotifier,
             mockMatrixRequestRepo,
+            mockParticipantAccountNotifier,
             mockMessageProducer
         );
 
@@ -82,7 +93,8 @@ describe("Settlement BC api-svc route test", () => {
             batchName: "DEFAULT.USD.2023.06.19.08.30",
             batchSequence: 2, //100 EURO
             state: "OPEN",
-            accounts: []
+            accounts: [],
+            ownerMatrixId: null
         };
 
         //Prepare mocked batchTransfer data
@@ -200,7 +212,8 @@ describe("Settlement BC api-svc route test", () => {
                 batchName: "DEFAULT.USD.2023.06.19.08.30",
                 batchSequence: 2, //100 EURO
                 state: "OPEN",
-                accounts: []
+                accounts: [],
+                ownerMatrixId: null
             },
             {
                 id: "DEFAULT.USD.2023.06.20.01.20.001",
@@ -210,7 +223,8 @@ describe("Settlement BC api-svc route test", () => {
                 batchName: "DEFAULT.USD.2023.06.20.01.20",
                 batchSequence: 1, //100 EURO
                 state: "CLOSED",
-                accounts: []
+                accounts: [],
+                ownerMatrixId: null
             }
         ];
 
@@ -256,7 +270,8 @@ describe("Settlement BC api-svc route test", () => {
                 batchName: "DEFAULT.USD.2023.06.19.08.30",
                 batchSequence: 2, //100 EURO
                 state: "OPEN",
-                accounts: []
+                accounts: [],
+                ownerMatrixId: null
             },
             {
                 id: "DEFAULT.USD.2023.06.20.01.20.001",
@@ -266,7 +281,8 @@ describe("Settlement BC api-svc route test", () => {
                 batchName: "DEFAULT.USD.2023.06.20.01.20",
                 batchSequence: 1, //100 EURO
                 state: "CLOSED",
-                accounts: []
+                accounts: [],
+                ownerMatrixId: null
             }
         ];
 
@@ -325,8 +341,6 @@ describe("Settlement BC api-svc route test", () => {
         //Assert
         expect(response.status).toBe(200);
         expect(Array.isArray(response.body)).toBe(true);
-
-
     });
 
 

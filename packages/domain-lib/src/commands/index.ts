@@ -57,7 +57,6 @@ export class ProcessTransferCmd extends CommandMsg {
 
 	constructor(payload: ProcessTransferCmdPayload) {
 		super();
-
 		this.aggregateId = this.msgKey = payload.transferId;
 		this.payload = payload;
 	}
@@ -111,7 +110,6 @@ export class CreateStaticMatrixCmd extends CommandMsg {
 
 	constructor(payload: CreateStaticMatrixCmdPayload) {
 		super();
-
 		this.aggregateId = this.msgKey = payload.matrixId;
 		this.payload = payload;
 	}
@@ -138,7 +136,6 @@ export class RecalculateMatrixCmd extends CommandMsg {
 
 	constructor(payload: RecalculateMatrixCmdPayload) {
 		super();
-
 		this.aggregateId = this.msgKey = payload.matrixId;
 		this.payload = payload;
 	}
@@ -162,7 +159,6 @@ export class CloseMatrixCmd extends CommandMsg {
 
 	constructor(payload: CloseMatrixCmdPayload) {
 		super();
-
 		this.aggregateId = this.msgKey = payload.matrixId;
 		this.payload = payload;
 	}
@@ -186,7 +182,6 @@ export class SettleMatrixCmd extends CommandMsg {
 
 	constructor(payload: SettleMatrixCmdPayload) {
 		super();
-
 		this.aggregateId = this.msgKey = payload.matrixId;
 		this.payload = payload;
 	}
@@ -210,7 +205,52 @@ export class DisputeMatrixCmd extends CommandMsg {
 
 	constructor(payload: DisputeMatrixCmdPayload) {
 		super();
+		this.aggregateId = this.msgKey = payload.matrixId;
+		this.payload = payload;
+	}
 
+	validatePayload(): void {
+		// TODO @jason complete...
+	}
+}
+
+export type LockMatrixCmdPayload = {
+	matrixId: string;
+}
+
+export class LockMatrixCmd extends CommandMsg {
+	boundedContextName: string = SETTLEMENTS_BOUNDED_CONTEXT_NAME;
+	aggregateId: string;
+	aggregateName: string = SETTLEMENTS_AGGREGATE_NAME;
+	msgKey: string;
+	msgTopic: string = SettlementsBCTopics.Commands;
+	payload: LockMatrixCmdPayload;
+
+	constructor(payload: LockMatrixCmdPayload) {
+		super();
+		this.aggregateId = this.msgKey = payload.matrixId;
+		this.payload = payload;
+	}
+
+	validatePayload(): void {
+		// TODO @jason complete...
+	}
+}
+
+export type UnlockMatrixCmdPayload = {
+	matrixId: string;
+}
+
+export class UnlockMatrixCmd extends CommandMsg {
+	boundedContextName: string = SETTLEMENTS_BOUNDED_CONTEXT_NAME;
+	aggregateId: string;
+	aggregateName: string = SETTLEMENTS_AGGREGATE_NAME;
+	msgKey: string;
+	msgTopic: string = SettlementsBCTopics.Commands;
+	payload: UnlockMatrixCmdPayload;
+
+	constructor(payload: UnlockMatrixCmdPayload) {
+		super();
 		this.aggregateId = this.msgKey = payload.matrixId;
 		this.payload = payload;
 	}

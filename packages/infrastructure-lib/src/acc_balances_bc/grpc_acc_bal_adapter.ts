@@ -93,9 +93,9 @@ export class GrpcAccountsAndBalancesAdapter implements IAccountsBalancesAdapter 
             }]
         };
 
-        const createdIds = await this._client.createAccounts(req).catch((reason: any) => {
+        const createdIds = await this._client.createAccounts(req).catch((reason) => {
             this._logger.error(reason);
-            if(reason instanceof Error && reason.constructor.name === "UnauthorizedError"){
+            if (reason instanceof Error && reason.constructor.name === "UnauthorizedError"){
                 throw new UnauthorizedError(reason.message);
             }
 
@@ -121,7 +121,7 @@ export class GrpcAccountsAndBalancesAdapter implements IAccountsBalancesAdapter 
             }]
         };
 
-        const createdId = await this._client.createJournalEntries(req).catch((reason: any) => {
+        const createdId = await this._client.createJournalEntries(req).catch((reason) => {
             this._logger.error(reason);
             throw new Error("Could not create journalEntry in remote system: "+reason);
         });

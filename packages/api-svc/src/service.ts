@@ -33,7 +33,6 @@
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const packageJSON = require("../package.json");
 
-
 import {IAuditClient} from "@mojaloop/auditing-bc-public-types-lib";
 import {KafkaLogger} from "@mojaloop/logging-bc-client-lib";
 import {ILogger, LogLevel} from "@mojaloop/logging-bc-public-types-lib";
@@ -68,7 +67,9 @@ import {Server} from "net";
 import express, {Express} from "express";
 import {ExpressRoutes} from "./routes";
 import {ITokenHelper} from "@mojaloop/security-bc-public-types-lib/";
-import {ParticipantAccountNotifierMock} from "@mojaloop/settlements-bc-shared-mocks-lib";
+import {
+	ParticipantAccountNotifierMock
+} from "@mojaloop/settlements-bc-shared-mocks-lib";
 import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 
 
@@ -109,6 +110,7 @@ const DB_NAME: string = "settlements";
 const SETTLEMENT_CONFIGS_COLLECTION_NAME: string = "configs";
 const SETTLEMENT_BATCHES_COLLECTION_NAME: string = "batches";
 const SETTLEMENT_MATRICES_COLLECTION_NAME: string = "matrices";
+const AWAITING_SETTLEMENTS_COLLECTION_NAME: string = "awaiting_settlements";
 const BATCH_SPECIFIC_SETTLEMENT_MATRICES_COLLECTION_NAME: string = "batch_specific_matrices";
 const SETTLEMENT_TRANSFERS_COLLECTION_NAME: string = "transfers";
 
@@ -131,8 +133,6 @@ export class Service {
 	static participantAccountNotifier: IParticipantAccountNotifier;
 	static batchTransferRepo: ISettlementBatchTransferRepo;
 	static matrixRepo: ISettlementMatrixRequestRepo;
-	static messageProducer: IMessageProducer;
-	static aggregate: SettlementsAggregate;
 
 	static async start(
 		logger?:ILogger,
@@ -143,8 +143,8 @@ export class Service {
 		configRepo?: ISettlementConfigRepo,
 		batchRepo?: ISettlementBatchRepo,
 		batchTransferRepo?: ISettlementBatchTransferRepo,
-		participantAccountNotifier?: IParticipantAccountNotifier,
 		matrixRepo?: ISettlementMatrixRequestRepo,
+		participantAccountNotifier?: IParticipantAccountNotifier,
 		messageProducer?: IMessageProducer,
 	):Promise<void>{
 		console.log(`Service starting with PID: ${process.pid}`);
@@ -243,17 +243,6 @@ export class Service {
 		}
 		this.batchRepo = batchRepo;
 
-		if (!matrixRepo) {
-			matrixRepo = new MongoSettlementMatrixRepo(
-				logger,
-				MONGO_URL,
-				DB_NAME,
-				SETTLEMENT_MATRICES_COLLECTION_NAME
-			);
-			await matrixRepo.init();
-		}
-		this.matrixRepo = matrixRepo;
-
 		if (!batchTransferRepo) {
 			batchTransferRepo = new MongoSettlementTransferRepo(
 				logger,
@@ -265,7 +254,17 @@ export class Service {
 		}
 		this.batchTransferRepo = batchTransferRepo;
 
-		// TODO implement remaining repositories and adapters
+		if (!matrixRepo) {
+			matrixRepo = new MongoSettlementMatrixRepo(
+				logger,
+				MONGO_URL,
+				DB_NAME,
+				SETTLEMENT_MATRICES_COLLECTION_NAME
+			);
+			await matrixRepo.init();
+		}
+		this.matrixRepo = matrixRepo;
+
 
 		if (!participantAccountNotifier) {
 			participantAccountNotifier = new ParticipantAccountNotifierMock();
@@ -296,6 +295,9 @@ export class Service {
 
 		await this.setupExpress();
 	}
+	static messageProducer: IMessageProducer;
+
+	static aggregate: SettlementsAggregate;
 
 	static setupExpress(): Promise<void>{
 		return new Promise<void>((resolve, reject) => {

@@ -45,9 +45,6 @@ export interface ITransferDto {
 	settlementModel: string;
 }
 
-/**
- * @todo Rename to ISettlementModel
- */
 export interface ISettlementConfig {
 	id: string;
 	/**
@@ -69,7 +66,11 @@ export interface ISettlementBatch {
 	currencyCode: string;
 	batchName: string; // FX.XOF:RWF.2021.08.23.00.00 (minus seq)
 	batchSequence: number; // 1 (seq only)
-	state: "OPEN" | "DISPUTED" | "SETTLED" | "CLOSED";
+	state: "OPEN" | "CLOSED" | "DISPUTED" | "AWAITING_SETTLEMENT" | "SETTLED";
+	// this will only exist for batches that are in a state that mandates a
+	// single matrix owning it, like "AWAITING_SETTLEMENT" or "SETTLED"
+	// when locking or settling, put matrixId, when unlocking put it to null again
+	ownerMatrixId: null | string;
 	accounts: ISettlementBatchAccount[];
 }
 
@@ -112,7 +113,7 @@ export interface ISettlementMatrix {
 	batches: ISettlementMatrixBatch[];
 	participantBalances: ISettlementMatrixParticipantBalance[];
 	participantBalancesDisputed: ISettlementMatrixParticipantBalance[];
-	state: "IDLE" | "BUSY" | "DISPUTED" | "CLOSED" | "SETTLED";
+	state: "IDLE" | "BUSY" | "DISPUTED" | "CLOSED" | "AWAITING_SETTLEMENT" | "SETTLED";
 	type: "STATIC" | "DYNAMIC";
 	generationDurationSecs: number | null;
 	totalDebitBalance: string;
@@ -132,7 +133,7 @@ export interface ISettlementMatrixBatch {
 	name: string;
 	batchDebitBalance: string;
 	batchCreditBalance: string;
-	state: "OPEN" | "DISPUTED" | "SETTLED" | "CLOSED";
+	state: "OPEN" | "DISPUTED" | "SETTLED" | "CLOSED" | "AWAITING_SETTLEMENT";
 	batchAccounts?: ISettlementMatrixBatchAccount[];
 }
 
@@ -144,8 +145,6 @@ export interface ISettlementMatrixBatchAccount {
 	creditBalance: string;
 }
 
-
-
 /* ISettlementModelClient for settlement-model-lib */
 
 
@@ -155,7 +154,7 @@ export interface ISettlementModelClient {
 	destroy(): Promise<void>;
 
 	getSettlementModelId(
-		transferAmount: bigint,
+		transferAmount: string,
 		payerCurrency: string | null,
 		payeeCurrency: string | null,
 		extensionList: { key: string; value: string; }[]

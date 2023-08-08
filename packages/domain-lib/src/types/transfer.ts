@@ -62,6 +62,6 @@ export class SettlementBatchTransfer implements ISettlementBatchTransfer {
 		this.batchId = batchId;
 		this.batchName = batchName;
 		this.journalEntryId = journalEntryId;
-		this.matrixId = matrixId
+		this.matrixId = matrixId;
 	}
 }

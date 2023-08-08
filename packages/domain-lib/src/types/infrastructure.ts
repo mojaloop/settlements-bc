@@ -79,7 +79,6 @@ export interface ISettlementConfigRepo {
 	getSettlementConfigByModelName(modelName: string): Promise<ISettlementConfig | null>;
 }
 
-
 export interface ISettlementBatchRepo {
 	init(): Promise<void>;
 	destroy(): Promise<void>;
@@ -115,7 +114,7 @@ export interface ISettlementBatchTransferRepo {
 export interface IParticipantAccountNotifier {
 	init(): Promise<void>;
 	destroy(): Promise<void>;
-	publishSettlementMatrixExecuteEvent(matrix: any): Promise<void>;
+	publishSettlementMatrixExecuteEvent(matrix: ISettlementMatrix): Promise<void>;
 }
 
 export interface ISettlementMatrixRequestRepo {
@@ -124,7 +123,4 @@ export interface ISettlementMatrixRequestRepo {
 	storeMatrix(matrix: ISettlementMatrix): Promise<void>; // Throws if account.id is not unique.
 	getMatrixById(id: string): Promise<ISettlementMatrix | null>;
 	getMatrices(state?:string): Promise<ISettlementMatrix[]>;
-
-// this is not the job of a repo, should be at aggregate level
-//	closeSettlementMatrixRequest(matrixReq: ISettlementMatrixRequestDto): Promise<void>;
 }

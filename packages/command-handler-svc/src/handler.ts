@@ -52,7 +52,11 @@ import {
 	AddBatchesToMatrixCmd,
 	AddBatchesToMatrixCmdPayload,
 	RemoveBatchesFromMatrixCmd,
-	RemoveBatchesFromMatrixCmdPayload
+	RemoveBatchesFromMatrixCmdPayload,
+	LockMatrixCmd,
+	LockMatrixCmdPayload,
+	UnlockMatrixCmd,
+	UnlockMatrixCmdPayload
 } from "@mojaloop/settlements-bc-domain-lib";
 import {CallSecurityContext} from "@mojaloop/security-bc-public-types-lib";
 import {MLKafkaJsonConsumer} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
@@ -142,6 +146,22 @@ export class SettlementsCommandHandler{
 						await this._settlementsAgg.disputeSettlementMatrix(
 							sectCtx,
 							disputePayload.matrixId
+						);
+						break;
+					case LockMatrixCmd.name:
+						// eslint-disable-next-line no-case-declarations
+						const lockAwaitPayload = message.payload as LockMatrixCmdPayload;
+						await this._settlementsAgg.lockSettlementMatrixForAwaitingSettlement(
+							sectCtx,
+							lockAwaitPayload.matrixId
+						);
+						break;
+					case UnlockMatrixCmd.name:
+						// eslint-disable-next-line no-case-declarations
+						const unlockAwaitPayload = message.payload as UnlockMatrixCmdPayload;
+						await this._settlementsAgg.unLockSettlementMatrixFromAwaitingSettlement(
+							sectCtx,
+							unlockAwaitPayload.matrixId
 						);
 						break;
 					case AddBatchesToMatrixCmd.name:

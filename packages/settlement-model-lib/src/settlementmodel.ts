@@ -95,7 +95,7 @@ export class SettlementModelClient implements ISettlementModelClient {
 	}
 
 	async getSettlementModelId(
-		transferAmount: bigint,
+		transferAmount: string,
 		payerCurrency: string | null,
 		payeeCurrency: string | null,
 		extensionList: { key: string; value: string; }[]

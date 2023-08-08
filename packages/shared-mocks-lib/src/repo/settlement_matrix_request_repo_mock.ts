@@ -70,18 +70,4 @@ export class SettlementMatrixRequestRepoMock implements ISettlementMatrixRequest
 		}
 		return Promise.resolve(ret);
 	}
-
-	/*async closeSettlementMatrixRequest(matrixReq: ISettlementMatrixRequestDto): Promise<void> {
-		if (matrixReq.id == null) return Promise.resolve();
-
-		for (const matrixReqIter of this.matrixRequests) {
-			if (matrixReqIter.id === matrixReq.id) {
-				matrixReqIter.matrixStatus = SettlementMatrixRequestStatus.CLOSED;
-				return Promise.resolve();
-			}
-		}
-
-		return Promise.resolve();
-	}*/
-
 }
