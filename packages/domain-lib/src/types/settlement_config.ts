@@ -27,28 +27,44 @@
 
 "use strict";
 
-import {ISettlementConfig} from "@mojaloop/settlements-bc-public-types-lib";
+import {ISettlementConfig, ISettlementModelActivityLogEntry} from "@mojaloop/settlements-bc-public-types-lib";
 
 export class SettlementConfig implements ISettlementConfig{
 	id: string;
 	settlementModel: string;
 	batchCreateInterval: number;// [seconds]
+	isActive: boolean;
+	createdBy: string;
+    createdDate: number;
+	changeLog: SettlementModelActivityLogEntry[];
 
 	constructor(
 		id: string,
 		model: string,
-		batchCreateInterval: number
+		batchCreateInterval: number,
+		isActive: boolean,
+		createdBy: string,
+		createdDate: number,
+		changelog: SettlementModelActivityLogEntry[],
 	) {
 		this.id = id;
 		this.settlementModel = model;
 		this.batchCreateInterval = batchCreateInterval;
+		this.isActive = isActive;
+		this.createdBy = createdBy;
+		this.createdDate = createdDate;
+		this.changeLog = changelog;
 	}
 
 	static fromDto(dto: ISettlementConfig): SettlementConfig{
 		return new SettlementConfig(
 			dto.id,
 			dto.settlementModel,
-			dto.batchCreateInterval
+			dto.batchCreateInterval,
+			dto.isActive,
+			dto.createdBy,
+			dto.createdDate,
+			dto.changeLog
 		);
 	}
 
@@ -68,7 +84,18 @@ export class SettlementConfig implements ISettlementConfig{
 			id: this.id,
 			settlementModel: this.settlementModel,
 			batchCreateInterval: this.batchCreateInterval,
+			isActive: this.isActive,
+			createdBy: this.createdBy,
+			createdDate: this.createdDate,
+			changeLog: this.changeLog
 		};
 		return configDto;
 	}
+}
+
+export declare class SettlementModelActivityLogEntry implements ISettlementModelActivityLogEntry{
+	changeType: "CREATE" | "APPROVE" | "ACTIVATE" | "DEACTIVATE" | "UPDATE";
+	user: string;
+	timestamp: number;
+	notes: string | null;
 }

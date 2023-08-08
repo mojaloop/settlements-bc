@@ -39,6 +39,7 @@ import {
 	InvalidBatchSettlementModelError,
 	InvalidCurrencyCodeError,
 	InvalidIdError,
+	InvalidSettlementModelError,
 	InvalidTimestampError,
 	InvalidTransferIdError,
 	NoSettlementConfig,
@@ -46,6 +47,7 @@ import {
 	SettlementMatrixAlreadyExistsError,
 	SettlementMatrixIsClosedError,
 	SettlementMatrixNotFoundError,
+	SettlementModelAlreadyExistError,
 
 } from "./types/errors";
 import {
@@ -73,10 +75,11 @@ import {readFileSync} from "fs";
 import {ICurrency} from "./types/currency";
 import {bigintToString, stringToBigint} from "./converters";
 import {SettlementConfig} from "./types/settlement_config";
+import {ISettlementConfig} from "@mojaloop/settlements-bc-public-types-lib";
 import {AccountsAndBalancesAccountType} from "@mojaloop/accounts-and-balances-bc-public-types-lib";
 import {SettlementBatchTransfer} from "./types/transfer";
 import {SettlementMatrix} from "./types/matrix";
-import {ProcessTransferCmd} from "./commands";
+import {CreateSettlementModelCmdPayload, ProcessTransferCmd} from "./commands";
 import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import {
 	SettlementMatrixSettledEvt,
@@ -101,7 +104,8 @@ enum AuditingActions {
 	SETTLEMENT_MATRIX_REQUEST_CREATED = "SETTLEMENT_MATRIX_REQUEST_CREATED",
 	STATIC_SETTLEMENT_MATRIX_REQUEST_CREATED = "STATIC_SETTLEMENT_MATRIX_REQUEST_CREATED",
 	SETTLEMENT_MATRIX_LOCK = "SETTLEMENT_MATRIX_LOCK",
-	SETTLEMENT_MATRIX_UNLOCK = "SETTLEMENT_MATRIX_UNLOCK"
+	SETTLEMENT_MATRIX_UNLOCK = "SETTLEMENT_MATRIX_UNLOCK",
+	SETTLEMENT_MODEL_CREATED = "SETTLEMENT_MODEL_CREATED"
 }
 
 export class SettlementsAggregate {
@@ -328,6 +332,67 @@ export class SettlementsAggregate {
 		);
 
 		return batch.id;
+	}
+
+	async createSettlementConfig(
+		secCtx: CallSecurityContext,
+		cmdPayload: CreateSettlementModelCmdPayload,
+	): Promise<void> {
+		this._enforcePrivilege(secCtx, Privileges.CREATE_SETTLEMENT_CONFIG);
+
+		if (!cmdPayload) {
+			const err = new InvalidSettlementModelError("Invalid settlement model");
+			this._logger.warn(err.message);
+			throw err;
+		}
+
+		if (!cmdPayload.settlementModel) {
+			const err = new InvalidSettlementModelError("Invalid settlement model name");
+			this._logger.warn(err.message);
+			throw err;
+		}
+
+		if (!cmdPayload.batchCreateInterval){
+			const err = new InvalidTimestampError("Invalid settlement batch timestamp");
+			this._logger.warn(err.message);
+			throw err;
+		}
+
+		const existingModel = await this._configRepo.getSettlementConfigByModelName(cmdPayload.settlementModel);
+		if (existingModel) {
+			const err = new SettlementModelAlreadyExistError("Settlement model with the same name already exists");
+			this._logger.warn(err.message);
+			throw err;
+		}
+
+		const now = Date.now();
+
+		const config = new SettlementConfig(
+			cmdPayload.id,
+			cmdPayload.settlementModel,
+			cmdPayload.batchCreateInterval,
+			true,
+			cmdPayload.createdBy,
+			now,
+			[{
+				changeType: "CREATE",
+				user: cmdPayload.createdBy,
+				timestamp: now,
+				notes: null
+			}]
+		);
+
+		await this._configRepo.storeConfig(config);
+
+		// We perform an async audit:
+		await this._auditingClient.audit(
+			AuditingActions.SETTLEMENT_MODEL_CREATED,
+			true,
+			this._getAuditSecurityContext(secCtx), [
+				{key: "settlementModelName", value: cmdPayload.settlementModel}
+			]
+		);
+		// return settlementModel.settlementModel;
 	}
 
 	async createDynamicSettlementMatrix(
@@ -625,9 +690,9 @@ export class SettlementsAggregate {
 			const batch = await this._batchRepo.getBatch(matrixBatch.id);
 			if (!batch) throw new SettlementBatchNotFoundError(`Unable to locate batch for id '${matrixBatch.id}'.`);
 
-			if (batch.state === "SETTLED" || batch.state === "DISPUTED") continue;
+			if (batch.state === "SETTLED" || batch.state === 'DISPUTED') continue;
 
-			batch.state = matrixBatch.state = "DISPUTED";
+			batch.state = matrixBatch.state = 'DISPUTED';
 			await this._batchRepo.updateBatch(batch);
 			batchesDisputedNow.push(batch);
 		}
@@ -807,6 +872,7 @@ export class SettlementsAggregate {
 			AuditingActions.SETTLEMENT_MATRIX_CLOSED,
 			true,
 			this._getAuditSecurityContext(secCtx), [
+				{key: "settlementModel", value: matrix.settlementModel === null ? '' : matrix.settlementModel},
 				{key: "settlementMatrixReqId", value: id}
 			]
 		);

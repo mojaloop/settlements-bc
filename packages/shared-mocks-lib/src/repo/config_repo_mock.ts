@@ -51,7 +51,11 @@ export class SettlementConfigRepoMock implements ISettlementConfigRepo {
 		return Promise.resolve([{
 			id: DEFAULT_SETTLEMENT_MODEL_ID,
 			settlementModel: DEFAULT_SETTLEMENT_MODEL_NAME,
-			batchCreateInterval: 5000
+			batchCreateInterval: 5000,
+			isActive: true,
+			createdBy: "admin",
+			createdDate: 1686654836126,
+			changeLog: []
 		}]);
 	}
 
@@ -59,7 +63,11 @@ export class SettlementConfigRepoMock implements ISettlementConfigRepo {
 		const returnVal : ISettlementConfig = {
 			id: id,
 			settlementModel: DEFAULT_SETTLEMENT_MODEL_NAME,
-			batchCreateInterval: 5000
+			batchCreateInterval: 5000,
+			isActive: true,
+			createdBy: "admin",
+			createdDate: 1686654836126,
+			changeLog: []
 		};
 		return Promise.resolve(returnVal);
 	}
@@ -68,7 +76,11 @@ export class SettlementConfigRepoMock implements ISettlementConfigRepo {
 		const returnVal : ISettlementConfig = {
 			id: DEFAULT_SETTLEMENT_MODEL_ID,
 			settlementModel: modelName,
-			batchCreateInterval: 5000
+			batchCreateInterval: 5000,
+			isActive: true,
+			createdBy: "admin",
+			createdDate: 1686654836126,
+			changeLog: []
 		};
 		return Promise.resolve(returnVal);
 	}

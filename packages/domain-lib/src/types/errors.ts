@@ -74,6 +74,8 @@ export class InvalidBatchDefinitionError extends Error {}
 export class InvalidBatchIdentifierError extends Error {}
 export class InvalidBatchSettlementModelError extends Error {}
 export class InvalidBatchSettlementAllocationError extends Error {}
+export class InvalidSettlementModelError extends Error {}
+export class SettlementModelAlreadyExistError extends Error {}
 // Repos.
 export class UnableToInitRepoError extends Error {}
 export class AccountAlreadyExistsError extends Error {}
