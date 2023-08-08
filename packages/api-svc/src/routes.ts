@@ -29,11 +29,6 @@
 
 import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import {
-	SettlementBatchNotFoundError,
-	UnauthorizedError,
-	SettlementMatrixNotFoundError,
-	SettlementMatrixIsBusyError,
-	SettlementMatrixIsClosedError,
 	ISettlementBatchRepo,
 	ISettlementMatrixRequestRepo,
 	ISettlementBatchTransferRepo,
@@ -48,10 +43,7 @@ import {
 	AddBatchesToMatrixCmdPayload,
 	AddBatchesToMatrixCmd,
 	RemoveBatchesFromMatrixCmdPayload,
-	RemoveBatchesFromMatrixCmd,
-	LockAwaitingMatrixCmd,
-	UnlockAwaitingMatrixCmd,
-	UnlockAwaitingMatrixCmdPayload
+	RemoveBatchesFromMatrixCmd, UnlockMatrixCmd, LockMatrixCmd
 } from "@mojaloop/settlements-bc-domain-lib";
 import {CallSecurityContext} from "@mojaloop/security-bc-public-types-lib";
 import {
@@ -134,9 +126,9 @@ export class ExpressRoutes {
 		// request dispute of a matrix
 		this._router.post("/matrix/:id/dispute", this.postDisputeSettlementMatrix.bind(this));
 		// request lock of a matrix
-		this._router.post("/matrix/:id/await_settlement", this.postAwaitSettlementMatrix.bind(this));
+		this._router.post("/matrix/:id/lock", this.postLockSettlementMatrix.bind(this));
 		// request un-lock of a matrix
-		this._router.delete("/matrix/:id/await_settlement", this.deleteReleaseAwaitSettlementMatrix.bind(this));
+		this._router.post("/matrix/:id/unlock", this.postUnlockSettlementMatrix.bind(this));
 		// get matrix by id - static get, no recalculate
 		this._router.get("/matrix/:id", this.getSettlementMatrix.bind(this));
 		// get matrices - static get, no recalculate
@@ -490,13 +482,13 @@ export class ExpressRoutes {
 		}
 	}
 
-	private async postAwaitSettlementMatrix(req: express.Request, res: express.Response): Promise<void> {
+	private async postLockSettlementMatrix(req: express.Request, res: express.Response): Promise<void> {
 		try {
 			const matrixId = req.params.id as string;
 			const matrix = await this._matrixRepo.getMatrixById(matrixId);
 			if (!matrix) return this.sendErrorResponse(res,404, "Matrix not found");
 
-			const cmd = new LockAwaitingMatrixCmd({matrixId: matrixId});
+			const cmd = new LockMatrixCmd({matrixId: matrixId});
 			await this._messageProducer.send(cmd);
 
 			this.sendSuccessResponse(res, 202, {id: matrixId});
@@ -506,12 +498,13 @@ export class ExpressRoutes {
 		}
 	}
 
-	private async deleteReleaseAwaitSettlementMatrix(req: express.Request, res: express.Response): Promise<void> {
+	private async postUnlockSettlementMatrix(req: express.Request, res: express.Response): Promise<void> {
 		try {
 			const matrixId = req.params.id as string;
-			const removeReqPayload = req.body as UnlockAwaitingMatrixCmdPayload;
+			const matrix = await this._matrixRepo.getMatrixById(matrixId);
+			if (!matrix) return this.sendErrorResponse(res,404, "Matrix not found");
 
-			const cmd = new UnlockAwaitingMatrixCmd(removeReqPayload);
+			const cmd = new UnlockMatrixCmd({matrixId: matrixId});
 			await this._messageProducer.send(cmd);
 
 			this.sendSuccessResponse(res, 202, {id: matrixId});

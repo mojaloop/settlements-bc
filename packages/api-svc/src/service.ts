@@ -31,10 +31,6 @@
 "use strict";
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-import {
-	MongoAwaitingSettlementRepo
-} from "@mojaloop/settlements-bc-infrastructure-lib/dist/mongo_awaiting_settlements_repo";
-
 const packageJSON = require("../package.json");
 
 import {IAuditClient} from "@mojaloop/auditing-bc-public-types-lib";
@@ -44,7 +40,6 @@ import {MLKafkaJsonProducer, MLKafkaJsonProducerOptions} from "@mojaloop/platfor
 import {AuthorizationClient, LoginHelper, TokenHelper} from "@mojaloop/security-bc-client-lib";
 import {
 	IAccountsBalancesAdapter,
-	IAwaitingSettlementRepo,
 	IParticipantAccountNotifier,
 	ISettlementBatchRepo,
 	ISettlementBatchTransferRepo,
@@ -73,8 +68,7 @@ import express, {Express} from "express";
 import {ExpressRoutes} from "./routes";
 import {ITokenHelper} from "@mojaloop/security-bc-public-types-lib/";
 import {
-	ParticipantAccountNotifierMock,
-	SettlementBatchRepoMock, SettlementMatrixRequestRepoMock, SettlementBatchTransferRepoMock
+	ParticipantAccountNotifierMock
 } from "@mojaloop/settlements-bc-shared-mocks-lib";
 import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 
@@ -139,7 +133,7 @@ export class Service {
 	static participantAccountNotifier: IParticipantAccountNotifier;
 	static batchTransferRepo: ISettlementBatchTransferRepo;
 	static matrixRepo: ISettlementMatrixRequestRepo;
-	static awaitingRepo: IAwaitingSettlementRepo;
+
 	static async start(
 		logger?:ILogger,
 		tokenHelper?: ITokenHelper,
@@ -150,7 +144,6 @@ export class Service {
 		batchRepo?: ISettlementBatchRepo,
 		batchTransferRepo?: ISettlementBatchTransferRepo,
 		matrixRepo?: ISettlementMatrixRequestRepo,
-		awaitingRepo?: IAwaitingSettlementRepo,
 		participantAccountNotifier?: IParticipantAccountNotifier,
 		messageProducer?: IMessageProducer,
 	):Promise<void>{
@@ -272,16 +265,6 @@ export class Service {
 		}
 		this.matrixRepo = matrixRepo;
 
-		if (!awaitingRepo) {
-			awaitingRepo = new MongoAwaitingSettlementRepo(
-				logger,
-				MONGO_URL,
-				DB_NAME,
-				AWAITING_SETTLEMENTS_COLLECTION_NAME
-			);
-			await matrixRepo.init();
-		}
-		this.awaitingRepo = awaitingRepo;
 
 		if (!participantAccountNotifier) {
 			participantAccountNotifier = new ParticipantAccountNotifierMock();
@@ -305,7 +288,6 @@ export class Service {
 			this.batchTransferRepo,
 			this.configRepo,
 			this.matrixRepo,
-			this.awaitingRepo,
 			this.participantAccountNotifier,
 			this.accountsAndBalancesAdapter,
 			this.messageProducer

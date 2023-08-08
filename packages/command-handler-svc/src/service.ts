@@ -53,7 +53,7 @@ import {
 } from "@mojaloop/security-bc-client-lib";
 
 import {
-	IAccountsBalancesAdapter, IAwaitingSettlementRepo, IParticipantAccountNotifier,
+	IAccountsBalancesAdapter, IParticipantAccountNotifier,
 	ISettlementBatchRepo,
 	ISettlementBatchTransferRepo,
 	ISettlementConfigRepo,
@@ -150,7 +150,6 @@ export class Service {
 	static participantAccountNotifier: IParticipantAccountNotifier;
 	static batchTransferRepo: ISettlementBatchTransferRepo;
 	static matrixRepo: ISettlementMatrixRequestRepo;
-	static awaitingRepo: IAwaitingSettlementRepo;
 	static messageConsumer: IMessageConsumer;
 	static messageProducer: IMessageProducer;
 	static aggregate: SettlementsAggregate;
@@ -168,7 +167,6 @@ export class Service {
 		batchTransferRepo?: ISettlementBatchTransferRepo,
 		participantAccountNotifier?: IParticipantAccountNotifier,
 		matrixRepo?: ISettlementMatrixRequestRepo,
-		awaitingRepo?: IAwaitingSettlementRepo,
 		messageConsumer?: IMessageConsumer,
 		messageProducer?: IMessageProducer,
 	): Promise<void> {
@@ -311,17 +309,6 @@ export class Service {
 		}
 		this.matrixRepo = matrixRepo;
 
-		if (!awaitingRepo) {
-			awaitingRepo = new MongoAwaitingSettlementRepo(
-				this.logger,
-				MONGO_URL,
-				DB_NAME,
-				AWAITING_SETTLEMENTS_COLLECTION_NAME
-			);
-			await awaitingRepo.init();
-		}
-		this.awaitingRepo = awaitingRepo;
-
 		if (!batchTransferRepo) {
 			batchTransferRepo = new MongoSettlementTransferRepo(
 				this.logger,
@@ -362,7 +349,6 @@ export class Service {
 			this.batchTransferRepo,
 			this.configRepo,
 			this.matrixRepo,
-			this.awaitingRepo,
 			this.participantAccountNotifier,
 			this.accountsAndBalancesAdapter,
 			this.messageProducer

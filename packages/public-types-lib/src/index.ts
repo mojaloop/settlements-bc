@@ -45,9 +45,6 @@ export interface ITransferDto {
 	settlementModel: string;
 }
 
-/**
- * @todo Rename to ISettlementModel
- */
 export interface ISettlementConfig {
 	id: string;
 	/**
@@ -70,6 +67,10 @@ export interface ISettlementBatch {
 	batchName: string; // FX.XOF:RWF.2021.08.23.00.00 (minus seq)
 	batchSequence: number; // 1 (seq only)
 	state: "OPEN" | "CLOSED" | "DISPUTED" | "AWAITING_SETTLEMENT" | "SETTLED";
+	// this will only exist for batches that are in a state that mandates a
+	// single matrix owning it, like "AWAITING_SETTLEMENT" or "SETTLED"
+	// when locking or settling, put matrixId, when unlocking put it to null again
+	ownerMatrixId: null | string;
 	accounts: ISettlementBatchAccount[];
 }
 
@@ -142,12 +143,6 @@ export interface ISettlementMatrixBatchAccount {
 	accountExtId: string;
 	debitBalance: string;
 	creditBalance: string;
-}
-
-export interface IAwaitingSettlement {
-	id: string;
-	matrix: ISettlementMatrix;
-	batch: ISettlementBatch;
 }
 
 /* ISettlementModelClient for settlement-model-lib */

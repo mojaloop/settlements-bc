@@ -47,6 +47,8 @@ export class SettlementMatrix implements ISettlementMatrix {
   currencyCode: string;
   settlementModel: string | null;
 
+  // multiple matrices can have the same batch, this can only be used to find a matrix batch
+  // to find the actual owner of a batch, use the batch.ownerMatrixId
   batches: ISettlementMatrixBatch[];
   participantBalances: ISettlementMatrixParticipantBalance[];
   participantBalancesDisputed: ISettlementMatrixParticipantBalance[];

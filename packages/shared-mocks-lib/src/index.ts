@@ -39,7 +39,5 @@ export * from "./repo/participant_account_notifier_mock";
 export * from "./repo/settlement_batch_repo_mock";
 export * from "./repo/settlement_batch_transfer_repo_mock";
 
-export * from "./repo/awaiting_settlements_repo_mock";
-
 export * from "./repo/settlement_matrix_request_repo_mock";
 export * from "./adapter/accounts_balances_adapter_mock";

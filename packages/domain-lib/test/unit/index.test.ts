@@ -41,7 +41,6 @@ import {
 	ISettlementBatchTransferRepo,
 	ISettlementConfigRepo,
 	ISettlementMatrixRequestRepo,
-	IAwaitingSettlementRepo,
 	ProcessTransferCmd,
 	ProcessTransferCmdPayload,
 	SettlementBatchNotFoundError,
@@ -57,7 +56,6 @@ import {
 	AccountsBalancesAdapterMock,
 	AuditClientMock,
 	AuthorizationClientMock,
-	AwaitingSettlementRepoMock,
 	MessageCache,
 	MessageProducerMock,
 	ParticipantAccountNotifierMock,
@@ -75,7 +73,6 @@ let configRepo: ISettlementConfigRepo;
 let settleBatchRepo: ISettlementBatchRepo;
 let settleTransferRepo: ISettlementBatchTransferRepo;
 let settleMatrixReqRepo: ISettlementMatrixRequestRepo;
-let awaitSettleRepo: IAwaitingSettlementRepo;
 let partNotifier: IParticipantAccountNotifier;
 let abAdapter: IAccountsBalancesAdapter;
 let msgCache: MessageCache;
@@ -105,7 +102,6 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		settleBatchRepo = new SettlementBatchRepoMock();
 		settleTransferRepo = new SettlementBatchTransferRepoMock();
 		settleMatrixReqRepo = new SettlementMatrixRequestRepoMock();
-		awaitSettleRepo = new AwaitingSettlementRepoMock();
 
 		// adapters:
 		partNotifier = new ParticipantAccountNotifierMock();

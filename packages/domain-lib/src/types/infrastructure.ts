@@ -31,8 +31,7 @@ import {
 	ISettlementConfig,
 	ISettlementBatch,
 	ISettlementBatchTransfer,
-	ISettlementMatrix,
-	IAwaitingSettlement
+	ISettlementMatrix
 } from "@mojaloop/settlements-bc-public-types-lib";
 
 import {
@@ -124,13 +123,4 @@ export interface ISettlementMatrixRequestRepo {
 	storeMatrix(matrix: ISettlementMatrix): Promise<void>; // Throws if account.id is not unique.
 	getMatrixById(id: string): Promise<ISettlementMatrix | null>;
 	getMatrices(state?:string): Promise<ISettlementMatrix[]>;
-}
-
-export interface IAwaitingSettlementRepo {
-	init(): Promise<void>;
-	destroy(): Promise<void>;
-	storeAwaitingSettlement(awaitSettlement: IAwaitingSettlement):Promise<void>;
-	removeAwaitingSettlementByMatrixId(matrixId: string):Promise<void>;
-	removeAwaitingSettlementByBatchId(batchId: string):Promise<void>;
-	getAwaitingSettlementByBatchId(batchId: string): Promise<IAwaitingSettlement | null>;
 }

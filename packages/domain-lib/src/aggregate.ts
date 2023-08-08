@@ -50,7 +50,6 @@ import {
 } from "./types/errors";
 import {
 	IAccountsBalancesAdapter,
-	IAwaitingSettlementRepo,
 	IParticipantAccountNotifier,
 	ISettlementBatchRepo,
 	ISettlementBatchTransferRepo,
@@ -60,7 +59,6 @@ import {
 import {SettlementBatch} from "./types/batch";
 
 import {
-	IAwaitingSettlement,
 	ISettlementBatch,
 	ISettlementBatchTransfer,
 	ISettlementMatrix,
@@ -101,7 +99,9 @@ enum AuditingActions {
 	SETTLEMENT_MATRIX_REMOVE_BATCHES = "SETTLEMENT_MATRIX_REMOVE_BATCHES",
 	BATCH_SPECIFIC_SETTLEMENT_MATRIX_REQUEST_FETCH = "BATCH_SPECIFIC_SETTLEMENT_MATRIX_REQUEST_FETCH",
 	SETTLEMENT_MATRIX_REQUEST_CREATED = "SETTLEMENT_MATRIX_REQUEST_CREATED",
-	STATIC_SETTLEMENT_MATRIX_REQUEST_CREATED = "STATIC_SETTLEMENT_MATRIX_REQUEST_CREATED"
+	STATIC_SETTLEMENT_MATRIX_REQUEST_CREATED = "STATIC_SETTLEMENT_MATRIX_REQUEST_CREATED",
+	SETTLEMENT_MATRIX_LOCK = "SETTLEMENT_MATRIX_LOCK",
+	SETTLEMENT_MATRIX_UNLOCK = "SETTLEMENT_MATRIX_UNLOCK"
 }
 
 export class SettlementsAggregate {
@@ -114,7 +114,6 @@ export class SettlementsAggregate {
 	private readonly _batchTransferRepo: ISettlementBatchTransferRepo;
 	private readonly _configRepo: ISettlementConfigRepo;
 	private readonly _settlementMatrixReqRepo: ISettlementMatrixRequestRepo;
-	private readonly _awaitingRepo: IAwaitingSettlementRepo;
 	private readonly _abAdapter: IAccountsBalancesAdapter;
 	private readonly _msgProducer: IMessageProducer;
 	private readonly _currencies: ICurrency[];
@@ -127,7 +126,6 @@ export class SettlementsAggregate {
 		batchTransferRepo: ISettlementBatchTransferRepo,
 		configRepo: ISettlementConfigRepo,
 		settlementMatrixReqRepo: ISettlementMatrixRequestRepo,
-		awaitingSettlementRepo: IAwaitingSettlementRepo,
 		participantAccNotifier: IParticipantAccountNotifier,
 		abAdapter: IAccountsBalancesAdapter,
 		msgProducer: IMessageProducer
@@ -140,7 +138,6 @@ export class SettlementsAggregate {
 		this._batchTransferRepo = batchTransferRepo;
 		this._configRepo = configRepo;
 		this._settlementMatrixReqRepo = settlementMatrixReqRepo;
-		this._awaitingRepo = awaitingSettlementRepo;
 		this._abAdapter = abAdapter;
 		this._msgProducer = msgProducer;
 
@@ -688,15 +685,8 @@ export class SettlementsAggregate {
 			}
 
 			batch.state = matrixBatch.state = "AWAITING_SETTLEMENT";
+			batch.ownerMatrixId = matrix.id; // lock it in the batch
 			await this._batchRepo.updateBatch(batch);
-
-			// create the lock:
-			const awaitSettle: IAwaitingSettlement = {
-				id: randomUUID(),
-				matrix: matrixDto,
-				batch: batch
-			};
-			await this._awaitingRepo.storeAwaitingSettlement(awaitSettle);
 		}
 
 		// Dispute the Matrix Request to prevent further execution:
@@ -704,7 +694,7 @@ export class SettlementsAggregate {
 
 		// We perform an async audit:
 		this._auditingClient.audit(
-			AuditingActions.SETTLEMENT_MATRIX_DISPUTED,
+			AuditingActions.SETTLEMENT_MATRIX_LOCK,
 			true,
 			this._getAuditSecurityContext(secCtx), [
 				{key: "settlementModel", value: matrix.settlementModel === null ? '' : matrix.settlementModel},
@@ -744,18 +734,10 @@ export class SettlementsAggregate {
 			const batch = await this._batchRepo.getBatch(matrixBatch.id);
 			if (!batch) throw new SettlementBatchNotFoundError(`Unable to locate batch for id '${matrixBatch.id}'.`);
 
-			switch (batch.state) {
-				case "AWAITING_SETTLEMENT":
-					// cannot unlock if not locked by the owning matrix:
-					const awaitByBatch = await this._awaitingRepo.getAwaitingSettlementByBatchId(batch.id);
-					if (!awaitByBatch || awaitByBatch.matrix.id !== matrix.id) continue;
-
-					batch.state = matrixBatch.state = "CLOSED";
-					await this._batchRepo.updateBatch(batch);
-					// remove the lock:
-					await this._awaitingRepo.removeAwaitingSettlementByBatchId(batch.id);
-					break;
-				default: continue;
+			if(batch.state ===  "AWAITING_SETTLEMENT" && batch.ownerMatrixId === matrix.id){
+				batch.ownerMatrixId = null; // remove the lock
+				batch.state = matrixBatch.state = "CLOSED";
+				await this._batchRepo.updateBatch(batch);
 			}
 		}
 
@@ -825,7 +807,6 @@ export class SettlementsAggregate {
 			AuditingActions.SETTLEMENT_MATRIX_CLOSED,
 			true,
 			this._getAuditSecurityContext(secCtx), [
-				{key: "settlementModel", value: matrix.settlementModel === null ? '' : matrix.settlementModel},
 				{key: "settlementMatrixReqId", value: id}
 			]
 		);
@@ -953,8 +934,8 @@ export class SettlementsAggregate {
 				const batchDisputed = batch.state === "DISPUTED";
 				if (batch.state === "SETTLED" || (settlingMatrix && batch.state !== "AWAITING_SETTLEMENT")) continue;
 				else if (settlingMatrix) {
-					const awaitByBatch = await this._awaitingRepo.getAwaitingSettlementByBatchId(batch.id);
-					if (!awaitByBatch || awaitByBatch.matrix.id !== matrix.id) continue;
+					// when settling, we can only settle batches that are AWAITING_SETTLEMENT and are already owned by this matrix
+					if (batch.state !== "AWAITING_SETTLEMENT" || !batch.ownerMatrixId || batch.ownerMatrixId !== matrix.id) continue;
 				}
 
 				let batchDebitBalance = 0n, batchCreditBalance = 0n;

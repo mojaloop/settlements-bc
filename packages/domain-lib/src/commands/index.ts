@@ -214,19 +214,19 @@ export class DisputeMatrixCmd extends CommandMsg {
 	}
 }
 
-export type LockAwaitingMatrixCmdPayload = {
+export type LockMatrixCmdPayload = {
 	matrixId: string;
 }
 
-export class LockAwaitingMatrixCmd extends CommandMsg {
+export class LockMatrixCmd extends CommandMsg {
 	boundedContextName: string = SETTLEMENTS_BOUNDED_CONTEXT_NAME;
 	aggregateId: string;
 	aggregateName: string = SETTLEMENTS_AGGREGATE_NAME;
 	msgKey: string;
 	msgTopic: string = SettlementsBCTopics.Commands;
-	payload: LockAwaitingMatrixCmdPayload;
+	payload: LockMatrixCmdPayload;
 
-	constructor(payload: LockAwaitingMatrixCmdPayload) {
+	constructor(payload: LockMatrixCmdPayload) {
 		super();
 		this.aggregateId = this.msgKey = payload.matrixId;
 		this.payload = payload;
@@ -237,19 +237,19 @@ export class LockAwaitingMatrixCmd extends CommandMsg {
 	}
 }
 
-export type UnlockAwaitingMatrixCmdPayload = {
+export type UnlockMatrixCmdPayload = {
 	matrixId: string;
 }
 
-export class UnlockAwaitingMatrixCmd extends CommandMsg {
+export class UnlockMatrixCmd extends CommandMsg {
 	boundedContextName: string = SETTLEMENTS_BOUNDED_CONTEXT_NAME;
 	aggregateId: string;
 	aggregateName: string = SETTLEMENTS_AGGREGATE_NAME;
 	msgKey: string;
 	msgTopic: string = SettlementsBCTopics.Commands;
-	payload: UnlockAwaitingMatrixCmdPayload;
+	payload: UnlockMatrixCmdPayload;
 
-	constructor(payload: UnlockAwaitingMatrixCmdPayload) {
+	constructor(payload: UnlockMatrixCmdPayload) {
 		super();
 		this.aggregateId = this.msgKey = payload.matrixId;
 		this.payload = payload;
