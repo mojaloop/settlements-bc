@@ -154,7 +154,7 @@ export interface ISettlementModelClient {
 	destroy(): Promise<void>;
 
 	getSettlementModelId(
-		transferAmount: bigint,
+		transferAmount: string,
 		payerCurrency: string | null,
 		payeeCurrency: string | null,
 		extensionList: { key: string; value: string; }[]
