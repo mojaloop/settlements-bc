@@ -331,45 +331,45 @@ export class SettlementsAggregate {
 		return batch.id;
 	}
 
-	async createSettlementModel(
+	async createSettlementConfig(
 		secCtx: CallSecurityContext,
-		settlementModel: ISettlementConfig,
+		settlementConfig: ISettlementConfig,
 	): Promise<void> {
-		this._enforcePrivilege(secCtx, Privileges.CREATE_SETTLEMENT_MODEL);
+		this._enforcePrivilege(secCtx, Privileges.CREATE_SETTLEMENT_CONFIG);
 
-		if (!settlementModel) {
+		if (!settlementConfig) {
 			const err = new InvalidSettlementModelError("Invalid settlement model");
 			this._logger.warn(err.message);
 			throw err;
 		}
 
-		if (!settlementModel.settlementModel) {
+		if (!settlementConfig.settlementModel) {
 			const err = new InvalidSettlementModelError("Invalid settlement model name");
 			this._logger.warn(err.message);
 			throw err;
 		}
 
-		if (!settlementModel.batchCreateInterval){
+		if (!settlementConfig.batchCreateInterval){
 			const err = new InvalidTimestampError("Invalid settlement batch timestamp");
 			this._logger.warn(err.message);
 			throw err;
 		}
 
-		const existingModel = await this._configRepo.getSettlementConfigByModelName(settlementModel.settlementModel);
+		const existingModel = await this._configRepo.getSettlementConfigByModelName(settlementConfig.settlementModel);
 		if (existingModel) {
 			const err = new SettlementModelAlreadyExistError("Settlement model with the same name already exists");
 			this._logger.warn(err.message);
 			throw err;
 		}
 
-		await this._configRepo.storeConfig(settlementModel);
+		await this._configRepo.storeConfig(settlementConfig);
 
 		// We perform an async audit:
 		this._auditingClient.audit(
 			AuditingActions.SETTLEMENT_MODEL_CREATED,
 			true,
 			this._getAuditSecurityContext(secCtx), [
-				{key: "settlementModelName", value: settlementModel.settlementModel}
+				{key: "settlementModelName", value: settlementConfig.settlementModel}
 			]
 		);
 		// return settlementModel.settlementModel;

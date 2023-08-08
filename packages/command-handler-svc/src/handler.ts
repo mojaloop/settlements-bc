@@ -97,7 +97,7 @@ export class SettlementsCommandHandler{
 						// eslint-disable-next-line no-case-declarations
 						const settlementModel = message.payload as ISettlementConfig;
 						
-						await this._settlementsAgg.createSettlementModel(
+						await this._settlementsAgg.createSettlementConfig(
 							sectCtx,
 							settlementModel
 						);

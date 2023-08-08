@@ -37,6 +37,7 @@ import {
 	SettlementsBCTopics
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import { ISettlementConfig } from "@mojaloop/settlements-bc-public-types-lib";
+import { InvalidSettlementModelError } from "../types/errors";
 
 export type ProcessTransferCmdPayload = {
 	transferId: string;
@@ -68,13 +69,9 @@ export class ProcessTransferCmd extends CommandMsg {
 	}
 }
 
-// export type CreateSettlementModelCmdPayload = {
-// 	id: string,
-// 	model: string,
-// 	batchCreateInterval: number,
-// 	settlementTime: string | null,
-// 	customSettlementField: ICustomSettlementField[] | null
-// }
+export type CreateSettlementModelCmdPayload = {
+	settlementModelConfig:ISettlementConfig
+}
 
 export class CreateSettlementModelCmd extends CommandMsg {
 	boundedContextName: string = SETTLEMENTS_BOUNDED_CONTEXT_NAME;
@@ -84,15 +81,17 @@ export class CreateSettlementModelCmd extends CommandMsg {
 	msgTopic: string = SettlementsBCTopics.Commands;
 	payload: ISettlementConfig;
 
-	constructor(payload: ISettlementConfig) {
+	constructor(settlementModelPayload: CreateSettlementModelCmdPayload) {
 		super();
 
-		this.aggregateId = this.msgKey = payload.id;
-		this.payload = payload;
+		this.aggregateId = this.msgKey = settlementModelPayload.settlementModelConfig.id;
+		this.payload = settlementModelPayload.settlementModelConfig;
 	}
 
 	validatePayload(): void {
-		// TODO @jason complete...
+		if(!this.payload){
+			throw new InvalidSettlementModelError("Invalid settlement model payload");
+		}
 	}
 }
 

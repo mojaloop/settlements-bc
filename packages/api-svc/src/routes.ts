@@ -41,6 +41,7 @@ import {
 	CreateStaticMatrixCmdPayload,
 	RecalculateMatrixCmd,
 	CloseMatrixCmd,
+	CreateSettlementModelCmdPayload,
 	CreateDynamicMatrixCmd,
 	CreateDynamicMatrixCmdPayload,
 	SettleMatrixCmd,
@@ -220,7 +221,6 @@ export class ExpressRoutes {
 
 		const name = req.body.settlementModel;
 		try {
-			let retModels: ISettlementConfig[] = [];
 			let cmd: CommandMsg;
 			const id = req.body.id;
 			if(name){
@@ -232,14 +232,16 @@ export class ExpressRoutes {
 				const createdDate = req.body.createdDate;
 				const changeLog = req.body.changeLog;
 
-				const cmdPayload: ISettlementConfig = {
-					id: id,
-					settlementModel: name,
-					batchCreateInterval: batchCreateInterval,
-					isActive: isActive,
-					createdBy: createdBy,
-					createdDate: createdDate,
-					changeLog: changeLog,
+				const cmdPayload: CreateSettlementModelCmdPayload = {
+					settlementModelConfig: {
+						id: id,
+						settlementModel: name,
+						batchCreateInterval: batchCreateInterval,
+						isActive: isActive,
+						createdBy: createdBy,
+						createdDate: createdDate,
+						changeLog: changeLog
+					}
 				};
 				cmd = new CreateSettlementModelCmd(cmdPayload);
 			}else{
