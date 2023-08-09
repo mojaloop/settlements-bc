@@ -113,7 +113,7 @@ export interface ISettlementMatrix {
 	batches: ISettlementMatrixBatch[];
 	participantBalances: ISettlementMatrixParticipantBalance[];
 	participantBalancesDisputed: ISettlementMatrixParticipantBalance[];
-	state: "IDLE" | "BUSY" | "DISPUTED" | "CLOSED" | "AWAITING_SETTLEMENT" | "SETTLED";
+	state: "IDLE" | "BUSY" | "FINALIZED";
 	type: "STATIC" | "DYNAMIC";
 	generationDurationSecs: number | null;
 	totalDebitBalance: string;

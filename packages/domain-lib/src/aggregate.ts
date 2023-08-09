@@ -190,7 +190,7 @@ export class SettlementsAggregate {
 
 	private async _updateMatrixStateAndSave(
 		matrix: SettlementMatrix,
-		state: "IDLE" | "BUSY" | "DISPUTED" | "CLOSED" | "AWAITING_SETTLEMENT" | "SETTLED",
+		state: "IDLE" | "BUSY" | "FINALIZED",
 		startTimestamp: number
 	): Promise<void> {
 		matrix.state = state;
@@ -429,14 +429,14 @@ export class SettlementsAggregate {
 			throw err; // not found
 		}
 
-		if (matrixDto.type!=="STATIC") {
+		if (matrixDto.type !== "STATIC") {
 			const err = new SettlementMatrixIsClosedError("Cannot add batches to a non-STATIC settlement matrix");
 			this._logger.warn(err.message);
 			throw err;
 		}
 
-		if (matrixDto.state!=="IDLE" && matrixDto.state!=="CLOSED" && matrixDto.state!=="DISPUTED") {
-			const err = new CannotAddBatchesToSettlementMatrixError("Can only add batches to matrices in idle, closed or disputed state");
+		if (matrixDto.state !== "IDLE") {
+			const err = new CannotAddBatchesToSettlementMatrixError("Can only add batches to matrices in idle state");
 			this._logger.warn(err.message);
 			throw err;
 		}
@@ -493,8 +493,8 @@ export class SettlementsAggregate {
 			throw err;
 		}
 
-		if (matrixDto.state!=="IDLE" && matrixDto.state!=="CLOSED" && matrixDto.state!=="DISPUTED") {
-			const err = new CannotRemoveBatchesFromSettlementMatrixError("Can only remove batches from matrices in idle, closed or disputed state");
+		if (matrixDto.state !== "IDLE") {
+			const err = new CannotRemoveBatchesFromSettlementMatrixError("Can only remove batches from matrices in idle state");
 			this._logger.warn(err.message);
 			throw err;
 		}
@@ -565,8 +565,8 @@ export class SettlementsAggregate {
 			throw err; // not found
 		}
 
-		if (matrixDto.state!=="IDLE" && matrixDto.state!=="CLOSED" && matrixDto.state!=="DISPUTED") {
-			const err = new CannotRecalculateSettlementMatrixError("Can only recalculate matrices in idle, closed or disputed state");
+		if (matrixDto.state !== "IDLE") {
+			const err = new CannotRecalculateSettlementMatrixError("Can only recalculate matrices in idle state");
 			this._logger.warn(err.message);
 			throw err;
 		}
@@ -604,8 +604,8 @@ export class SettlementsAggregate {
 			throw err; // not found
 		}
 
-		if (matrixDto.state!=="IDLE" && matrixDto.state!=="CLOSED") {
-			const err = new CannotCloseSettlementMatrixError("Can only dispute an idle or closed matrix");
+		if (matrixDto.state !== "IDLE") {
+			const err = new CannotCloseSettlementMatrixError("Can only dispute an idle matrix");
 			this._logger.warn(err.message);
 			throw err;
 		}
@@ -633,7 +633,7 @@ export class SettlementsAggregate {
 		}
 
 		// Dispute the Matrix Request to prevent further execution:
-		await this._updateMatrixStateAndSave(matrix, "DISPUTED", startTimestamp);
+		await this._updateMatrixStateAndSave(matrix, "IDLE", startTimestamp);
 
 		// We perform an async audit:
 		this._auditingClient.audit(
@@ -657,8 +657,8 @@ export class SettlementsAggregate {
 			throw err; // not found
 		}
 
-		if (matrixDto.state !== "IDLE" && matrixDto.state !== "CLOSED") {
-			const err = new CannotCloseSettlementMatrixError("Can only lock an idle or closed matrix");
+		if (matrixDto.state !== "IDLE") {
+			const err = new CannotCloseSettlementMatrixError("Can only lock an idle  matrix");
 			this._logger.warn(err.message);
 			throw err;
 		}
@@ -690,7 +690,7 @@ export class SettlementsAggregate {
 		}
 
 		// Dispute the Matrix Request to prevent further execution:
-		await this._updateMatrixStateAndSave(matrix, "AWAITING_SETTLEMENT", startTimestamp);
+		await this._updateMatrixStateAndSave(matrix, "IDLE", startTimestamp);
 
 		// We perform an async audit:
 		this._auditingClient.audit(
@@ -714,8 +714,8 @@ export class SettlementsAggregate {
 			throw err; // not found
 		}
 
-		if (matrixDto.state !== "IDLE" && matrixDto.state !== "AWAITING_SETTLEMENT") {
-			const err = new CannotCloseSettlementMatrixError("Can only unlock an idle or awaiting matrix");
+		if (matrixDto.state !== "IDLE") {
+			const err = new CannotCloseSettlementMatrixError("Can only unlock an idle matrix");
 			this._logger.warn(err.message);
 			throw err;
 		}
@@ -742,7 +742,7 @@ export class SettlementsAggregate {
 		}
 
 		// Dispute the Matrix Request to prevent further execution:
-		await this._updateMatrixStateAndSave(matrix, "CLOSED", startTimestamp);
+		await this._updateMatrixStateAndSave(matrix, "IDLE", startTimestamp);
 
 		// We perform an async audit:
 		this._auditingClient.audit(
@@ -767,7 +767,7 @@ export class SettlementsAggregate {
 			throw err; // not found
 		}
 
-		if (matrixDto.state!=="IDLE" && matrixDto.state!=="DISPUTED") {
+		if (matrixDto.state!=="IDLE") {
 			const err = new CannotCloseSettlementMatrixError("Can only close an idle or disputed matrix");
 			this._logger.warn(err.message);
 			throw err;
@@ -800,7 +800,7 @@ export class SettlementsAggregate {
 		}
 
 		// Close the Matrix Request to prevent further execution:
-		await this._updateMatrixStateAndSave(matrix, "CLOSED", startTimestamp);
+		await this._updateMatrixStateAndSave(matrix, "IDLE", startTimestamp);
 
 		// We perform an async audit:
 		this._auditingClient.audit(
@@ -823,8 +823,8 @@ export class SettlementsAggregate {
 			throw err; // not found
 		}
 
-		if (matrixDto.state !== "AWAITING_SETTLEMENT") {
-			const err = new CannotSettleSettlementMatrixError("Can only settle an awaiting settlement matrix");
+		if (matrixDto.state === "FINALIZED") {
+			const err = new CannotSettleSettlementMatrixError("Cannot settle a FINALIZED matrix");
 			this._logger.warn(err.message);
 			throw err;
 		}
@@ -862,7 +862,7 @@ export class SettlementsAggregate {
 		}
 
 		// Close the Matrix Request to prevent further execution:
-		await this._updateMatrixStateAndSave(matrix, "SETTLED", startTimestamp);
+		await this._updateMatrixStateAndSave(matrix, "FINALIZED", startTimestamp);
 
 		const participants: SettlementMatrixSettledEvtPayloadParticipantItem[] = [];
 		// put per participant balances in the matrix:
