@@ -854,12 +854,12 @@ export class SettlementsAggregate {
 			const batch = await this._batchRepo.getBatch(matrixBatch.id);
 			if (!batch) throw new SettlementBatchNotFoundError(`Unable to locate batch for id '${matrixBatch.id}'.`);
 
-			if (batch.state === "SETTLED" || batch.state === 'CLOSED') {
+			if (batch.state === "SETTLED" || batch.state === "CLOSED" || batch.state === "AWAITING_SETTLEMENT") {
 				previouslyClosedBatches.push(batch);
 				continue;
 			}
 
-			batch.state = matrixBatch.state = 'CLOSED';
+			batch.state = matrixBatch.state = "CLOSED";
 			await this._batchRepo.updateBatch(batch);
 			batchesClosedNow.push(batch);
 		}

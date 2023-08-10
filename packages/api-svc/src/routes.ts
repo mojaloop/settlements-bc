@@ -50,7 +50,7 @@ import {
 	RemoveBatchesFromMatrixCmdPayload,
 	RemoveBatchesFromMatrixCmd,
 	CreateSettlementModelCmdPayload,
-	CreateSettlementModelCmd
+	CreateSettlementModelCmd, LockMatrixCmd, UnlockMatrixCmd
 } from "@mojaloop/settlements-bc-domain-lib";
 import {CallSecurityContext} from "@mojaloop/security-bc-public-types-lib";
 import {
@@ -138,6 +138,11 @@ export class ExpressRoutes {
 		this._router.get("/matrix/:id", this.getSettlementMatrix.bind(this));
 		// get matrices - static get, no recalculate
 		this._router.get("/matrix", this.getSettlementMatrices.bind(this));
+
+		// request lock of a matrix
+		this._router.post("/matrix/:id/lock", this.postLockSettlementMatrix.bind(this));
+		// request un-lock of a matrix
+		this._router.post("/matrix/:id/unlock", this.postUnlockSettlementMatrix.bind(this));
 	}
 
 
@@ -591,6 +596,38 @@ export class ExpressRoutes {
 				return this.sendErrorResponse(res, 404, "No matrices found");
 			}
 			this.sendSuccessResponse(res, 200, resp);// OK
+		} catch (error: any) {
+			this._logger.error(error);
+			this.sendErrorResponse(res, 500, error.message || ExpressRoutes.UNKNOWN_ERROR_MESSAGE);
+		}
+	}
+
+	private async postLockSettlementMatrix(req: express.Request, res: express.Response): Promise<void> {
+		try {
+			const matrixId = req.params.id as string;
+			const matrix = await this._matrixRepo.getMatrixById(matrixId);
+			if (!matrix) return this.sendErrorResponse(res,404, "Matrix not found");
+
+			const cmd = new LockMatrixCmd({matrixId: matrixId});
+			await this._messageProducer.send(cmd);
+
+			this.sendSuccessResponse(res, 202, {id: matrixId});
+		} catch (error: any) {
+			this._logger.error(error);
+			this.sendErrorResponse(res, 500, error.message || ExpressRoutes.UNKNOWN_ERROR_MESSAGE);
+		}
+	}
+
+	private async postUnlockSettlementMatrix(req: express.Request, res: express.Response): Promise<void> {
+		try {
+			const matrixId = req.params.id as string;
+			const matrix = await this._matrixRepo.getMatrixById(matrixId);
+			if (!matrix) return this.sendErrorResponse(res,404, "Matrix not found");
+
+			const cmd = new UnlockMatrixCmd({matrixId: matrixId});
+			await this._messageProducer.send(cmd);
+
+			this.sendSuccessResponse(res, 202, {id: matrixId});
 		} catch (error: any) {
 			this._logger.error(error);
 			this.sendErrorResponse(res, 500, error.message || ExpressRoutes.UNKNOWN_ERROR_MESSAGE);
