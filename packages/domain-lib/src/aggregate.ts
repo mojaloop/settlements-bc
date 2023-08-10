@@ -1061,9 +1061,7 @@ export class SettlementsAggregate {
 		this._enforcePrivilege(secCtx, Privileges.RETRIEVE_SETTLEMENT_BATCH_ACCOUNTS);
 
 		const batches = await this._batchRepo.getBatchesByName(batchName);
-		if (!batches || batches.length <= 0) {
-			return [];
-		}
+		if (!batches || batches.length <= 0) return [];
 
 		await this._updateBatchAccountBalances(batches);
 		return batches;
@@ -1077,23 +1075,17 @@ export class SettlementsAggregate {
 			throw new SettlementBatchNotFoundError(`Unable to locate Settlement Batch with 'Batch Id"" '${batchId}'.`);
 		}
 
-		const ISettlementBatchTransfer = await this._batchTransferRepo.getBatchTransfersByBatchIds([batchId]);
-
-		return ISettlementBatchTransfer;
+		return await this._batchTransferRepo.getBatchTransfersByBatchIds([batchId]);
 	}
 
 	async getSettlementBatchTransfersByBatchName(secCtx: CallSecurityContext, batchName: string): Promise<ISettlementBatchTransfer[]> {
 		this._enforcePrivilege(secCtx, Privileges.RETRIEVE_SETTLEMENT_TRANSFERS);
 
 		const batches = await this._batchRepo.getBatchesByName(batchName);
-		if (!batches || batches.length<=0) {
-			return [];
-		}
+		if (!batches || batches.length <= 0) return [];
 
 		const batchIds = batches.map(value => value.id);
-		const transfers = await this._batchTransferRepo.getBatchTransfersByBatchIds(batchIds);
-
-		return transfers;
+		return await this._batchTransferRepo.getBatchTransfersByBatchIds(batchIds);
 	}
 
 	private _generateBatchName(

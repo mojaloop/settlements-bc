@@ -110,6 +110,7 @@ export interface ISettlementMatrix {
 	dateTo: number | null;
 	currencyCode: string;
 	settlementModel: string | null;
+	//TODO batchStatuses: string[] | null; - fetch from id.
 	batches: ISettlementMatrixBatch[];
 	participantBalances: ISettlementMatrixParticipantBalance[];
 	participantBalancesDisputed: ISettlementMatrixParticipantBalance[];
