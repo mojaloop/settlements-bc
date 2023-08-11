@@ -19,8 +19,10 @@
  their names indented and be marked with a '-'. Email address can be added
  optionally within square brackets <email>.
 
- Coil
- - Jason Bruwer <jason.bruwer@coil.com>
+ Interledger
+ - Jason Bruwer <jason@interledger.org>
+ Crosslake
+ - Pedro Sousa Barreto <pedrob@crosslaketech.com>
 
  --------------
  ******/
@@ -75,7 +77,6 @@ import {readFileSync} from "fs";
 import {ICurrency} from "./types/currency";
 import {bigintToString, stringToBigint} from "./converters";
 import {SettlementConfig} from "./types/settlement_config";
-import {ISettlementConfig} from "@mojaloop/settlements-bc-public-types-lib";
 import {AccountsAndBalancesAccountType} from "@mojaloop/accounts-and-balances-bc-public-types-lib";
 import {SettlementBatchTransfer} from "./types/transfer";
 import {SettlementMatrix} from "./types/matrix";
@@ -151,9 +152,7 @@ export class SettlementsAggregate {
 	}
 
 	private _enforcePrivilege(secCtx: CallSecurityContext, privName: string): void {
-		return;
-
-		// TODO re-enable _enforcePrivilege()
+		return;// TODO re-enable _enforcePrivilege()
 
 		for (const roleId of secCtx.rolesIds) {
 			if (this._authorizationClient.roleHasPrivilege(roleId, privName)) return;
@@ -204,7 +203,6 @@ export class SettlementsAggregate {
 	}
 
 	async processTransferCmd(secCtx: CallSecurityContext, processTransferCmd: ProcessTransferCmd): Promise<string> {
-		// TODO this should the other way around, the rest API should send a command
 		const transferDto: ITransferDto = {
 			id: null,
 			transferId: processTransferCmd.payload.transferId,
@@ -222,7 +220,7 @@ export class SettlementsAggregate {
 	async handleTransfer(secCtx: CallSecurityContext, transferDto: ITransferDto): Promise<string> {
 		this._enforcePrivilege(secCtx, Privileges.CREATE_SETTLEMENT_TRANSFER);
 
-		if (!transferDto.timestamp || !(typeof(transferDto.timestamp) === "number" ) || transferDto.timestamp < 1 ) throw new InvalidTimestampError();
+		if (!transferDto.timestamp || transferDto.timestamp < 1 ) throw new InvalidTimestampError();
 		if (!transferDto.settlementModel) throw new InvalidBatchSettlementModelError();
 		if (!transferDto.currencyCode) throw new InvalidCurrencyCodeError();
 		if (!transferDto.amount) throw new InvalidAmountError();
@@ -233,7 +231,6 @@ export class SettlementsAggregate {
 		// verify the currency code (and get the corresponding currency decimals).
 		const currency = this._getCurrencyOrThrow(transferDto.currencyCode);
 		this._getAmountOrThrow(transferDto.amount, currency);
-
 
 		// TODO implement cache and cache invalidation
 		const configDto = await this._configRepo.getSettlementConfigByModelName(transferDto.settlementModel);
@@ -605,8 +602,6 @@ export class SettlementsAggregate {
 			throw err; // not found
 		}
 
-		// TODO attach accounts to batches before returning
-
 		// We perform an async audit:
 		this._auditingClient.audit(
 			AuditingActions.SETTLEMENT_MATRIX_REQUEST_FETCH,
@@ -690,9 +685,9 @@ export class SettlementsAggregate {
 			const batch = await this._batchRepo.getBatch(matrixBatch.id);
 			if (!batch) throw new SettlementBatchNotFoundError(`Unable to locate batch for id '${matrixBatch.id}'.`);
 
-			if (batch.state === "SETTLED" || batch.state === 'DISPUTED') continue;
+			if (batch.state === "SETTLED" || batch.state === "DISPUTED") continue;
 
-			batch.state = matrixBatch.state = 'DISPUTED';
+			batch.state = matrixBatch.state = "DISPUTED";
 			await this._batchRepo.updateBatch(batch);
 			batchesDisputedNow.push(batch);
 		}
@@ -832,8 +827,8 @@ export class SettlementsAggregate {
 			throw err; // not found
 		}
 
-		if (matrixDto.state!=="IDLE") {
-			const err = new CannotCloseSettlementMatrixError("Can only close an idle or disputed matrix");
+		if (matrixDto.state !== "IDLE") {
+			const err = new CannotCloseSettlementMatrixError("Can only close an idle matrix");
 			this._logger.warn(err.message);
 			throw err;
 		}
@@ -848,20 +843,19 @@ export class SettlementsAggregate {
 		await this._recalculateMatrix(matrix);
 
 		// first pass - close the open batches:
-		const previouslyClosedBatches : ISettlementBatch[] = [];
-		const batchesClosedNow: ISettlementBatch[] = [];
 		for (const matrixBatch of matrix.batches) {
 			const batch = await this._batchRepo.getBatch(matrixBatch.id);
 			if (!batch) throw new SettlementBatchNotFoundError(`Unable to locate batch for id '${matrixBatch.id}'.`);
 
-			if (batch.state === "SETTLED" || batch.state === "CLOSED" || batch.state === "AWAITING_SETTLEMENT") {
-				previouslyClosedBatches.push(batch);
-				continue;
+			switch (batch.state) {
+				case "SETTLED":
+				case "CLOSED":
+				case "AWAITING_SETTLEMENT":
+					continue;
 			}
 
 			batch.state = matrixBatch.state = "CLOSED";
 			await this._batchRepo.updateBatch(batch);
-			batchesClosedNow.push(batch);
 		}
 
 		// Close the Matrix Request to prevent further execution:
@@ -910,21 +904,15 @@ export class SettlementsAggregate {
 		});
 
 		// first pass - close the open batches:
-		const previouslySettledBatches : ISettlementBatch[] = [];
-		const batchesSettledNow: ISettlementBatch[] = [];
 		const currency = this._getCurrencyOrThrow(matrix.currencyCode);
 		for (const matrixBatch of matrix.batches) {
 			const batch = await this._batchRepo.getBatch(matrixBatch.id);
 			if (!batch) throw new SettlementBatchNotFoundError(`Unable to locate batch for id '${matrixBatch.id}'.`);
 
-			if (batch.state === "SETTLED") {
-				previouslySettledBatches.push(batch);
-				continue;
-			}
+			if (batch.state === "SETTLED") continue;
 
 			batch.state = matrixBatch.state = "SETTLED";
 			await this._batchRepo.updateBatch(batch);
-			batchesSettledNow.push(batch);
 		}
 
 		// Close the Matrix Request to prevent further execution:
@@ -969,7 +957,7 @@ export class SettlementsAggregate {
 	): Promise<void> {
 		// start by cleaning the batches
 		let batches :ISettlementBatch[];
-		if (matrix.type === 'STATIC') {
+		if (matrix.type === "STATIC") {
 			// this should never change the already included batches
 			const batchIds = matrix.batches.map(value => value.id);
 			batches = await this._batchRepo.getBatchesByIds(batchIds);
@@ -1167,10 +1155,6 @@ export class SettlementsAggregate {
 		const minutes = (toDate.getUTCMinutes()).toString().padStart(2, "0");
 		const formatTimestamp = `${toDate.getUTCFullYear()}.${month}.${day}.${hours}.${minutes}`;
 
-		// if (batchAllocation) {
-		// 	return `${model}.${currencyCode}.${batchAllocation}.${formatTimestamp}`;
-		// }
-
 		return `${model}.${currencyCode}.${formatTimestamp}`;
 	}
 
@@ -1178,27 +1162,8 @@ export class SettlementsAggregate {
 		batchName:string,
 		batchSeq: number,
 	): string {
-		const batchSeqTxt = batchSeq.toString().padStart(SEQUENCE_STR_LENGTH, "0");
-		const batchId = `${batchName}.${batchSeqTxt}`;
-
-		return batchId;
+		return `${batchName}.${batchSeq.toString().padStart(SEQUENCE_STR_LENGTH, "0")}`;
 	}
-
-	/*private _generateBatchIdentifierFromParams(
-		model: string,
-		currencyCode: string,
-		toDate: Date,
-		batchSeq: number,
-		batchAllocation?: string | null
-	) : string {
-		//TODO add assertion here:
-		//FX.XOF:RWF.2021.08.23.00.00
-
-		const batchName = this._generateBatchName(model, currencyCode, toDate, batchAllocation);
-		const batchId = this._generateBatchIdentifier(batchName, batchSeq);
-
-		return batchId;
-	}*/
 
 	private async _getOrCreateBatch(
 		model: string,
@@ -1218,7 +1183,7 @@ export class SettlementsAggregate {
 				currencyCode,
 				1,
 				batchName,
-				'OPEN'
+				"OPEN"
 			);
 			return Promise.resolve({batch:newBatch, created: true});
 		}
@@ -1226,7 +1191,7 @@ export class SettlementsAggregate {
 		// let's find the highest seq open batch
 		// sort in decreasing order
 		const sortedBatches = existingBatches.sort((a, b) => b.batchSequence - a.batchSequence);
-		if(sortedBatches[0].state === 'OPEN'){
+		if (sortedBatches[0].state === "OPEN") {
 			// highest seq is open, return it
 			const batchDto = sortedBatches[0];
 			const batch = new SettlementBatch(
@@ -1236,7 +1201,7 @@ export class SettlementsAggregate {
 				batchDto.currencyCode,
 				batchDto.batchSequence,
 				batchDto.batchName,
-				'OPEN',
+				"OPEN",
 				batchDto.accounts
 			);
 			return Promise.resolve({batch: batch, created: false});
@@ -1252,7 +1217,7 @@ export class SettlementsAggregate {
 			currencyCode,
 			nextSeq,
 			batchName,
-			'OPEN'
+			"OPEN"
 		);
 		return Promise.resolve({batch: newBatch, created: true});
 	}
