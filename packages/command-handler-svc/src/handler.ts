@@ -35,6 +35,7 @@ import {IMessage,IMessageConsumer, CommandMsg} from "@mojaloop/platform-shared-l
 import {SettlementsBCTopics} from "@mojaloop/platform-shared-lib-public-messages-lib";
 
 import {
+	CreateSettlementModelCmd,
 	CloseMatrixCmd,
 	CloseMatrixCmdPayload,
 	CreateStaticMatrixCmd,
@@ -56,11 +57,12 @@ import {
 	LockMatrixCmd,
 	LockMatrixCmdPayload,
 	UnlockMatrixCmd,
-	UnlockMatrixCmdPayload
+	UnlockMatrixCmdPayload, CreateSettlementModelCmdPayload
 } from "@mojaloop/settlements-bc-domain-lib";
 import {CallSecurityContext} from "@mojaloop/security-bc-public-types-lib";
 import {MLKafkaJsonConsumer} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 import {ILoginHelper, ITokenHelper, UnauthorizedError} from "@mojaloop/security-bc-public-types-lib";
+import {ISettlementConfig } from "@mojaloop/settlements-bc-public-types-lib";
 
 export class SettlementsCommandHandler{
 	private _logger: ILogger;
@@ -94,6 +96,15 @@ export class SettlementsCommandHandler{
 				switch (message.msgName) {
 					case ProcessTransferCmd.name:
 						await this._settlementsAgg.processTransferCmd(sectCtx, message as ProcessTransferCmd);
+						break;
+					case CreateSettlementModelCmd.name:
+						// eslint-disable-next-line no-case-declarations
+						const createSettlementConfig = message.payload as CreateSettlementModelCmdPayload;
+						
+						await this._settlementsAgg.createSettlementConfig(
+							sectCtx,
+							createSettlementConfig
+						);
 						break;
 					case CreateDynamicMatrixCmd.name:
 						// eslint-disable-next-line no-case-declarations

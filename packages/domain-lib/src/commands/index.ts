@@ -36,6 +36,8 @@ import {
 	SETTLEMENTS_AGGREGATE_NAME,
 	SettlementsBCTopics
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
+import { ISettlementConfig } from "@mojaloop/settlements-bc-public-types-lib";
+import { InvalidSettlementModelError } from "../types/errors";
 
 export type ProcessTransferCmdPayload = {
 	transferId: string;
@@ -63,6 +65,35 @@ export class ProcessTransferCmd extends CommandMsg {
 
 	validatePayload(): void {
 		// TODO @jason complete...
+	}
+}
+
+export type CreateSettlementModelCmdPayload = {
+	id: string;
+	settlementModel: string;
+	batchCreateInterval: number;
+	createdBy: string;
+}
+
+export class CreateSettlementModelCmd extends CommandMsg {
+	boundedContextName: string = SETTLEMENTS_BOUNDED_CONTEXT_NAME;
+	aggregateId: string;
+	aggregateName: string = SETTLEMENTS_AGGREGATE_NAME;
+	msgKey: string;
+	msgTopic: string = SettlementsBCTopics.Commands;
+	payload: CreateSettlementModelCmdPayload;
+
+	constructor(settlementModelPayload: CreateSettlementModelCmdPayload) {
+		super();
+
+		this.aggregateId = this.msgKey = settlementModelPayload.id;
+		this.payload = settlementModelPayload;
+	}
+
+	validatePayload(): void {
+		if(!this.payload){
+			throw new InvalidSettlementModelError("Invalid settlement model payload");
+		}
 	}
 }
 
