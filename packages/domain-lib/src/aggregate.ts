@@ -685,7 +685,12 @@ export class SettlementsAggregate {
 			const batch = await this._batchRepo.getBatch(matrixBatch.id);
 			if (!batch) throw new SettlementBatchNotFoundError(`Unable to locate batch for id '${matrixBatch.id}'.`);
 
-			if (batch.state === "SETTLED" || batch.state === "DISPUTED") continue;
+			switch (batch.state) {
+				case "SETTLED":
+				case "AWAITING_SETTLEMENT":
+				case "DISPUTED":
+					continue;
+			}
 
 			batch.state = matrixBatch.state = "DISPUTED";
 			await this._batchRepo.updateBatch(batch);
@@ -718,7 +723,7 @@ export class SettlementsAggregate {
 		}
 
 		if (matrixDto.state !== "IDLE") {
-			const err = new CannotCloseSettlementMatrixError("Can only lock an idle  matrix");
+			const err = new CannotCloseSettlementMatrixError("Can only lock an idle matrix");
 			this._logger.warn(err.message);
 			throw err;
 		}
