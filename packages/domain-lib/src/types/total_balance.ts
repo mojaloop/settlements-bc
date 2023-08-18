@@ -19,19 +19,37 @@
  their names indented and be marked with a '-'. Email address can be added
  optionally within square brackets <email>.
 
- Coil
- - Jason Bruwer <jason.bruwer@coil.com>
+ * Coil
+ *  - Jason Bruwer <jason.bruwer@coil.com>
 
  --------------
  ******/
 
 "use strict";
 
-export * from "./aggregate";
-export * from "./types/errors";
-export * from "./types/infrastructure";
-export * from "./privileges";
-export * from "./converters";
-export * from "./commands";
-export * from "./types/matrix";  // BC private matrix interfaces for infra and mocks
-export * from "./types/total_balance";
+import {
+	ISettlementBatch,
+	ISettlementBatchAccount, ISettlementMatrixTotalBalance
+} from "@mojaloop/settlements-bc-public-types-lib";
+
+export class SettlementMatrixTotalBalance implements ISettlementMatrixTotalBalance {
+	currencyCode: string;
+	state: string;
+	debitBalance: string;
+	creditBalance: string;
+
+	constructor(
+		currencyCode: string,
+		state: string,
+		debitBalance: string,
+		creditBalance: string,
+		debitBalanceDisputed: string,
+		creditBalanceDisputed: string
+	) {
+		this.currencyCode = currencyCode;
+		this.state = state;
+		this.debitBalance = debitBalance;
+		this.creditBalance = creditBalance;
+	}
+
+}

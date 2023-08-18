@@ -31,7 +31,7 @@ import {
   ISettlementBatch,
   ISettlementMatrix,
   ISettlementMatrixBatch,
-  ISettlementMatrixParticipantBalance
+  ISettlementMatrixParticipantBalance, ISettlementMatrixTotalBalance
 
 } from "@mojaloop/settlements-bc-public-types-lib";
 import {randomUUID} from "crypto";
@@ -44,7 +44,7 @@ export class SettlementMatrix implements ISettlementMatrix {
 
   dateFrom: number | null;
   dateTo: number | null;
-  currencyCode: string;
+  currencyCode: string | null;
   settlementModel: string | null;
 
   // multiple matrices can have the same batch, this can only be used to find a matrix batch
@@ -57,17 +57,14 @@ export class SettlementMatrix implements ISettlementMatrix {
   type: "STATIC" | "DYNAMIC";
 
   generationDurationSecs: number | null;
-  totalDebitBalance: string;
-  totalCreditBalance: string;
-  totalDebitBalanceDisputed: string;
-  totalCreditBalanceDisputed: string;
+  totalBalances: ISettlementMatrixTotalBalance[];
 
-  protected constructor(type: "STATIC" | "DYNAMIC", currency: string) {
+  protected constructor(type: "STATIC" | "DYNAMIC") {
     this.id = randomUUID();
     this.createdAt = this.updatedAt = Date.now();
     this.dateFrom = null;
     this.dateTo = null;
-    this.currencyCode = currency;
+    this.currencyCode = null;
     this.settlementModel = null;
 
     this.state = "IDLE";
@@ -76,10 +73,35 @@ export class SettlementMatrix implements ISettlementMatrix {
     this.batches  = [];
     this.participantBalances = [];
     this.participantBalancesDisputed = [];
-    this.totalDebitBalance = "0";
-    this.totalCreditBalance = "0";
-    this.totalDebitBalanceDisputed = "0";
-    this.totalCreditBalanceDisputed = "0";
+    this.totalBalances = [];
+  }
+
+  addTotalBalance(
+      currencyCode: string,
+      state: string,
+      debitBalance: string = "0",
+      creditBalance: string = "0"
+  ): void {
+    this.totalBalances.push({
+      currencyCode: currencyCode,
+      state: state,
+      debitBalance: debitBalance,
+      creditBalance: creditBalance
+    });
+  }
+
+  addParticipantBalance(
+      currencyCode: string,
+      participantId: string,
+      debitBalance: string = "0",
+      creditBalance: string = "0"
+  ): void {
+    this.participantBalances.push({
+      participantId: participantId,
+      currencyCode: currencyCode,
+      debitBalance: debitBalance,
+      creditBalance: creditBalance
+    });
   }
 
   addBatch(
@@ -87,17 +109,12 @@ export class SettlementMatrix implements ISettlementMatrix {
     debitBalance: string = "0",
     creditBalance: string = "0"
   ): void {
-    if (this.type === 'STATIC' && this.batches.length === 0) {
-      this.currencyCode = batch.currencyCode;
-    }
-
-    if (batch.currencyCode !== this.currencyCode) {
-      throw new CurrencyCodesDifferError(`Matrix expects '${this.currencyCode}' but was '${batch.currencyCode}'`);
-    }
+    if (this.type === 'STATIC') this.currencyCode = null;
 
     this.batches.push({
       id: batch.id,
       name: batch.batchName,
+      currencyCode: batch.currencyCode,
       batchDebitBalance: debitBalance,
       batchCreditBalance: creditBalance,
       state: batch.state,
@@ -105,7 +122,7 @@ export class SettlementMatrix implements ISettlementMatrix {
   }
 
   removeBatchById(batchId: string):void{
-    this.batches = this.batches.filter(itm => itm.id!==batchId);
+    this.batches = this.batches.filter(itm => itm.id !== batchId);
   }
 
   removeBatch(batch: ISettlementBatch): void {
@@ -116,36 +133,35 @@ export class SettlementMatrix implements ISettlementMatrix {
     this.batches = [];
     this.participantBalances = [];
     this.participantBalancesDisputed = [];
-    this.totalDebitBalance = "0";
-    this.totalCreditBalance = "0";
-    this.totalDebitBalanceDisputed = "0";
-    this.totalCreditBalanceDisputed = "0";
+    this.totalBalances = [];
   }
 
   static CreateStatic(currency: string): SettlementMatrix {
-    return new SettlementMatrix("STATIC", currency);
+    return new SettlementMatrix("STATIC");
   }
 
   static CreateDynamic(
     dateFrom: number | null,
     dateTo: number | null,
-    currencyCode: string,
+    currencyCode: string | null,
     settlementModel: string | null
   ) : SettlementMatrix {
-    const newInstance = new SettlementMatrix("DYNAMIC", currencyCode);
+    const newInstance = new SettlementMatrix("DYNAMIC");
     newInstance.dateFrom = dateFrom;
     newInstance.dateTo = dateTo;
     newInstance.settlementModel = settlementModel;
+    newInstance.currencyCode = currencyCode;
     return newInstance;
   }
 
   static CreateFromDto(dto: ISettlementMatrix): SettlementMatrix {
-    const newInstance = new SettlementMatrix(dto.type, dto.currencyCode);
+    const newInstance = new SettlementMatrix(dto.type);
 
     newInstance.id = dto.id;
     newInstance.createdAt = dto.createdAt;
     newInstance.updatedAt = dto.updatedAt;
     newInstance.state = dto.state;
+    newInstance.currencyCode = dto.currencyCode;
 
     newInstance.dateFrom = dto.dateFrom;
     newInstance.dateTo = dto.dateTo;
@@ -156,10 +172,7 @@ export class SettlementMatrix implements ISettlementMatrix {
     newInstance.participantBalancesDisputed = dto.participantBalancesDisputed;
 
     newInstance.generationDurationSecs = dto.generationDurationSecs;
-    newInstance.totalDebitBalance = dto.totalDebitBalance;
-    newInstance.totalCreditBalance = dto.totalCreditBalance;
-    newInstance.totalDebitBalanceDisputed = dto.totalDebitBalanceDisputed;
-    newInstance.totalCreditBalanceDisputed = dto.totalCreditBalanceDisputed;
+    newInstance.totalBalances = dto.totalBalances;
 
     return newInstance;
   }

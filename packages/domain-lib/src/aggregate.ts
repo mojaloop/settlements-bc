@@ -396,7 +396,7 @@ export class SettlementsAggregate {
 		secCtx: CallSecurityContext,
 		matrixId: string | null,
 		settlementModel: string,
-		currencyCode: string,
+		currencyCode: string | null,
 		fromDate: number,
 		toDate: number
 	): Promise<string> {
@@ -799,7 +799,7 @@ export class SettlementsAggregate {
 			const batch = await this._batchRepo.getBatch(matrixBatch.id);
 			if (!batch) throw new SettlementBatchNotFoundError(`Unable to locate batch for id '${matrixBatch.id}'.`);
 
-			if(batch.state ===  "AWAITING_SETTLEMENT" && batch.ownerMatrixId === matrix.id){
+			if (batch.state ===  "AWAITING_SETTLEMENT" && batch.ownerMatrixId === matrix.id) {
 				batch.ownerMatrixId = null; // remove the lock
 				batch.state = matrixBatch.state = "CLOSED";
 				await this._batchRepo.updateBatch(batch);
@@ -909,7 +909,6 @@ export class SettlementsAggregate {
 		});
 
 		// first pass - close the open batches:
-		const currency = this._getCurrencyOrThrow(matrix.currencyCode);
 		for (const matrixBatch of matrix.batches) {
 			const batch = await this._batchRepo.getBatch(matrixBatch.id);
 			if (!batch) throw new SettlementBatchNotFoundError(`Unable to locate batch for id '${matrixBatch.id}'.`);
@@ -927,6 +926,7 @@ export class SettlementsAggregate {
 		// put per participant balances in the matrix:
 		// participantBalances.forEach((value, key) => {
 		matrix.participantBalances.forEach((item) => {
+			const currency = this._getCurrencyOrThrow(item.currencyCode);
 			participants.push({
 				participantId: item.participantId,
 				currencyCode: currency.code,
@@ -976,26 +976,27 @@ export class SettlementsAggregate {
 			);
 		}
 
-		const currency = this._getCurrencyOrThrow(matrix.currencyCode);
-
 		// remove batches and zero totals
 		matrix.clear();
 
 		// summaries
-		let totalDebit = 0n, totalCredit = 0n, totalDebitDisputed = 0n, totalCreditDisputed = 0n;
-		const participantBalances: Map<string, {cr: bigint, dr:bigint}> = new Map<string, {cr: bigint; dr: bigint}>();
-		const participantBalancesDisputed: Map<string, {cr: bigint, dr:bigint}> = new Map<string, {cr: bigint; dr: bigint}>();
+		const totalBal: Map<string, Map<string, {cr: bigint, dr:bigint}>> =
+			new Map<string, Map<string, {cr: bigint, dr:bigint}>>();
+		const totalPartBal: Map<string, Map<string, {cr: bigint, dr:bigint}>> =
+			new Map<string, Map<string, {cr: bigint, dr:bigint}>>();
 
 		if (batches && batches.length > 0) {
 			await this._updateBatchAccountBalances(batches);
 
 			for (const batch of batches) {
-				const batchDisputed = batch.state === "DISPUTED";
-				if (batch.state === "SETTLED" || (settlingMatrix && batch.state !== "AWAITING_SETTLEMENT")) continue;
+				if (batch.state === "SETTLED") continue;
 				else if (settlingMatrix) {
 					// when settling, we can only settle batches that are AWAITING_SETTLEMENT and are already owned by this matrix
-					if (batch.state !== "AWAITING_SETTLEMENT" || !batch.ownerMatrixId || batch.ownerMatrixId !== matrix.id) continue;
+					if (!batch.ownerMatrixId || batch.ownerMatrixId !== matrix.id) continue;
+					else if (batch.state !== "AWAITING_SETTLEMENT") continue;
 				}
+
+				const currency = this._getCurrencyOrThrow(batch.currencyCode);
 
 				let batchDebitBalance = 0n, batchCreditBalance = 0n;
 				batch.accounts.forEach(acc => {
@@ -1005,22 +1006,23 @@ export class SettlementsAggregate {
 					batchDebitBalance += debit;
 					batchCreditBalance += credit;
 
-					// update per participant balances
-					if (batchDisputed) {
-						const partBal = participantBalancesDisputed.get(acc.participantId);
-						if (!partBal) {
-							participantBalancesDisputed.set(acc.participantId, {dr:debit, cr: credit});
-						} else {
-							participantBalancesDisputed.set(acc.participantId, {dr: partBal.dr + debit, cr: partBal.cr + credit});
-						}
+					// update per participant balances:
+					let totalForPart = totalPartBal.get(acc.participantId);
+					if (!totalForPart) totalForPart = new Map<string, {cr: bigint; dr: bigint}>();
+
+					const totalForCurrency = totalForPart.get(currency.code);
+					if (totalForCurrency) {
+						totalForPart.set(currency.code, {
+							dr: totalForCurrency.dr + batchDebitBalance,
+							cr: totalForCurrency.cr + batchCreditBalance
+						});
 					} else {
-						const partBal = participantBalances.get(acc.participantId);
-						if (!partBal) {
-							participantBalances.set(acc.participantId, {dr:debit, cr: credit});
-						} else {
-							participantBalances.set(acc.participantId, {dr: partBal.dr + debit, cr: partBal.cr + credit});
-						}
+						totalForPart.set(currency.code, {
+							dr:batchDebitBalance,
+							cr: batchCreditBalance
+						});
 					}
+					totalPartBal.set(acc.participantId, totalForPart);
 				});
 
 				matrix.addBatch(
@@ -1029,35 +1031,49 @@ export class SettlementsAggregate {
 					bigintToString(batchCreditBalance, currency.decimals)
 				);
 
-				if (batchDisputed) {
-					totalDebitDisputed = totalDebitDisputed + batchDebitBalance;
-					totalCreditDisputed = totalCreditDisputed + batchCreditBalance;
+				// set the totals for state and currency:
+				let totalForStatus = totalBal.get(batch.state);
+				if (!totalForStatus) totalForStatus = new Map<string, {cr: bigint; dr: bigint}>();
+
+				const totalForCurrency = totalForStatus.get(currency.code);
+				if (totalForCurrency) {
+					totalForStatus.set(currency.code, {
+						dr: totalForCurrency.dr + batchDebitBalance,
+						cr: totalForCurrency.cr + batchCreditBalance
+					});
 				} else {
-					totalDebit = totalDebit + batchDebitBalance;
-					totalCredit = totalCredit + batchCreditBalance;
+					totalForStatus.set(currency.code, {
+						dr:batchDebitBalance,
+						cr: batchCreditBalance
+					});
 				}
+				totalBal.set(batch.state, totalForStatus);
 			}
 		}
 
 		// update main balances for standard matrix:
-		matrix.totalDebitBalance = bigintToString(totalDebit, currency.decimals);
-		matrix.totalCreditBalance = bigintToString(totalCredit, currency.decimals);
-		matrix.totalDebitBalanceDisputed = bigintToString(totalDebitDisputed, currency.decimals);
-		matrix.totalCreditBalanceDisputed = bigintToString(totalCreditDisputed, currency.decimals);
-
-		// put per participant balances in the matrix:
-		participantBalances.forEach((value, key) => {
-			matrix.participantBalances.push({
-				participantId: key,
-				debitBalance: bigintToString(value.dr, currency.decimals),
-				creditBalance: bigintToString(value.cr, currency.decimals)
+		totalBal.forEach((currencyTotals, state) => {
+			currencyTotals.forEach((drDrTotal, currencyCode) => {
+				const currency = this._getCurrencyOrThrow(currencyCode);
+				matrix.addTotalBalance(
+					currencyCode,
+					state,
+					bigintToString(drDrTotal.dr, currency.decimals),
+					bigintToString(drDrTotal.cr, currency.decimals)
+				);
 			});
 		});
-		participantBalancesDisputed.forEach((value, key) => {
-			matrix.participantBalancesDisputed.push({
-				participantId: key,
-				debitBalance: bigintToString(value.dr, currency.decimals),
-				creditBalance: bigintToString(value.cr, currency.decimals)
+
+		// put per participant balances in the matrix:
+		totalPartBal.forEach((participantTotals, participantId) => {
+			participantTotals.forEach((drDrTotal, currencyCode) => {
+				const currency = this._getCurrencyOrThrow(currencyCode);
+				matrix.addParticipantBalance(
+					currencyCode,
+					participantId,
+					bigintToString(drDrTotal.dr, currency.decimals),
+					bigintToString(drDrTotal.cr, currency.decimals)
+				);
 			});
 		});
 	}
