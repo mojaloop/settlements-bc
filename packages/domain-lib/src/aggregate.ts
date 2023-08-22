@@ -979,13 +979,14 @@ export class SettlementsAggregate {
 		// remove batches and zero totals
 		matrix.clear();
 
-		// summaries
+		// summaries:
 		const totalBal: Map<string, Map<string, {cr: bigint, dr:bigint}>> =
 			new Map<string, Map<string, {cr: bigint, dr:bigint}>>();
-		const totalPartBal: Map<string, Map<string, {cr: bigint, dr:bigint}>> =
-			new Map<string, Map<string, {cr: bigint, dr:bigint}>>();
+		const totalPartStateCurBal: Map<string, Map<string, Map<string, {cr: bigint, dr:bigint}>>> =
+			new Map<string, Map<string, Map<string, {cr: bigint, dr:bigint}>>>();
 
 		if (batches && batches.length > 0) {
+			// invoke the A&B adapter in order to fetch up-to-date balances:
 			await this._updateBatchAccountBalances(batches);
 
 			for (const batch of batches) {
@@ -1007,22 +1008,29 @@ export class SettlementsAggregate {
 					batchCreditBalance += credit;
 
 					// update per participant balances:
-					let totalForPart = totalPartBal.get(acc.participantId);
-					if (!totalForPart) totalForPart = new Map<string, {cr: bigint; dr: bigint}>();
+					// participantId:
+					let totalForPart = totalPartStateCurBal.get(acc.participantId);
+					if (!totalForPart) totalForPart = new Map<string, Map<string, {cr: bigint; dr: bigint}>>();
 
-					const totalForCurrency = totalForPart.get(currency.code);
+					// state:
+					let totalForPartState = totalForPart.get(batch.state);
+					if (!totalForPartState) totalForPartState = new Map<string, {cr: bigint; dr: bigint}>();
+
+					// currency:
+					const totalForCurrency = totalForPartState.get(currency.code);
 					if (totalForCurrency) {
-						totalForPart.set(currency.code, {
+						totalForPartState.set(currency.code, {
 							dr: totalForCurrency.dr + batchDebitBalance,
 							cr: totalForCurrency.cr + batchCreditBalance
 						});
 					} else {
-						totalForPart.set(currency.code, {
+						totalForPartState.set(currency.code, {
 							dr:batchDebitBalance,
 							cr: batchCreditBalance
 						});
 					}
-					totalPartBal.set(acc.participantId, totalForPart);
+					totalForPart.set(batch.state, totalForPartState);
+					totalPartStateCurBal.set(acc.participantId, totalForPart);
 				});
 
 				matrix.addBatch(
@@ -1065,15 +1073,18 @@ export class SettlementsAggregate {
 		});
 
 		// put per participant balances in the matrix:
-		totalPartBal.forEach((participantTotals, participantId) => {
-			participantTotals.forEach((drDrTotal, currencyCode) => {
-				const currency = this._getCurrencyOrThrow(currencyCode);
-				matrix.addParticipantBalance(
-					currencyCode,
-					participantId,
-					bigintToString(drDrTotal.dr, currency.decimals),
-					bigintToString(drDrTotal.cr, currency.decimals)
-				);
+		totalPartStateCurBal.forEach((participantTotals, participantId) => {
+			participantTotals.forEach((currencyMap, state) => {
+				currencyMap.forEach((drDrTotal, currencyCode) => {
+					const currency = this._getCurrencyOrThrow(currencyCode);
+					matrix.addParticipantBalance(
+						currencyCode,
+						participantId,
+						state,
+						bigintToString(drDrTotal.dr, currency.decimals),
+						bigintToString(drDrTotal.cr, currency.decimals)
+					);
+				});
 			});
 		});
 	}

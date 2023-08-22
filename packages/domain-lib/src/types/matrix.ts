@@ -51,7 +51,6 @@ export class SettlementMatrix implements ISettlementMatrix {
   // to find the actual owner of a batch, use the batch.ownerMatrixId
   batches: ISettlementMatrixBatch[];
   participantBalances: ISettlementMatrixParticipantBalance[];
-  participantBalancesDisputed: ISettlementMatrixParticipantBalance[];
 
   state: "IDLE" | "BUSY" | "FINALIZED";
   type: "STATIC" | "DYNAMIC";
@@ -72,7 +71,6 @@ export class SettlementMatrix implements ISettlementMatrix {
 
     this.batches  = [];
     this.participantBalances = [];
-    this.participantBalancesDisputed = [];
     this.totalBalances = [];
   }
 
@@ -83,24 +81,26 @@ export class SettlementMatrix implements ISettlementMatrix {
       creditBalance: string = "0"
   ): void {
     this.totalBalances.push({
-      currencyCode: currencyCode,
-      state: state,
-      debitBalance: debitBalance,
-      creditBalance: creditBalance
+      currencyCode,
+      state,
+      debitBalance,
+      creditBalance
     });
   }
 
   addParticipantBalance(
       currencyCode: string,
       participantId: string,
+      state: string,
       debitBalance: string = "0",
       creditBalance: string = "0"
   ): void {
     this.participantBalances.push({
-      participantId: participantId,
-      currencyCode: currencyCode,
-      debitBalance: debitBalance,
-      creditBalance: creditBalance
+      participantId,
+      currencyCode,
+      state,
+      debitBalance,
+      creditBalance
     });
   }
 
@@ -132,7 +132,6 @@ export class SettlementMatrix implements ISettlementMatrix {
   clear(){
     this.batches = [];
     this.participantBalances = [];
-    this.participantBalancesDisputed = [];
     this.totalBalances = [];
   }
 
@@ -169,7 +168,6 @@ export class SettlementMatrix implements ISettlementMatrix {
 
     newInstance.batches = dto.batches;
     newInstance.participantBalances = dto.participantBalances;
-    newInstance.participantBalancesDisputed = dto.participantBalancesDisputed;
 
     newInstance.generationDurationSecs = dto.generationDurationSecs;
     newInstance.totalBalances = dto.totalBalances;

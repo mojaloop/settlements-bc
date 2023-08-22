@@ -139,7 +139,6 @@ export interface ISettlementMatrix {
 	settlementModel: string | null;
 	batches: ISettlementMatrixBatch[];
 	participantBalances: ISettlementMatrixParticipantBalance[];
-	participantBalancesDisputed: ISettlementMatrixParticipantBalance[];
 	state: "IDLE" | "BUSY" | "FINALIZED";
 	type: "STATIC" | "DYNAMIC";
 	generationDurationSecs: number | null;
@@ -156,6 +155,7 @@ export interface ISettlementMatrixTotalBalance {
 export interface ISettlementMatrixParticipantBalance {
 	participantId: string;
 	currencyCode: string;
+	state: string;
 	debitBalance: string;
 	creditBalance: string;
 }
