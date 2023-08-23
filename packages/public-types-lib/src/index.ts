@@ -143,6 +143,7 @@ export interface ISettlementMatrix {
 	type: "STATIC" | "DYNAMIC";
 	generationDurationSecs: number | null;
 	totalBalances: ISettlementMatrixTotalBalance[];
+	isBatchesOutOfSync: boolean;
 }
 
 export interface ISettlementMatrixTotalBalance {

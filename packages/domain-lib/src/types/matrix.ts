@@ -57,6 +57,7 @@ export class SettlementMatrix implements ISettlementMatrix {
 
   generationDurationSecs: number | null;
   totalBalances: ISettlementMatrixTotalBalance[];
+  isBatchesOutOfSync: boolean;
 
   protected constructor(type: "STATIC" | "DYNAMIC") {
     this.id = randomUUID();
@@ -72,6 +73,7 @@ export class SettlementMatrix implements ISettlementMatrix {
     this.batches  = [];
     this.participantBalances = [];
     this.totalBalances = [];
+    this.isBatchesOutOfSync = false;
   }
 
   addTotalBalance(
@@ -171,6 +173,7 @@ export class SettlementMatrix implements ISettlementMatrix {
 
     newInstance.generationDurationSecs = dto.generationDurationSecs;
     newInstance.totalBalances = dto.totalBalances;
+    newInstance.isBatchesOutOfSync = dto.isBatchesOutOfSync;
 
     return newInstance;
   }

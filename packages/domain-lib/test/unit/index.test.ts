@@ -1512,4 +1512,64 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		expect(batch!.id).toEqual(batchId);
 		expect(batch!.state).toEqual('SETTLED');
 	});
+
+	test("test matrix marked out-of-sync", async () => {
+		const reqTransferDto: ITransferDto = {
+			id: null,
+			transferId: randomUUID(),
+			payerFspId: randomUUID(),
+			payeeFspId: randomUUID(),
+			currencyCode: 'EUR',
+			amount: '10000', //100 EURO
+			timestamp: Date.now(),
+			settlementModel: 'OUT_OF_SYNC'
+		};
+		const batchId: string = await aggregate.handleTransfer(securityContext, reqTransferDto);
+		expect(batchId).toBeDefined();
+
+		// Initial state for a batch is [OPEN]:
+		let batch = await settleBatchRepo.getBatch(batchId);
+		expect(batch).toBeDefined();
+		expect(batch!.id).toEqual(batchId);
+		expect(batch!.state).toEqual('OPEN');
+
+		// Create a settlement matrix with batch:
+		const matrixId1 = await aggregate.createStaticSettlementMatrix(
+			securityContext,
+			null, // matrix-id
+			[batchId]
+		);
+		expect(matrixId1).toBeDefined();
+
+		// matrix is not out of sync:
+		let matrix1 = await aggregate.getSettlementMatrix(securityContext, matrixId1);
+		expect(matrix1).toBeDefined();
+		expect(matrix1!.isBatchesOutOfSync).toEqual(false);
+
+		let inSync = await settleMatrixReqRepo.getMatricesInSyncWhereBatch("IDLE", batchId);
+		expect(inSync).toBeDefined();
+		expect(inSync!.length).toEqual(1);
+		expect(inSync![0].id).toEqual(matrix1!.id);
+
+		// Create another settlement matrix with batch:
+		const matrixId2 = await aggregate.createStaticSettlementMatrix(
+			securityContext,
+			null, // matrix-id
+			[batchId]
+		);
+		expect(matrixId2).toBeDefined();
+
+		// mark the batch out of sync:
+		await aggregate.markMatrixOutOfSyncWhereBatch(securityContext, matrixId2, batchId);
+		await new Promise(f => setTimeout(f, 2000));
+
+		inSync = await settleMatrixReqRepo.getMatricesInSyncWhereBatch("IDLE", batchId);
+		expect(inSync).toBeDefined();
+		// the matrix that made the change will not be out of sync.
+		expect(inSync!.length).toEqual(1);
+
+		matrix1 = await aggregate.getSettlementMatrix(securityContext, matrixId1);
+		expect(matrix1).toBeDefined();
+		expect(matrix1!.isBatchesOutOfSync).toEqual(true);
+	});
 });

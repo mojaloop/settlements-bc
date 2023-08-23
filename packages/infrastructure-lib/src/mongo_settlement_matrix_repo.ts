@@ -115,4 +115,22 @@ export class MongoSettlementMatrixRepo implements ISettlementMatrixRequestRepo {
 		}
 	}
 
+	async getMatricesInSyncWhereBatch(state: string, batchId: string): Promise<ISettlementMatrix[]>{
+		try {
+			const resp = await this._collection.find({state: state, isBatchesOutOfSync: false}).project({_id: 0}).toArray();
+			const respMatrix = resp as (ISettlementMatrix[]);
+			const ret : ISettlementMatrix[] = [];
+			for (const matrixIter of respMatrix) {
+				for (const batchIter of matrixIter.batches) {
+					if (batchIter.id === batchId) {
+						ret.push(matrixIter);
+						break;
+					}
+				}
+			}
+			return ret;
+		} catch (error: any) {
+			throw new Error("Unable to getMatrices from repo - msg: " + error.message);
+		}
+	}
 }

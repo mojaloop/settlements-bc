@@ -340,3 +340,27 @@ export class RemoveBatchesFromMatrixCmd extends CommandMsg {
 		// TODO @jason complete...
 	}
 }
+
+export type BatchUpdatedCmdPayload = {
+	originMatrixId: string;
+	batchId: string;
+}
+
+export class BatchUpdatedCmd extends CommandMsg {
+	boundedContextName: string = SETTLEMENTS_BOUNDED_CONTEXT_NAME;
+	aggregateId: string;
+	aggregateName: string = SETTLEMENTS_AGGREGATE_NAME;
+	msgKey: string;
+	msgTopic: string = SettlementsBCTopics.Commands;
+	payload: BatchUpdatedCmdPayload;
+
+	constructor(payload: BatchUpdatedCmdPayload) {
+		super();
+		this.aggregateId = this.msgKey = payload.batchId;
+		this.payload = payload;
+	}
+
+	validatePayload(): void {
+		// TODO @jason complete...
+	}
+}

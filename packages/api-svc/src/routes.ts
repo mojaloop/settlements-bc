@@ -473,7 +473,7 @@ export class ExpressRoutes {
 			const matrixId = req.params.id as string;
 
 			const matrix = await this._matrixRepo.getMatrixById(matrixId);
-			if(!matrix){
+			if (!matrix){
 				return this.sendErrorResponse(res,404, "Matrix not found");
 			}
 

@@ -123,4 +123,5 @@ export interface ISettlementMatrixRequestRepo {
 	storeMatrix(matrix: ISettlementMatrix): Promise<void>; // Throws if account.id is not unique.
 	getMatrixById(id: string): Promise<ISettlementMatrix | null>;
 	getMatrices(state?:string): Promise<ISettlementMatrix[]>;
+	getMatricesInSyncWhereBatch(state: string, batchId: string): Promise<ISettlementMatrix[]>;
 }

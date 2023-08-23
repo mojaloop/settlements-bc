@@ -80,7 +80,7 @@ import {SettlementConfig} from "./types/settlement_config";
 import {AccountsAndBalancesAccountType} from "@mojaloop/accounts-and-balances-bc-public-types-lib";
 import {SettlementBatchTransfer} from "./types/transfer";
 import {SettlementMatrix} from "./types/matrix";
-import {CreateSettlementModelCmdPayload, ProcessTransferCmd} from "./commands";
+import {BatchUpdatedCmd, CreateSettlementModelCmdPayload, ProcessTransferCmd, RecalculateMatrixCmd} from "./commands";
 import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import {
 	SettlementMatrixSettledEvt,
@@ -591,7 +591,6 @@ export class SettlementsAggregate {
 		);
 	}
 
-
 	async getSettlementMatrix(secCtx: CallSecurityContext, id: string): Promise<ISettlementMatrix | null> {
 		this._enforcePrivilege(secCtx, Privileges.GET_SETTLEMENT_MATRIX);
 
@@ -956,6 +955,26 @@ export class SettlementsAggregate {
 		return;
 	}
 
+	async markMatrixOutOfSyncWhereBatch(
+		secCtx: CallSecurityContext,
+		originMatrixId: string,
+		batchId: string
+	): Promise<void> {
+		this._enforcePrivilege(secCtx, Privileges.MARK_SETTLEMENT_MATRIX_OUT_OF_SYNC);
+
+		const idleInSyncMatrices =
+			await this._settlementMatrixReqRepo.getMatricesInSyncWhereBatch("IDLE", batchId);
+		idleInSyncMatrices.forEach(matrixDto => {
+			if (originMatrixId === matrixDto.id) return;
+
+			const startTimestamp = Date.now();
+			const matrix = SettlementMatrix.CreateFromDto(matrixDto);
+			matrix.isBatchesOutOfSync = true;
+			// Close the Matrix Request to prevent further execution:
+			this._updateMatrixStateAndSave(matrix, "IDLE", startTimestamp);
+		})
+	}
+
 	private async _recalculateMatrix(
 		matrix : SettlementMatrix,
 		settlingMatrix: boolean = false
@@ -1086,6 +1105,15 @@ export class SettlementsAggregate {
 					);
 				});
 			});
+		});
+
+		// send events to indicate the batch has been updated:
+		matrix.batches.forEach(batch => {
+			const cmd = new BatchUpdatedCmd({
+				batchId: batch.id,
+				originMatrixId: matrix.id
+			});
+			this._msgProducer.send(cmd);
 		});
 	}
 

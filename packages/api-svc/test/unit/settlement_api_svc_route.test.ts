@@ -109,7 +109,7 @@ describe("Settlement BC api-svc route test", () => {
                 batchId: "DEFAULT.USD.2023.06.19.08.30.001",
                 batchName: "DEFAULT.USD.2023.06.19.08.30",
                 journalEntryId: "string",
-                matrixId: "SM001"
+                matrixId: "SM001",
             },
             {
                 transferId: "T002",
@@ -189,7 +189,8 @@ describe("Settlement BC api-svc route test", () => {
             state: "FINALIZED",
             type: "STATIC",
             generationDurationSecs: 2,
-            totalBalances: []
+            totalBalances: [],
+            isBatchesOutOfSync: false
         }
     })
 
@@ -443,7 +444,8 @@ describe("Settlement BC api-svc route test", () => {
             state: "FINALIZED",
             type: "STATIC",
             generationDurationSecs: 2,
-            totalBalances: []
+            totalBalances: [],
+            isBatchesOutOfSync: false
         };
 
         await mockMatrixRequestRepo.storeMatrix(newMatrix);
@@ -503,7 +505,8 @@ describe("Settlement BC api-svc route test", () => {
             state: "IDLE",
             type: "STATIC",
             generationDurationSecs: 2,
-            totalBalances: []
+            totalBalances: [],
+            isBatchesOutOfSync: false
         };
 
         const payload: AddBatchesToMatrixCmdPayload = {
@@ -569,7 +572,8 @@ describe("Settlement BC api-svc route test", () => {
             state: "IDLE",
             type: "STATIC",
             generationDurationSecs: 2,
-            totalBalances: []
+            totalBalances: [],
+            isBatchesOutOfSync: false
         };
 
         const payload: AddBatchesToMatrixCmdPayload = {
@@ -632,7 +636,8 @@ describe("Settlement BC api-svc route test", () => {
             state: "IDLE",
             type: "STATIC",
             generationDurationSecs: 2,
-            totalBalances: []
+            totalBalances: [],
+            isBatchesOutOfSync: false
         };
 
         await mockMatrixRequestRepo.storeMatrix(newMatrix);
@@ -698,7 +703,8 @@ describe("Settlement BC api-svc route test", () => {
             state: "IDLE",
             type: "STATIC",
             generationDurationSecs: 2,
-            totalBalances: []
+            totalBalances: [],
+            isBatchesOutOfSync: false
         };
 
         await mockMatrixRequestRepo.storeMatrix(newMatrix);
@@ -763,7 +769,8 @@ describe("Settlement BC api-svc route test", () => {
             state: "IDLE",
             type: "STATIC",
             generationDurationSecs: 2,
-            totalBalances: []
+            totalBalances: [],
+            isBatchesOutOfSync: false
         };
 
         await mockMatrixRequestRepo.storeMatrix(newMatrix);
@@ -828,7 +835,8 @@ describe("Settlement BC api-svc route test", () => {
             state: "IDLE",
             type: "STATIC",
             generationDurationSecs: 2,
-            totalBalances: []
+            totalBalances: [],
+            isBatchesOutOfSync: false
         };
 
         await mockMatrixRequestRepo.storeMatrix(newMatrix);
@@ -893,7 +901,8 @@ describe("Settlement BC api-svc route test", () => {
             state: "IDLE",
             type: "STATIC",
             generationDurationSecs: 2,
-            totalBalances: []
+            totalBalances: [],
+            isBatchesOutOfSync: false
         };
 
         await mockMatrixRequestRepo.storeMatrix(newMatrix);
@@ -923,7 +932,8 @@ describe("Settlement BC api-svc route test", () => {
             state: "IDLE",
             type: "STATIC",
             generationDurationSecs: 2,
-            totalBalances: []
+            totalBalances: [],
+            isBatchesOutOfSync: false
         };
 
         const matrix2: ISettlementMatrix = {
@@ -939,7 +949,8 @@ describe("Settlement BC api-svc route test", () => {
             state: "IDLE",
             type: "STATIC",
             generationDurationSecs: 2,
-            totalBalances: []
+            totalBalances: [],
+            isBatchesOutOfSync: false
         };
 
         await mockMatrixRequestRepo.storeMatrix(matrix1);

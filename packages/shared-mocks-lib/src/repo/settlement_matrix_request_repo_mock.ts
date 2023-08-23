@@ -70,4 +70,19 @@ export class SettlementMatrixRequestRepoMock implements ISettlementMatrixRequest
 		}
 		return Promise.resolve(ret);
 	}
+
+	async getMatricesInSyncWhereBatch(state: string, batchId: string): Promise<ISettlementMatrix[]>{
+		const ret: ISettlementMatrix[] = [];
+		for (const matrixReqIter of this.matrixRequests) {
+			if (!matrixReqIter.isBatchesOutOfSync && matrixReqIter.state.toUpperCase() === state.toUpperCase()) {
+				for (const batchIter of matrixReqIter.batches) {
+					if (batchIter.id === batchId) {
+						ret.push(matrixReqIter);
+						break;
+					}
+				}
+			}
+		}
+		return Promise.resolve(ret);
+	}
 }
