@@ -1,12 +1,11 @@
 @startuml
 
 skinparam TitleFontSize 20
-skinparam TitleFontColor #FFFFFF
-skinparam titleBorderRoundCorner 10
-skinparam titleBorderThickness 6
-skinparam titleBorderColor #005B96
-skinparam titleBackgroundColor #005B96
-title Dispute Settlement Matrix
+skinparam titleBorderRoundCorner 15
+skinparam titleBorderThickness 2
+skinparam titleBorderColor Aqua-CadetBlue
+skinparam titleBackgroundColor Aqua-CadetBlue
+title Close Settlement Matrix
 
 participant "Admin API" as ext_cl
 
@@ -33,20 +32,24 @@ box Accounts and Balances BC #FFFFF9
     end note
 end box
 
-group 1. Dispute Settlement Batches via Matrix - Admin API
+group 1. Close Settlement Batches via Matrix - Admin API
 autonumber
-    ext_cl -> sbc_rest : Perofrm //CLOSE// command on **Settlement Matrix**\n(settlementMatrixId)
+    ext_cl -> sbc_rest : Perofrm //**CLOSE**// command on **Settlement Matrix**\n(settlementMatrixId)
     sbc_rest --> sbc_app_logic : Invoke the App layer
 end
 
-group 2. Execute //DISPUTE// command on a Settlement Matrix - App Logic
-    sbc_app_logic <--> sbc_db : Dispute //OPEN / CLOSED// settlement batches which forms part \nof the settlement matrix
+group 2. Execute //CLOSE// command on a Settlement Matrix - App Logic
+    sbc_app_logic <--> sbc_db : Close //OPEN / DISPUTED// settlement batches which forms part \nof the settlement matrix
     sbc_app_logic <-> abbc_grpc : Obtain Debit/Credit **Settlement Accounts** based on batches
     abbc_grpc <-> abbc_tigerbeetle: Fetch **Settlement Accounts**
     abbc_grpc <-> sbc_app_logic : Return **Settlement Accounts** based on batches
     sbc_app_logic <--> sbc_app_logic : Prepare the Settlement Matrix
     sbc_app_logic -> sbc_rest : Return Settlement Matrix
-    sbc_rest -> ext_cl : Return Settlement Matrix for caller\n**//ISettlementMatrix//**
+    sbc_rest -> ext_cl : Return Settlement Matrix for caller\n**//ISettlementMatrixDto//**
+autonumber
+    == Publish Settlement Matrix Result for Liquidity Restoration ==
+    sbc_app_logic --> sbc_app_logic : Create events for each Settlement Batch Account Balance update
+    sbc_app_logic -> sbc_event : Publish event for each\nSettlement Batch Account\nBalance update
 end
 
 @enduml
