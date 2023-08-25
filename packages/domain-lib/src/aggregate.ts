@@ -396,14 +396,14 @@ export class SettlementsAggregate {
 		secCtx: CallSecurityContext,
 		matrixId: string | null,
 		settlementModel: string,
-		currencyCode: string | null,
+		currencyCodes: string[],
 		fromDate: number,
 		toDate: number
 	): Promise<string> {
 		this._enforcePrivilege(secCtx, Privileges.CREATE_DYNAMIC_SETTLEMENT_MATRIX);
 		const startTimestamp = Date.now();
 
-		const newMatrix = SettlementMatrix.CreateDynamic(fromDate, toDate, currencyCode, settlementModel);
+		const newMatrix = SettlementMatrix.CreateDynamic(fromDate, toDate, currencyCodes, settlementModel);
 		if (matrixId) {
 			const existing = await this._settlementMatrixReqRepo.getMatrixById(matrixId);
 			if (existing) {
@@ -990,7 +990,7 @@ export class SettlementsAggregate {
 			batches = await this._batchRepo.getBatchesByCriteria(
 				matrix.dateFrom!,
 				matrix.dateTo!,
-				matrix.currencyCode!,
+				matrix.currencyCodes!,
 				matrix.settlementModel!
 			);
 		}
@@ -1145,13 +1145,13 @@ export class SettlementsAggregate {
 	async getSettlementBatchesByCriteria(
 		secCtx: CallSecurityContext,
 		settlementModel: string,
-		currencyCode: string,
+		currencyCodes: string[],
 		fromDate: number,
 		toDate: number
 	): Promise<ISettlementBatch[]> {
 		this._enforcePrivilege(secCtx, Privileges.RETRIEVE_SETTLEMENT_BATCH);
 
-		const batches = await this._batchRepo.getBatchesByCriteria(fromDate, toDate, currencyCode, settlementModel);
+		const batches = await this._batchRepo.getBatchesByCriteria(fromDate, toDate, currencyCodes, settlementModel);
 		if(!batches || batches.length <=0 ) return [];
 
 		await this._updateBatchAccountBalances(batches);

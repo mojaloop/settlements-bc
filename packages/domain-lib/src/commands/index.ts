@@ -101,7 +101,7 @@ export type CreateDynamicMatrixCmdPayload = {
 	matrixId: string;
 	fromDate: number;
 	toDate: number;
-	currencyCode: string;
+	currencyCodes: string[];
 	settlementModel: string;
 }
 

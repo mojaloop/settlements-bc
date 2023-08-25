@@ -44,7 +44,7 @@ export class SettlementMatrix implements ISettlementMatrix {
 
   dateFrom: number | null;
   dateTo: number | null;
-  currencyCode: string | null;
+  currencyCodes: string[];
   settlementModel: string | null;
 
   // multiple matrices can have the same batch, this can only be used to find a matrix batch
@@ -64,7 +64,7 @@ export class SettlementMatrix implements ISettlementMatrix {
     this.createdAt = this.updatedAt = Date.now();
     this.dateFrom = null;
     this.dateTo = null;
-    this.currencyCode = null;
+    this.currencyCodes = [];
     this.settlementModel = null;
 
     this.state = "IDLE";
@@ -111,7 +111,7 @@ export class SettlementMatrix implements ISettlementMatrix {
     debitBalance: string = "0",
     creditBalance: string = "0"
   ): void {
-    if (this.type === 'STATIC') this.currencyCode = null;
+    if (this.type === 'STATIC') this.currencyCodes = [];
 
     this.batches.push({
       id: batch.id,
@@ -144,14 +144,14 @@ export class SettlementMatrix implements ISettlementMatrix {
   static CreateDynamic(
     dateFrom: number | null,
     dateTo: number | null,
-    currencyCode: string | null,
+    currencyCodes: string[],
     settlementModel: string | null
   ) : SettlementMatrix {
     const newInstance = new SettlementMatrix("DYNAMIC");
     newInstance.dateFrom = dateFrom;
     newInstance.dateTo = dateTo;
     newInstance.settlementModel = settlementModel;
-    newInstance.currencyCode = currencyCode;
+    newInstance.currencyCodes = currencyCodes;
     return newInstance;
   }
 
@@ -162,7 +162,7 @@ export class SettlementMatrix implements ISettlementMatrix {
     newInstance.createdAt = dto.createdAt;
     newInstance.updatedAt = dto.updatedAt;
     newInstance.state = dto.state;
-    newInstance.currencyCode = dto.currencyCode;
+    newInstance.currencyCodes = dto.currencyCodes;
 
     newInstance.dateFrom = dto.dateFrom;
     newInstance.dateTo = dto.dateTo;

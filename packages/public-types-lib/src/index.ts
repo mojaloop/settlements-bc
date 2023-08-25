@@ -135,7 +135,7 @@ export interface ISettlementMatrix {
 	// criteria
 	dateFrom: number | null;
 	dateTo: number | null;
-	currencyCode: string | null;
+	currencyCodes: string[];
 	settlementModel: string | null;
 	batches: ISettlementMatrixBatch[];
 	participantBalances: ISettlementMatrixParticipantBalance[];

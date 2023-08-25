@@ -333,7 +333,7 @@ export class ExpressRoutes {
 	private async getSettlementBatches(req: express.Request, res: express.Response): Promise<void> {
 		const batchName = req.query.batchName as string || req.query.batchname as string;
 		const settlementModel = req.query.settlementModel as string;
-		const currencyCode = req.query.currencyCode as string;
+		const currencyCodes = req.query.currencyCode as string[];
 		const fromDate = req.query.fromDate as string;
 		const toDate = req.query.toDate as string;
 
@@ -359,7 +359,7 @@ export class ExpressRoutes {
 				const settlementBatches = await this._batchRepo.getBatchesByCriteria(
 					Number(fromDate),
 					Number(toDate),
-					currencyCode,
+					currencyCodes,
 					settlementModel
 				);
 				if (!settlementBatches || settlementBatches.length <= 0) {
@@ -428,7 +428,7 @@ export class ExpressRoutes {
 			}
 
 			let cmd: CommandMsg;
-			if(type === "STATIC"){
+			if (type === "STATIC"){
 				// TODO: validate input params here before creating the cmd msg
 
 				const cmdPayload: CreateStaticMatrixCmdPayload = {
@@ -436,10 +436,10 @@ export class ExpressRoutes {
 					batchIds: req.body.batchIds
 				};
 				cmd = new CreateStaticMatrixCmd(cmdPayload);
-			}else if (type==="DYNAMIC") {
+			} else if (type==="DYNAMIC") {
 				// TODO: validate input params here before creating the cmd msg
 
-				const currencyCode = req.body.currencyCode;
+				const currencyCodes = req.body.currencyCodes as string[];
 				const settlementModel = req.body.settlementModel;
 				const fromDate = req.body.fromDate;
 				const toDate = req.body.toDate;
@@ -448,7 +448,7 @@ export class ExpressRoutes {
 					matrixId: matrixId,
 					fromDate: fromDate,
 					toDate: toDate,
-					currencyCode: currencyCode,
+					currencyCodes: currencyCodes,
 					settlementModel: settlementModel
 				};
 				cmd = new CreateDynamicMatrixCmd(cmdPayload);
