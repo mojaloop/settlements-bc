@@ -1303,6 +1303,8 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 	});
 
 	test("test matrix state machine - positive", async () => {
+		// The `settlementModel` is used to categorize the settlements.
+		// Settlement is not responsible for deciding what the settlement should be.
 		const reqTransferDto: ITransferDto = {
 			id: null,
 			transferId: randomUUID(),
@@ -1329,9 +1331,17 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 			[batchId]
 		);
 		expect(matrixId).toBeDefined();
+		batch = await settleBatchRepo.getBatch(batchId);
+		expect(batch).toBeDefined();
+		expect(batch!.id).toEqual(batchId);
+		expect(batch!.state).toEqual('OPEN');
+
+		// At this point, more transactions may be added to the batch, because the batch status is OPEN.
 
 		// close:
 		await aggregate.closeSettlementMatrix(securityContext, matrixId);
+		// At this point, no more transactions will be allocated to the closed batch.
+		// A new batch will be created to allocate "late" transfers to.
 		batch = await settleBatchRepo.getBatch(batchId);
 		expect(batch).toBeDefined();
 		expect(batch!.id).toEqual(batchId);
