@@ -1,11 +1,10 @@
 @startuml
 
 skinparam TitleFontSize 20
-skinparam TitleFontColor #FFFFFF
-skinparam titleBorderRoundCorner 10
-skinparam titleBorderThickness 6
-skinparam titleBorderColor #005B96
-skinparam titleBackgroundColor #005B96
+skinparam titleBorderRoundCorner 15
+skinparam titleBorderThickness 2
+skinparam titleBorderColor Aqua-CadetBlue
+skinparam titleBackgroundColor Aqua-CadetBlue
 title //Dynamic// - Settlement Matrix
 
 participant "Admin API" as ext_cl
