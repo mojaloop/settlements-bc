@@ -392,47 +392,6 @@ export class SettlementsAggregate {
 		// return settlementModel.settlementModel;
 	}
 
-	async createDynamicSettlementMatrix(
-		secCtx: CallSecurityContext,
-		matrixId: string | null,
-		settlementModel: string | null,
-		currencyCodes: string[],
-		fromDate: number,
-		toDate: number
-	): Promise<string> {
-		this._enforcePrivilege(secCtx, Privileges.CREATE_DYNAMIC_SETTLEMENT_MATRIX);
-		const startTimestamp = Date.now();
-
-		const newMatrix = SettlementMatrix.CreateDynamic(fromDate, toDate, currencyCodes, settlementModel);
-		if (matrixId) {
-			const existing = await this._settlementMatrixReqRepo.getMatrixById(matrixId);
-			if (existing) {
-				const err = new SettlementMatrixAlreadyExistsError("Matrix with the same id already exists");
-				this._logger.warn(err.message);
-				throw err;
-			}
-			newMatrix.id = matrixId;
-		}
-
-		newMatrix.state = "BUSY";
-		await this._settlementMatrixReqRepo.storeMatrix(newMatrix);
-		await this._recalculateMatrix(newMatrix);
-
-		await this._updateMatrixStateAndSave(newMatrix, "IDLE", startTimestamp);
-
-		// We perform an async audit:
-		this._auditingClient.audit(
-			AuditingActions.SETTLEMENT_MATRIX_REQUEST_CREATED,
-			true,
-			this._getAuditSecurityContext(secCtx), [
-				{key: "settlementMatrixRequestId", value: newMatrix.id},
-				{key: "matrixType", value: newMatrix.type}
-			]
-		);
-
-		return newMatrix.id;
-	}
-
 	async createStaticSettlementMatrix(
 		secCtx: CallSecurityContext,
 		matrixId: string | null,
@@ -473,6 +432,54 @@ export class SettlementsAggregate {
 				{key: "matrixType", value: newMatrix.type}
 			]
 		);
+		return newMatrix.id;
+	}
+
+	async createDynamicSettlementMatrix(
+		secCtx: CallSecurityContext,
+		matrixId: string | null,
+		currencyCodes: string[],
+		settlementModels: string[],
+		batchStatuses: string[],
+		fromDate: number,
+		toDate: number
+	): Promise<string> {
+		this._enforcePrivilege(secCtx, Privileges.CREATE_DYNAMIC_SETTLEMENT_MATRIX);
+		const startTimestamp = Date.now();
+
+		const newMatrix = SettlementMatrix.CreateDynamic(
+			fromDate,
+			toDate,
+			currencyCodes,
+			settlementModels,
+			batchStatuses
+		);
+		if (matrixId) {
+			const existing = await this._settlementMatrixReqRepo.getMatrixById(matrixId);
+			if (existing) {
+				const err = new SettlementMatrixAlreadyExistsError("Matrix with the same id already exists");
+				this._logger.warn(err.message);
+				throw err;
+			}
+			newMatrix.id = matrixId;
+		}
+
+		newMatrix.state = "BUSY";
+		await this._settlementMatrixReqRepo.storeMatrix(newMatrix);
+		await this._recalculateMatrix(newMatrix);
+
+		await this._updateMatrixStateAndSave(newMatrix, "IDLE", startTimestamp);
+
+		// We perform an async audit:
+		this._auditingClient.audit(
+			AuditingActions.SETTLEMENT_MATRIX_REQUEST_CREATED,
+			true,
+			this._getAuditSecurityContext(secCtx), [
+				{key: "settlementMatrixRequestId", value: newMatrix.id},
+				{key: "matrixType", value: newMatrix.type}
+			]
+		);
+
 		return newMatrix.id;
 	}
 
@@ -527,7 +534,7 @@ export class SettlementsAggregate {
 			AuditingActions.SETTLEMENT_MATRIX_ADD_BATCHES,
 			true,
 			this._getAuditSecurityContext(secCtx), [
-				{key: "settlementModel", value: matrix.settlementModel === null ? '' : matrix.settlementModel},
+				{key: "settlementModels", value: matrix.settlementModels === null ? '' : matrix.settlementModels.toString()},
 				{key: "settlementMatrixReqId", value: matrix.id}
 			]
 		);
@@ -585,7 +592,7 @@ export class SettlementsAggregate {
 			AuditingActions.SETTLEMENT_MATRIX_REMOVE_BATCHES,
 			true,
 			this._getAuditSecurityContext(secCtx), [
-				{key: "settlementModel", value: matrix.settlementModel === null ? '' : matrix.settlementModel},
+				{key: "settlementModels", value: matrix.settlementModels === null ? '' : matrix.settlementModels.toString()},
 				{key: "settlementMatrixReqId", value: matrix.id}
 			]
 		);
@@ -606,7 +613,7 @@ export class SettlementsAggregate {
 			AuditingActions.SETTLEMENT_MATRIX_REQUEST_FETCH,
 			true,
 			this._getAuditSecurityContext(secCtx), [
-				{key: "settlementModel", value: matrixDto.settlementModel === null ? '' : matrixDto.settlementModel},
+				{key: "settlementModels", value: matrixDto.settlementModels === null ? '' : matrixDto.settlementModels.toString()},
 				{key: "settlementMatrixReqId", value: id}
 			]
 		);
@@ -646,7 +653,7 @@ export class SettlementsAggregate {
 			AuditingActions.SETTLEMENT_MATRIX_REQUEST_FETCH,
 			true,
 			this._getAuditSecurityContext(secCtx), [
-				{key: "settlementModel", value: matrix.settlementModel === null ? '' : matrix.settlementModel},
+				{key: "settlementModels", value: matrix.settlementModels === null ? '' : matrix.settlementModels.toString()},
 				{key: "settlementMatrixReqId", value: id}
 			]
 		);
@@ -704,7 +711,7 @@ export class SettlementsAggregate {
 			AuditingActions.SETTLEMENT_MATRIX_DISPUTED,
 			true,
 			this._getAuditSecurityContext(secCtx), [
-				{key: "settlementModel", value: matrix.settlementModel === null ? '' : matrix.settlementModel},
+				{key: "settlementModels", value: matrix.settlementModels === null ? '' : matrix.settlementModels.toString()},
 				{key: "settlementMatrixReqId", value: id}
 			]
 		);
@@ -761,7 +768,7 @@ export class SettlementsAggregate {
 			AuditingActions.SETTLEMENT_MATRIX_LOCK,
 			true,
 			this._getAuditSecurityContext(secCtx), [
-				{key: "settlementModel", value: matrix.settlementModel === null ? '' : matrix.settlementModel},
+				{key: "settlementModels", value: matrix.settlementModels === null ? '' : matrix.settlementModels.toString()},
 				{key: "settlementMatrixReqId", value: id}
 			]
 		);
@@ -813,7 +820,7 @@ export class SettlementsAggregate {
 			AuditingActions.SETTLEMENT_MATRIX_DISPUTED,
 			true,
 			this._getAuditSecurityContext(secCtx), [
-				{key: "settlementModel", value: matrix.settlementModel === null ? '' : matrix.settlementModel},
+				{key: "settlementModels", value: matrix.settlementModels === null ? '' : matrix.settlementModels.toString()},
 				{key: "settlementMatrixReqId", value: id}
 			]
 		);
@@ -870,7 +877,7 @@ export class SettlementsAggregate {
 			AuditingActions.SETTLEMENT_MATRIX_CLOSED,
 			true,
 			this._getAuditSecurityContext(secCtx), [
-				{key: "settlementModel", value: matrix.settlementModel === null ? '' : matrix.settlementModel},
+				{key: "settlementModels", value: matrix.settlementModels === null ? '' : matrix.settlementModels.toString()},
 				{key: "settlementMatrixReqId", value: id}
 			]
 		);
@@ -948,7 +955,7 @@ export class SettlementsAggregate {
 			AuditingActions.SETTLEMENT_MATRIX_SETTLED,
 			true,
 			this._getAuditSecurityContext(secCtx), [
-				{key: "settlementModel", value: matrix.settlementModel === null ? '' : matrix.settlementModel},
+				{key: "settlementModels", value: matrix.settlementModels === null ? '' : matrix.settlementModels.toString()},
 				{key: "settlementMatrixReqId", value: id}
 			]
 		);
@@ -991,7 +998,8 @@ export class SettlementsAggregate {
 				matrix.dateFrom!,
 				matrix.dateTo!,
 				matrix.currencyCodes!,
-				matrix.settlementModel!
+				matrix.settlementModels!,
+				matrix.batchStatuses!
 			);
 		}
 
@@ -1144,14 +1152,21 @@ export class SettlementsAggregate {
 
 	async getSettlementBatchesByCriteria(
 		secCtx: CallSecurityContext,
-		settlementModel: string,
 		currencyCodes: string[],
+		settlementModels: string[],
+		batchStatuses: string[],
 		fromDate: number,
 		toDate: number
 	): Promise<ISettlementBatch[]> {
 		this._enforcePrivilege(secCtx, Privileges.RETRIEVE_SETTLEMENT_BATCH);
 
-		const batches = await this._batchRepo.getBatchesByCriteria(fromDate, toDate, currencyCodes, settlementModel);
+		const batches = await this._batchRepo.getBatchesByCriteria(
+			fromDate,
+			toDate,
+			currencyCodes,
+			settlementModels,
+			batchStatuses
+		);
 		if(!batches || batches.length <=0 ) return [];
 
 		await this._updateBatchAccountBalances(batches);

@@ -136,7 +136,8 @@ export interface ISettlementMatrix {
 	dateFrom: number | null;
 	dateTo: number | null;
 	currencyCodes: string[];
-	settlementModel: string | null;
+	settlementModels: string[];
+	batchStatuses: string[];
 	batches: ISettlementMatrixBatch[];
 	participantBalances: ISettlementMatrixParticipantBalance[];
 	state: "IDLE" | "BUSY" | "FINALIZED";

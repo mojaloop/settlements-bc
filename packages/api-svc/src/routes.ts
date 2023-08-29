@@ -332,19 +332,15 @@ export class ExpressRoutes {
 
 	private async getSettlementBatches(req: express.Request, res: express.Response): Promise<void> {
 		const batchName = req.query.batchName as string || req.query.batchname as string;
-		const settlementModel = req.query.settlementModel as string;
-		const currencyCodes = req.query.currencyCode as string[];
+		const settlementModels = req.query.settlementModels as string[];
+		const currencyCodes = req.query.currencyCodes as string[];
+		const batchStatuses = req.query.batchStatuses as string[];
 		const fromDate = req.query.fromDate as string;
 		const toDate = req.query.toDate as string;
-
-		// TODO: add these filters
-		// const includeSettled = Boolean(req.query.includeSettled || false);
-		// const criteriaBatchId = req.query.criteriaBatchId as string;
-
 		// TODO enforce privileges
 
 		try {
-			if(batchName){
+			if (batchName) {
 				const settlementBatches = await this._batchRepo.getBatchesByName(
 					batchName
 				);
@@ -353,14 +349,15 @@ export class ExpressRoutes {
 					return;
 				}
 				this.sendSuccessResponse(res, 200, settlementBatches);// OK
-			}else{
-				this._logger.debug(`got getSettlementBatches request - Now is [${Date.now()}] Settlement Batches from [${new Date(Number(fromDate))}] to [${new Date(Number(toDate))}] on [${settlementModel}].`);
+			} else {
+				this._logger.debug(`got getSettlementBatches request - Now is [${Date.now()}] Settlement Batches from [${new Date(Number(fromDate))}] to [${new Date(Number(toDate))}] on [${settlementModels}].`);
 
 				const settlementBatches = await this._batchRepo.getBatchesByCriteria(
 					Number(fromDate),
 					Number(toDate),
 					currencyCodes,
-					settlementModel
+					settlementModels,
+					batchStatuses
 				);
 				if (!settlementBatches || settlementBatches.length <= 0) {
 					res.sendStatus(404);
@@ -428,19 +425,16 @@ export class ExpressRoutes {
 			}
 
 			let cmd: CommandMsg;
-			if (type === "STATIC"){
-				// TODO: validate input params here before creating the cmd msg
-
+			if (type === "STATIC") {
 				const cmdPayload: CreateStaticMatrixCmdPayload = {
 					matrixId: matrixId,
 					batchIds: req.body.batchIds
 				};
 				cmd = new CreateStaticMatrixCmd(cmdPayload);
-			} else if (type==="DYNAMIC") {
-				// TODO: validate input params here before creating the cmd msg
-
+			} else if (type === "DYNAMIC") {
 				const currencyCodes = req.body.currencyCodes as string[];
-				const settlementModel = req.body.settlementModel;
+				const settlementModels = req.body.settlementModels as string[];
+				const batchStatuses = req.body.batchStatuses as string[];
 				const fromDate = req.body.fromDate;
 				const toDate = req.body.toDate;
 
@@ -449,15 +443,14 @@ export class ExpressRoutes {
 					fromDate: fromDate,
 					toDate: toDate,
 					currencyCodes: currencyCodes,
-					settlementModel: settlementModel
+					settlementModels: settlementModels,
+					batchStatuses: batchStatuses
 				};
 				cmd = new CreateDynamicMatrixCmd(cmdPayload);
-			}else{
+			} else {
 				return this.sendErrorResponse(res, 400, "Invalid Matrix type");
 			}
-
-			// TODO later implement the cmd.validatePayload();
-			// cmd.validatePayload();
+			cmd.validatePayload();
 
 			await this._messageProducer.send(cmd);
 

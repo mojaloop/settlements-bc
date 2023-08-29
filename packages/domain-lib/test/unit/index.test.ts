@@ -159,8 +159,9 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		// transfer:
 		const batches = await aggregate.getSettlementBatchesByCriteria(
 			securityContext,
-			reqTransferDto.settlementModel,
 			[reqTransferDto.currencyCode],
+			[reqTransferDto.settlementModel],
+			['OPEN'],
 			Date.now() - 30000,
 			Date.now() + 30000);
 		expect(batches).toBeDefined();
@@ -314,24 +315,38 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		// Ensure we have one batch for model [DEFAULT]:
 		const batchModelDef = await aggregate.getSettlementBatchesByCriteria(
 			securityContext,
-			batch1!.settlementModel,
 			[batch1!.currencyCode],
+			[batch1!.settlementModel],
+			['OPEN'],
 			Date.now() - 15000,
 			Date.now()
 		);
 		expect(batchModelDef).toBeDefined();
 		expect(batchModelDef.length).toEqual(1);
 
-		// ensure we have one batch for model [FX]:
+		// Ensure we have one batch for model [FX]:
 		const batchModelFx = await aggregate.getSettlementBatchesByCriteria(
 			securityContext,
-			batch2!.settlementModel,
 			[batch2!.currencyCode],
+			[batch2!.settlementModel],
+			['OPEN'],
 			Date.now() - 15000,
 			Date.now()
 		);
 		expect(batchModelFx).toBeDefined();
 		expect(batchModelFx.length).toEqual(1);
+
+		// There should be no batch in closed state:
+		const batchModelNoClosed = await aggregate.getSettlementBatchesByCriteria(
+			securityContext,
+			[batch2!.currencyCode],
+			[batch2!.settlementModel],
+			['CLOSED'],
+			Date.now() - 15000,
+			Date.now()
+		);
+		expect(batchModelNoClosed).toBeDefined();
+		expect(batchModelNoClosed.length).toEqual(0);
 	});
 
 	test("test exceptions/errors responses for create transfer (validations)", async () => {
@@ -537,8 +552,9 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		const matrixId = await aggregate.createDynamicSettlementMatrix(
 			securityContext,
 			null, // matrix-id
-			reqTransferDto.settlementModel,
 			[reqTransferDto.currencyCode],
+			[reqTransferDto.settlementModel],
+			[],
 			dateFrom,
 			dateTo
 		);
@@ -549,8 +565,9 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 			await aggregate.createDynamicSettlementMatrix(
 				securityContext,
 				matrixId,
-				reqTransferDto.settlementModel,
 				[reqTransferDto.currencyCode],
+				[reqTransferDto.settlementModel],
+				[],
 				dateFrom,
 				dateTo
 			);
@@ -571,7 +588,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		expect(matrix!.dateFrom).toEqual(dateFrom);
 		expect(matrix!.dateTo).toEqual(dateTo);
 		expect(matrix!.currencyCodes[0]).toEqual(reqTransferDto.currencyCode);
-		expect(matrix!.settlementModel).toEqual(reqTransferDto.settlementModel);
+		expect(matrix!.settlementModels[0]).toEqual(reqTransferDto.settlementModel);
 		expect(matrix!.state).toEqual('IDLE');
 		expect(matrix!.batches.length).toEqual(1);
 		expect(matrix!.participantBalances.length).toEqual(2);
@@ -613,8 +630,9 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		const matrixId = await aggregate.createDynamicSettlementMatrix(
 			securityContext,
 			null, // matrix-id
-			reqTransferDto.settlementModel,
 			[reqTransferDto.currencyCode],
+			[reqTransferDto.settlementModel],
+			[],
 			Date.now() - 5000,
 			Date.now()
 		);
@@ -674,8 +692,9 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		const matrixId = await aggregate.createDynamicSettlementMatrix(
 			securityContext,
 			null, //matrix-id
-			reqTransferDto.settlementModel,
 			[reqTransferDto.currencyCode],
+			[reqTransferDto.settlementModel],
+			[],
 			Date.now() - 5000,
 			Date.now()
 		);
@@ -709,8 +728,9 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		// retrieve the Batch:
 		const batches = await aggregate.getSettlementBatchesByCriteria(
 			securityContext, 
-			reqTransferDto.settlementModel,
 			[reqTransferDto.currencyCode],
+			[reqTransferDto.settlementModel],
+			[],
 			Date.now() - 15000,
 			Date.now()
 		);
@@ -752,8 +772,9 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		const matrixId = await aggregate.createDynamicSettlementMatrix(
 			securityContext,
 			null, //matrix-id
-			settleModel,
 			[currency],
+			[settleModel],
+			[],
 			Date.now() - 5000,
 			Date.now(),
 		);
@@ -861,8 +882,9 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		const matrixId = await aggregate.createDynamicSettlementMatrix(
 			securityContext,
 			null, //matrix-id
-			settleModel,
 			[currency],
+			[settleModel],
+			[],
 			Date.now() - 5000,
 			Date.now(),
 		);
@@ -968,8 +990,9 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		const matrixId = await aggregate.createDynamicSettlementMatrix(
 			securityContext,
 			null, //matrix-id
-			reqTransferDto.settlementModel,
 			[reqTransferDto.currencyCode],
+			[reqTransferDto.settlementModel],
+			[],
 			Date.now() - 5000,
 			Date.now(),
 		);
@@ -993,7 +1016,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		expect(matrixUnDispute).toBeDefined();
 		expect(matrixUnDispute!.state).toEqual('IDLE');
 		expect(matrixUnDispute!.currencyCodes.length).toEqual(0);
-		expect(matrixUnDispute!.settlementModel).toBeNull();
+		expect(matrixUnDispute!.settlementModels.length).toEqual(0);
 		expect(matrixUnDispute!.batches.length).toEqual(1);
 
 		const batchUnDispute = await aggregate.getSettlementBatch(securityContext, batchId);
@@ -1608,8 +1631,9 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		const matrixId_1 = await aggregate.createDynamicSettlementMatrix(
 			securityContext,
 			null, // matrix-id
-			reqTransferDto_1.settlementModel,
 			['USD', 'EUR'],
+			[reqTransferDto_1.settlementModel],
+			[],
 			dateFrom,
 			dateTo
 		);
@@ -1650,8 +1674,9 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		const matrixId_2 = await aggregate.createDynamicSettlementMatrix(
 			securityContext,
 			null, // matrix-id
-			null,
 			['USD', 'EUR'],
+			[],
+			[],
 			dateFrom,
 			dateTo
 		);

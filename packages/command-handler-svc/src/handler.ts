@@ -112,8 +112,9 @@ export class SettlementsCommandHandler{
 						await this._settlementsAgg.createDynamicSettlementMatrix(
 							sectCtx,
 							createPayload.matrixId,
-							createPayload.settlementModel,
 							createPayload.currencyCodes,
+							createPayload.settlementModels,
+							createPayload.batchStatuses,
 							createPayload.fromDate,
 							createPayload.toDate
 						);

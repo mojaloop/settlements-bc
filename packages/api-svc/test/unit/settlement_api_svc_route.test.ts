@@ -183,7 +183,8 @@ describe("Settlement BC api-svc route test", () => {
             dateFrom: null,
             dateTo: null,
             currencyCodes: ["USD"],
-            settlementModel: "DEFAULT",
+            settlementModels: ["DEFAULT"],
+            batchStatuses: [],
             batches: mockedSettlementMatrixBatches,
             participantBalances: mockedSettlementMatrixParticipantBalances,
             state: "FINALIZED",
@@ -231,7 +232,6 @@ describe("Settlement BC api-svc route test", () => {
         await mockBatchRepo.storeNewBatch(mockBatches[0]);
         await mockBatchRepo.storeNewBatch(mockBatches[1]);
 
-
         //Act
         const response = await request(server)
             .get(`/batches/${mockBatches[0].id}`)
@@ -240,7 +240,6 @@ describe("Settlement BC api-svc route test", () => {
         //Assert
         expect(response.status).toBe(200);
         expect(response.body).toEqual(mockBatches[0]);
-
     });
 
 
@@ -438,7 +437,8 @@ describe("Settlement BC api-svc route test", () => {
             dateFrom: null,
             dateTo: null,
             currencyCodes: ["EUR"],
-            settlementModel: "DEFAULT",
+            settlementModels: ["DEFAULT"],
+            batchStatuses: [],
             batches: settlementSettlementMatrixBatches,
             participantBalances: settlementMatrixParticipantBalances,
             state: "FINALIZED",
@@ -499,7 +499,8 @@ describe("Settlement BC api-svc route test", () => {
             dateFrom: null,
             dateTo: null,
             currencyCodes: ["EUR"],
-            settlementModel: "DEFAULT",
+            settlementModels: ["DEFAULT"],
+            batchStatuses: [],
             batches: settlementSettlementMatrixBatches,
             participantBalances: [],
             state: "IDLE",
@@ -566,7 +567,8 @@ describe("Settlement BC api-svc route test", () => {
             dateFrom: null,
             dateTo: null,
             currencyCodes: ["EUR"],
-            settlementModel: "DEFAULT",
+            settlementModels: ["DEFAULT"],
+            batchStatuses: [],
             batches: settlementSettlementMatrixBatches,
             participantBalances: [],
             state: "IDLE",
@@ -630,7 +632,8 @@ describe("Settlement BC api-svc route test", () => {
             dateFrom: null,
             dateTo: null,
             currencyCodes: ["EUR"],
-            settlementModel: "DEFAULT",
+            settlementModels: ["DEFAULT"],
+            batchStatuses: [],
             batches: settlementSettlementMatrixBatches,
             participantBalances: [],
             state: "IDLE",
@@ -697,7 +700,8 @@ describe("Settlement BC api-svc route test", () => {
             dateFrom: null,
             dateTo: null,
             currencyCodes: ["EUR"],
-            settlementModel: "DEFAULT",
+            settlementModels: ["DEFAULT"],
+            batchStatuses: [],
             batches: settlementSettlementMatrixBatches,
             participantBalances: [],
             state: "IDLE",
@@ -763,7 +767,8 @@ describe("Settlement BC api-svc route test", () => {
             dateFrom: null,
             dateTo: null,
             currencyCodes: ["EUR"],
-            settlementModel: "DEFAULT",
+            settlementModels: ["DEFAULT"],
+            batchStatuses: [],
             batches: settlementSettlementMatrixBatches,
             participantBalances: [],
             state: "IDLE",
@@ -829,7 +834,8 @@ describe("Settlement BC api-svc route test", () => {
             dateFrom: null,
             dateTo: null,
             currencyCodes: ["EUR"],
-            settlementModel: "DEFAULT",
+            settlementModels: ["DEFAULT"],
+            batchStatuses: [],
             batches: settlementSettlementMatrixBatches,
             participantBalances: [],
             state: "IDLE",
@@ -895,7 +901,8 @@ describe("Settlement BC api-svc route test", () => {
             dateFrom: null,
             dateTo: null,
             currencyCodes: ["EUR"],
-            settlementModel: "DEFAULT",
+            settlementModels: ["DEFAULT"],
+            batchStatuses: [],
             batches: settlementSettlementMatrixBatches,
             participantBalances: [],
             state: "IDLE",
@@ -926,7 +933,8 @@ describe("Settlement BC api-svc route test", () => {
             dateFrom: null,
             dateTo: null,
             currencyCodes: ["EUR"],
-            settlementModel: "DEFAULT",
+            settlementModels: ["DEFAULT"],
+            batchStatuses: [],
             batches: [],
             participantBalances: [],
             state: "IDLE",
@@ -943,7 +951,8 @@ describe("Settlement BC api-svc route test", () => {
             dateFrom: null,
             dateTo: null,
             currencyCodes: ["EUR"],
-            settlementModel: "DEFAULT",
+            settlementModels: ["DEFAULT"],
+            batchStatuses: [],
             batches: [],
             participantBalances: [],
             state: "IDLE",

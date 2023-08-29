@@ -45,7 +45,8 @@ export class SettlementMatrix implements ISettlementMatrix {
   dateFrom: number | null;
   dateTo: number | null;
   currencyCodes: string[];
-  settlementModel: string | null;
+  settlementModels: string[];
+  batchStatuses: string[];
 
   // multiple matrices can have the same batch, this can only be used to find a matrix batch
   // to find the actual owner of a batch, use the batch.ownerMatrixId
@@ -65,7 +66,8 @@ export class SettlementMatrix implements ISettlementMatrix {
     this.dateFrom = null;
     this.dateTo = null;
     this.currencyCodes = [];
-    this.settlementModel = null;
+    this.settlementModels = [];
+    this.batchStatuses = [];
 
     this.state = "IDLE";
     this.type = type;
@@ -145,12 +147,14 @@ export class SettlementMatrix implements ISettlementMatrix {
     dateFrom: number | null,
     dateTo: number | null,
     currencyCodes: string[],
-    settlementModel: string | null
+    settlementModels: string[],
+    batchStatuses: string[]
   ) : SettlementMatrix {
     const newInstance = new SettlementMatrix("DYNAMIC");
     newInstance.dateFrom = dateFrom;
     newInstance.dateTo = dateTo;
-    newInstance.settlementModel = settlementModel;
+    newInstance.settlementModels = settlementModels;
+    newInstance.batchStatuses = batchStatuses;
     newInstance.currencyCodes = currencyCodes;
     return newInstance;
   }
@@ -166,7 +170,8 @@ export class SettlementMatrix implements ISettlementMatrix {
 
     newInstance.dateFrom = dto.dateFrom;
     newInstance.dateTo = dto.dateTo;
-    newInstance.settlementModel = dto.settlementModel;
+    newInstance.settlementModels = dto.settlementModels;
+    newInstance.batchStatuses = dto.batchStatuses;
 
     newInstance.batches = dto.batches;
     newInstance.participantBalances = dto.participantBalances;

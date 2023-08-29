@@ -77,7 +77,13 @@ export class SettlementBatchRepoMock implements ISettlementBatchRepo {
 		return Promise.resolve(returnVal);
 	}
 
-	async getBatchesByCriteria(fromDate: number, toDate: number, currencyCodes: string[], model: string | null): Promise<ISettlementBatch[]> {
+	async getBatchesByCriteria(
+		fromDate: number,
+		toDate: number,
+		currencyCodes: string[],
+		models: string[],
+		batchStatuses: string[]
+	): Promise<ISettlementBatch[]> {
 		const returnVal: Array<ISettlementBatch> = this.batches.filter(value => {
 			let currencyMatch = true;
 			if (currencyCodes && currencyCodes.length > 0) {
@@ -85,9 +91,18 @@ export class SettlementBatchRepoMock implements ISettlementBatchRepo {
 				currencyMatch = matches.length > 0;
 			}
 			let modelMatch = true;
-			if (model && model.trim().length > 0) modelMatch = value.settlementModel === model;
+			if (models && models.length > 0) {
+				const matches = models.filter(model => value.settlementModel === model);
+				modelMatch = matches.length > 0;
+			}
+			let statusMatch = true;
+			if (batchStatuses && batchStatuses.length > 0) {
+				const matches = batchStatuses.filter(status => value.state === status);
+				statusMatch = matches.length > 0;
+			}
 
-			return (value.timestamp >= fromDate && value.timestamp <= toDate) && (modelMatch && currencyMatch);
+			return (value.timestamp >= fromDate && value.timestamp <= toDate)
+				&& ((modelMatch && currencyMatch) && statusMatch);
 		});
 		return Promise.resolve(returnVal);
 	}
