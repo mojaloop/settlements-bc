@@ -1574,7 +1574,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 	});
 
 	test("test matrix - settlement model and currency optional for dynamic matrix", async () => {
-		const reqTransferDto: ITransferDto = {
+		const reqTransferDto_1: ITransferDto = {
 			id: null,
 			transferId: randomUUID(),
 			payerFspId: randomUUID(),
@@ -1582,27 +1582,75 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 			currencyCode: 'EUR',
 			amount: '10000', //100 EURO
 			timestamp: Date.now(),
-			settlementModel: 'STATE_MACHINE_LOCKED'
+			settlementModel: 'MULTI_CURRENCY'
 		};
-		const batchId: string = await aggregate.handleTransfer(securityContext, reqTransferDto);
-		expect(batchId).toBeDefined();
+		const batchId_1: string = await aggregate.handleTransfer(securityContext, reqTransferDto_1);
+		expect(batchId_1).toBeDefined();
 
 		// Initial state for a batch is [OPEN]:
-		let batch = await settleBatchRepo.getBatch(batchId);
+		let batch = await settleBatchRepo.getBatch(batchId_1);
 		expect(batch).toBeDefined();
-		expect(batch!.id).toEqual(batchId);
+		expect(batch!.id).toEqual(batchId_1);
 		expect(batch!.state).toEqual('OPEN');
 
-		const dateTo = Date.now();
-		const dateFrom = dateTo - 5000;
-		const matrixId = await aggregate.createDynamicSettlementMatrix(
+		const dateTo = (Date.now() + 5000);
+		const dateFrom = (Date.now() - 5000);
+		const matrixId_1 = await aggregate.createDynamicSettlementMatrix(
 			securityContext,
 			null, // matrix-id
-			"",
-			[reqTransferDto.currencyCode],
+			reqTransferDto_1.settlementModel,
+			['USD', 'EUR'],
 			dateFrom,
 			dateTo
 		);
-		expect(matrixId).toBeDefined();
+		expect(matrixId_1).toBeDefined();
+
+		// Close the matrix:
+		await aggregate.closeSettlementMatrix(securityContext, matrixId_1);
+		let matrix = await aggregate.getSettlementMatrix(securityContext, matrixId_1);
+		expect(matrix).toBeDefined();
+		expect(matrix!.id).toEqual(matrixId_1);
+		expect(matrix!.state).toEqual('IDLE');
+
+		// 2nd Transfer:
+		const reqTransferDto_2: ITransferDto = {
+			id: null,
+			transferId: randomUUID(),
+			payerFspId: randomUUID(),
+			payeeFspId: randomUUID(),
+			currencyCode: 'USD',
+			amount: '15000', //100 EURO
+			timestamp: Date.now(),
+			settlementModel: 'MULTI_CURRENCY'
+		};
+		const batchId_2: string = await aggregate.handleTransfer(securityContext, reqTransferDto_2);
+		expect(batchId_2).toBeDefined();
+		// Ensure the batch is allocated to another batch.
+		expect(batchId_2 !== batchId_1).toBe(true);
+
+		// Recalculate the matrix to fetch the new batch:
+		await aggregate.recalculateSettlementMatrix(securityContext, matrixId_1);
+		matrix = await aggregate.getSettlementMatrix(securityContext, matrixId_1);
+		expect(matrix).toBeDefined();
+		expect(matrix!.id).toEqual(matrixId_1);
+		expect(matrix!.state).toEqual('IDLE');
+		expect(matrix!.batches.length).toEqual(2);
+
+		// Create a dynamic matrix with no settlement model:
+		const matrixId_2 = await aggregate.createDynamicSettlementMatrix(
+			securityContext,
+			null, // matrix-id
+			null,
+			['USD', 'EUR'],
+			dateFrom,
+			dateTo
+		);
+		expect(matrixId_2).toBeDefined();
+		matrix = await aggregate.getSettlementMatrix(securityContext, matrixId_2);
+		expect(matrix).toBeDefined();
+		expect(matrixId_1 !== matrixId_2).toBe(true);
+		expect(matrix!.id).toEqual(matrixId_2);
+		expect(matrix!.state).toEqual('IDLE');
+		expect(matrix!.batches.length).toBeGreaterThan(1);
 	});
 });

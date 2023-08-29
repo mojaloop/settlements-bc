@@ -85,10 +85,9 @@ export class SettlementBatchRepoMock implements ISettlementBatchRepo {
 				currencyMatch = matches.length > 0;
 			}
 			let modelMatch = true;
-			if (model && model.length > 0) modelMatch = value.settlementModel === model;
+			if (model && model.trim().length > 0) modelMatch = value.settlementModel === model;
 
-			return (value.timestamp >= fromDate && value.timestamp <= toDate) &&
-				(!model || value.settlementModel === model && currencyMatch);
+			return (value.timestamp >= fromDate && value.timestamp <= toDate) && (modelMatch && currencyMatch);
 		});
 		return Promise.resolve(returnVal);
 	}

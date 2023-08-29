@@ -395,7 +395,7 @@ export class SettlementsAggregate {
 	async createDynamicSettlementMatrix(
 		secCtx: CallSecurityContext,
 		matrixId: string | null,
-		settlementModel: string,
+		settlementModel: string | null,
 		currencyCodes: string[],
 		fromDate: number,
 		toDate: number
