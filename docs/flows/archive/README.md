@@ -32,9 +32,9 @@ The diagram below illustrates the various components required by Settlement to f
 > The components on the left are client components for the Settlement-BC, whilst the components on the right represent core Settlement components.  
 
 ## 1. Creating Settlement Transfers
-This process is initiated when the Settlement component receives cleared Transfers to settle.
-The process creates settlement obligations between the payer (debtor) and payee (creditor) DFSPs
-by creating settlement transfers which are deterministically allocated to settlement batches.
+This process is initiated when the Settlement component receives cleared Transfers to settle.  
+The process creates settlement obligations between the payer (debtor) and payee (creditor) DFSPs 
+by creating settlement transfers which are deterministically allocated to settlement batches. 
 
 ## `TransferPreparedEvtPayload` from Transfers BC
 The diagram below illustrates how Transfers that were cleared by the **Transfers BC** get settled:
@@ -45,7 +45,7 @@ The diagram below illustrates how Transfers that were cleared by the **Central-L
 ## ![Settlement Transfer Flow for Central-Ledger](./01-settlement-transfer-cl.svg "Settlement Transfer Central-Ledger")
 
 ### Settlement Transfer Model
-A Settlement Transfer is the data object shared between the Settlement service and the service that it interacts with (e.g. Central-Ledger or the Transfers BC).
+A Settlement Transfer is the data object shared between the Settlement service and the service that it interacts with (e.g. Central-Ledger or the Transfers BC).    
 The table below gives a view of the Settlement Transfer fields:
 
 | Field              | Definition                         | Description                                                                                                                                        |
@@ -76,7 +76,7 @@ The table below gives a view of the Settlement Batch Account fields:
 * See `ISettlementBatchAccount` at https://github.com/mojaloop/settlements-bc/blob/main/packages/public-types-lib/src/index.ts
 
 ### Settlement Batch Model
-A settlement batch is a collection of Settlement Transfers that should be settled together.
+A settlement batch is a collection of Settlement Transfers that should be settled together. 
 The table below gives a view of the Settlement Batch fields:
 
 | Field             | Definition                                  | Description                                                                                                                                                                                         |
@@ -96,12 +96,12 @@ The diagram below illustrates the relationships between persisted settlement dat
 ## ![Settlement Data Relationships](./10-settlement-model.svg "Settlement Data Relationships")
 
 ## 2. Fulfilling Settlement Obligations
-This process begins with requesting the settlement matrix for a specified timespan __(Generate Settlement Matrix)__.
+This process begins with requesting the settlement matrix for a specified timespan __(Generate Settlement Matrix)__.    
 
 For a specified period of time, requesting the settlement matrix closes any open batches and
-returns a result set of all the DR/CR balances of the settlement batches.
+returns a result set of all the DR/CR balances of the settlement batches.  
 The purpose of the matrix is to view the DR/CR balances for batches, and the payer/payee
-settlement account balances for those batches.
+settlement account balances for those batches.  
 
 Once the batches are closed, the external services (i.e. Central-Ledger, Transfers BC, Participants BC) 
 that interfaces with the Settlement-BC gets notified of the settlement transfers being fulfilled.
@@ -153,7 +153,7 @@ The table below illustrates the Settlement Matrix fields:
 
 ### Settlement Matrix Batch Model
 The settlement matrix batch data object is a child object for the [Settlement Matrix Model](#settlement-matrix-model)
-The Settlement Matrix Batch has numerous Settlement Accounts associated with the batch.
+The Settlement Matrix Batch has numerous Settlement Accounts associated with the batch. 
 The table below illustrates the Settlement Matrix Batch fields:
 
 | Field                | Definition                                                           | Description                                                                                                                                                                                                                                                                                                     |
@@ -197,7 +197,7 @@ The table below illustrates the Transfer Prepared Event Payload Model fields:
 * See `TransferPreparedEvtPayload` at https://github.com/mojaloop/platform-shared-lib/blob/main/packages/public-messages-lib/src/transfers-bc/responses.ts
 
 ### Settlement Matrix Settled Participant Event Payload Model
-The Settlement Matrix Settled Participant Event Payload Model is published at the time a settlement batch have been `SETTLED` (final stage).
+The Settlement Matrix Settled Participant Event Payload Model is published at the time a settlement batch have been `SETTLED` (final stage). 
 This event signifies the settlement obligation has been fulfilled as a result of a successful settlement.
 The table below illustrates the Settlement Matrix Settled Participant Event Payload Model fields:
 
@@ -223,7 +223,7 @@ The table below illustrates the Settlement Matrix Settled Participant Event Payl
 ## 3. Assigning Dynamic Settlement Batches
 This section describes the process of assigning a Transfer to a batch, for settlement.
 
-In the previous implementation, the Settlement component always assigned a Transfer to the only open settlement window at the time of settlement.
+In the previous implementation, the Settlement component always assigned a Transfer to the only open settlement window at the time of settlement.  
 In the new implementation, the Settlement component uses fields of a Transfer to determine the settlement batch and multiple settlement batches can be open at a time, based on the:
 - Timestamp of a Transfer.
 - Settlement model of a Transfer.
@@ -237,7 +237,7 @@ Settlement-BC would then be responsible for allocating a transfer to a settlemen
 
 Late settlement transactions will be allocated to a newly created batch (since the batch for timespan X would have already been closed).
 Example: 
-Lets assume that the transfer timestamp for a late transaction is `2023.1.26.13.33.59`.
+Lets assume that the transfer timestamp for a late transaction is `2023.1.26.13.33.59`. 
 The batch meant for the "late" / delayed transfer is meant for batch:
 - `DEFAULT.USD:USD.2023.1.26.13.33.001`
 Due to the batch being in a closed state, the following batch will be created for the transfer:
@@ -245,7 +245,7 @@ Due to the batch being in a closed state, the following batch will be created fo
 
 The above ensures the requirements are met:
 - Transfers will always be allocated to a batch, irrespective of the timestamp and batch statuses
-- Settlement batches that are in a `CLOSED` state cannot be altered
+- Settlement batches that are in a `CLOSED` state cannot be altered 
 - Reconciliation is achieved by re-running the Settlement Matrix for the delayed transfer, which will automatically rectify settlement inconsistencies
 
 ## 4. Assigning Static Settlement Batches
@@ -307,21 +307,16 @@ The following documentation provides insight into Settlements.
 ## 7. API
 The following REST API endpoints exists for Settlements.
 
-| Ref # | URL                              | Method   | Description                                                                                                                                                                                                                                                                                                                                         | 
-|-------|----------------------------------|----------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `01.` | **/transfers**                   | `GET`    | Retrieve all settlement transfers by batch id, batch name, transfer id or matrix id.                                                                                                                                                                                                                                                                |
-| `02.` | **/models**                      | `GET`    | Retrieve all settlement models                                                                                                                                                                                                                                                                                                                      |
-| `03.` | **/models/:id**                  | `GET`    | Retrieve settlement models by UUID                                                                                                                                                                                                                                                                                                                  |
-| `04.` | **/batches**                     | `GET`    | Retrieve all settlement batches.                                                                                                                                                                                                                                                                                                                    |
-| `05.` | **/batches/:id**                 | `GET`    | Retrieve settlement batch by UUID. The batches include the settlement accounts and balances.                                                                                                                                                                                                                                                        |
-| `06.` | **/matrix**                      | `POST`   | Create a settlement matrix and return the matrix UUID *(newly generated)*. Batches that match the matrix criteria will be included as part of the settlement matrix. Any newly created batches will not be automatically associated with the settlement matrix. Newly created transfers will still be allocated to batches that are not yet closed. |
-| `07.` | **/matrix/:id/batches**          | `POST`   | Add a specific batch (by uuid) or batches to a `STATIC` settlement matrix.                                                                                                                                                                                                                                                                          |
-| `08.` | **/matrix/:id/batches**          | `DELETE` | Remove a specific batch (by uuid) or batches from a `STATIC` settlement matrix.                                                                                                                                                                                                                                                                     |
-| `09.` | **/matrix/:id/recalculate**      | `POST`   | Request a re-calculation for an existing settlement matrix based on UUID. The re-calculation will include any newly created batches that match the settlement matrix criteria (`DYNAMIC` only).                                                                                                                                                     |
-| `10.` | **/matrix/:id/close**            | `POST`   | Close settlement batches and settlement matrix.                                                                                                                                                                                                                                                                                                     |
-| `11.` | **/matrix/:id/await_settlement** | `POST`   | Place a lock on a settlement matrix and batches for awaiting settlement.                                                                                                                                                                                                                                                                            |
-| `12.` | **/matrix/:id/await_settlement** | `DELETE` | Release a lock that has been placed between a settlement matrix and batches.                                                                                                                                                                                                                                                                        |
-| `13.` | **/matrix/:id/settle**           | `POST`   | Settle applicable settlement batches and settlement matrix. Generate a settlement matrix as response. Once a settlement batch is settled, the balances for the batches and accounts will not change. No newly created transfers will be allocated to settled batches.                                                                               |
-| `14.` | **/matrix/:id/dispute**          | `POST`   | Dispute settlement batches and settlement matrix.                                                                                                                                                                                                                                                                                                   |
-| `15.` | **/matrix/:id**                  | `GET`    | Retrieve the settlement matrix by UUID. If the settlement matrix is not in a closed state, the batch and account balances for the open batches may change due to new transfers.                                                                                                                                                                     |
-| `16.` | **/matrix/:id**                  | `GET`    | Retrieve all the settlement matrices.                                                                                                                                                                                                                                                                                                               |
+| Ref # | URL                         | Method   | Description                                                                                                                                                                                                                                                                                                                                         | 
+|-------|-----------------------------|----------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `01.` | **/matrix**                 | `POST`   | Create a settlement matrix and return the matrix UUID *(newly generated)*. Batches that match the matrix criteria will be included as part of the settlement matrix. Any newly created batches will not be automatically associated with the settlement matrix. Newly created transfers will still be allocated to batches that are not yet closed. |
+| `02.` | **/matrix/:id/batches**     | `POST`   | Add a specific batch (by uuid) or batches to a `STATIC` settlement matrix.                                                                                                                                                                                                                                                                          |
+| `03.` | **/matrix/:id/batches**     | `DELETE` | Remove a specific batch (by uuid) or batches from a `STATIC` settlement matrix.                                                                                                                                                                                                                                                                     |
+| `04.` | **/matrix/:id/recalculate** | `POST`   | Request a re-calculation for an existing settlement matrix based on UUID. The re-calculation will include any newly created batches that match the settlement matrix criteria (`DYNAMIC` only).                                                                                                                                                     |
+| `05.` | **/matrix/:id/close**       | `POST`   | Close settlement batches and settlement matrix.                                                                                                                                                                                                                                                                                                     |
+| `06.` | **/matrix/:id/settle**      | `POST`   | Settle applicable settlement batches and settlement matrix. Generate a settlement matrix as response. Once a settlement batch is settled, the balances for the batches and accounts will not change. No newly created transfers will be allocated to settled batches.                                                                               |
+| `07.` | **/matrix/:id/dispute**     | `POST`   | Dispute settlement batches and settlement matrix.                                                                                                                                                                                                                                                                                                   |
+| `08.` | **/batches/:id**            | `GET`    | Retrieve settlement batch by UUID. The batches include the settlement accounts and balances.                                                                                                                                                                                                                                                        |
+| `09.` | **/batches**                | `GET`    | Retrieve all settlement batches.                                                                                                                                                                                                                                                                                                                    |
+| `10.` | **/transfers**              | `GET`    | Retrieve all settlement transfers by batch id, batch name, transfer id or matrix id.                                                                                                                                                                                                                                                                |
+| `11.` | **/matrix/:id**             | `GET`    | Retrieve the settlement matrix by UUID. If the settlement matrix is not in a closed state, the batch and account balances for the open batches may change due to new transfers.                                                                                                                                                                     |

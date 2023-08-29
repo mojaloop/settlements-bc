@@ -1,0 +1,58 @@
+@startuml Settle_with_Transfers_BC
+
+'skinparam TitleFontSize 12
+'skinparam TitleFontColor #FFFFFF
+'skinparam titleBorderRoundCorner 10
+'skinparam titleBorderThickness 6
+'skinparam titleBorderColor #005B96
+'skinparam titleBackgroundColor #005B96
+'title Settlement from Transfers BC
+
+participant "Transfers BC" as ext_transfers_bc #93CEFF
+/'
+note over ext_transfers_bc
+    Clear transactions & 
+    publish / listen for events
+end note
+'/
+
+box Settlements BC #DDD5F3
+	participant "Settlements \nCommand Handler" as sbc_grpc #D0BFFF
+	participant "Settlements BC\nApp Logic" as sbc_app_logic #D0BFFF
+	database "Settlements \nDatabase" as sbc_db #D0BFFF
+    participant "Ledger \nAdapter" as sbc_adptr #B19CD7
+end box
+
+participant "Platform \nConfig BC" as pc_bc #CC7722
+participant "Accounts & \nBalances BC" as ab_bc #66A767
+'#93CEFF
+
+group 1. Publish Cleared Transfers
+autonumber
+    ext_transfers_bc --> ext_transfers_bc : Prepare transfer
+    ext_transfers_bc --> ext_transfers_bc : Obtain \nsettlement model
+    ext_transfers_bc -> sbc_grpc : Fulfil transfer & \npublish event
+    sbc_grpc --> sbc_app_logic : Consume \npublished event
+end
+
+group 2. Create Settlement Transfers
+autonumber
+    sbc_app_logic --> sbc_app_logic: Trigger settlement & \nvalidate transfer data
+    sbc_app_logic --> sbc_db : Lookup settlement config
+    sbc_app_logic <-> pc_bc : Fetch participant settlement config
+    sbc_app_logic --> sbc_db : Store participant settlement config
+    sbc_app_logic <--> sbc_db : Determine settlement batch
+    sbc_app_logic --> sbc_adptr : Request settlement accounts
+    sbc_adptr -> ab_bc : Request settlement \naccounts
+    ab_bc --> ab_bc : Retrieve / create \naccounts
+    ab_bc -> sbc_adptr : Return settlement \naccounts
+    sbc_adptr --> sbc_app_logic : Return settlement accounts
+    sbc_app_logic --> sbc_adptr: Create settlement transfers
+    sbc_adptr <-> ab_bc: Create settlement \ntransfers
+    sbc_adptr --> sbc_app_logic: Confirm settlement transfers created
+    sbc_app_logic --> sbc_app_logic: Prepare response
+    sbc_app_logic --> sbc_grpc: Return response about \nsettlement transfers
+    sbc_grpc -> ext_transfers_bc: Publish response
+end
+
+@enduml 

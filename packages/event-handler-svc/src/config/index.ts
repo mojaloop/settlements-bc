@@ -42,7 +42,7 @@ import {
 // configs - constants / code dependent
 const BC_NAME = "settlements-bc";
 const APP_NAME = "event-handler-svc";
-const APP_VERSION = packageJSON.versiontorr;
+const APP_VERSION = packageJSON.version;
 const CONFIGSET_VERSION = "0.0.1";
 
 // configs - non-constants

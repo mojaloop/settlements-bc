@@ -1,0 +1,58 @@
+@startuml Settle_with_Central_Ledger
+
+/'
+skinparam TitleFontSize 20
+skinparam TitleFontColor #FFFFFF
+skinparam titleBorderRoundCorner 10
+skinparam titleBorderThickness 6
+skinparam titleBorderColor #005B96
+skinparam titleBackgroundColor #005B96
+title Settlement from \nCentral-Ledger
+'/
+
+participant "Central-Ledger" as ext_cl #93CEFF
+/'
+note over ext_cl
+    Clear transactions &
+    maintain liquidity balances
+end note
+'/
+
+box Settlements BC #DDD5F3
+    participant "Rest API" as sbc_rest #D0BFFF
+    participant "Event \nHandler" as sbc_event #D0BFFF
+    participant "Settlements BC\nApp Logic" as sbc_app_logic #D0BFFF
+    database "Settlements \nDatabase" as sbc_db #D0BFFF
+    participant "Ledger \nAdapter" as sbc_adptr #B19CD7
+end box
+
+group 1. Publish Cleared Transfers
+autonumber
+    ext_cl --> ext_cl : Prepare transfer
+    ext_cl --> ext_cl : Obtain \nsettlement model
+    ext_cl -> sbc_event : Fulfil & publish \ncleared transfers
+    sbc_event --> sbc_app_logic : Consume \npublished event
+autonumber
+end
+
+group 2. Create Settlement Transfers
+    sbc_app_logic --> sbc_app_logic: Validate cleared \ntransfer data
+    sbc_app_logic <--> sbc_db : Lookup settlement config
+    sbc_app_logic <-> ext_cl : Fetch participant settlement config  
+    sbc_app_logic --> sbc_db : Store participant \nsettlement config
+    sbc_app_logic <--> sbc_db : Determine \nsettlement batch
+    sbc_app_logic --> sbc_adptr : Request settlement accounts
+    sbc_adptr <-> ext_cl : Request settlement accounts
+    ext_cl --> ext_cl : Create / retrieve \nsettlement accounts
+    sbc_adptr <- ext_cl : Return settlement accounts
+    sbc_app_logic <-- sbc_adptr : Return settlement accounts
+    sbc_app_logic --> sbc_adptr : Request settlement transfers
+    sbc_adptr -> ext_cl : Request settlement transfers
+    ext_cl --> ext_cl : Create \nsettlement transfers
+    sbc_adptr <- ext_cl : Confirm settlement transfers created
+    sbc_adptr --> sbc_app_logic : Confirm settlement transfers
+    sbc_app_logic --> sbc_event : Return response about \nsettlement transfers
+    ext_cl <- sbc_event  : Publish response
+end
+
+@enduml
