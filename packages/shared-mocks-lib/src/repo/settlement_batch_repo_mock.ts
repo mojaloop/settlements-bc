@@ -77,7 +77,7 @@ export class SettlementBatchRepoMock implements ISettlementBatchRepo {
 		return Promise.resolve(returnVal);
 	}
 
-	async getBatchesByCriteria(fromDate: number, toDate: number, currencyCodes: string[], model: string): Promise<ISettlementBatch[]> {
+	async getBatchesByCriteria(fromDate: number, toDate: number, currencyCodes: string[], model: string | null): Promise<ISettlementBatch[]> {
 		const returnVal: Array<ISettlementBatch> = this.batches.filter(value => {
 			let currencyMatch = true;
 			if (currencyCodes && currencyCodes.length > 0) {

@@ -134,7 +134,7 @@ export class MongoSettlementBatchRepo implements ISettlementBatchRepo {
 		}
 	}
 
-	async getBatchesByCriteria(fromDate: number, toDate: number, currencyCodes: string[], model: string): Promise<ISettlementBatch[]>{
+	async getBatchesByCriteria(fromDate: number, toDate: number, currencyCodes: string[], model: string | null): Promise<ISettlementBatch[]>{
 		try {
 			const paramsForQuery : Filter<any> = [
 				{timestamp: {$gte:fromDate}},
