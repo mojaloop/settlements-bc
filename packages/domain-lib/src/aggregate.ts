@@ -1028,11 +1028,11 @@ export class SettlementsAggregate {
 
 				let batchDebitBalance = 0n, batchCreditBalance = 0n;
 				batch.accounts.forEach(acc => {
-					const debit = stringToBigint(acc.debitBalance, currency.decimals);
-					const credit = stringToBigint(acc.creditBalance, currency.decimals);
+					const accDebit = stringToBigint(acc.debitBalance, currency.decimals);
+					const accCredit = stringToBigint(acc.creditBalance, currency.decimals);
 
-					batchDebitBalance += debit;
-					batchCreditBalance += credit;
+					batchDebitBalance += accDebit;
+					batchCreditBalance += accCredit;
 
 					// update per participant balances:
 					// participantId:
@@ -1047,13 +1047,13 @@ export class SettlementsAggregate {
 					const totalForCurrency = totalForPartState.get(currency.code);
 					if (totalForCurrency) {
 						totalForPartState.set(currency.code, {
-							dr: totalForCurrency.dr + batchDebitBalance,
-							cr: totalForCurrency.cr + batchCreditBalance
+							dr: totalForCurrency.dr + accDebit,
+							cr: totalForCurrency.cr + accCredit
 						});
 					} else {
 						totalForPartState.set(currency.code, {
-							dr:batchDebitBalance,
-							cr: batchCreditBalance
+							dr: accDebit,
+							cr: accCredit
 						});
 					}
 					totalForPart.set(batch.state, totalForPartState);
@@ -1078,7 +1078,7 @@ export class SettlementsAggregate {
 					});
 				} else {
 					totalForStatus.set(currency.code, {
-						dr:batchDebitBalance,
+						dr: batchDebitBalance,
 						cr: batchCreditBalance
 					});
 				}

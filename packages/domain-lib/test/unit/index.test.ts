@@ -51,7 +51,7 @@ import {
 import {ConsoleLogger, ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import {IAuditClient} from "@mojaloop/auditing-bc-public-types-lib";
 import {randomUUID} from "crypto";
-import {CallSecurityContext, ForbiddenError, IAuthorizationClient} from "@mojaloop/security-bc-public-types-lib";
+import {CallSecurityContext, IAuthorizationClient} from "@mojaloop/security-bc-public-types-lib";
 import {
 	AccountsBalancesAdapterMock,
 	AuditClientMock,
@@ -592,8 +592,13 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		expect(matrix!.state).toEqual('IDLE');
 		expect(matrix!.batches.length).toEqual(1);
 		expect(matrix!.participantBalances.length).toEqual(2);
-		//TODO expect(matrix!.totalDebitBalance).toEqual(reqTransferDto.amount);
-		//TODO expect(matrix!.totalCreditBalance).toEqual(reqTransferDto.amount);
+		// Total balances:
+		expect(matrix!.totalBalances[0].debitBalance).toEqual(reqTransferDto.amount);
+		expect(matrix!.totalBalances[0].creditBalance).toEqual(reqTransferDto.amount);
+		expect(matrix!.totalBalances[0].state).toEqual('OPEN');
+		expect(matrix!.totalBalances[0].currencyCode).toEqual(reqTransferDto.currencyCode);
+		// Participants:
+		expect(matrix!.participantBalances.length).toEqual(2);
 		expect(matrix!.generationDurationSecs).toBeGreaterThan(-1);
 
 		// close the matrix:
@@ -959,32 +964,54 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		let matrixDisp = await aggregate.getSettlementMatrix(securityContext, matrixIdDisp);
 		expect(matrixDisp).toBeDefined();
 		expect(matrixDisp!.id).toEqual(matrixIdDisp);
-		expect(matrixDisp!.state).toEqual('IDLE');
-		expect(matrixDisp!.type).toEqual('STATIC');
+		expect(matrixDisp!.state).toEqual("IDLE");
+		expect(matrixDisp!.type).toEqual("STATIC");
+		// Totals:
+		expect(matrixDisp!.totalBalances.length).toEqual(1);
+		expect(matrixDisp!.totalBalances[0].debitBalance).toEqual("10000");
+		expect(matrixDisp!.totalBalances[0].creditBalance).toEqual("10000");
+		expect(matrixDisp!.totalBalances[0].currencyCode).toEqual("EUR");
+		expect(matrixDisp!.totalBalances[0].state).toEqual("OPEN");
+		// Participants:
 		expect(matrixDisp!.participantBalances.length).toEqual(2);
-		//TODO expect(matrixDisp!.totalDebitBalance).toEqual("10000");
-		//TODO expect(matrixDisp!.totalCreditBalance).toEqual("10000");
-		//TODO expect(matrixDisp!.participantBalancesDisputed.length).toEqual(0);
-		//TODO expect(matrixDisp!.totalDebitBalanceDisputed).toEqual("0");
-		//TODO expect(matrixDisp!.totalCreditBalanceDisputed).toEqual("0");
+		// Payer:
+		expect(matrixDisp!.participantBalances[0].debitBalance).toEqual("10000");
+		expect(matrixDisp!.participantBalances[0].creditBalance).toEqual("0");
+		expect(matrixDisp!.participantBalances[0].participantId).toEqual(reqTransferDto.payerFspId);
+		expect(matrixDisp!.participantBalances[0].currencyCode).toEqual("EUR");
+		expect(matrixDisp!.participantBalances[0].state).toEqual("OPEN");
+		// Payee:
+		expect(matrixDisp!.participantBalances[1].debitBalance).toEqual("0");
+		expect(matrixDisp!.participantBalances[1].creditBalance).toEqual("10000");
+		expect(matrixDisp!.participantBalances[1].participantId).toEqual(reqTransferDto.payeeFspId);
+		expect(matrixDisp!.participantBalances[1].currencyCode).toEqual("EUR");
+		expect(matrixDisp!.participantBalances[1].state).toEqual("OPEN");
 
 		await aggregate.recalculateSettlementMatrix(securityContext, matrixIdDisp);
 		matrixDisp = await aggregate.getSettlementMatrix(securityContext, matrixIdDisp);
 		expect(matrixDisp).toBeDefined();
 		expect(matrixDisp!.id).toEqual(matrixIdDisp);
-		expect(matrixDisp!.state).toEqual('IDLE');
-		expect(matrixDisp!.type).toEqual('STATIC');
-		//TODO expect(matrixDisp!.participantBalances.length).toEqual(0);
-		//TODO expect(matrixDisp!.totalDebitBalance).toEqual("0");
-		//TODO expect(matrixDisp!.totalCreditBalance).toEqual("0");
-		//TODO expect(matrixDisp!.participantBalancesDisputed.length).toEqual(2);
-		//TODO expect(matrixDisp!.totalDebitBalanceDisputed).toEqual("10000");
-		//TODO expect(matrixDisp!.totalCreditBalanceDisputed).toEqual("10000");
+		expect(matrixDisp!.state).toEqual("IDLE");
+		expect(matrixDisp!.type).toEqual("STATIC");
+
+		expect(matrixDisp!.participantBalances.length).toEqual(2);
+		// Payer:
+		expect(matrixDisp!.participantBalances[0].debitBalance).toEqual("10000");
+		expect(matrixDisp!.participantBalances[0].creditBalance).toEqual("0");
+		expect(matrixDisp!.participantBalances[0].participantId).toEqual(reqTransferDto.payerFspId);
+		expect(matrixDisp!.participantBalances[0].currencyCode).toEqual("EUR");
+		expect(matrixDisp!.participantBalances[0].state).toEqual("DISPUTED");
+		// Payee:
+		expect(matrixDisp!.participantBalances[1].debitBalance).toEqual("0");
+		expect(matrixDisp!.participantBalances[1].creditBalance).toEqual("10000");
+		expect(matrixDisp!.participantBalances[1].participantId).toEqual(reqTransferDto.payeeFspId);
+		expect(matrixDisp!.participantBalances[1].currencyCode).toEqual("EUR");
+		expect(matrixDisp!.participantBalances[1].state).toEqual("DISPUTED");
 
 		const batchDisp = await aggregate.getSettlementBatch(securityContext, batchId);
 		expect(batchDisp).toBeDefined();
 		expect(batchDisp!.id).toEqual(batchId);
-		expect(batchDisp!.state).toEqual('DISPUTED');
+		expect(batchDisp!.state).toEqual("DISPUTED");
 
 		// now let's create a matrix with the disputed batch:
 		const matrixId = await aggregate.createDynamicSettlementMatrix(
@@ -1123,12 +1150,27 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		expect(matrixDisp!.id).toEqual(matrixIdDisp);
 		expect(matrixDisp!.state).toEqual('IDLE');
 		expect(matrixDisp!.type).toEqual('STATIC');
+
+		// Totals:
+		expect(matrixDisp!.totalBalances.length).toEqual(1);
+		expect(matrixDisp!.totalBalances[0].debitBalance).toEqual("20000");
+		expect(matrixDisp!.totalBalances[0].creditBalance).toEqual("20000");
+		expect(matrixDisp!.totalBalances[0].currencyCode).toEqual("EUR");
+		expect(matrixDisp!.totalBalances[0].state).toEqual("OPEN");
+		// Participants:
 		expect(matrixDisp!.participantBalances.length).toEqual(4);
-		//TODO expect(matrixDisp!.totalDebitBalance).toEqual("20000");
-		//TODO expect(matrixDisp!.totalCreditBalance).toEqual("20000");
-		//TODO expect(matrixDisp!.participantBalancesDisputed.length).toEqual(0);
-		//TODO expect(matrixDisp!.totalDebitBalanceDisputed).toEqual("0");
-		//TODO expect(matrixDisp!.totalCreditBalanceDisputed).toEqual("0");
+		// Payer:
+		expect(matrixDisp!.participantBalances[0].debitBalance).toEqual("10000");
+		expect(matrixDisp!.participantBalances[0].creditBalance).toEqual("0");
+		expect(matrixDisp!.participantBalances[0].participantId).toEqual(reqTransferDto.payerFspId);
+		expect(matrixDisp!.participantBalances[0].currencyCode).toEqual("EUR");
+		expect(matrixDisp!.participantBalances[0].state).toEqual("OPEN");
+		// Payee:
+		expect(matrixDisp!.participantBalances[1].debitBalance).toEqual("0");
+		expect(matrixDisp!.participantBalances[1].creditBalance).toEqual("10000");
+		expect(matrixDisp!.participantBalances[1].participantId).toEqual(reqTransferDto.payeeFspId);
+		expect(matrixDisp!.participantBalances[1].currencyCode).toEqual("EUR");
+		expect(matrixDisp!.participantBalances[1].state).toEqual("OPEN");
 
 		// Create another settlement matrix with first batch:
 		const matrixIdDisp2 = await aggregate.createStaticSettlementMatrix(
@@ -1144,12 +1186,29 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		expect(matrixDisp2!.state).toEqual('IDLE');
 		expect(matrixDisp2!.type).toEqual('STATIC');
 		expect(matrixDisp2!.participantBalances.length).toEqual(2);
-		//TODO expect(matrixDisp2!.totalDebitBalance).toEqual("10000");
-		//TODO expect(matrixDisp2!.totalCreditBalance).toEqual("10000");
-		//TODO expect(matrixDisp2!.participantBalancesDisputed.length).toEqual(0);
-		//TODO expect(matrixDisp2!.totalDebitBalanceDisputed).toEqual("0");
-		//TODO expect(matrixDisp2!.totalCreditBalanceDisputed).toEqual("0");
-		// Dispute the matrixIdDisp2:
+
+		// Totals:
+		expect(matrixDisp2!.totalBalances.length).toEqual(1);
+		expect(matrixDisp2!.totalBalances[0].debitBalance).toEqual("10000");
+		expect(matrixDisp2!.totalBalances[0].creditBalance).toEqual("10000");
+		expect(matrixDisp2!.totalBalances[0].currencyCode).toEqual("EUR");
+		expect(matrixDisp2!.totalBalances[0].state).toEqual("OPEN");
+		// Participants:
+		expect(matrixDisp2!.participantBalances.length).toEqual(2);
+		// Payer:
+		expect(matrixDisp2!.participantBalances[0].debitBalance).toEqual("10000");
+		expect(matrixDisp2!.participantBalances[0].creditBalance).toEqual("0");
+		expect(matrixDisp2!.participantBalances[0].participantId).toEqual(reqTransferDto.payerFspId);
+		expect(matrixDisp2!.participantBalances[0].currencyCode).toEqual("EUR");
+		expect(matrixDisp2!.participantBalances[0].state).toEqual("OPEN");
+		// Payee:
+		expect(matrixDisp2!.participantBalances[1].debitBalance).toEqual("0");
+		expect(matrixDisp2!.participantBalances[1].creditBalance).toEqual("10000");
+		expect(matrixDisp2!.participantBalances[1].participantId).toEqual(reqTransferDto.payeeFspId);
+		expect(matrixDisp2!.participantBalances[1].currencyCode).toEqual("EUR");
+		expect(matrixDisp2!.participantBalances[1].state).toEqual("OPEN");
+
+		// Dispute the matrix:
 		await aggregate.disputeSettlementMatrix(securityContext, matrixIdDisp2);
 
 		// Verify disputed batch:
@@ -1165,11 +1224,27 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		expect(matrixDisp2!.state).toEqual('IDLE');
 		expect(matrixDisp2!.type).toEqual('STATIC');
 		expect(matrixDisp2!.participantBalances.length).toEqual(2);
-		//TODO expect(matrixDisp2!.totalDebitBalance).toEqual("10000");
-		//TODO expect(matrixDisp2!.totalCreditBalance).toEqual("10000");
-		//TODO expect(matrixDisp2!.participantBalancesDisputed.length).toEqual(0);
-		//TODO expect(matrixDisp2!.totalDebitBalanceDisputed).toEqual("0");
-		//TODO expect(matrixDisp2!.totalCreditBalanceDisputed).toEqual("0");
+
+		// Totals:
+		expect(matrixDisp2!.totalBalances.length).toEqual(1);
+		expect(matrixDisp2!.totalBalances[0].debitBalance).toEqual("10000");
+		expect(matrixDisp2!.totalBalances[0].creditBalance).toEqual("10000");
+		expect(matrixDisp2!.totalBalances[0].currencyCode).toEqual("EUR");
+		expect(matrixDisp2!.totalBalances[0].state).toEqual("OPEN");
+		// Participants:
+		expect(matrixDisp2!.participantBalances.length).toEqual(2);
+		// Payer:
+		expect(matrixDisp2!.participantBalances[0].debitBalance).toEqual("10000");
+		expect(matrixDisp2!.participantBalances[0].creditBalance).toEqual("0");
+		expect(matrixDisp2!.participantBalances[0].participantId).toEqual(reqTransferDto.payerFspId);
+		expect(matrixDisp2!.participantBalances[0].currencyCode).toEqual("EUR");
+		expect(matrixDisp2!.participantBalances[0].state).toEqual("OPEN");
+		// Payee:
+		expect(matrixDisp2!.participantBalances[1].debitBalance).toEqual("0");
+		expect(matrixDisp2!.participantBalances[1].creditBalance).toEqual("10000");
+		expect(matrixDisp2!.participantBalances[1].participantId).toEqual(reqTransferDto.payeeFspId);
+		expect(matrixDisp2!.participantBalances[1].currencyCode).toEqual("EUR");
+		expect(matrixDisp2!.participantBalances[1].state).toEqual("OPEN");
 		
 		await aggregate.recalculateSettlementMatrix(securityContext, matrixIdDisp2);
 
@@ -1180,11 +1255,6 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		expect(matrixDisp2!.state).toEqual('IDLE');
 		expect(matrixDisp2!.type).toEqual('STATIC');
 		expect(matrixDisp2!.participantBalances.length).toEqual(2);
-		//TODO expect(matrixDisp2!.totalDebitBalance).toEqual("0");
-		//TODO expect(matrixDisp2!.totalCreditBalance).toEqual("0");
-		//TODO expect(matrixDisp2!.participantBalancesDisputed.length).toEqual(2);
-		//TODO expect(matrixDisp2!.totalDebitBalanceDisputed).toEqual("10000");
-		//TODO expect(matrixDisp2!.totalCreditBalanceDisputed).toEqual("10000");
 
 		// Verify matrix1 again:
 		await aggregate.recalculateSettlementMatrix(securityContext, matrixIdDisp);
@@ -1197,18 +1267,12 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		expect(matrixDisp!.state).toEqual('IDLE');
 		expect(matrixDisp!.type).toEqual('STATIC');
 		expect(matrixDisp!.participantBalances.length).toEqual(4);
-		//TODO expect(matrixDisp!.totalDebitBalance).toEqual("10000");
-		//TODO expect(matrixDisp!.totalCreditBalance).toEqual("10000");
-		//TODO expect(matrixDisp!.participantBalancesDisputed.length).toEqual(2);
-		//TODO expect(matrixDisp!.totalDebitBalanceDisputed).toEqual("10000");
-		//TODO expect(matrixDisp!.totalCreditBalanceDisputed).toEqual("10000");
 		
 		// Settle matrix1:
 		await aggregate.lockSettlementMatrixForAwaitingSettlement(securityContext, matrixIdDisp);
 		await aggregate.settleSettlementMatrix(securityContext, matrixIdDisp);
 
 		matrixDisp = await aggregate.getSettlementMatrix(securityContext, matrixIdDisp);
-
 		//check the settled matrix1 again
 		expect(matrixDisp).toBeDefined();
 		expect(matrixDisp!.id).toEqual(matrixIdDisp);
@@ -1216,14 +1280,25 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		expect(matrixDisp!.type).toEqual('STATIC');
 		// We only expect a single batch (the settled batch, since the disputed batch is excluded).
 		expect(matrixDisp!.batches.length).toEqual(1);
+
+		// Totals:
+		expect(matrixDisp!.totalBalances.length).toEqual(1);
+		expect(matrixDisp!.totalBalances[0].debitBalance).toEqual("10000");
+		expect(matrixDisp!.totalBalances[0].creditBalance).toEqual("10000");
+		expect(matrixDisp!.totalBalances[0].currencyCode).toEqual("EUR");
+		expect(matrixDisp!.totalBalances[0].state).toEqual("AWAITING_SETTLEMENT");
+		// Participants:
 		expect(matrixDisp!.participantBalances.length).toEqual(2);
-		//TODO expect(matrixDisp!.participantBalancesDisputed.length).toEqual(0);
-		//TODO expect(matrixDisp!.totalDebitBalance).toEqual("10000");
-		//TODO expect(matrixDisp!.totalCreditBalance).toEqual("10000");
-		//TODO expect(matrixDisp!.participantBalancesDisputed.length).toEqual(0);
-		expect(matrixDisp!.participantBalances.length).toEqual(2);
-		//TODO expect(matrixDisp!.totalDebitBalanceDisputed).toEqual("0");
-		//TODO expect(matrixDisp!.totalCreditBalanceDisputed).toEqual("0");
+		// Payer:
+		expect(matrixDisp!.participantBalances[0].debitBalance).toEqual("10000");
+		expect(matrixDisp!.participantBalances[0].creditBalance).toEqual("0");
+		expect(matrixDisp!.participantBalances[0].currencyCode).toEqual("EUR");
+		expect(matrixDisp!.participantBalances[0].state).toEqual("AWAITING_SETTLEMENT");
+		// Payee:
+		expect(matrixDisp!.participantBalances[1].debitBalance).toEqual("0");
+		expect(matrixDisp!.participantBalances[1].creditBalance).toEqual("10000");
+		expect(matrixDisp!.participantBalances[1].currencyCode).toEqual("EUR");
+		expect(matrixDisp!.participantBalances[1].state).toEqual("AWAITING_SETTLEMENT");
 
 		// Ensure that the disputed batch was not settled, even though it was originally part of [matrixIdDisp]:
 		const batchExpDisputed = await aggregate.getSettlementBatch(securityContext, batchId);

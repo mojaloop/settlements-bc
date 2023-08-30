@@ -341,9 +341,7 @@ export class ExpressRoutes {
 
 		try {
 			if (batchName) {
-				const settlementBatches = await this._batchRepo.getBatchesByName(
-					batchName
-				);
+				const settlementBatches = await this._batchRepo.getBatchesByName(batchName);
 				if (!settlementBatches || settlementBatches.length<=0) {
 					res.sendStatus(404);
 					return;

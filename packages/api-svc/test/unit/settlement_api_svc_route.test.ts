@@ -232,14 +232,12 @@ describe("Settlement BC api-svc route test", () => {
         await mockBatchRepo.storeNewBatch(mockBatches[0]);
         await mockBatchRepo.storeNewBatch(mockBatches[1]);
 
-        //Act
-        const response = await request(server)
+        // Batch by unique identifier:
+        const responseId = await request(server)
             .get(`/batches/${mockBatches[0].id}`)
             .set('authorization', AUTH_TOKEN);
-
-        //Assert
-        expect(response.status).toBe(200);
-        expect(response.body).toEqual(mockBatches[0]);
+        expect(responseId.status).toBe(200);
+        expect(responseId.body).toEqual(mockBatches[0]);
     });
 
 
@@ -272,11 +270,11 @@ describe("Settlement BC api-svc route test", () => {
                 ownerMatrixId: null
             },
             {
-                id: "DEFAULT.USD.2023.06.20.01.20.001",
+                id: "CBX.USD.2023.06.20.01.20.001",
                 timestamp: Date.now(),
                 settlementModel: "CBX",
                 currencyCode: "USD",
-                batchName: "DEFAULT.USD.2023.06.20.01.20",
+                batchName: "CBX.USD.2023.06.20.01.20",
                 batchSequence: 1, //100 EURO
                 state: "CLOSED",
                 accounts: [],
@@ -287,19 +285,58 @@ describe("Settlement BC api-svc route test", () => {
         await mockBatchRepo.storeNewBatch(mockBatches[0]);
         await mockBatchRepo.storeNewBatch(mockBatches[1]);
 
-
-        //Act
-        const response = await request(server)
+        // Batch by name:
+        const responseBatchName = await request(server)
             .get(`/batches`)
             .query({
-                batchName: "DEFAULT.USD.2023.06.20.01.20"
+                batchName: "CBX.USD.2023.06.20.01.20"
             })
             .set('authorization', AUTH_TOKEN);
+        expect(responseBatchName.status).toBe(200);
+        expect(Array.isArray(responseBatchName.body)).toBe(true);
+        expect(responseBatchName.body.length).toBe(1);
 
-        //Assert
-        expect(response.status).toBe(200);
-        expect(Array.isArray(response.body)).toBe(true);
-        expect(response.body.length).toBe(1);
+        const dateTo = (Date.now() + 5000);
+        const dateFrom = (Date.now() - 5000);
+
+        // Batch by settlement models:
+        const responseSettlementModels = await request(server)
+            .get(`/batches`)
+            .query({
+                fromDate: dateFrom,
+                toDate: dateTo,
+                settlementModels: ["DEFAULT", ""]
+            })
+            .set('authorization', AUTH_TOKEN);
+        expect(responseSettlementModels.status).toBe(200);
+        expect(Array.isArray(responseSettlementModels.body)).toBe(true);
+        expect(responseSettlementModels.body.length).toBe(1);
+
+        // Batch by currency:
+        const responseCurrency = await request(server)
+            .get(`/batches`)
+            .query({
+                fromDate: dateFrom,
+                toDate: dateTo,
+                currencyCodes: ["USD", "EUR"]
+            })
+            .set('authorization', AUTH_TOKEN);
+        expect(responseCurrency.status).toBe(200);
+        expect(Array.isArray(responseCurrency.body)).toBe(true);
+        expect(responseCurrency.body.length).toBeGreaterThan(1);
+
+        // Batch by currency:
+        const responseStatus = await request(server)
+            .get(`/batches`)
+            .query({
+                fromDate: dateFrom,
+                toDate: dateTo,
+                batchStatuses: ["OPEN", "CLOSED"]
+            })
+            .set('authorization', AUTH_TOKEN);
+        expect(responseStatus.status).toBe(200);
+        expect(Array.isArray(responseStatus.body)).toBe(true);
+        expect(responseStatus.body.length).toBeGreaterThan(1);
     });
 
     test("GET /transfers - should fetch batchTransfers by batchId", async () => {
