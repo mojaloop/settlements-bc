@@ -342,22 +342,22 @@ export class RemoveBatchesFromMatrixCmd extends CommandMsg {
 	}
 }
 
-export type BatchUpdatedCmdPayload = {
+export type MarkMatrixOutOfSyncCmdPayload = {
 	originMatrixId: string;
-	batchId: string;
+	batchIds: string[];
 }
 
-export class BatchUpdatedCmd extends CommandMsg {
+export class MarkMatrixOutOfSyncCmd extends CommandMsg {
 	boundedContextName: string = SETTLEMENTS_BOUNDED_CONTEXT_NAME;
 	aggregateId: string;
 	aggregateName: string = SETTLEMENTS_AGGREGATE_NAME;
 	msgKey: string;
 	msgTopic: string = SettlementsBCTopics.Commands;
-	payload: BatchUpdatedCmdPayload;
+	payload: MarkMatrixOutOfSyncCmdPayload;
 
-	constructor(payload: BatchUpdatedCmdPayload) {
+	constructor(payload: MarkMatrixOutOfSyncCmdPayload) {
 		super();
-		this.aggregateId = this.msgKey = payload.batchId;
+		this.aggregateId = this.msgKey = payload.originMatrixId;
 		this.payload = payload;
 	}
 

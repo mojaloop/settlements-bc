@@ -1668,7 +1668,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		expect(matrixId2).toBeDefined();
 
 		// mark the batch out of sync:
-		await aggregate.markMatrixOutOfSyncWhereBatch(securityContext, matrixId2, batchId);
+		await aggregate.markMatrixOutOfSyncWhereBatch(securityContext, matrixId2, [batchId]);
 		await new Promise(f => setTimeout(f, 1000));// 1 second
 
 		inSync = await settleMatrixReqRepo.getMatricesInSyncWhereBatch("IDLE", batchId);
