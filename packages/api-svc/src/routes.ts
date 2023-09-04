@@ -331,12 +331,38 @@ export class ExpressRoutes {
 	}
 
 	private async getSettlementBatches(req: express.Request, res: express.Response): Promise<void> {
-		const batchName = req.query.batchName as string || req.query.batchname as string;
-		const settlementModels = req.query.settlementModels as string[];
-		const currencyCodes = req.query.currencyCodes as string[];
-		const batchStatuses = req.query.batchStatuses as string[];
 		const fromDate = req.query.fromDate as string;
 		const toDate = req.query.toDate as string;
+
+		const batchName = req.query.batchName as string || req.query.batchname as string;
+
+		let settlementModelsStr = req.query.settlementModels as string;
+		let currencyCodesStr = req.query.currencyCodes as string;
+		let batchStatusesStr = req.query.batchStatuses as string;
+
+		let settlementModels:string[] = [];
+		let currencyCodes:string[] = [];
+		let batchStatuses:string[] = [];
+
+		try{
+			if(settlementModelsStr){
+				settlementModelsStr = decodeURIComponent(settlementModelsStr);
+				settlementModels = JSON.parse(settlementModelsStr);
+			}
+			if(currencyCodesStr){
+				currencyCodesStr = decodeURIComponent(currencyCodesStr);
+				currencyCodes = JSON.parse(currencyCodesStr);
+			}
+			if(batchStatusesStr){
+				batchStatusesStr = decodeURIComponent(batchStatusesStr);
+				batchStatuses = JSON.parse(batchStatusesStr);
+			}
+		}catch(err){
+			this._logger.error(err);
+			this.sendErrorResponse(res, 500, "Invalid settlementModels, currencyCodes or batchStatuses query parameters received");
+			return;
+		}
+
 		// TODO enforce privileges
 
 		try {

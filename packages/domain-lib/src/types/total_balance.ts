@@ -42,9 +42,7 @@ export class SettlementMatrixTotalBalance implements ISettlementMatrixTotalBalan
 		currencyCode: string,
 		state: string,
 		debitBalance: string,
-		creditBalance: string,
-		debitBalanceDisputed: string,
-		creditBalanceDisputed: string
+		creditBalance: string
 	) {
 		this.currencyCode = currencyCode;
 		this.state = state;

@@ -81,8 +81,8 @@ export class SettlementMatrix implements ISettlementMatrix {
   addTotalBalance(
       currencyCode: string,
       state: string,
-      debitBalance: string = "0",
-      creditBalance: string = "0"
+      debitBalance: string,
+      creditBalance: string
   ): void {
     this.totalBalances.push({
       currencyCode,
@@ -96,8 +96,8 @@ export class SettlementMatrix implements ISettlementMatrix {
       currencyCode: string,
       participantId: string,
       state: string,
-      debitBalance: string = "0",
-      creditBalance: string = "0"
+      debitBalance: string,
+      creditBalance: string
   ): void {
     this.participantBalances.push({
       participantId,
@@ -110,8 +110,8 @@ export class SettlementMatrix implements ISettlementMatrix {
 
   addBatch(
     batch: ISettlementBatch,
-    debitBalance: string = "0",
-    creditBalance: string = "0"
+    debitBalance: string,
+    creditBalance: string
   ): void {
     if (this.type === 'STATIC') this.currencyCodes = [];
 

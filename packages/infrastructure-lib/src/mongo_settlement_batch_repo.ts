@@ -142,17 +142,17 @@ export class MongoSettlementBatchRepo implements ISettlementBatchRepo {
 		batchStatuses: string[]
 	): Promise<ISettlementBatch[]>{
 		try {
-			const paramsForQuery : Filter<any> = [
+			const paramsForQuery :any= [
 				{timestamp: {$gte:fromDate}},
 				{timestamp: {$lte: toDate}}
-			]
+			];
 
-			if (models.length > 0) paramsForQuery.push({settlementModel: {$in: models}});
-			if (currencyCodes.length > 0) paramsForQuery.push({currencyCode: {$in: currencyCodes}});
-			if (batchStatuses.length > 0) paramsForQuery.push({state: {$in: batchStatuses}});
+			if (models && models.length > 0) paramsForQuery.push({settlementModel: {$in: models}});
+			if (currencyCodes && currencyCodes.length > 0) paramsForQuery.push({currencyCode: {$in: currencyCodes}});
+			if (batchStatuses && batchStatuses.length > 0) paramsForQuery.push({state: {$in: batchStatuses}});
 
 			const batches = await this._collection.find({
-				$and: [paramsForQuery]
+				$and: paramsForQuery
 			}).project({_id: 0}).toArray();
 			return batches as ISettlementBatch[];
 		} catch (error: any) {

@@ -211,7 +211,7 @@ export class SettlementsAggregate {
 			originMatrixId: originMatrix.id,
 			batchIds: batchIds
 		});
-		this._msgProducer.send(cmd);
+		await this._msgProducer.send(cmd);
 	}
 
 	async processTransferCmd(secCtx: CallSecurityContext, processTransferCmd: ProcessTransferCmd): Promise<string> {
@@ -427,7 +427,7 @@ export class SettlementsAggregate {
 			newMatrix.id = matrixId;
 		}
 
-		batches.forEach(batch => newMatrix.addBatch(batch));
+		batches.forEach(batch => newMatrix.addBatch(batch, "0", "0"));
 
 		newMatrix.state = "BUSY";
 		await this._settlementMatrixReqRepo.storeMatrix(newMatrix);
@@ -534,7 +534,7 @@ export class SettlementsAggregate {
 			// TODO control that we cannot ever add a settled batch to a matrix, if it is should throw
 
 			if(!existing){
-				matrix.addBatch(newBatch);
+				matrix.addBatch(newBatch, "0", "0");
 			}
 		}
 		await this._recalculateMatrix(matrix);
@@ -703,11 +703,8 @@ export class SettlementsAggregate {
 			const batch = await this._batchRepo.getBatch(matrixBatch.id);
 			if (!batch) throw new SettlementBatchNotFoundError(`Unable to locate batch for id '${matrixBatch.id}'.`);
 
-			switch (batch.state) {
-				case "SETTLED":
-				case "AWAITING_SETTLEMENT":
-				case "DISPUTED":
-					continue;
+			if (batch.state==="SETTLED" || batch.state==="AWAITING_SETTLEMENT" || batch.state==="DISPUTED") {
+				continue;
 			}
 
 			batch.state = matrixBatch.state = "DISPUTED";
@@ -764,11 +761,8 @@ export class SettlementsAggregate {
 			const batch = await this._batchRepo.getBatch(matrixBatch.id);
 			if (!batch) throw new SettlementBatchNotFoundError(`Unable to locate batch for id '${matrixBatch.id}'.`);
 
-			switch (batch.state) {
-				case "SETTLED":
-				case "AWAITING_SETTLEMENT":
-				case "DISPUTED":
-					continue;
+			if (batch.state==="SETTLED" || batch.state==="AWAITING_SETTLEMENT" || batch.state==="DISPUTED") {
+				continue;
 			}
 
 			batch.state = matrixBatch.state = "AWAITING_SETTLEMENT";
@@ -884,11 +878,8 @@ export class SettlementsAggregate {
 			const batch = await this._batchRepo.getBatch(matrixBatch.id);
 			if (!batch) throw new SettlementBatchNotFoundError(`Unable to locate batch for id '${matrixBatch.id}'.`);
 
-			switch (batch.state) {
-				case "SETTLED":
-				case "CLOSED":
-				case "AWAITING_SETTLEMENT":
-					continue;
+			if (batch.state==="SETTLED" || batch.state==="CLOSED" || batch.state==="AWAITING_SETTLEMENT") {
+				continue;
 			}
 
 			batch.state = matrixBatch.state = "CLOSED";
@@ -1006,18 +997,20 @@ export class SettlementsAggregate {
 
 		if (!batchIds || batchIds.length < 1) return Promise.resolve();
 
+		//TODO (optimisation opportunity) getMatricesInSyncWhereBatch should take an array of batchIds
+
 		for (const batchId of batchIds) {
 			const idleInSyncMatrices =
 				await this._settlementMatrixReqRepo.getMatricesInSyncWhereBatch("IDLE", batchId);
-			idleInSyncMatrices.forEach(matrixDto => {
+			for(const matrixDto of idleInSyncMatrices){
 				if (originMatrixId === matrixDto.id) return;
 
 				const startTimestamp = Date.now();
 				const matrix = SettlementMatrix.CreateFromDto(matrixDto);
 				matrix.isBatchesOutOfSync = true;
 				// Close the Matrix Request to prevent further execution:
-				this._updateMatrixStateAndSave(matrix, "IDLE", startTimestamp);
-			})
+				await this._updateMatrixStateAndSave(matrix, "IDLE", startTimestamp);
+			}
 		}
 	}
 
