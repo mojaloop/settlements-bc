@@ -333,22 +333,16 @@ export class ExpressRoutes {
 	private async getSettlementBatches(req: express.Request, res: express.Response): Promise<void> {
 		const fromDate = req.query.fromDate as string;
 		const toDate = req.query.toDate as string;
-
+		const settlementModel = req.query.settlementModel as string || req.query.settlementmodel as string;
 		const batchName = req.query.batchName as string || req.query.batchname as string;
 
-		let settlementModelsStr = req.query.settlementModels as string;
 		let currencyCodesStr = req.query.currencyCodes as string;
 		let batchStatusesStr = req.query.batchStatuses as string;
 
-		let settlementModels:string[] = [];
 		let currencyCodes:string[] = [];
 		let batchStatuses:string[] = [];
 
 		try{
-			if(settlementModelsStr){
-				settlementModelsStr = decodeURIComponent(settlementModelsStr);
-				settlementModels = JSON.parse(settlementModelsStr);
-			}
 			if(currencyCodesStr){
 				currencyCodesStr = decodeURIComponent(currencyCodesStr);
 				currencyCodes = JSON.parse(currencyCodesStr);
@@ -374,13 +368,13 @@ export class ExpressRoutes {
 				}
 				this.sendSuccessResponse(res, 200, settlementBatches);// OK
 			} else {
-				this._logger.debug(`got getSettlementBatches request - Now is [${Date.now()}] Settlement Batches from [${new Date(Number(fromDate))}] to [${new Date(Number(toDate))}] on [${settlementModels}].`);
+				this._logger.debug(`got getSettlementBatches request - Settlement Batches model: ${settlementModel} from [${new Date(Number(fromDate))}] to [${new Date(Number(toDate))}].`);
 
 				const settlementBatches = await this._batchRepo.getBatchesByCriteria(
 					Number(fromDate),
 					Number(toDate),
+					settlementModel,
 					currencyCodes,
-					settlementModels,
 					batchStatuses
 				);
 				if (!settlementBatches || settlementBatches.length <= 0) {
@@ -457,7 +451,7 @@ export class ExpressRoutes {
 				cmd = new CreateStaticMatrixCmd(cmdPayload);
 			} else if (type === "DYNAMIC") {
 				const currencyCodes = req.body.currencyCodes as string[];
-				const settlementModels = req.body.settlementModels as string[];
+				const settlementModel = req.body.settlementModel as string;
 				const batchStatuses = req.body.batchStatuses as string[];
 				const fromDate = req.body.fromDate;
 				const toDate = req.body.toDate;
@@ -467,7 +461,7 @@ export class ExpressRoutes {
 					fromDate: fromDate,
 					toDate: toDate,
 					currencyCodes: currencyCodes,
-					settlementModels: settlementModels,
+					settlementModel: settlementModel,
 					batchStatuses: batchStatuses
 				};
 				cmd = new CreateDynamicMatrixCmd(cmdPayload);

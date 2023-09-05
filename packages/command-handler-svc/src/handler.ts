@@ -115,7 +115,7 @@ export class SettlementsCommandHandler{
 							sectCtx,
 							createPayload.matrixId,
 							createPayload.currencyCodes,
-							createPayload.settlementModels,
+							createPayload.settlementModel,
 							createPayload.batchStatuses,
 							createPayload.fromDate,
 							createPayload.toDate

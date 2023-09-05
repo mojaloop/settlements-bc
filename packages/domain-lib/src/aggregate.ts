@@ -451,7 +451,7 @@ export class SettlementsAggregate {
 		secCtx: CallSecurityContext,
 		matrixId: string | null,
 		currencyCodes: string[],
-		settlementModels: string[],
+		settlementModel: string,
 		batchStatuses: string[],
 		fromDate: number,
 		toDate: number
@@ -463,7 +463,7 @@ export class SettlementsAggregate {
 			fromDate,
 			toDate,
 			currencyCodes,
-			settlementModels,
+			settlementModel,
 			batchStatuses
 		);
 		if (matrixId) {
@@ -546,7 +546,7 @@ export class SettlementsAggregate {
 			AuditingActions.SETTLEMENT_MATRIX_ADD_BATCHES,
 			true,
 			this._getAuditSecurityContext(secCtx), [
-				{key: "settlementModels", value: matrix.settlementModels === null ? '' : matrix.settlementModels.toString()},
+				{key: "settlementModels", value: matrix.settlementModel ?? ""},
 				{key: "settlementMatrixReqId", value: matrix.id}
 			]
 		);
@@ -604,7 +604,7 @@ export class SettlementsAggregate {
 			AuditingActions.SETTLEMENT_MATRIX_REMOVE_BATCHES,
 			true,
 			this._getAuditSecurityContext(secCtx), [
-				{key: "settlementModels", value: matrix.settlementModels === null ? '' : matrix.settlementModels.toString()},
+				{key: "settlementModels", value: matrix.settlementModel ?? ""},
 				{key: "settlementMatrixReqId", value: matrix.id}
 			]
 		);
@@ -625,7 +625,7 @@ export class SettlementsAggregate {
 			AuditingActions.SETTLEMENT_MATRIX_REQUEST_FETCH,
 			true,
 			this._getAuditSecurityContext(secCtx), [
-				{key: "settlementModels", value: matrixDto.settlementModels === null ? '' : matrixDto.settlementModels.toString()},
+				{key: "settlementModels", value: matrixDto.settlementModel ?? ""},
 				{key: "settlementMatrixReqId", value: id}
 			]
 		);
@@ -665,7 +665,7 @@ export class SettlementsAggregate {
 			AuditingActions.SETTLEMENT_MATRIX_REQUEST_FETCH,
 			true,
 			this._getAuditSecurityContext(secCtx), [
-				{key: "settlementModels", value: matrix.settlementModels === null ? '' : matrix.settlementModels.toString()},
+				{key: "settlementModels", value: matrix.settlementModel ?? ""},
 				{key: "settlementMatrixReqId", value: id}
 			]
 		);
@@ -723,7 +723,7 @@ export class SettlementsAggregate {
 			AuditingActions.SETTLEMENT_MATRIX_DISPUTED,
 			true,
 			this._getAuditSecurityContext(secCtx), [
-				{key: "settlementModels", value: matrix.settlementModels === null ? '' : matrix.settlementModels.toString()},
+				{key: "settlementModels", value: matrix.settlementModel ?? ""},
 				{key: "settlementMatrixReqId", value: id}
 			]
 		);
@@ -782,7 +782,7 @@ export class SettlementsAggregate {
 			AuditingActions.SETTLEMENT_MATRIX_LOCK,
 			true,
 			this._getAuditSecurityContext(secCtx), [
-				{key: "settlementModels", value: matrix.settlementModels === null ? '' : matrix.settlementModels.toString()},
+				{key: "settlementModels", value: matrix.settlementModel ?? ""},
 				{key: "settlementMatrixReqId", value: id}
 			]
 		);
@@ -839,7 +839,7 @@ export class SettlementsAggregate {
 			AuditingActions.SETTLEMENT_MATRIX_DISPUTED,
 			true,
 			this._getAuditSecurityContext(secCtx), [
-				{key: "settlementModels", value: matrix.settlementModels === null ? '' : matrix.settlementModels.toString()},
+				{key: "settlementModels", value: matrix.settlementModel ?? ""},
 				{key: "settlementMatrixReqId", value: id}
 			]
 		);
@@ -898,7 +898,7 @@ export class SettlementsAggregate {
 			AuditingActions.SETTLEMENT_MATRIX_CLOSED,
 			true,
 			this._getAuditSecurityContext(secCtx), [
-				{key: "settlementModels", value: matrix.settlementModels === null ? '' : matrix.settlementModels.toString()},
+				{key: "settlementModels", value: matrix.settlementModel ?? ""},
 				{key: "settlementMatrixReqId", value: id}
 			]
 		);
@@ -957,7 +957,7 @@ export class SettlementsAggregate {
 		const participants: SettlementMatrixSettledEvtPayloadParticipantItem[] = [];
 		// put per participant balances in the matrix:
 		// participantBalances.forEach((value, key) => {
-		matrix.participantBalances.forEach((item) => {
+		matrix.balancesByParticipant.forEach((item) => {
 			const currency = this._getCurrencyOrThrow(item.currencyCode);
 			participants.push({
 				participantId: item.participantId,
@@ -981,7 +981,7 @@ export class SettlementsAggregate {
 			AuditingActions.SETTLEMENT_MATRIX_SETTLED,
 			true,
 			this._getAuditSecurityContext(secCtx), [
-				{key: "settlementModels", value: matrix.settlementModels === null ? '' : matrix.settlementModels.toString()},
+				{key: "settlementModels", value: matrix.settlementModel ?? ""},
 				{key: "settlementMatrixReqId", value: id}
 			]
 		);
@@ -1007,7 +1007,7 @@ export class SettlementsAggregate {
 
 				const startTimestamp = Date.now();
 				const matrix = SettlementMatrix.CreateFromDto(matrixDto);
-				matrix.isBatchesOutOfSync = true;
+				matrix.areBatchesOutOfSync = true;
 				// Close the Matrix Request to prevent further execution:
 				await this._updateMatrixStateAndSave(matrix, "IDLE", startTimestamp);
 			}
@@ -1029,8 +1029,8 @@ export class SettlementsAggregate {
 			batches = await this._batchRepo.getBatchesByCriteria(
 				matrix.dateFrom!,
 				matrix.dateTo!,
+				matrix.settlementModel!,
 				matrix.currencyCodes!,
-				matrix.settlementModels!,
 				matrix.batchStatuses!
 			);
 		}
@@ -1039,10 +1039,11 @@ export class SettlementsAggregate {
 		matrix.clear();
 
 		// summaries:
-		const totalBal: Map<string, Map<string, {cr: bigint, dr:bigint}>> =
-			new Map<string, Map<string, {cr: bigint, dr:bigint}>>();
-		const totalPartStateCurBal: Map<string, Map<string, Map<string, {cr: bigint, dr:bigint}>>> =
-			new Map<string, Map<string, Map<string, {cr: bigint, dr:bigint}>>>();
+		// const totalBal: Map<string, Map<string, {cr: bigint, dr:bigint}>> =
+		// 	new Map<string, Map<string, {cr: bigint, dr:bigint}>>();
+		//
+		// const totalPartStateCurBal: Map<string, Map<string, Map<string, {cr: bigint, dr:bigint}>>> =
+		// 	new Map<string, Map<string, Map<string, {cr: bigint, dr:bigint}>>>();
 
 		if (batches && batches.length > 0) {
 			// invoke the A&B adapter in order to fetch up-to-date balances:
@@ -1065,31 +1066,39 @@ export class SettlementsAggregate {
 
 					batchDebitBalance += accDebit;
 					batchCreditBalance += accCredit;
-
-					// update per participant balances:
-					// participantId:
-					let totalForPart = totalPartStateCurBal.get(acc.participantId);
-					if (!totalForPart) totalForPart = new Map<string, Map<string, {cr: bigint; dr: bigint}>>();
-
-					// state:
-					let totalForPartState = totalForPart.get(batch.state);
-					if (!totalForPartState) totalForPartState = new Map<string, {cr: bigint; dr: bigint}>();
-
-					// currency:
-					const totalForCurrency = totalForPartState.get(currency.code);
-					if (totalForCurrency) {
-						totalForPartState.set(currency.code, {
-							dr: totalForCurrency.dr + accDebit,
-							cr: totalForCurrency.cr + accCredit
-						});
-					} else {
-						totalForPartState.set(currency.code, {
-							dr: accDebit,
-							cr: accCredit
-						});
-					}
-					totalForPart.set(batch.state, totalForPartState);
-					totalPartStateCurBal.set(acc.participantId, totalForPart);
+					//
+					// // update per participant balances:
+					// // participantId:
+					// let totalForPart = totalPartStateCurBal.get(acc.participantId);
+					// if (!totalForPart) totalForPart = new Map<string, Map<string, {cr: bigint; dr: bigint}>>();
+					//
+					// // state:
+					// let totalForPartState = totalForPart.get(batch.state);
+					// if (!totalForPartState) totalForPartState = new Map<string, {cr: bigint; dr: bigint}>();
+					//
+					// // currency:
+					// const totalForCurrency = totalForPartState.get(currency.code);
+					// if (totalForCurrency) {
+					// 	totalForPartState.set(currency.code, {
+					// 		dr: totalForCurrency.dr + accDebit,
+					// 		cr: totalForCurrency.cr + accCredit
+					// 	});
+					// } else {
+					// 	totalForPartState.set(currency.code, {
+					// 		dr: accDebit,
+					// 		cr: accCredit
+					// 	});
+					// }
+					// totalForPart.set(batch.state, totalForPartState);
+					// totalPartStateCurBal.set(acc.participantId, totalForPart);
+					matrix.addBalance(
+						acc.participantId,
+						batch.currencyCode,
+						batch.state,
+						accDebit,
+						accCredit,
+						currency.decimals
+					);
 				});
 
 				matrix.addBatch(
@@ -1098,7 +1107,7 @@ export class SettlementsAggregate {
 					bigintToString(batchCreditBalance, currency.decimals)
 				);
 
-				// set the totals for state and currency:
+				/*// set the totals for state and currency:
 				let totalForStatus = totalBal.get(batch.state);
 				if (!totalForStatus) totalForStatus = new Map<string, {cr: bigint; dr: bigint}>();
 
@@ -1114,15 +1123,15 @@ export class SettlementsAggregate {
 						cr: batchCreditBalance
 					});
 				}
-				totalBal.set(batch.state, totalForStatus);
+				totalBal.set(batch.state, totalForStatus);*/
 			}
 		}
 
-		// update main balances for standard matrix:
+		/*// update main balances for standard matrix:
 		totalBal.forEach((currencyTotals, state) => {
 			currencyTotals.forEach((drDrTotal, currencyCode) => {
 				const currency = this._getCurrencyOrThrow(currencyCode);
-				matrix.addTotalBalance(
+				matrix.addBalance(
 					currencyCode,
 					state,
 					bigintToString(drDrTotal.dr, currency.decimals),
@@ -1145,7 +1154,7 @@ export class SettlementsAggregate {
 					);
 				});
 			});
-		});
+		});*/
 	}
 
 	private async _updateBatchAccountBalances(batches: ISettlementBatch[]): Promise<void>{
@@ -1176,7 +1185,7 @@ export class SettlementsAggregate {
 	async getSettlementBatchesByCriteria(
 		secCtx: CallSecurityContext,
 		currencyCodes: string[],
-		settlementModels: string[],
+		settlementModel: string,
 		batchStatuses: string[],
 		fromDate: number,
 		toDate: number
@@ -1186,8 +1195,8 @@ export class SettlementsAggregate {
 		const batches = await this._batchRepo.getBatchesByCriteria(
 			fromDate,
 			toDate,
+			settlementModel,
 			currencyCodes,
-			settlementModels,
 			batchStatuses
 		);
 		if(!batches || batches.length <=0 ) return [];

@@ -101,8 +101,8 @@ export interface ISettlementBatchRepo {
 	getBatchesByCriteria(
 		fromDate: number,
 		toDate: number,
+		model: string,
 		currencyCodes: string[],
-		models: string[],
 		batchStatuses: string[]
 	): Promise<ISettlementBatch[]>;
 }

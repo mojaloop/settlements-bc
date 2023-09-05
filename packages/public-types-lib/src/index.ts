@@ -136,18 +136,27 @@ export interface ISettlementMatrix {
 	dateFrom: number | null;
 	dateTo: number | null;
 	currencyCodes: string[];
-	settlementModels: string[];
+	settlementModel: string | null;
 	batchStatuses: string[];
 	batches: ISettlementMatrixBatch[];
-	participantBalances: ISettlementMatrixParticipantBalance[];
 	state: "IDLE" | "BUSY" | "FINALIZED";
 	type: "STATIC" | "DYNAMIC";
 	generationDurationSecs: number | null;
-	totalBalances: ISettlementMatrixTotalBalance[];
-	isBatchesOutOfSync: boolean;
+
+	balancesByCurrency: ISettlementMatrixBalanceByCurrency[];
+	balancesByStateAndCurrency: ISettlementMatrixBalanceByStateAndCurrency[];
+	balancesByParticipant: ISettlementMatrixParticipantBalance[];
+
+	areBatchesOutOfSync: boolean;
 }
 
-export interface ISettlementMatrixTotalBalance {
+export interface ISettlementMatrixBalanceByCurrency {
+	currencyCode: string;
+	debitBalance: string;
+	creditBalance: string;
+}
+
+export interface ISettlementMatrixBalanceByStateAndCurrency {
 	currencyCode: string;
 	state: string;
 	debitBalance: string;

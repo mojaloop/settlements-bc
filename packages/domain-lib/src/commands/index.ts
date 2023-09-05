@@ -102,7 +102,7 @@ export type CreateDynamicMatrixCmdPayload = {
 	fromDate: number;
 	toDate: number;
 	currencyCodes: string[];
-	settlementModels: string[];
+	settlementModel: string;
 	batchStatuses: string[];
 }
 

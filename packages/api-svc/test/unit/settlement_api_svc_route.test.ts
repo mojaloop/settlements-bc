@@ -191,7 +191,7 @@ describe("Settlement BC api-svc route test", () => {
             type: "STATIC",
             generationDurationSecs: 2,
             totalBalances: [],
-            isBatchesOutOfSync: false
+            areBatchesOutOfSync: false
         }
     })
 
@@ -482,7 +482,7 @@ describe("Settlement BC api-svc route test", () => {
             type: "STATIC",
             generationDurationSecs: 2,
             totalBalances: [],
-            isBatchesOutOfSync: false
+            areBatchesOutOfSync: false
         };
 
         await mockMatrixRequestRepo.storeMatrix(newMatrix);
@@ -544,7 +544,7 @@ describe("Settlement BC api-svc route test", () => {
             type: "STATIC",
             generationDurationSecs: 2,
             totalBalances: [],
-            isBatchesOutOfSync: false
+            areBatchesOutOfSync: false
         };
 
         const payload: AddBatchesToMatrixCmdPayload = {
@@ -612,7 +612,7 @@ describe("Settlement BC api-svc route test", () => {
             type: "STATIC",
             generationDurationSecs: 2,
             totalBalances: [],
-            isBatchesOutOfSync: false
+            areBatchesOutOfSync: false
         };
 
         const payload: AddBatchesToMatrixCmdPayload = {
@@ -677,7 +677,7 @@ describe("Settlement BC api-svc route test", () => {
             type: "STATIC",
             generationDurationSecs: 2,
             totalBalances: [],
-            isBatchesOutOfSync: false
+            areBatchesOutOfSync: false
         };
 
         await mockMatrixRequestRepo.storeMatrix(newMatrix);
@@ -745,7 +745,7 @@ describe("Settlement BC api-svc route test", () => {
             type: "STATIC",
             generationDurationSecs: 2,
             totalBalances: [],
-            isBatchesOutOfSync: false
+            areBatchesOutOfSync: false
         };
 
         await mockMatrixRequestRepo.storeMatrix(newMatrix);
@@ -812,7 +812,7 @@ describe("Settlement BC api-svc route test", () => {
             type: "STATIC",
             generationDurationSecs: 2,
             totalBalances: [],
-            isBatchesOutOfSync: false
+            areBatchesOutOfSync: false
         };
 
         await mockMatrixRequestRepo.storeMatrix(newMatrix);
@@ -879,7 +879,7 @@ describe("Settlement BC api-svc route test", () => {
             type: "STATIC",
             generationDurationSecs: 2,
             totalBalances: [],
-            isBatchesOutOfSync: false
+            areBatchesOutOfSync: false
         };
 
         await mockMatrixRequestRepo.storeMatrix(newMatrix);
@@ -946,7 +946,7 @@ describe("Settlement BC api-svc route test", () => {
             type: "STATIC",
             generationDurationSecs: 2,
             totalBalances: [],
-            isBatchesOutOfSync: false
+            areBatchesOutOfSync: false
         };
 
         await mockMatrixRequestRepo.storeMatrix(newMatrix);
@@ -978,7 +978,7 @@ describe("Settlement BC api-svc route test", () => {
             type: "STATIC",
             generationDurationSecs: 2,
             totalBalances: [],
-            isBatchesOutOfSync: false
+            areBatchesOutOfSync: false
         };
 
         const matrix2: ISettlementMatrix = {
@@ -996,7 +996,7 @@ describe("Settlement BC api-svc route test", () => {
             type: "STATIC",
             generationDurationSecs: 2,
             totalBalances: [],
-            isBatchesOutOfSync: false
+            areBatchesOutOfSync: false
         };
 
         await mockMatrixRequestRepo.storeMatrix(matrix1);

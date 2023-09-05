@@ -1652,7 +1652,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		// matrix is not out of sync:
 		let matrix1 = await aggregate.getSettlementMatrix(securityContext, matrixId1);
 		expect(matrix1).toBeDefined();
-		expect(matrix1!.isBatchesOutOfSync).toEqual(false);
+		expect(matrix1!.areBatchesOutOfSync).toEqual(false);
 
 		let inSync = await settleMatrixReqRepo.getMatricesInSyncWhereBatch("IDLE", batchId);
 		expect(inSync).toBeDefined();
@@ -1678,7 +1678,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 
 		matrix1 = await aggregate.getSettlementMatrix(securityContext, matrixId1);
 		expect(matrix1).toBeDefined();
-		expect(matrix1!.isBatchesOutOfSync).toEqual(true);
+		expect(matrix1!.areBatchesOutOfSync).toEqual(true);
 	});
 
 	test("test matrix - settlement model and currency optional for dynamic matrix", async () => {

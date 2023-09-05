@@ -34,4 +34,3 @@ export * from "./privileges";
 export * from "./converters";
 export * from "./commands";
 export * from "./types/matrix";  // BC private matrix interfaces for infra and mocks
-export * from "./types/total_balance";
