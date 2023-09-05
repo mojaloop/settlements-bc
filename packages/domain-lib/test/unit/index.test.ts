@@ -1654,7 +1654,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		expect(matrix1).toBeDefined();
 		expect(matrix1!.areBatchesOutOfSync).toEqual(false);
 
-		let inSync = await settleMatrixReqRepo.getMatricesInSyncWhereBatch("IDLE", batchId);
+		let inSync = await settleMatrixReqRepo.getIdleMatricesWithBatchId("IDLE", batchId);
 		expect(inSync).toBeDefined();
 		expect(inSync!.length).toEqual(1);
 		expect(inSync![0].id).toEqual(matrix1!.id);
@@ -1671,7 +1671,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		await aggregate.markMatrixOutOfSyncWhereBatch(securityContext, matrixId2, [batchId]);
 		await new Promise(f => setTimeout(f, 1000));// 1 second
 
-		inSync = await settleMatrixReqRepo.getMatricesInSyncWhereBatch("IDLE", batchId);
+		inSync = await settleMatrixReqRepo.getIdleMatricesWithBatchId("IDLE", batchId);
 		expect(inSync).toBeDefined();
 		// the matrix that made the change will not be out of sync.
 		expect(inSync!.length).toEqual(1);

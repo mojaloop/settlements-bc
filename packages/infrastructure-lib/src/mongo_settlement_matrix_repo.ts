@@ -115,10 +115,10 @@ export class MongoSettlementMatrixRepo implements ISettlementMatrixRequestRepo {
 		}
 	}
 
-	async getMatricesInSyncWhereBatch(state: string, batchId: string): Promise<ISettlementMatrix[]>{
+	async getIdleMatricesWithBatchId(batchId: string): Promise<ISettlementMatrix[]>{
 		try {
 			// TODO use the $in operator from MongoDB to offload the matching by child batchId to the DB engin
-			const resp = await this._collection.find({state: state, areBatchesOutOfSync: false}).project({_id: 0}).toArray();
+			const resp = await this._collection.find({state: "IDLE"}).project({_id: 0}).toArray();
 			const respMatrix = resp as (ISettlementMatrix[]);
 			const ret : ISettlementMatrix[] = [];
 			for (const matrixIter of respMatrix) {

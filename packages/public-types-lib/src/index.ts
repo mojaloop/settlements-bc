@@ -139,15 +139,13 @@ export interface ISettlementMatrix {
 	settlementModel: string | null;
 	batchStatuses: string[];
 	batches: ISettlementMatrixBatch[];
-	state: "IDLE" | "BUSY" | "FINALIZED";
+	state: "IDLE" | "BUSY" | "FINALIZED" | "OUT_OF_SYNC" | "LOCKED";
 	type: "STATIC" | "DYNAMIC";
 	generationDurationSecs: number | null;
 
 	balancesByCurrency: ISettlementMatrixBalanceByCurrency[];
 	balancesByStateAndCurrency: ISettlementMatrixBalanceByStateAndCurrency[];
 	balancesByParticipant: ISettlementMatrixParticipantBalance[];
-
-	areBatchesOutOfSync: boolean;
 }
 
 export interface ISettlementMatrixBalanceByCurrency {

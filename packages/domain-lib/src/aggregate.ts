@@ -33,10 +33,10 @@ import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import {randomUUID} from "crypto";
 import {
 	CannotAddBatchesToSettlementMatrixError,
-	CannotCloseSettlementMatrixError,
+	CannotCloseSettlementMatrixError, CannotLockSettlementMatrixError,
 	CannotRecalculateSettlementMatrixError,
 	CannotRemoveBatchesFromSettlementMatrixError,
-	CannotSettleSettlementMatrixError,
+	CannotSettleSettlementMatrixError, CannotUnlockSettlementMatrixError,
 	InvalidAmountError,
 	InvalidBatchSettlementModelError,
 	InvalidCurrencyCodeError,
@@ -193,7 +193,7 @@ export class SettlementsAggregate {
 
 	private async _updateMatrixStateAndSave(
 		matrix: SettlementMatrix,
-		state: "IDLE" | "BUSY" | "FINALIZED",
+		state: "IDLE" | "BUSY" | "FINALIZED" | "OUT_OF_SYNC" | "LOCKED",
 		startTimestamp: number
 	): Promise<void> {
 		matrix.state = state;
@@ -416,7 +416,7 @@ export class SettlementsAggregate {
 		// Need the batches first to get the currency
 		const batches = await this._batchRepo.getBatchesByIds(batchIds);
 		const matrixCurrency = batches.length < 1 ? '' : batches[0].currencyCode;
-		const newMatrix = SettlementMatrix.CreateStatic(matrixCurrency);
+		const newMatrix = SettlementMatrix.CreateStatic();
 		if (matrixId) {
 			const existing = await this._settlementMatrixReqRepo.getMatrixById(matrixId);
 			if (existing) {
@@ -643,8 +643,8 @@ export class SettlementsAggregate {
 			throw err; // not found
 		}
 
-		if (matrixDto.state !== "IDLE") {
-			const err = new CannotRecalculateSettlementMatrixError("Can only recalculate matrices in idle state");
+		if (matrixDto.state !== "IDLE" && matrixDto.state !== "OUT_OF_SYNC") {
+			const err = new CannotRecalculateSettlementMatrixError("Can only recalculate matrices in idle or out-of-sync statuses");
 			this._logger.warn(err.message);
 			throw err;
 		}
@@ -658,7 +658,7 @@ export class SettlementsAggregate {
 		await this._settlementMatrixReqRepo.storeMatrix(matrix);
 		await this._recalculateMatrix(matrix);
 
-		await this._updateMatrixStateAndSave(matrix, previousState, startTimestamp);
+		await this._updateMatrixStateAndSave(matrix, (previousState === "OUT_OF_SYNC" ? "IDLE" : previousState), startTimestamp);
 
 		// We perform an async audit:
 		this._auditingClient.audit(
@@ -741,7 +741,7 @@ export class SettlementsAggregate {
 		}
 
 		if (matrixDto.state !== "IDLE") {
-			const err = new CannotCloseSettlementMatrixError("Can only lock an idle matrix");
+			const err = new CannotLockSettlementMatrixError("Can only lock an idle matrix");
 			this._logger.warn(err.message);
 			throw err;
 		}
@@ -772,7 +772,7 @@ export class SettlementsAggregate {
 		}
 
 		// Dispute the Matrix Request to prevent further execution:
-		await this._updateMatrixStateAndSave(matrix, "IDLE", startTimestamp);
+		await this._updateMatrixStateAndSave(matrix, "LOCKED", startTimestamp);
 
 		// Let the other matrices know the batch has been updated:
 		await this._markMatrixBatchesOutOfSync(matrix, batchesUpdated);
@@ -799,8 +799,8 @@ export class SettlementsAggregate {
 			throw err; // not found
 		}
 
-		if (matrixDto.state !== "IDLE") {
-			const err = new CannotCloseSettlementMatrixError("Can only unlock an idle matrix");
+		if (matrixDto.state !== "LOCKED") {
+			const err = new CannotUnlockSettlementMatrixError("Can only unlock an locked matrix");
 			this._logger.warn(err.message);
 			throw err;
 		}
@@ -915,11 +915,12 @@ export class SettlementsAggregate {
 			throw err; // not found
 		}
 
-		if (matrixDto.state === "FINALIZED") {
-			const err = new CannotSettleSettlementMatrixError("Cannot settle a FINALIZED matrix");
+		if (matrixDto.state !== "LOCKED") {
+			const err = new CannotSettleSettlementMatrixError("Cannot settle a matrix that is not is Locked");
 			this._logger.warn(err.message);
 			throw err;
 		}
+
 
 		const matrix = SettlementMatrix.CreateFromDto(matrixDto);
 		const startTimestamp = Date.now();
@@ -1001,15 +1002,15 @@ export class SettlementsAggregate {
 
 		for (const batchId of batchIds) {
 			const idleInSyncMatrices =
-				await this._settlementMatrixReqRepo.getMatricesInSyncWhereBatch("IDLE", batchId);
+				await this._settlementMatrixReqRepo.getIdleMatricesWithBatchId(batchId);
 			for(const matrixDto of idleInSyncMatrices){
 				if (originMatrixId === matrixDto.id) return;
 
 				const startTimestamp = Date.now();
 				const matrix = SettlementMatrix.CreateFromDto(matrixDto);
-				matrix.areBatchesOutOfSync = true;
+
 				// Close the Matrix Request to prevent further execution:
-				await this._updateMatrixStateAndSave(matrix, "IDLE", startTimestamp);
+				await this._updateMatrixStateAndSave(matrix, "OUT_OF_SYNC", startTimestamp);
 			}
 		}
 	}
@@ -1094,7 +1095,7 @@ export class SettlementsAggregate {
 					matrix.addBalance(
 						acc.participantId,
 						batch.currencyCode,
-						batch.state,
+						settlingMatrix ? "SETTLED" : batch.state,
 						accDebit,
 						accCredit,
 						currency.decimals

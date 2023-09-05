@@ -37,6 +37,8 @@ export class CannotRemoveBatchesFromSettlementMatrixError extends Error {}
 export class CannotAddBatchesToSettlementMatrixError extends Error {}
 export class CannotDisputeSettlementMatrixError extends Error {}
 export class CannotCloseSettlementMatrixError extends Error {}
+export class CannotLockSettlementMatrixError extends Error {}
+export class CannotUnlockSettlementMatrixError extends Error {}
 export class CannotSettleSettlementMatrixError extends Error {}
 
 export class SettlementMatrixIsClosedError extends Error {}

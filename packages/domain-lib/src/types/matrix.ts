@@ -52,7 +52,7 @@ export class SettlementMatrix implements ISettlementMatrix {
   // to find the actual owner of a batch, use the batch.ownerMatrixId
   batches: ISettlementMatrixBatch[];
 
-  state: "IDLE" | "BUSY" | "FINALIZED";
+  state: "IDLE" | "BUSY" | "FINALIZED" | "OUT_OF_SYNC"| "LOCKED";
   type: "STATIC" | "DYNAMIC";
 
   generationDurationSecs: number | null;
@@ -60,8 +60,6 @@ export class SettlementMatrix implements ISettlementMatrix {
   balancesByCurrency: ISettlementMatrixBalanceByCurrency[];
   balancesByStateAndCurrency: ISettlementMatrixBalanceByStateAndCurrency[];
   balancesByParticipant: ISettlementMatrixParticipantBalance[];
-
-  areBatchesOutOfSync: boolean;
 
   protected constructor(type: "STATIC" | "DYNAMIC") {
     this.id = randomUUID();
@@ -79,7 +77,6 @@ export class SettlementMatrix implements ISettlementMatrix {
     this.balancesByParticipant = [];
     this.balancesByCurrency = [];
     this.balancesByStateAndCurrency = [];
-    this.areBatchesOutOfSync = false;
   }
 
   addBalance(
@@ -208,7 +205,7 @@ export class SettlementMatrix implements ISettlementMatrix {
     this.balancesByStateAndCurrency = [];
   }
 
-  static CreateStatic(currency: string): SettlementMatrix {
+  static CreateStatic(): SettlementMatrix {
     return new SettlementMatrix("STATIC");
   }
 
@@ -248,8 +245,6 @@ export class SettlementMatrix implements ISettlementMatrix {
     newInstance.generationDurationSecs = dto.generationDurationSecs;
     newInstance.balancesByCurrency = dto.balancesByCurrency;
     newInstance.balancesByStateAndCurrency = dto.balancesByStateAndCurrency;
-
-    newInstance.areBatchesOutOfSync = dto.areBatchesOutOfSync;
 
     return newInstance;
   }
