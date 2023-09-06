@@ -339,26 +339,30 @@ export class ExpressRoutes {
 		let currencyCodesStr = req.query.currencyCodes as string;
 		let batchStatusesStr = req.query.batchStatuses as string;
 
-		let currencyCodes:string[] = [];
-		let batchStatuses:string[] = [];
+		let currencyCodes: string[] = [];
+		let batchStatuses: string[] = [];
 
 		try{
-			if(currencyCodesStr){
+			if (currencyCodesStr && Array.isArray(currencyCodesStr)) {
+				currencyCodes = currencyCodesStr;
+			} else if (currencyCodesStr) {
 				currencyCodesStr = decodeURIComponent(currencyCodesStr);
 				currencyCodes = JSON.parse(currencyCodesStr);
 			}
-			if(batchStatusesStr){
+
+			if (batchStatusesStr && Array.isArray(batchStatusesStr)) {
+				batchStatuses = batchStatusesStr;
+			} else if (batchStatusesStr) {
 				batchStatusesStr = decodeURIComponent(batchStatusesStr);
 				batchStatuses = JSON.parse(batchStatusesStr);
 			}
-		}catch(err){
+		} catch(err) {
 			this._logger.error(err);
 			this.sendErrorResponse(res, 500, "Invalid settlementModels, currencyCodes or batchStatuses query parameters received");
 			return;
 		}
 
 		// TODO enforce privileges
-
 		try {
 			if (batchName) {
 				const settlementBatches = await this._batchRepo.getBatchesByName(batchName);

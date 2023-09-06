@@ -323,6 +323,7 @@ export class SettlementsAggregate {
 
 		if (resp.created) {
 			// We perform an async audit:
+			// @esli
 			await this._auditingClient.audit(
 				AuditingActions.SETTLEMENT_BATCH_CREATED,
 				true,
@@ -334,6 +335,7 @@ export class SettlementsAggregate {
 		}
 
 		// We perform an async audit:
+		// @esli
 		this._auditingClient.audit(
 			AuditingActions.SETTLEMENT_TRANSFER_CREATED,
 			true,
@@ -394,6 +396,7 @@ export class SettlementsAggregate {
 		await this._configRepo.storeConfig(config);
 
 		// We perform an async audit:
+		// @esli
 		await this._auditingClient.audit(
 			AuditingActions.SETTLEMENT_MODEL_CREATED,
 			true,
@@ -401,7 +404,6 @@ export class SettlementsAggregate {
 				{key: "settlementModelName", value: cmdPayload.settlementModel}
 			]
 		);
-		// return settlementModel.settlementModel;
 	}
 
 	async createStaticSettlementMatrix(
@@ -415,7 +417,6 @@ export class SettlementsAggregate {
 
 		// Need the batches first to get the currency
 		const batches = await this._batchRepo.getBatchesByIds(batchIds);
-		const matrixCurrency = batches.length < 1 ? '' : batches[0].currencyCode;
 		const newMatrix = SettlementMatrix.CreateStatic();
 		if (matrixId) {
 			const existing = await this._settlementMatrixReqRepo.getMatrixById(matrixId);
@@ -436,6 +437,7 @@ export class SettlementsAggregate {
 		await this._updateMatrixStateAndSave(newMatrix, "IDLE", startTimestamp);
 
 		// We perform an async audit:
+		// @esli
 		this._auditingClient.audit(
 			AuditingActions.STATIC_SETTLEMENT_MATRIX_REQUEST_CREATED,
 			true,
@@ -450,8 +452,8 @@ export class SettlementsAggregate {
 	async createDynamicSettlementMatrix(
 		secCtx: CallSecurityContext,
 		matrixId: string | null,
-		currencyCodes: string[],
 		settlementModel: string,
+		currencyCodes: string[],
 		batchStatuses: string[],
 		fromDate: number,
 		toDate: number
@@ -483,6 +485,7 @@ export class SettlementsAggregate {
 		await this._updateMatrixStateAndSave(newMatrix, "IDLE", startTimestamp);
 
 		// We perform an async audit:
+		// @esli
 		this._auditingClient.audit(
 			AuditingActions.SETTLEMENT_MATRIX_REQUEST_CREATED,
 			true,
@@ -542,6 +545,7 @@ export class SettlementsAggregate {
 		await this._updateMatrixStateAndSave(matrix, "IDLE", startTimestamp);
 
 		// We perform an async audit:
+		// @esli
 		this._auditingClient.audit(
 			AuditingActions.SETTLEMENT_MATRIX_ADD_BATCHES,
 			true,
@@ -600,6 +604,7 @@ export class SettlementsAggregate {
 		await this._updateMatrixStateAndSave(matrix, "IDLE", startTimestamp);
 
 		// We perform an async audit:
+		// @esli
 		this._auditingClient.audit(
 			AuditingActions.SETTLEMENT_MATRIX_REMOVE_BATCHES,
 			true,
@@ -621,6 +626,7 @@ export class SettlementsAggregate {
 		}
 
 		// We perform an async audit:
+		// @esli
 		this._auditingClient.audit(
 			AuditingActions.SETTLEMENT_MATRIX_REQUEST_FETCH,
 			true,
@@ -661,6 +667,7 @@ export class SettlementsAggregate {
 		await this._updateMatrixStateAndSave(matrix, (previousState === "OUT_OF_SYNC" ? "IDLE" : previousState), startTimestamp);
 
 		// We perform an async audit:
+		// @esli
 		this._auditingClient.audit(
 			AuditingActions.SETTLEMENT_MATRIX_REQUEST_FETCH,
 			true,
@@ -719,6 +726,7 @@ export class SettlementsAggregate {
 		await this._markMatrixBatchesOutOfSync(matrix, batchesUpdated);
 
 		// We perform an async audit:
+		// @esli
 		this._auditingClient.audit(
 			AuditingActions.SETTLEMENT_MATRIX_DISPUTED,
 			true,
@@ -771,13 +779,14 @@ export class SettlementsAggregate {
 			batchesUpdated.push(batch.id);
 		}
 
-		// Dispute the Matrix Request to prevent further execution:
+		// dispute the Matrix Request to prevent further execution:
 		await this._updateMatrixStateAndSave(matrix, "LOCKED", startTimestamp);
 
-		// Let the other matrices know the batch has been updated:
+		// let the other matrices know the batch has been updated:
 		await this._markMatrixBatchesOutOfSync(matrix, batchesUpdated);
 
-		// We perform an async audit:
+		// we perform an async audit:
+		// @esli
 		this._auditingClient.audit(
 			AuditingActions.SETTLEMENT_MATRIX_LOCK,
 			true,
@@ -828,13 +837,14 @@ export class SettlementsAggregate {
 			}
 		}
 
-		// Dispute the Matrix Request to prevent further execution:
+		// dispute the Matrix Request to prevent further execution:
 		await this._updateMatrixStateAndSave(matrix, "IDLE", startTimestamp);
 
-		// Let the other matrices know the batch has been updated:
+		// let the other matrices know the batch has been updated:
 		await this._markMatrixBatchesOutOfSync(matrix, batchesUpdated);
 
-		// We perform an async audit:
+		// we perform an async audit:
+		// @esli
 		this._auditingClient.audit(
 			AuditingActions.SETTLEMENT_MATRIX_DISPUTED,
 			true,
@@ -845,7 +855,6 @@ export class SettlementsAggregate {
 		);
 		return;
 	}
-
 
 	async closeSettlementMatrix(secCtx: CallSecurityContext, id: string): Promise<void> {
 		this._enforcePrivilege(secCtx, Privileges.SETTLEMENTS_CLOSE_MATRIX);
@@ -887,13 +896,14 @@ export class SettlementsAggregate {
 			batchesUpdated.push(batch.id);
 		}
 
-		// Close the Matrix Request to prevent further execution:
+		// close the Matrix Request to prevent further execution:
 		await this._updateMatrixStateAndSave(matrix, "IDLE", startTimestamp);
 
-		// Let the other matrices know the batch has been updated:
+		// let the other matrices know the batch has been updated:
 		await this._markMatrixBatchesOutOfSync(matrix, batchesUpdated);
 
-		// We perform an async audit:
+		// we perform an async audit:
+		// @esli
 		this._auditingClient.audit(
 			AuditingActions.SETTLEMENT_MATRIX_CLOSED,
 			true,
@@ -916,11 +926,10 @@ export class SettlementsAggregate {
 		}
 
 		if (matrixDto.state !== "LOCKED") {
-			const err = new CannotSettleSettlementMatrixError("Cannot settle a matrix that is not is Locked");
+			const err = new CannotSettleSettlementMatrixError("Cannot settle a matrix that is not Locked");
 			this._logger.warn(err.message);
 			throw err;
 		}
-
 
 		const matrix = SettlementMatrix.CreateFromDto(matrixDto);
 		const startTimestamp = Date.now();
@@ -949,10 +958,10 @@ export class SettlementsAggregate {
 			batchesUpdated.push(batch.id);
 		}
 
-		// Close the Matrix Request to prevent further execution:
+		// close the Matrix Request to prevent further execution:
 		await this._updateMatrixStateAndSave(matrix, "FINALIZED", startTimestamp);
 
-		// Let the other matrices know the batch has been updated:
+		// let the other matrices know the batch has been updated:
 		await this._markMatrixBatchesOutOfSync(matrix, batchesUpdated);
 
 		const participants: SettlementMatrixSettledEvtPayloadParticipantItem[] = [];
@@ -968,7 +977,7 @@ export class SettlementsAggregate {
 			});
 		});
 
-		// Send matrix event for settlement:
+		// send matrix event for settlement:
 		const event = new SettlementMatrixSettledEvt({
 			settlementMatrixId: matrix.id,
 			settledTimestamp: Date.now(),
@@ -976,7 +985,7 @@ export class SettlementsAggregate {
 		});
 		await this._msgProducer.send(event);
 
-		// We perform an async audit:
+		// we perform an async audit:
 		// @esli
 		this._auditingClient.audit(
 			AuditingActions.SETTLEMENT_MATRIX_SETTLED,
@@ -1039,13 +1048,6 @@ export class SettlementsAggregate {
 		// remove batches and zero totals
 		matrix.clear();
 
-		// summaries:
-		// const totalBal: Map<string, Map<string, {cr: bigint, dr:bigint}>> =
-		// 	new Map<string, Map<string, {cr: bigint, dr:bigint}>>();
-		//
-		// const totalPartStateCurBal: Map<string, Map<string, Map<string, {cr: bigint, dr:bigint}>>> =
-		// 	new Map<string, Map<string, Map<string, {cr: bigint, dr:bigint}>>>();
-
 		if (batches && batches.length > 0) {
 			// invoke the A&B adapter in order to fetch up-to-date balances:
 			await this._updateBatchAccountBalances(batches);
@@ -1067,31 +1069,6 @@ export class SettlementsAggregate {
 
 					batchDebitBalance += accDebit;
 					batchCreditBalance += accCredit;
-					//
-					// // update per participant balances:
-					// // participantId:
-					// let totalForPart = totalPartStateCurBal.get(acc.participantId);
-					// if (!totalForPart) totalForPart = new Map<string, Map<string, {cr: bigint; dr: bigint}>>();
-					//
-					// // state:
-					// let totalForPartState = totalForPart.get(batch.state);
-					// if (!totalForPartState) totalForPartState = new Map<string, {cr: bigint; dr: bigint}>();
-					//
-					// // currency:
-					// const totalForCurrency = totalForPartState.get(currency.code);
-					// if (totalForCurrency) {
-					// 	totalForPartState.set(currency.code, {
-					// 		dr: totalForCurrency.dr + accDebit,
-					// 		cr: totalForCurrency.cr + accCredit
-					// 	});
-					// } else {
-					// 	totalForPartState.set(currency.code, {
-					// 		dr: accDebit,
-					// 		cr: accCredit
-					// 	});
-					// }
-					// totalForPart.set(batch.state, totalForPartState);
-					// totalPartStateCurBal.set(acc.participantId, totalForPart);
 					matrix.addBalance(
 						acc.participantId,
 						batch.currencyCode,
@@ -1107,55 +1084,8 @@ export class SettlementsAggregate {
 					bigintToString(batchDebitBalance, currency.decimals),
 					bigintToString(batchCreditBalance, currency.decimals)
 				);
-
-				/*// set the totals for state and currency:
-				let totalForStatus = totalBal.get(batch.state);
-				if (!totalForStatus) totalForStatus = new Map<string, {cr: bigint; dr: bigint}>();
-
-				const totalForCurrency = totalForStatus.get(currency.code);
-				if (totalForCurrency) {
-					totalForStatus.set(currency.code, {
-						dr: totalForCurrency.dr + batchDebitBalance,
-						cr: totalForCurrency.cr + batchCreditBalance
-					});
-				} else {
-					totalForStatus.set(currency.code, {
-						dr: batchDebitBalance,
-						cr: batchCreditBalance
-					});
-				}
-				totalBal.set(batch.state, totalForStatus);*/
 			}
 		}
-
-		/*// update main balances for standard matrix:
-		totalBal.forEach((currencyTotals, state) => {
-			currencyTotals.forEach((drDrTotal, currencyCode) => {
-				const currency = this._getCurrencyOrThrow(currencyCode);
-				matrix.addBalance(
-					currencyCode,
-					state,
-					bigintToString(drDrTotal.dr, currency.decimals),
-					bigintToString(drDrTotal.cr, currency.decimals)
-				);
-			});
-		});
-
-		// put per participant balances in the matrix:
-		totalPartStateCurBal.forEach((participantTotals, participantId) => {
-			participantTotals.forEach((currencyMap, state) => {
-				currencyMap.forEach((drDrTotal, currencyCode) => {
-					const currency = this._getCurrencyOrThrow(currencyCode);
-					matrix.addParticipantBalance(
-						currencyCode,
-						participantId,
-						state,
-						bigintToString(drDrTotal.dr, currency.decimals),
-						bigintToString(drDrTotal.cr, currency.decimals)
-					);
-				});
-			});
-		});*/
 	}
 
 	private async _updateBatchAccountBalances(batches: ISettlementBatch[]): Promise<void>{
@@ -1181,7 +1111,6 @@ export class SettlementsAggregate {
 			}
 		}
 	}
-
 
 	async getSettlementBatchesByCriteria(
 		secCtx: CallSecurityContext,

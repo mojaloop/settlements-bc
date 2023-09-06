@@ -91,7 +91,8 @@ export class SettlementBatchRepoMock implements ISettlementBatchRepo {
 				currencyMatch = matches.length > 0;
 			}
 
-			const modelMatch = (model === value.settlementModel);
+			let modelMatch = true;
+			if (model) modelMatch = (model === value.settlementModel);
 
 			let statusMatch = true;
 			if (batchStatuses && batchStatuses.length > 0) {

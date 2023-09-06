@@ -33,7 +33,9 @@ import {
     ISettlementMatrix,
     ISettlementMatrixBatch,
     ISettlementMatrixBatchAccount,
-    ISettlementMatrixParticipantBalance
+    ISettlementMatrixBalanceByCurrency,
+    ISettlementMatrixBalanceByParticipant,
+    ISettlementMatrixBalanceByStateAndCurrency
 } from "@mojaloop/settlements-bc-public-types-lib";
 import { randomUUID } from "crypto";
 
@@ -63,7 +65,9 @@ let mockedSettlementBatchTransfers: ISettlementBatchTransfer[];
 let mockedSettlementMatrix: ISettlementMatrix;
 let mockedSettlementMatrixBatches: ISettlementMatrixBatch[];
 let mockedSettlementMatrixBatchAccount: ISettlementMatrixBatchAccount[];
-let mockedSettlementMatrixParticipantBalances: ISettlementMatrixParticipantBalance[];
+let mockedSettlementMatrixBalancesPart: ISettlementMatrixBalanceByParticipant[];
+let mockedSettlementMatrixBalancesCurrency: ISettlementMatrixBalanceByCurrency[];
+let mockedSettlementMatrixBalancesStateAndCurrency: ISettlementMatrixBalanceByStateAndCurrency[];
 
 describe("Settlement BC api-svc route test", () => {
     beforeAll(async () => {
@@ -147,7 +151,7 @@ describe("Settlement BC api-svc route test", () => {
         ];
 
         //Prepare mocked Settlement Matrix Participant Balances
-        mockedSettlementMatrixParticipantBalances = [
+        mockedSettlementMatrixBalancesPart = [
             {
                 participantId: "FSP-A",
                 currencyCode: "EUR",
@@ -183,15 +187,15 @@ describe("Settlement BC api-svc route test", () => {
             dateFrom: null,
             dateTo: null,
             currencyCodes: ["USD"],
-            settlementModels: ["DEFAULT"],
+            settlementModel: "DEFAULT",
             batchStatuses: [],
             batches: mockedSettlementMatrixBatches,
-            participantBalances: mockedSettlementMatrixParticipantBalances,
+            balancesByParticipant: mockedSettlementMatrixBalancesPart,
+            balancesByStateAndCurrency: mockedSettlementMatrixBalancesStateAndCurrency,
+            balancesByCurrency : mockedSettlementMatrixBalancesCurrency,
             state: "FINALIZED",
             type: "STATIC",
-            generationDurationSecs: 2,
-            totalBalances: [],
-            areBatchesOutOfSync: false
+            generationDurationSecs: 2
         }
     })
 
@@ -253,7 +257,7 @@ describe("Settlement BC api-svc route test", () => {
         expect(response.status).toBe(404);
     });
 
-    test("GET /batches - should fetch settlement batch by batchName", async () => {
+    test("GET /batches - should fetch settlement batch by 'non-id'", async () => {
 
         //Arrange
 
@@ -305,7 +309,7 @@ describe("Settlement BC api-svc route test", () => {
             .query({
                 fromDate: dateFrom,
                 toDate: dateTo,
-                settlementModels: ["DEFAULT", ""]
+                settlementModel: "DEFAULT"
             })
             .set('authorization', AUTH_TOKEN);
         expect(responseSettlementModels.status).toBe(200);
@@ -342,7 +346,6 @@ describe("Settlement BC api-svc route test", () => {
     test("GET /transfers - should fetch batchTransfers by batchId", async () => {
 
         //Arrange
-
         //Act
         const response = await request(server)
             .get(`/transfers`)
@@ -437,7 +440,7 @@ describe("Settlement BC api-svc route test", () => {
         ];
 
         //Prepare mocked Settlement Matrix Participant Balances
-        const settlementMatrixParticipantBalances: ISettlementMatrixParticipantBalance[] = [
+        const settlementMatrixParticipantBalances: ISettlementMatrixBalanceByParticipant[] = [
             {
                 participantId: "FSP-A",
                 currencyCode: "EUR",
@@ -474,15 +477,15 @@ describe("Settlement BC api-svc route test", () => {
             dateFrom: null,
             dateTo: null,
             currencyCodes: ["EUR"],
-            settlementModels: ["DEFAULT"],
+            settlementModel: "DEFAULT",
             batchStatuses: [],
             batches: settlementSettlementMatrixBatches,
-            participantBalances: settlementMatrixParticipantBalances,
+            balancesByParticipant: mockedSettlementMatrixBalancesPart,
+            balancesByStateAndCurrency: mockedSettlementMatrixBalancesStateAndCurrency,
+            balancesByCurrency : mockedSettlementMatrixBalancesCurrency,
             state: "FINALIZED",
             type: "STATIC",
-            generationDurationSecs: 2,
-            totalBalances: [],
-            areBatchesOutOfSync: false
+            generationDurationSecs: 2
         };
 
         await mockMatrixRequestRepo.storeMatrix(newMatrix);
@@ -536,15 +539,15 @@ describe("Settlement BC api-svc route test", () => {
             dateFrom: null,
             dateTo: null,
             currencyCodes: ["EUR"],
-            settlementModels: ["DEFAULT"],
+            settlementModel: "DEFAULT",
             batchStatuses: [],
             batches: settlementSettlementMatrixBatches,
-            participantBalances: [],
+            balancesByParticipant: mockedSettlementMatrixBalancesPart,
+            balancesByStateAndCurrency: mockedSettlementMatrixBalancesStateAndCurrency,
+            balancesByCurrency : mockedSettlementMatrixBalancesCurrency,
             state: "IDLE",
             type: "STATIC",
-            generationDurationSecs: 2,
-            totalBalances: [],
-            areBatchesOutOfSync: false
+            generationDurationSecs: 2
         };
 
         const payload: AddBatchesToMatrixCmdPayload = {
@@ -604,15 +607,15 @@ describe("Settlement BC api-svc route test", () => {
             dateFrom: null,
             dateTo: null,
             currencyCodes: ["EUR"],
-            settlementModels: ["DEFAULT"],
+            settlementModel: "DEFAULT",
             batchStatuses: [],
             batches: settlementSettlementMatrixBatches,
-            participantBalances: [],
+            balancesByParticipant: [],
+            balancesByStateAndCurrency: [],
+            balancesByCurrency : [],
             state: "IDLE",
             type: "STATIC",
-            generationDurationSecs: 2,
-            totalBalances: [],
-            areBatchesOutOfSync: false
+            generationDurationSecs: 2
         };
 
         const payload: AddBatchesToMatrixCmdPayload = {
@@ -669,15 +672,15 @@ describe("Settlement BC api-svc route test", () => {
             dateFrom: null,
             dateTo: null,
             currencyCodes: ["EUR"],
-            settlementModels: ["DEFAULT"],
+            settlementModel: "DEFAULT",
             batchStatuses: [],
             batches: settlementSettlementMatrixBatches,
-            participantBalances: [],
+            balancesByParticipant: [],
+            balancesByStateAndCurrency: [],
+            balancesByCurrency : [],
             state: "IDLE",
             type: "STATIC",
-            generationDurationSecs: 2,
-            totalBalances: [],
-            areBatchesOutOfSync: false
+            generationDurationSecs: 2
         };
 
         await mockMatrixRequestRepo.storeMatrix(newMatrix);
@@ -737,15 +740,15 @@ describe("Settlement BC api-svc route test", () => {
             dateFrom: null,
             dateTo: null,
             currencyCodes: ["EUR"],
-            settlementModels: ["DEFAULT"],
+            settlementModel: "DEFAULT",
             batchStatuses: [],
             batches: settlementSettlementMatrixBatches,
-            participantBalances: [],
+            balancesByParticipant: [],
+            balancesByStateAndCurrency: [],
+            balancesByCurrency : [],
             state: "IDLE",
             type: "STATIC",
-            generationDurationSecs: 2,
-            totalBalances: [],
-            areBatchesOutOfSync: false
+            generationDurationSecs: 2
         };
 
         await mockMatrixRequestRepo.storeMatrix(newMatrix);
@@ -804,15 +807,15 @@ describe("Settlement BC api-svc route test", () => {
             dateFrom: null,
             dateTo: null,
             currencyCodes: ["EUR"],
-            settlementModels: ["DEFAULT"],
+            settlementModel: "DEFAULT",
             batchStatuses: [],
             batches: settlementSettlementMatrixBatches,
-            participantBalances: [],
+            balancesByParticipant: [],
+            balancesByStateAndCurrency: [],
+            balancesByCurrency : [],
             state: "IDLE",
             type: "STATIC",
-            generationDurationSecs: 2,
-            totalBalances: [],
-            areBatchesOutOfSync: false
+            generationDurationSecs: 2
         };
 
         await mockMatrixRequestRepo.storeMatrix(newMatrix);
@@ -871,15 +874,15 @@ describe("Settlement BC api-svc route test", () => {
             dateFrom: null,
             dateTo: null,
             currencyCodes: ["EUR"],
-            settlementModels: ["DEFAULT"],
+            settlementModel: "DEFAULT",
             batchStatuses: [],
             batches: settlementSettlementMatrixBatches,
-            participantBalances: [],
+            balancesByParticipant: [],
+            balancesByStateAndCurrency: [],
+            balancesByCurrency : [],
             state: "IDLE",
             type: "STATIC",
-            generationDurationSecs: 2,
-            totalBalances: [],
-            areBatchesOutOfSync: false
+            generationDurationSecs: 2
         };
 
         await mockMatrixRequestRepo.storeMatrix(newMatrix);
@@ -938,15 +941,15 @@ describe("Settlement BC api-svc route test", () => {
             dateFrom: null,
             dateTo: null,
             currencyCodes: ["EUR"],
-            settlementModels: ["DEFAULT"],
+            settlementModel: "DEFAULT",
             batchStatuses: [],
             batches: settlementSettlementMatrixBatches,
-            participantBalances: [],
+            balancesByParticipant: [],
+            balancesByStateAndCurrency: [],
+            balancesByCurrency : [],
             state: "IDLE",
             type: "STATIC",
-            generationDurationSecs: 2,
-            totalBalances: [],
-            areBatchesOutOfSync: false
+            generationDurationSecs: 2
         };
 
         await mockMatrixRequestRepo.storeMatrix(newMatrix);
@@ -970,15 +973,15 @@ describe("Settlement BC api-svc route test", () => {
             dateFrom: null,
             dateTo: null,
             currencyCodes: ["EUR"],
-            settlementModels: ["DEFAULT"],
+            settlementModel: "DEFAULT",
             batchStatuses: [],
             batches: [],
-            participantBalances: [],
+            balancesByParticipant: [],
+            balancesByStateAndCurrency: [],
+            balancesByCurrency : [],
             state: "IDLE",
             type: "STATIC",
-            generationDurationSecs: 2,
-            totalBalances: [],
-            areBatchesOutOfSync: false
+            generationDurationSecs: 2
         };
 
         const matrix2: ISettlementMatrix = {
@@ -988,15 +991,15 @@ describe("Settlement BC api-svc route test", () => {
             dateFrom: null,
             dateTo: null,
             currencyCodes: ["EUR"],
-            settlementModels: ["DEFAULT"],
+            settlementModel: "DEFAULT",
             batchStatuses: [],
             batches: [],
-            participantBalances: [],
+            balancesByParticipant: [],
+            balancesByStateAndCurrency: [],
+            balancesByCurrency : [],
             state: "IDLE",
             type: "STATIC",
-            generationDurationSecs: 2,
-            totalBalances: [],
-            areBatchesOutOfSync: false
+            generationDurationSecs: 2
         };
 
         await mockMatrixRequestRepo.storeMatrix(matrix1);

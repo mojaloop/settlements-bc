@@ -160,7 +160,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		const batches = await aggregate.getSettlementBatchesByCriteria(
 			securityContext,
 			[reqTransferDto.currencyCode],
-			[reqTransferDto.settlementModel],
+			reqTransferDto.settlementModel,
 			['OPEN'],
 			Date.now() - 30000,
 			Date.now() + 30000);
@@ -316,7 +316,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		const batchModelDef = await aggregate.getSettlementBatchesByCriteria(
 			securityContext,
 			[batch1!.currencyCode],
-			[batch1!.settlementModel],
+			batch1!.settlementModel,
 			['OPEN'],
 			Date.now() - 15000,
 			Date.now()
@@ -328,7 +328,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		const batchModelFx = await aggregate.getSettlementBatchesByCriteria(
 			securityContext,
 			[batch2!.currencyCode],
-			[batch2!.settlementModel],
+			batch2!.settlementModel,
 			['OPEN'],
 			Date.now() - 15000,
 			Date.now()
@@ -340,7 +340,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		const batchModelNoClosed = await aggregate.getSettlementBatchesByCriteria(
 			securityContext,
 			[batch2!.currencyCode],
-			[batch2!.settlementModel],
+			batch2!.settlementModel,
 			['CLOSED'],
 			Date.now() - 15000,
 			Date.now()
@@ -552,8 +552,8 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		const matrixId = await aggregate.createDynamicSettlementMatrix(
 			securityContext,
 			null, // matrix-id
+			reqTransferDto.settlementModel,
 			[reqTransferDto.currencyCode],
-			[reqTransferDto.settlementModel],
 			[],
 			dateFrom,
 			dateTo
@@ -565,8 +565,8 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 			await aggregate.createDynamicSettlementMatrix(
 				securityContext,
 				matrixId,
+				reqTransferDto.settlementModel,
 				[reqTransferDto.currencyCode],
-				[reqTransferDto.settlementModel],
 				[],
 				dateFrom,
 				dateTo
@@ -588,17 +588,16 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		expect(matrix!.dateFrom).toEqual(dateFrom);
 		expect(matrix!.dateTo).toEqual(dateTo);
 		expect(matrix!.currencyCodes[0]).toEqual(reqTransferDto.currencyCode);
-		expect(matrix!.settlementModels[0]).toEqual(reqTransferDto.settlementModel);
+		expect(matrix!.settlementModel).toEqual(reqTransferDto.settlementModel);
 		expect(matrix!.state).toEqual('IDLE');
 		expect(matrix!.batches.length).toEqual(1);
-		expect(matrix!.participantBalances.length).toEqual(2);
-		// Total balances:
-		expect(matrix!.totalBalances[0].debitBalance).toEqual(reqTransferDto.amount);
-		expect(matrix!.totalBalances[0].creditBalance).toEqual(reqTransferDto.amount);
-		expect(matrix!.totalBalances[0].state).toEqual('OPEN');
-		expect(matrix!.totalBalances[0].currencyCode).toEqual(reqTransferDto.currencyCode);
+		expect(matrix!.balancesByParticipant.length).toEqual(2);
+		// State and Currency balances:
+		expect(matrix!.balancesByStateAndCurrency[0].debitBalance).toEqual(reqTransferDto.amount);
+		expect(matrix!.balancesByStateAndCurrency[0].creditBalance).toEqual(reqTransferDto.amount);
+		expect(matrix!.balancesByStateAndCurrency[0].state).toEqual('OPEN');
+		expect(matrix!.balancesByStateAndCurrency[0].currencyCode).toEqual(reqTransferDto.currencyCode);
 		// Participants:
-		expect(matrix!.participantBalances.length).toEqual(2);
 		expect(matrix!.generationDurationSecs).toBeGreaterThan(-1);
 
 		// close the matrix:
@@ -635,8 +634,8 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		const matrixId = await aggregate.createDynamicSettlementMatrix(
 			securityContext,
 			null, // matrix-id
+			reqTransferDto.settlementModel,
 			[reqTransferDto.currencyCode],
-			[reqTransferDto.settlementModel],
 			[],
 			Date.now() - 5000,
 			Date.now()
@@ -664,7 +663,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		} catch (err :any) {
 			expect(err).toBeDefined();
 			expect(err instanceof CannotSettleSettlementMatrixError).toEqual(true);
-			expect(err.message).toEqual("Cannot settle a FINALIZED matrix");
+			expect(err.message).toEqual("Cannot settle a matrix that is not Locked");
 		}
 
 		// ensure an invalid id generates an error (SettlementMatrixRequestClosedError):
@@ -697,8 +696,8 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		const matrixId = await aggregate.createDynamicSettlementMatrix(
 			securityContext,
 			null, //matrix-id
+			reqTransferDto.settlementModel,
 			[reqTransferDto.currencyCode],
-			[reqTransferDto.settlementModel],
 			[],
 			Date.now() - 5000,
 			Date.now()
@@ -715,7 +714,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		const matrixLocked = await aggregate.getSettlementMatrix(securityContext, matrixId);
 		expect(matrixLocked).toBeDefined();
 		expect(matrixLocked!.id).toEqual(matrixId);
-		expect(matrixLocked!.state).toEqual('IDLE');
+		expect(matrixLocked!.state).toEqual('LOCKED');
 
 		// execute the matrix:
 		await aggregate.settleSettlementMatrix(securityContext, matrixId);
@@ -734,7 +733,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		const batches = await aggregate.getSettlementBatchesByCriteria(
 			securityContext, 
 			[reqTransferDto.currencyCode],
-			[reqTransferDto.settlementModel],
+			reqTransferDto.settlementModel,
 			[],
 			Date.now() - 15000,
 			Date.now()
@@ -777,8 +776,8 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		const matrixId = await aggregate.createDynamicSettlementMatrix(
 			securityContext,
 			null, //matrix-id
+			settleModel,
 			[currency],
-			[settleModel],
 			[],
 			Date.now() - 5000,
 			Date.now(),
@@ -887,8 +886,8 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		const matrixId = await aggregate.createDynamicSettlementMatrix(
 			securityContext,
 			null, //matrix-id
+			settleModel,
 			[currency],
-			[settleModel],
 			[],
 			Date.now() - 5000,
 			Date.now(),
@@ -900,7 +899,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		expect(matrixIdle).toBeDefined();
 		expect(matrixIdle!.id).toEqual(matrixId);
 		expect(matrixIdle!.state).toEqual('IDLE');
-		expect(matrixIdle!.participantBalances.length).toEqual(2);
+		expect(matrixIdle!.balancesByParticipant.length).toEqual(2);
 
 		// 2nd transfer with new participants:
 		await aggregate.handleTransfer(securityContext, {
@@ -918,7 +917,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		expect(matrixIdleUpdated).toBeDefined();
 		expect(matrixIdleUpdated!.id).toEqual(matrixId);
 		expect(matrixIdleUpdated!.state).toEqual('IDLE');
-		expect(matrixIdleUpdated!.participantBalances.length).toEqual(4);
+		expect(matrixIdleUpdated!.balancesByParticipant.length).toEqual(4);
 	});
 
 	test("test exceptions/errors responses for lookups", async () => {
@@ -966,26 +965,26 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		expect(matrixDisp!.id).toEqual(matrixIdDisp);
 		expect(matrixDisp!.state).toEqual("IDLE");
 		expect(matrixDisp!.type).toEqual("STATIC");
-		// Totals:
-		expect(matrixDisp!.totalBalances.length).toEqual(1);
-		expect(matrixDisp!.totalBalances[0].debitBalance).toEqual("10000");
-		expect(matrixDisp!.totalBalances[0].creditBalance).toEqual("10000");
-		expect(matrixDisp!.totalBalances[0].currencyCode).toEqual("EUR");
-		expect(matrixDisp!.totalBalances[0].state).toEqual("OPEN");
+		// Currency:
+		expect(matrixDisp!.balancesByStateAndCurrency.length).toEqual(1);
+		expect(matrixDisp!.balancesByStateAndCurrency[0].debitBalance).toEqual("10000");
+		expect(matrixDisp!.balancesByStateAndCurrency[0].creditBalance).toEqual("10000");
+		expect(matrixDisp!.balancesByStateAndCurrency[0].currencyCode).toEqual("EUR");
+		expect(matrixDisp!.balancesByStateAndCurrency[0].state).toEqual("OPEN");
 		// Participants:
-		expect(matrixDisp!.participantBalances.length).toEqual(2);
+		expect(matrixDisp!.balancesByParticipant.length).toEqual(2);
 		// Payer:
-		expect(matrixDisp!.participantBalances[0].debitBalance).toEqual("10000");
-		expect(matrixDisp!.participantBalances[0].creditBalance).toEqual("0");
-		expect(matrixDisp!.participantBalances[0].participantId).toEqual(reqTransferDto.payerFspId);
-		expect(matrixDisp!.participantBalances[0].currencyCode).toEqual("EUR");
-		expect(matrixDisp!.participantBalances[0].state).toEqual("OPEN");
+		expect(matrixDisp!.balancesByParticipant[0].debitBalance).toEqual("10000");
+		expect(matrixDisp!.balancesByParticipant[0].creditBalance).toEqual("0");
+		expect(matrixDisp!.balancesByParticipant[0].participantId).toEqual(reqTransferDto.payerFspId);
+		expect(matrixDisp!.balancesByParticipant[0].currencyCode).toEqual("EUR");
+		expect(matrixDisp!.balancesByParticipant[0].state).toEqual("OPEN");
 		// Payee:
-		expect(matrixDisp!.participantBalances[1].debitBalance).toEqual("0");
-		expect(matrixDisp!.participantBalances[1].creditBalance).toEqual("10000");
-		expect(matrixDisp!.participantBalances[1].participantId).toEqual(reqTransferDto.payeeFspId);
-		expect(matrixDisp!.participantBalances[1].currencyCode).toEqual("EUR");
-		expect(matrixDisp!.participantBalances[1].state).toEqual("OPEN");
+		expect(matrixDisp!.balancesByParticipant[1].debitBalance).toEqual("0");
+		expect(matrixDisp!.balancesByParticipant[1].creditBalance).toEqual("10000");
+		expect(matrixDisp!.balancesByParticipant[1].participantId).toEqual(reqTransferDto.payeeFspId);
+		expect(matrixDisp!.balancesByParticipant[1].currencyCode).toEqual("EUR");
+		expect(matrixDisp!.balancesByParticipant[1].state).toEqual("OPEN");
 
 		await aggregate.recalculateSettlementMatrix(securityContext, matrixIdDisp);
 		matrixDisp = await aggregate.getSettlementMatrix(securityContext, matrixIdDisp);
@@ -994,19 +993,19 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		expect(matrixDisp!.state).toEqual("IDLE");
 		expect(matrixDisp!.type).toEqual("STATIC");
 
-		expect(matrixDisp!.participantBalances.length).toEqual(2);
+		expect(matrixDisp!.balancesByParticipant.length).toEqual(2);
 		// Payer:
-		expect(matrixDisp!.participantBalances[0].debitBalance).toEqual("10000");
-		expect(matrixDisp!.participantBalances[0].creditBalance).toEqual("0");
-		expect(matrixDisp!.participantBalances[0].participantId).toEqual(reqTransferDto.payerFspId);
-		expect(matrixDisp!.participantBalances[0].currencyCode).toEqual("EUR");
-		expect(matrixDisp!.participantBalances[0].state).toEqual("DISPUTED");
+		expect(matrixDisp!.balancesByParticipant[0].debitBalance).toEqual("10000");
+		expect(matrixDisp!.balancesByParticipant[0].creditBalance).toEqual("0");
+		expect(matrixDisp!.balancesByParticipant[0].participantId).toEqual(reqTransferDto.payerFspId);
+		expect(matrixDisp!.balancesByParticipant[0].currencyCode).toEqual("EUR");
+		expect(matrixDisp!.balancesByParticipant[0].state).toEqual("DISPUTED");
 		// Payee:
-		expect(matrixDisp!.participantBalances[1].debitBalance).toEqual("0");
-		expect(matrixDisp!.participantBalances[1].creditBalance).toEqual("10000");
-		expect(matrixDisp!.participantBalances[1].participantId).toEqual(reqTransferDto.payeeFspId);
-		expect(matrixDisp!.participantBalances[1].currencyCode).toEqual("EUR");
-		expect(matrixDisp!.participantBalances[1].state).toEqual("DISPUTED");
+		expect(matrixDisp!.balancesByParticipant[1].debitBalance).toEqual("0");
+		expect(matrixDisp!.balancesByParticipant[1].creditBalance).toEqual("10000");
+		expect(matrixDisp!.balancesByParticipant[1].participantId).toEqual(reqTransferDto.payeeFspId);
+		expect(matrixDisp!.balancesByParticipant[1].currencyCode).toEqual("EUR");
+		expect(matrixDisp!.balancesByParticipant[1].state).toEqual("DISPUTED");
 
 		const batchDisp = await aggregate.getSettlementBatch(securityContext, batchId);
 		expect(batchDisp).toBeDefined();
@@ -1017,8 +1016,8 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		const matrixId = await aggregate.createDynamicSettlementMatrix(
 			securityContext,
 			null, //matrix-id
+			reqTransferDto.settlementModel,
 			[reqTransferDto.currencyCode],
-			[reqTransferDto.settlementModel],
 			[],
 			Date.now() - 5000,
 			Date.now(),
@@ -1043,7 +1042,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		expect(matrixUnDispute).toBeDefined();
 		expect(matrixUnDispute!.state).toEqual('IDLE');
 		expect(matrixUnDispute!.currencyCodes.length).toEqual(0);
-		expect(matrixUnDispute!.settlementModels.length).toEqual(0);
+		expect(matrixUnDispute!.settlementModel).toBeNull();
 		expect(matrixUnDispute!.batches.length).toEqual(1);
 
 		const batchUnDispute = await aggregate.getSettlementBatch(securityContext, batchId);
@@ -1152,25 +1151,25 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		expect(matrixDisp!.type).toEqual('STATIC');
 
 		// Totals:
-		expect(matrixDisp!.totalBalances.length).toEqual(1);
-		expect(matrixDisp!.totalBalances[0].debitBalance).toEqual("20000");
-		expect(matrixDisp!.totalBalances[0].creditBalance).toEqual("20000");
-		expect(matrixDisp!.totalBalances[0].currencyCode).toEqual("EUR");
-		expect(matrixDisp!.totalBalances[0].state).toEqual("OPEN");
+		expect(matrixDisp!.balancesByStateAndCurrency.length).toEqual(1);
+		expect(matrixDisp!.balancesByStateAndCurrency[0].debitBalance).toEqual("20000");
+		expect(matrixDisp!.balancesByStateAndCurrency[0].creditBalance).toEqual("20000");
+		expect(matrixDisp!.balancesByStateAndCurrency[0].currencyCode).toEqual("EUR");
+		expect(matrixDisp!.balancesByStateAndCurrency[0].state).toEqual("OPEN");
 		// Participants:
-		expect(matrixDisp!.participantBalances.length).toEqual(4);
+		expect(matrixDisp!.balancesByParticipant.length).toEqual(4);
 		// Payer:
-		expect(matrixDisp!.participantBalances[0].debitBalance).toEqual("10000");
-		expect(matrixDisp!.participantBalances[0].creditBalance).toEqual("0");
-		expect(matrixDisp!.participantBalances[0].participantId).toEqual(reqTransferDto.payerFspId);
-		expect(matrixDisp!.participantBalances[0].currencyCode).toEqual("EUR");
-		expect(matrixDisp!.participantBalances[0].state).toEqual("OPEN");
+		expect(matrixDisp!.balancesByParticipant[0].debitBalance).toEqual("10000");
+		expect(matrixDisp!.balancesByParticipant[0].creditBalance).toEqual("0");
+		expect(matrixDisp!.balancesByParticipant[0].participantId).toEqual(reqTransferDto.payerFspId);
+		expect(matrixDisp!.balancesByParticipant[0].currencyCode).toEqual("EUR");
+		expect(matrixDisp!.balancesByParticipant[0].state).toEqual("OPEN");
 		// Payee:
-		expect(matrixDisp!.participantBalances[1].debitBalance).toEqual("0");
-		expect(matrixDisp!.participantBalances[1].creditBalance).toEqual("10000");
-		expect(matrixDisp!.participantBalances[1].participantId).toEqual(reqTransferDto.payeeFspId);
-		expect(matrixDisp!.participantBalances[1].currencyCode).toEqual("EUR");
-		expect(matrixDisp!.participantBalances[1].state).toEqual("OPEN");
+		expect(matrixDisp!.balancesByParticipant[1].debitBalance).toEqual("0");
+		expect(matrixDisp!.balancesByParticipant[1].creditBalance).toEqual("10000");
+		expect(matrixDisp!.balancesByParticipant[1].participantId).toEqual(reqTransferDto.payeeFspId);
+		expect(matrixDisp!.balancesByParticipant[1].currencyCode).toEqual("EUR");
+		expect(matrixDisp!.balancesByParticipant[1].state).toEqual("OPEN");
 
 		// Create another settlement matrix with first batch:
 		const matrixIdDisp2 = await aggregate.createStaticSettlementMatrix(
@@ -1185,28 +1184,28 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		expect(matrixDisp2!.id).toEqual(matrixIdDisp2);
 		expect(matrixDisp2!.state).toEqual('IDLE');
 		expect(matrixDisp2!.type).toEqual('STATIC');
-		expect(matrixDisp2!.participantBalances.length).toEqual(2);
+		expect(matrixDisp2!.balancesByParticipant.length).toEqual(2);
 
 		// Totals:
-		expect(matrixDisp2!.totalBalances.length).toEqual(1);
-		expect(matrixDisp2!.totalBalances[0].debitBalance).toEqual("10000");
-		expect(matrixDisp2!.totalBalances[0].creditBalance).toEqual("10000");
-		expect(matrixDisp2!.totalBalances[0].currencyCode).toEqual("EUR");
-		expect(matrixDisp2!.totalBalances[0].state).toEqual("OPEN");
+		expect(matrixDisp2!.balancesByStateAndCurrency.length).toEqual(1);
+		expect(matrixDisp2!.balancesByStateAndCurrency[0].debitBalance).toEqual("10000");
+		expect(matrixDisp2!.balancesByStateAndCurrency[0].creditBalance).toEqual("10000");
+		expect(matrixDisp2!.balancesByStateAndCurrency[0].currencyCode).toEqual("EUR");
+		expect(matrixDisp2!.balancesByStateAndCurrency[0].state).toEqual("OPEN");
 		// Participants:
-		expect(matrixDisp2!.participantBalances.length).toEqual(2);
+		expect(matrixDisp2!.balancesByParticipant.length).toEqual(2);
 		// Payer:
-		expect(matrixDisp2!.participantBalances[0].debitBalance).toEqual("10000");
-		expect(matrixDisp2!.participantBalances[0].creditBalance).toEqual("0");
-		expect(matrixDisp2!.participantBalances[0].participantId).toEqual(reqTransferDto.payerFspId);
-		expect(matrixDisp2!.participantBalances[0].currencyCode).toEqual("EUR");
-		expect(matrixDisp2!.participantBalances[0].state).toEqual("OPEN");
+		expect(matrixDisp2!.balancesByParticipant[0].debitBalance).toEqual("10000");
+		expect(matrixDisp2!.balancesByParticipant[0].creditBalance).toEqual("0");
+		expect(matrixDisp2!.balancesByParticipant[0].participantId).toEqual(reqTransferDto.payerFspId);
+		expect(matrixDisp2!.balancesByParticipant[0].currencyCode).toEqual("EUR");
+		expect(matrixDisp2!.balancesByParticipant[0].state).toEqual("OPEN");
 		// Payee:
-		expect(matrixDisp2!.participantBalances[1].debitBalance).toEqual("0");
-		expect(matrixDisp2!.participantBalances[1].creditBalance).toEqual("10000");
-		expect(matrixDisp2!.participantBalances[1].participantId).toEqual(reqTransferDto.payeeFspId);
-		expect(matrixDisp2!.participantBalances[1].currencyCode).toEqual("EUR");
-		expect(matrixDisp2!.participantBalances[1].state).toEqual("OPEN");
+		expect(matrixDisp2!.balancesByParticipant[1].debitBalance).toEqual("0");
+		expect(matrixDisp2!.balancesByParticipant[1].creditBalance).toEqual("10000");
+		expect(matrixDisp2!.balancesByParticipant[1].participantId).toEqual(reqTransferDto.payeeFspId);
+		expect(matrixDisp2!.balancesByParticipant[1].currencyCode).toEqual("EUR");
+		expect(matrixDisp2!.balancesByParticipant[1].state).toEqual("OPEN");
 
 		// Dispute the matrix:
 		await aggregate.disputeSettlementMatrix(securityContext, matrixIdDisp2);
@@ -1223,28 +1222,28 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		expect(matrixDisp2!.id).toEqual(matrixIdDisp2);
 		expect(matrixDisp2!.state).toEqual('IDLE');
 		expect(matrixDisp2!.type).toEqual('STATIC');
-		expect(matrixDisp2!.participantBalances.length).toEqual(2);
+		expect(matrixDisp2!.balancesByParticipant.length).toEqual(2);
 
 		// Totals:
-		expect(matrixDisp2!.totalBalances.length).toEqual(1);
-		expect(matrixDisp2!.totalBalances[0].debitBalance).toEqual("10000");
-		expect(matrixDisp2!.totalBalances[0].creditBalance).toEqual("10000");
-		expect(matrixDisp2!.totalBalances[0].currencyCode).toEqual("EUR");
-		expect(matrixDisp2!.totalBalances[0].state).toEqual("OPEN");
+		expect(matrixDisp2!.balancesByStateAndCurrency.length).toEqual(1);
+		expect(matrixDisp2!.balancesByStateAndCurrency[0].debitBalance).toEqual("10000");
+		expect(matrixDisp2!.balancesByStateAndCurrency[0].creditBalance).toEqual("10000");
+		expect(matrixDisp2!.balancesByStateAndCurrency[0].currencyCode).toEqual("EUR");
+		expect(matrixDisp2!.balancesByStateAndCurrency[0].state).toEqual("OPEN");
 		// Participants:
-		expect(matrixDisp2!.participantBalances.length).toEqual(2);
+		expect(matrixDisp2!.balancesByParticipant.length).toEqual(2);
 		// Payer:
-		expect(matrixDisp2!.participantBalances[0].debitBalance).toEqual("10000");
-		expect(matrixDisp2!.participantBalances[0].creditBalance).toEqual("0");
-		expect(matrixDisp2!.participantBalances[0].participantId).toEqual(reqTransferDto.payerFspId);
-		expect(matrixDisp2!.participantBalances[0].currencyCode).toEqual("EUR");
-		expect(matrixDisp2!.participantBalances[0].state).toEqual("OPEN");
+		expect(matrixDisp2!.balancesByParticipant[0].debitBalance).toEqual("10000");
+		expect(matrixDisp2!.balancesByParticipant[0].creditBalance).toEqual("0");
+		expect(matrixDisp2!.balancesByParticipant[0].participantId).toEqual(reqTransferDto.payerFspId);
+		expect(matrixDisp2!.balancesByParticipant[0].currencyCode).toEqual("EUR");
+		expect(matrixDisp2!.balancesByParticipant[0].state).toEqual("OPEN");
 		// Payee:
-		expect(matrixDisp2!.participantBalances[1].debitBalance).toEqual("0");
-		expect(matrixDisp2!.participantBalances[1].creditBalance).toEqual("10000");
-		expect(matrixDisp2!.participantBalances[1].participantId).toEqual(reqTransferDto.payeeFspId);
-		expect(matrixDisp2!.participantBalances[1].currencyCode).toEqual("EUR");
-		expect(matrixDisp2!.participantBalances[1].state).toEqual("OPEN");
+		expect(matrixDisp2!.balancesByParticipant[1].debitBalance).toEqual("0");
+		expect(matrixDisp2!.balancesByParticipant[1].creditBalance).toEqual("10000");
+		expect(matrixDisp2!.balancesByParticipant[1].participantId).toEqual(reqTransferDto.payeeFspId);
+		expect(matrixDisp2!.balancesByParticipant[1].currencyCode).toEqual("EUR");
+		expect(matrixDisp2!.balancesByParticipant[1].state).toEqual("OPEN");
 		
 		await aggregate.recalculateSettlementMatrix(securityContext, matrixIdDisp2);
 
@@ -1254,7 +1253,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		expect(matrixDisp2!.id).toEqual(matrixIdDisp2);
 		expect(matrixDisp2!.state).toEqual('IDLE');
 		expect(matrixDisp2!.type).toEqual('STATIC');
-		expect(matrixDisp2!.participantBalances.length).toEqual(2);
+		expect(matrixDisp2!.balancesByParticipant.length).toEqual(2);
 
 		// Verify matrix1 again:
 		await aggregate.recalculateSettlementMatrix(securityContext, matrixIdDisp);
@@ -1266,7 +1265,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		expect(matrixDisp!.id).toEqual(matrixIdDisp);
 		expect(matrixDisp!.state).toEqual('IDLE');
 		expect(matrixDisp!.type).toEqual('STATIC');
-		expect(matrixDisp!.participantBalances.length).toEqual(4);
+		expect(matrixDisp!.balancesByParticipant.length).toEqual(4);
 		
 		// Settle matrix1:
 		await aggregate.lockSettlementMatrixForAwaitingSettlement(securityContext, matrixIdDisp);
@@ -1282,23 +1281,23 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		expect(matrixDisp!.batches.length).toEqual(1);
 
 		// Totals:
-		expect(matrixDisp!.totalBalances.length).toEqual(1);
-		expect(matrixDisp!.totalBalances[0].debitBalance).toEqual("10000");
-		expect(matrixDisp!.totalBalances[0].creditBalance).toEqual("10000");
-		expect(matrixDisp!.totalBalances[0].currencyCode).toEqual("EUR");
-		expect(matrixDisp!.totalBalances[0].state).toEqual("AWAITING_SETTLEMENT");
+		expect(matrixDisp!.balancesByStateAndCurrency.length).toEqual(1);
+		expect(matrixDisp!.balancesByStateAndCurrency[0].debitBalance).toEqual("10000");
+		expect(matrixDisp!.balancesByStateAndCurrency[0].creditBalance).toEqual("10000");
+		expect(matrixDisp!.balancesByStateAndCurrency[0].currencyCode).toEqual("EUR");
+		expect(matrixDisp!.balancesByStateAndCurrency[0].state).toEqual("SETTLED");
 		// Participants:
-		expect(matrixDisp!.participantBalances.length).toEqual(2);
+		expect(matrixDisp!.balancesByParticipant.length).toEqual(2);
 		// Payer:
-		expect(matrixDisp!.participantBalances[0].debitBalance).toEqual("10000");
-		expect(matrixDisp!.participantBalances[0].creditBalance).toEqual("0");
-		expect(matrixDisp!.participantBalances[0].currencyCode).toEqual("EUR");
-		expect(matrixDisp!.participantBalances[0].state).toEqual("AWAITING_SETTLEMENT");
+		expect(matrixDisp!.balancesByParticipant[0].debitBalance).toEqual("10000");
+		expect(matrixDisp!.balancesByParticipant[0].creditBalance).toEqual("0");
+		expect(matrixDisp!.balancesByParticipant[0].currencyCode).toEqual("EUR");
+		expect(matrixDisp!.balancesByParticipant[0].state).toEqual("SETTLED");
 		// Payee:
-		expect(matrixDisp!.participantBalances[1].debitBalance).toEqual("0");
-		expect(matrixDisp!.participantBalances[1].creditBalance).toEqual("10000");
-		expect(matrixDisp!.participantBalances[1].currencyCode).toEqual("EUR");
-		expect(matrixDisp!.participantBalances[1].state).toEqual("AWAITING_SETTLEMENT");
+		expect(matrixDisp!.balancesByParticipant[1].debitBalance).toEqual("0");
+		expect(matrixDisp!.balancesByParticipant[1].creditBalance).toEqual("10000");
+		expect(matrixDisp!.balancesByParticipant[1].currencyCode).toEqual("EUR");
+		expect(matrixDisp!.balancesByParticipant[1].state).toEqual("SETTLED");
 
 		// Ensure that the disputed batch was not settled, even though it was originally part of [matrixIdDisp]:
 		const batchExpDisputed = await aggregate.getSettlementBatch(securityContext, batchId);
@@ -1363,9 +1362,9 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		const matrixLocked = await aggregate.getSettlementMatrix(securityContext, matrixIdLock);
 		expect(matrixLocked).toBeDefined();
 		expect(matrixLocked!.id).toEqual(matrixIdLock);
-		expect(matrixLocked!.state).toEqual('IDLE');
+		expect(matrixLocked!.state).toEqual('LOCKED');
 		expect(matrixLocked!.type).toEqual('STATIC');
-		expect(matrixLocked!.participantBalances.length).toEqual(2);
+		expect(matrixLocked!.balancesByParticipant.length).toEqual(2);
 		expect(matrixLocked!.batches.length).toEqual(1);
 
 		// release the lock from the correct matrix:
@@ -1385,9 +1384,9 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		let matrixNoLock = await aggregate.getSettlementMatrix(securityContext, matrixIdNoLock);
 		expect(matrixNoLock).toBeDefined();
 		expect(matrixNoLock!.id).toEqual(matrixIdNoLock);
-		expect(matrixNoLock!.state).toEqual('IDLE');
+		expect(matrixNoLock!.state).toEqual('LOCKED');
 		expect(matrixNoLock!.type).toEqual('STATIC');
-		expect(matrixNoLock!.participantBalances.length).toEqual(2);
+		expect(matrixNoLock!.balancesByParticipant.length).toEqual(2);
 		expect(matrixNoLock!.batches.length).toEqual(1);
 
 		await aggregate.settleSettlementMatrix(securityContext, matrixIdNoLock);
@@ -1396,7 +1395,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		expect(matrixNoLock!.id).toEqual(matrixIdNoLock);
 		expect(matrixNoLock!.state).toEqual('FINALIZED');
 		expect(matrixNoLock!.type).toEqual('STATIC');
-		expect(matrixNoLock!.participantBalances.length).toEqual(2);
+		expect(matrixNoLock!.balancesByParticipant.length).toEqual(2);
 		expect(matrixNoLock!.batches.length).toEqual(1);
 	});
 
@@ -1474,7 +1473,15 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		expect(batch!.state).toEqual('CLOSED');
 
 		// settle settlement, but it won't be settled since it is not yet locked:
-		await aggregate.settleSettlementMatrix(securityContext, matrixId);
+		try {
+			await aggregate.settleSettlementMatrix(securityContext, matrixId);
+			fail('Expected to throw error!');
+		} catch (err: any) {
+			expect(err).toBeDefined();
+			expect(err instanceof CannotSettleSettlementMatrixError).toEqual(true);
+			expect(err.message).toEqual('Cannot settle a matrix that is not Locked');
+		}
+
 		batch = await settleBatchRepo.getBatch(batchId);
 		expect(batch).toBeDefined();
 		expect(batch!.id).toEqual(batchId);
@@ -1528,7 +1535,14 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		expect(matrixId).toBeDefined();
 
 		// settle an open batch, which should fail:
-		await aggregate.settleSettlementMatrix(securityContext, matrixId);
+		try {
+			await aggregate.settleSettlementMatrix(securityContext, matrixId);
+			fail('Expected to throw error!');
+		} catch (err: any) {
+			expect(err).toBeDefined();
+			expect(err instanceof CannotSettleSettlementMatrixError).toEqual(true);
+			expect(err.message).toEqual('Cannot settle a matrix that is not Locked');
+		}
 		batch = await settleBatchRepo.getBatch(batchId);
 		expect(batch).toBeDefined();
 		expect(batch!.id).toEqual(batchId);
@@ -1537,7 +1551,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		let matrix = await aggregate.getSettlementMatrix(securityContext, matrixId);
 		expect(matrix).toBeDefined();
 		expect(matrix!.id).toEqual(matrixId);
-		expect(matrix!.state).toEqual('FINALIZED');
+		expect(matrix!.state).toEqual('IDLE');
 
 		// close and try to settle, the batch should be moved to closed:
 		matrixId = await aggregate.createStaticSettlementMatrix(
@@ -1630,7 +1644,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 			currencyCode: 'EUR',
 			amount: '10000', //100 EURO
 			timestamp: Date.now(),
-			settlementModel: 'OUT_OF_SYNC'
+			settlementModel: 'OUT_OF_SYNC_TEST'
 		};
 		const batchId: string = await aggregate.handleTransfer(securityContext, reqTransferDto);
 		expect(batchId).toBeDefined();
@@ -1652,9 +1666,9 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		// matrix is not out of sync:
 		let matrix1 = await aggregate.getSettlementMatrix(securityContext, matrixId1);
 		expect(matrix1).toBeDefined();
-		expect(matrix1!.areBatchesOutOfSync).toEqual(false);
+		expect(matrix1!.state).toEqual('IDLE');// Only one batch, no problem with out-of-sync.
 
-		let inSync = await settleMatrixReqRepo.getIdleMatricesWithBatchId("IDLE", batchId);
+		let inSync = await settleMatrixReqRepo.getIdleMatricesWithBatchId(batchId);
 		expect(inSync).toBeDefined();
 		expect(inSync!.length).toEqual(1);
 		expect(inSync![0].id).toEqual(matrix1!.id);
@@ -1671,14 +1685,14 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		await aggregate.markMatrixOutOfSyncWhereBatch(securityContext, matrixId2, [batchId]);
 		await new Promise(f => setTimeout(f, 1000));// 1 second
 
-		inSync = await settleMatrixReqRepo.getIdleMatricesWithBatchId("IDLE", batchId);
+		inSync = await settleMatrixReqRepo.getIdleMatricesWithBatchId(batchId);
 		expect(inSync).toBeDefined();
 		// the matrix that made the change will not be out of sync.
 		expect(inSync!.length).toEqual(1);
 
 		matrix1 = await aggregate.getSettlementMatrix(securityContext, matrixId1);
 		expect(matrix1).toBeDefined();
-		expect(matrix1!.areBatchesOutOfSync).toEqual(true);
+		expect(matrix1!.state).toEqual('OUT_OF_SYNC');
 	});
 
 	test("test matrix - settlement model and currency optional for dynamic matrix", async () => {
@@ -1706,8 +1720,8 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		const matrixId_1 = await aggregate.createDynamicSettlementMatrix(
 			securityContext,
 			null, // matrix-id
+			reqTransferDto_1.settlementModel,
 			['USD', 'EUR'],
-			[reqTransferDto_1.settlementModel],
 			[],
 			dateFrom,
 			dateTo
@@ -1749,8 +1763,8 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		const matrixId_2 = await aggregate.createDynamicSettlementMatrix(
 			securityContext,
 			null, // matrix-id
+			reqTransferDto_2.settlementModel,
 			['USD', 'EUR'],
-			[],
 			[],
 			dateFrom,
 			dateTo

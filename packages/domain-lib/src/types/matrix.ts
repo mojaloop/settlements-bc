@@ -29,10 +29,11 @@
 
 import {
   ISettlementBatch,
-  ISettlementMatrix, ISettlementMatrixBalanceByCurrency, ISettlementMatrixBalanceByStateAndCurrency,
+  ISettlementMatrix,
   ISettlementMatrixBatch,
-  ISettlementMatrixParticipantBalance,
-
+  ISettlementMatrixBalanceByCurrency,
+  ISettlementMatrixBalanceByStateAndCurrency,
+  ISettlementMatrixBalanceByParticipant
 } from "@mojaloop/settlements-bc-public-types-lib";
 import {randomUUID} from "crypto";
 import {bigintToString, stringToBigint} from "../converters";
@@ -59,7 +60,7 @@ export class SettlementMatrix implements ISettlementMatrix {
 
   balancesByCurrency: ISettlementMatrixBalanceByCurrency[];
   balancesByStateAndCurrency: ISettlementMatrixBalanceByStateAndCurrency[];
-  balancesByParticipant: ISettlementMatrixParticipantBalance[];
+  balancesByParticipant: ISettlementMatrixBalanceByParticipant[];
 
   protected constructor(type: "STATIC" | "DYNAMIC") {
     this.id = randomUUID();

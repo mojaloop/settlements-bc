@@ -145,7 +145,7 @@ export interface ISettlementMatrix {
 
 	balancesByCurrency: ISettlementMatrixBalanceByCurrency[];
 	balancesByStateAndCurrency: ISettlementMatrixBalanceByStateAndCurrency[];
-	balancesByParticipant: ISettlementMatrixParticipantBalance[];
+	balancesByParticipant: ISettlementMatrixBalanceByParticipant[];
 }
 
 export interface ISettlementMatrixBalanceByCurrency {
@@ -161,7 +161,7 @@ export interface ISettlementMatrixBalanceByStateAndCurrency {
 	creditBalance: string;
 }
 
-export interface ISettlementMatrixParticipantBalance {
+export interface ISettlementMatrixBalanceByParticipant {
 	participantId: string;
 	currencyCode: string;
 	state: string;
