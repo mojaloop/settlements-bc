@@ -135,22 +135,36 @@ export interface ISettlementMatrix {
 	// criteria
 	dateFrom: number | null;
 	dateTo: number | null;
-	currencyCode: string;
+	currencyCodes: string[];
 	settlementModel: string | null;
+	batchStatuses: string[];
 	batches: ISettlementMatrixBatch[];
-	participantBalances: ISettlementMatrixParticipantBalance[];
-	participantBalancesDisputed: ISettlementMatrixParticipantBalance[];
-	state: "IDLE" | "BUSY" | "DISPUTED" | "CLOSED" | "AWAITING_SETTLEMENT" | "SETTLED";
+	state: "IDLE" | "BUSY" | "FINALIZED" | "OUT_OF_SYNC" | "LOCKED";
 	type: "STATIC" | "DYNAMIC";
 	generationDurationSecs: number | null;
-	totalDebitBalance: string;
-	totalCreditBalance: string;
-	totalDebitBalanceDisputed: string;
-	totalCreditBalanceDisputed: string;
+
+	balancesByCurrency: ISettlementMatrixBalanceByCurrency[];
+	balancesByStateAndCurrency: ISettlementMatrixBalanceByStateAndCurrency[];
+	balancesByParticipant: ISettlementMatrixBalanceByParticipant[];
 }
 
-export interface ISettlementMatrixParticipantBalance {
+export interface ISettlementMatrixBalanceByCurrency {
+	currencyCode: string;
+	debitBalance: string;
+	creditBalance: string;
+}
+
+export interface ISettlementMatrixBalanceByStateAndCurrency {
+	currencyCode: string;
+	state: string;
+	debitBalance: string;
+	creditBalance: string;
+}
+
+export interface ISettlementMatrixBalanceByParticipant {
 	participantId: string;
+	currencyCode: string;
+	state: string;
 	debitBalance: string;
 	creditBalance: string;
 }
@@ -158,6 +172,7 @@ export interface ISettlementMatrixParticipantBalance {
 export interface ISettlementMatrixBatch {
 	id: string;
 	name: string;
+	currencyCode: string;
 	batchDebitBalance: string;
 	batchCreditBalance: string;
 	state: "OPEN" | "DISPUTED" | "SETTLED" | "CLOSED" | "AWAITING_SETTLEMENT";

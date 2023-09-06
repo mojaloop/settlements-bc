@@ -33,7 +33,9 @@ import {
     ISettlementMatrix,
     ISettlementMatrixBatch,
     ISettlementMatrixBatchAccount,
-    ISettlementMatrixParticipantBalance
+    ISettlementMatrixBalanceByCurrency,
+    ISettlementMatrixBalanceByParticipant,
+    ISettlementMatrixBalanceByStateAndCurrency
 } from "@mojaloop/settlements-bc-public-types-lib";
 import { randomUUID } from "crypto";
 
@@ -63,7 +65,9 @@ let mockedSettlementBatchTransfers: ISettlementBatchTransfer[];
 let mockedSettlementMatrix: ISettlementMatrix;
 let mockedSettlementMatrixBatches: ISettlementMatrixBatch[];
 let mockedSettlementMatrixBatchAccount: ISettlementMatrixBatchAccount[];
-let mockedSettlementMatrixParticipantBalances: ISettlementMatrixParticipantBalance[];
+let mockedSettlementMatrixBalancesPart: ISettlementMatrixBalanceByParticipant[];
+let mockedSettlementMatrixBalancesCurrency: ISettlementMatrixBalanceByCurrency[];
+let mockedSettlementMatrixBalancesStateAndCurrency: ISettlementMatrixBalanceByStateAndCurrency[];
 
 describe("Settlement BC api-svc route test", () => {
     beforeAll(async () => {
@@ -88,8 +92,8 @@ describe("Settlement BC api-svc route test", () => {
         {
             id: "DEFAULT.USD.2023.06.19.08.30.001",
             timestamp: Date.now(),
-            settlementModel: 'DEFAULT',
-            currencyCode: 'USD',
+            settlementModel: "DEFAULT",
+            currencyCode: "USD",
             batchName: "DEFAULT.USD.2023.06.19.08.30",
             batchSequence: 2, //100 EURO
             state: "OPEN",
@@ -109,7 +113,7 @@ describe("Settlement BC api-svc route test", () => {
                 batchId: "DEFAULT.USD.2023.06.19.08.30.001",
                 batchName: "DEFAULT.USD.2023.06.19.08.30",
                 journalEntryId: "string",
-                matrixId: "SM001"
+                matrixId: "SM001",
             },
             {
                 transferId: "T002",
@@ -147,14 +151,18 @@ describe("Settlement BC api-svc route test", () => {
         ];
 
         //Prepare mocked Settlement Matrix Participant Balances
-        mockedSettlementMatrixParticipantBalances = [
+        mockedSettlementMatrixBalancesPart = [
             {
                 participantId: "FSP-A",
+                currencyCode: "EUR",
+                state: "OPEN",
                 debitBalance: "10",
                 creditBalance: "0"
             },
             {
                 participantId: "FSP-B",
+                currencyCode: "EUR",
+                state: "OPEN",
                 debitBalance: "0",
                 creditBalance: "10"
             }
@@ -164,6 +172,7 @@ describe("Settlement BC api-svc route test", () => {
         mockedSettlementMatrixBatches = [{
             id: "DEFAULT.USD.2023.06.19.08.30.001",
             name: "DEFAULT.USD.2023.06.19.08.30",
+            currencyCode: "USD",
             batchDebitBalance: "10",
             batchCreditBalance: "10",
             state: "OPEN",
@@ -177,21 +186,17 @@ describe("Settlement BC api-svc route test", () => {
             updatedAt: 0,
             dateFrom: null,
             dateTo: null,
-            currencyCode: "USD",
+            currencyCodes: ["USD"],
             settlementModel: "DEFAULT",
+            batchStatuses: [],
             batches: mockedSettlementMatrixBatches,
-            participantBalances: mockedSettlementMatrixParticipantBalances,
-            participantBalancesDisputed: [],
-            state: "SETTLED",
+            balancesByParticipant: mockedSettlementMatrixBalancesPart,
+            balancesByStateAndCurrency: mockedSettlementMatrixBalancesStateAndCurrency,
+            balancesByCurrency : mockedSettlementMatrixBalancesCurrency,
+            state: "FINALIZED",
             type: "STATIC",
-            generationDurationSecs: 2,
-            totalDebitBalance: "10",
-            totalCreditBalance: "10",
-            totalDebitBalanceDisputed: "0",
-            totalCreditBalanceDisputed: "0"
+            generationDurationSecs: 2
         }
-
-
     })
 
     afterAll(async () => {
@@ -207,8 +212,8 @@ describe("Settlement BC api-svc route test", () => {
             {
                 id: "DEFAULT.USD.2023.06.19.08.30.001",
                 timestamp: Date.now(),
-                settlementModel: 'DEFAULT',
-                currencyCode: 'USD',
+                settlementModel: "DEFAULT",
+                currencyCode: "USD",
                 batchName: "DEFAULT.USD.2023.06.19.08.30",
                 batchSequence: 2, //100 EURO
                 state: "OPEN",
@@ -218,8 +223,8 @@ describe("Settlement BC api-svc route test", () => {
             {
                 id: "DEFAULT.USD.2023.06.20.01.20.001",
                 timestamp: Date.now(),
-                settlementModel: 'CBX',
-                currencyCode: 'USD',
+                settlementModel: "CBX",
+                currencyCode: "USD",
                 batchName: "DEFAULT.USD.2023.06.20.01.20",
                 batchSequence: 1, //100 EURO
                 state: "CLOSED",
@@ -228,20 +233,15 @@ describe("Settlement BC api-svc route test", () => {
             }
         ];
 
-
         await mockBatchRepo.storeNewBatch(mockBatches[0]);
         await mockBatchRepo.storeNewBatch(mockBatches[1]);
 
-
-        //Act
-        const response = await request(server)
+        // Batch by unique identifier:
+        const responseId = await request(server)
             .get(`/batches/${mockBatches[0].id}`)
             .set('authorization', AUTH_TOKEN);
-
-        //Assert
-        expect(response.status).toBe(200);
-        expect(response.body).toEqual(mockBatches[0]);
-
+        expect(responseId.status).toBe(200);
+        expect(responseId.body).toEqual(mockBatches[0]);
     });
 
 
@@ -257,7 +257,7 @@ describe("Settlement BC api-svc route test", () => {
         expect(response.status).toBe(404);
     });
 
-    test("GET /batches - should fetch settlement batch by batchName", async () => {
+    test("GET /batches - should fetch settlement batch by 'non-id'", async () => {
 
         //Arrange
 
@@ -266,7 +266,7 @@ describe("Settlement BC api-svc route test", () => {
                 id: "DEFAULT.USD.2023.06.19.08.30.001",
                 timestamp: Date.now(),
                 settlementModel: 'DEFAULT',
-                currencyCode: 'USD',
+                currencyCode: "USD",
                 batchName: "DEFAULT.USD.2023.06.19.08.30",
                 batchSequence: 2, //100 EURO
                 state: "OPEN",
@@ -274,11 +274,11 @@ describe("Settlement BC api-svc route test", () => {
                 ownerMatrixId: null
             },
             {
-                id: "DEFAULT.USD.2023.06.20.01.20.001",
+                id: "CBX.USD.2023.06.20.01.20.001",
                 timestamp: Date.now(),
-                settlementModel: 'CBX',
-                currencyCode: 'USD',
-                batchName: "DEFAULT.USD.2023.06.20.01.20",
+                settlementModel: "CBX",
+                currencyCode: "USD",
+                batchName: "CBX.USD.2023.06.20.01.20",
                 batchSequence: 1, //100 EURO
                 state: "CLOSED",
                 accounts: [],
@@ -286,31 +286,66 @@ describe("Settlement BC api-svc route test", () => {
             }
         ];
 
-
         await mockBatchRepo.storeNewBatch(mockBatches[0]);
         await mockBatchRepo.storeNewBatch(mockBatches[1]);
 
-
-        //Act
-        const response = await request(server)
+        // Batch by name:
+        const responseBatchName = await request(server)
             .get(`/batches`)
             .query({
-                batchName: "DEFAULT.USD.2023.06.20.01.20"
+                batchName: "CBX.USD.2023.06.20.01.20"
             })
             .set('authorization', AUTH_TOKEN);
+        expect(responseBatchName.status).toBe(200);
+        expect(Array.isArray(responseBatchName.body)).toBe(true);
+        expect(responseBatchName.body.length).toBe(1);
 
-        //Assert
-        expect(response.status).toBe(200);
-        expect(Array.isArray(response.body)).toBe(true);
-        expect(response.body.length).toBe(1);
+        const dateTo = (Date.now() + 5000);
+        const dateFrom = (Date.now() - 5000);
 
+        // Batch by settlement models:
+        const responseSettlementModels = await request(server)
+            .get(`/batches`)
+            .query({
+                fromDate: dateFrom,
+                toDate: dateTo,
+                settlementModel: "DEFAULT"
+            })
+            .set('authorization', AUTH_TOKEN);
+        expect(responseSettlementModels.status).toBe(200);
+        expect(Array.isArray(responseSettlementModels.body)).toBe(true);
+        expect(responseSettlementModels.body.length).toBe(1);
 
+        // Batch by currency:
+        const responseCurrency = await request(server)
+            .get(`/batches`)
+            .query({
+                fromDate: dateFrom,
+                toDate: dateTo,
+                currencyCodes: ["USD", "EUR"]
+            })
+            .set('authorization', AUTH_TOKEN);
+        expect(responseCurrency.status).toBe(200);
+        expect(Array.isArray(responseCurrency.body)).toBe(true);
+        expect(responseCurrency.body.length).toBeGreaterThan(1);
+
+        // Batch by currency:
+        const responseStatus = await request(server)
+            .get(`/batches`)
+            .query({
+                fromDate: dateFrom,
+                toDate: dateTo,
+                batchStatuses: ["OPEN", "CLOSED"]
+            })
+            .set('authorization', AUTH_TOKEN);
+        expect(responseStatus.status).toBe(200);
+        expect(Array.isArray(responseStatus.body)).toBe(true);
+        expect(responseStatus.body.length).toBeGreaterThan(1);
     });
 
     test("GET /transfers - should fetch batchTransfers by batchId", async () => {
 
         //Arrange
-
         //Act
         const response = await request(server)
             .get(`/transfers`)
@@ -323,7 +358,6 @@ describe("Settlement BC api-svc route test", () => {
         expect(response.status).toBe(200);
         expect(Array.isArray(response.body)).toBe(true);
         expect(response.body.length).toBe(2);
-
     });
 
     test("GET /transfers - should fetch batchTransfers by batchName", async () => {
@@ -360,8 +394,6 @@ describe("Settlement BC api-svc route test", () => {
         expect(response.status).toBe(200);
         expect(Array.isArray(response.body)).toBe(true);
         expect(response.body[0]).toEqual(mockedSettlementBatchTransfers[1]);
-
-
     });
 
     test("GET /transfers - should fetch batchTransfer by matrixId", async () => {
@@ -408,14 +440,18 @@ describe("Settlement BC api-svc route test", () => {
         ];
 
         //Prepare mocked Settlement Matrix Participant Balances
-        const settlementMatrixParticipantBalances: ISettlementMatrixParticipantBalance[] = [
+        const settlementMatrixParticipantBalances: ISettlementMatrixBalanceByParticipant[] = [
             {
                 participantId: "FSP-A",
+                currencyCode: "EUR",
+                state: "OPEN",
                 debitBalance: "5",
                 creditBalance: "0"
             },
             {
                 participantId: "FSP-B",
+                currencyCode: "EUR",
+                state: "OPEN",
                 debitBalance: "0",
                 creditBalance: "5"
             }
@@ -425,6 +461,7 @@ describe("Settlement BC api-svc route test", () => {
         const settlementSettlementMatrixBatches: ISettlementMatrixBatch[] = [{
             id: "DEFAULT.EUR.2023.06.19.08.30.001",
             name: "DEFAULT.EUR.2023.06.19.08.30",
+            currencyCode: 'EUR',
             batchDebitBalance: "5",
             batchCreditBalance: "5",
             state: "OPEN",
@@ -439,18 +476,16 @@ describe("Settlement BC api-svc route test", () => {
             updatedAt: 0,
             dateFrom: null,
             dateTo: null,
-            currencyCode: "EUR",
+            currencyCodes: ["EUR"],
             settlementModel: "DEFAULT",
+            batchStatuses: [],
             batches: settlementSettlementMatrixBatches,
-            participantBalances: settlementMatrixParticipantBalances,
-            participantBalancesDisputed: [],
-            state: "SETTLED",
+            balancesByParticipant: mockedSettlementMatrixBalancesPart,
+            balancesByStateAndCurrency: mockedSettlementMatrixBalancesStateAndCurrency,
+            balancesByCurrency : mockedSettlementMatrixBalancesCurrency,
+            state: "FINALIZED",
             type: "STATIC",
-            generationDurationSecs: 2,
-            totalDebitBalance: "5",
-            totalCreditBalance: "5",
-            totalDebitBalanceDisputed: "0",
-            totalCreditBalanceDisputed: "0"
+            generationDurationSecs: 2
         };
 
         await mockMatrixRequestRepo.storeMatrix(newMatrix);
@@ -464,7 +499,6 @@ describe("Settlement BC api-svc route test", () => {
         //Assert
         expect(response.status).toBe(202);
         expect(response.body).toHaveProperty('id');
-
     });
 
     /**Settlement Matrix Routes' Tests */
@@ -477,6 +511,7 @@ describe("Settlement BC api-svc route test", () => {
             {
                 id: "DEFAULT.EUR.2023.06.19.08.30.001",
                 name: "DEFAULT.EUR.2023.06.19.08.30",
+                currencyCode: "USD",
                 batchDebitBalance: "5",
                 batchCreditBalance: "5",
                 state: "OPEN",
@@ -485,6 +520,7 @@ describe("Settlement BC api-svc route test", () => {
             {
                 id: "DEFAULT.USD.2023.06.23.08.22.001",
                 name: "DEFAULT.USD.2023.06.23.08.22",
+                currencyCode: "USD",
                 batchDebitBalance: "5",
                 batchCreditBalance: "5",
                 state: "OPEN",
@@ -502,18 +538,16 @@ describe("Settlement BC api-svc route test", () => {
             updatedAt: 0,
             dateFrom: null,
             dateTo: null,
-            currencyCode: "EUR",
+            currencyCodes: ["EUR"],
             settlementModel: "DEFAULT",
+            batchStatuses: [],
             batches: settlementSettlementMatrixBatches,
-            participantBalances: [],
-            participantBalancesDisputed: [],
+            balancesByParticipant: mockedSettlementMatrixBalancesPart,
+            balancesByStateAndCurrency: mockedSettlementMatrixBalancesStateAndCurrency,
+            balancesByCurrency : mockedSettlementMatrixBalancesCurrency,
             state: "IDLE",
             type: "STATIC",
-            generationDurationSecs: 2,
-            totalDebitBalance: "5",
-            totalCreditBalance: "5",
-            totalDebitBalanceDisputed: "0",
-            totalCreditBalanceDisputed: "0"
+            generationDurationSecs: 2
         };
 
         const payload: AddBatchesToMatrixCmdPayload = {
@@ -545,6 +579,7 @@ describe("Settlement BC api-svc route test", () => {
             {
                 id: "DEFAULT.EUR.2023.06.21.08.30.001",
                 name: "DEFAULT.EUR.2023.06.21.08.30",
+                currencyCode: "EUR",
                 batchDebitBalance: "15",
                 batchCreditBalance: "15",
                 state: "OPEN",
@@ -553,6 +588,7 @@ describe("Settlement BC api-svc route test", () => {
             {
                 id: "DEFAULT.USD.2023.06.21.08.22.001",
                 name: "DEFAULT.EUR.2023.06.21.08.22",
+                currencyCode: "EUR",
                 batchDebitBalance: "15",
                 batchCreditBalance: "15",
                 state: "OPEN",
@@ -570,18 +606,16 @@ describe("Settlement BC api-svc route test", () => {
             updatedAt: 0,
             dateFrom: null,
             dateTo: null,
-            currencyCode: "EUR",
+            currencyCodes: ["EUR"],
             settlementModel: "DEFAULT",
+            batchStatuses: [],
             batches: settlementSettlementMatrixBatches,
-            participantBalances: [],
-            participantBalancesDisputed: [],
+            balancesByParticipant: [],
+            balancesByStateAndCurrency: [],
+            balancesByCurrency : [],
             state: "IDLE",
             type: "STATIC",
-            generationDurationSecs: 2,
-            totalDebitBalance: "15",
-            totalCreditBalance: "15",
-            totalDebitBalanceDisputed: "0",
-            totalCreditBalanceDisputed: "0"
+            generationDurationSecs: 2
         };
 
         const payload: AddBatchesToMatrixCmdPayload = {
@@ -612,6 +646,7 @@ describe("Settlement BC api-svc route test", () => {
             {
                 id: "DEFAULT.EUR.2023.06.21.08.30.001",
                 name: "DEFAULT.EUR.2023.06.21.08.30",
+                currencyCode: "EUR",
                 batchDebitBalance: "15",
                 batchCreditBalance: "15",
                 state: "OPEN",
@@ -620,6 +655,7 @@ describe("Settlement BC api-svc route test", () => {
             {
                 id: "DEFAULT.USD.2023.06.21.08.22.001",
                 name: "DEFAULT.EUR.2023.06.21.08.22",
+                currencyCode: "EUR",
                 batchDebitBalance: "15",
                 batchCreditBalance: "15",
                 state: "OPEN",
@@ -635,18 +671,16 @@ describe("Settlement BC api-svc route test", () => {
             updatedAt: 0,
             dateFrom: null,
             dateTo: null,
-            currencyCode: "EUR",
+            currencyCodes: ["EUR"],
             settlementModel: "DEFAULT",
+            batchStatuses: [],
             batches: settlementSettlementMatrixBatches,
-            participantBalances: [],
-            participantBalancesDisputed: [],
+            balancesByParticipant: [],
+            balancesByStateAndCurrency: [],
+            balancesByCurrency : [],
             state: "IDLE",
             type: "STATIC",
-            generationDurationSecs: 2,
-            totalDebitBalance: "15",
-            totalCreditBalance: "15",
-            totalDebitBalanceDisputed: "0",
-            totalCreditBalanceDisputed: "0"
+            generationDurationSecs: 2
         };
 
         await mockMatrixRequestRepo.storeMatrix(newMatrix);
@@ -680,6 +714,7 @@ describe("Settlement BC api-svc route test", () => {
             {
                 id: "DEFAULT.EUR.2023.06.21.08.30.001",
                 name: "DEFAULT.EUR.2023.06.21.08.30",
+                currencyCode: "EUR",
                 batchDebitBalance: "15",
                 batchCreditBalance: "15",
                 state: "OPEN",
@@ -688,6 +723,7 @@ describe("Settlement BC api-svc route test", () => {
             {
                 id: "DEFAULT.USD.2023.06.21.08.22.001",
                 name: "DEFAULT.EUR.2023.06.21.08.22",
+                currencyCode: "EUR",
                 batchDebitBalance: "15",
                 batchCreditBalance: "15",
                 state: "OPEN",
@@ -703,18 +739,16 @@ describe("Settlement BC api-svc route test", () => {
             updatedAt: 0,
             dateFrom: null,
             dateTo: null,
-            currencyCode: "EUR",
+            currencyCodes: ["EUR"],
             settlementModel: "DEFAULT",
+            batchStatuses: [],
             batches: settlementSettlementMatrixBatches,
-            participantBalances: [],
-            participantBalancesDisputed: [],
+            balancesByParticipant: [],
+            balancesByStateAndCurrency: [],
+            balancesByCurrency : [],
             state: "IDLE",
             type: "STATIC",
-            generationDurationSecs: 2,
-            totalDebitBalance: "15",
-            totalCreditBalance: "15",
-            totalDebitBalanceDisputed: "0",
-            totalCreditBalanceDisputed: "0"
+            generationDurationSecs: 2
         };
 
         await mockMatrixRequestRepo.storeMatrix(newMatrix);
@@ -747,6 +781,7 @@ describe("Settlement BC api-svc route test", () => {
             {
                 id: "DEFAULT.EUR.2023.06.21.08.30.001",
                 name: "DEFAULT.EUR.2023.06.21.08.30",
+                currencyCode: "EUR",
                 batchDebitBalance: "15",
                 batchCreditBalance: "15",
                 state: "OPEN",
@@ -755,6 +790,7 @@ describe("Settlement BC api-svc route test", () => {
             {
                 id: "DEFAULT.USD.2023.06.21.08.22.001",
                 name: "DEFAULT.EUR.2023.06.21.08.22",
+                currencyCode: "EUR",
                 batchDebitBalance: "15",
                 batchCreditBalance: "15",
                 state: "OPEN",
@@ -770,18 +806,16 @@ describe("Settlement BC api-svc route test", () => {
             updatedAt: 0,
             dateFrom: null,
             dateTo: null,
-            currencyCode: "EUR",
+            currencyCodes: ["EUR"],
             settlementModel: "DEFAULT",
+            batchStatuses: [],
             batches: settlementSettlementMatrixBatches,
-            participantBalances: [],
-            participantBalancesDisputed: [],
+            balancesByParticipant: [],
+            balancesByStateAndCurrency: [],
+            balancesByCurrency : [],
             state: "IDLE",
             type: "STATIC",
-            generationDurationSecs: 2,
-            totalDebitBalance: "15",
-            totalCreditBalance: "15",
-            totalDebitBalanceDisputed: "0",
-            totalCreditBalanceDisputed: "0"
+            generationDurationSecs: 2
         };
 
         await mockMatrixRequestRepo.storeMatrix(newMatrix);
@@ -814,6 +848,7 @@ describe("Settlement BC api-svc route test", () => {
             {
                 id: "DEFAULT.EUR.2023.06.21.08.30.001",
                 name: "DEFAULT.EUR.2023.06.21.08.30",
+                currencyCode: "EUR",
                 batchDebitBalance: "15",
                 batchCreditBalance: "15",
                 state: "OPEN",
@@ -822,6 +857,7 @@ describe("Settlement BC api-svc route test", () => {
             {
                 id: "DEFAULT.USD.2023.06.21.08.22.001",
                 name: "DEFAULT.EUR.2023.06.21.08.22",
+                currencyCode: "EUR",
                 batchDebitBalance: "15",
                 batchCreditBalance: "15",
                 state: "OPEN",
@@ -837,18 +873,16 @@ describe("Settlement BC api-svc route test", () => {
             updatedAt: 0,
             dateFrom: null,
             dateTo: null,
-            currencyCode: "EUR",
+            currencyCodes: ["EUR"],
             settlementModel: "DEFAULT",
+            batchStatuses: [],
             batches: settlementSettlementMatrixBatches,
-            participantBalances: [],
-            participantBalancesDisputed: [],
+            balancesByParticipant: [],
+            balancesByStateAndCurrency: [],
+            balancesByCurrency : [],
             state: "IDLE",
             type: "STATIC",
-            generationDurationSecs: 2,
-            totalDebitBalance: "15",
-            totalCreditBalance: "15",
-            totalDebitBalanceDisputed: "0",
-            totalCreditBalanceDisputed: "0"
+            generationDurationSecs: 2
         };
 
         await mockMatrixRequestRepo.storeMatrix(newMatrix);
@@ -881,6 +915,7 @@ describe("Settlement BC api-svc route test", () => {
             {
                 id: "DEFAULT.EUR.2023.06.21.08.30.001",
                 name: "DEFAULT.EUR.2023.06.21.08.30",
+                currencyCode: "EUR",
                 batchDebitBalance: "15",
                 batchCreditBalance: "15",
                 state: "OPEN",
@@ -889,6 +924,7 @@ describe("Settlement BC api-svc route test", () => {
             {
                 id: "DEFAULT.USD.2023.06.21.08.22.001",
                 name: "DEFAULT.EUR.2023.06.21.08.22",
+                currencyCode: "EUR",
                 batchDebitBalance: "15",
                 batchCreditBalance: "15",
                 state: "OPEN",
@@ -904,18 +940,16 @@ describe("Settlement BC api-svc route test", () => {
             updatedAt: 0,
             dateFrom: null,
             dateTo: null,
-            currencyCode: "EUR",
+            currencyCodes: ["EUR"],
             settlementModel: "DEFAULT",
+            batchStatuses: [],
             batches: settlementSettlementMatrixBatches,
-            participantBalances: [],
-            participantBalancesDisputed: [],
+            balancesByParticipant: [],
+            balancesByStateAndCurrency: [],
+            balancesByCurrency : [],
             state: "IDLE",
             type: "STATIC",
-            generationDurationSecs: 2,
-            totalDebitBalance: "15",
-            totalCreditBalance: "15",
-            totalDebitBalanceDisputed: "0",
-            totalCreditBalanceDisputed: "0"
+            generationDurationSecs: 2
         };
 
         await mockMatrixRequestRepo.storeMatrix(newMatrix);
@@ -938,18 +972,16 @@ describe("Settlement BC api-svc route test", () => {
             updatedAt: 0,
             dateFrom: null,
             dateTo: null,
-            currencyCode: "EUR",
+            currencyCodes: ["EUR"],
             settlementModel: "DEFAULT",
+            batchStatuses: [],
             batches: [],
-            participantBalances: [],
-            participantBalancesDisputed: [],
+            balancesByParticipant: [],
+            balancesByStateAndCurrency: [],
+            balancesByCurrency : [],
             state: "IDLE",
             type: "STATIC",
-            generationDurationSecs: 2,
-            totalDebitBalance: "15",
-            totalCreditBalance: "15",
-            totalDebitBalanceDisputed: "0",
-            totalCreditBalanceDisputed: "0"
+            generationDurationSecs: 2
         };
 
         const matrix2: ISettlementMatrix = {
@@ -958,18 +990,16 @@ describe("Settlement BC api-svc route test", () => {
             updatedAt: 0,
             dateFrom: null,
             dateTo: null,
-            currencyCode: "EUR",
+            currencyCodes: ["EUR"],
             settlementModel: "DEFAULT",
+            batchStatuses: [],
             batches: [],
-            participantBalances: [],
-            participantBalancesDisputed: [],
+            balancesByParticipant: [],
+            balancesByStateAndCurrency: [],
+            balancesByCurrency : [],
             state: "IDLE",
             type: "STATIC",
-            generationDurationSecs: 2,
-            totalDebitBalance: "15",
-            totalCreditBalance: "15",
-            totalDebitBalanceDisputed: "0",
-            totalCreditBalanceDisputed: "0"
+            generationDurationSecs: 2
         };
 
         await mockMatrixRequestRepo.storeMatrix(matrix1);
@@ -984,8 +1014,5 @@ describe("Settlement BC api-svc route test", () => {
         //Assert
         expect(response.status).toBe(200);
         expect(Array.isArray(response.body)).toBe(true);
-
     });
-
-
 });

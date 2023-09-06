@@ -101,8 +101,9 @@ export type CreateDynamicMatrixCmdPayload = {
 	matrixId: string;
 	fromDate: number;
 	toDate: number;
-	currencyCode: string;
+	currencyCodes: string[];
 	settlementModel: string;
+	batchStatuses: string[];
 }
 
 
@@ -333,6 +334,30 @@ export class RemoveBatchesFromMatrixCmd extends CommandMsg {
 		super();
 
 		this.aggregateId = this.msgKey = payload.matrixId;
+		this.payload = payload;
+	}
+
+	validatePayload(): void {
+		// TODO @jason complete...
+	}
+}
+
+export type MarkMatrixOutOfSyncCmdPayload = {
+	originMatrixId: string;
+	batchIds: string[];
+}
+
+export class MarkMatrixOutOfSyncCmd extends CommandMsg {
+	boundedContextName: string = SETTLEMENTS_BOUNDED_CONTEXT_NAME;
+	aggregateId: string;
+	aggregateName: string = SETTLEMENTS_AGGREGATE_NAME;
+	msgKey: string;
+	msgTopic: string = SettlementsBCTopics.Commands;
+	payload: MarkMatrixOutOfSyncCmdPayload;
+
+	constructor(payload: MarkMatrixOutOfSyncCmdPayload) {
+		super();
+		this.aggregateId = this.msgKey = payload.originMatrixId;
 		this.payload = payload;
 	}
 

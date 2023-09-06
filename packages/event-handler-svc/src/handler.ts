@@ -110,9 +110,7 @@ export class SettlementsEventHandler{
 			amount: evt.payload.amount,
 			settlementModel: evt.payload.settlementModel,
 		};
-
-		const cmd = new ProcessTransferCmd(cmdPayload);
-		return cmd;
+		return new ProcessTransferCmd(cmdPayload);
 	}
 
 	async stop():Promise<void>{

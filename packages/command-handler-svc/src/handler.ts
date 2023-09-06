@@ -57,7 +57,9 @@ import {
 	LockMatrixCmd,
 	LockMatrixCmdPayload,
 	UnlockMatrixCmd,
-	UnlockMatrixCmdPayload, CreateSettlementModelCmdPayload
+	UnlockMatrixCmdPayload,
+	CreateSettlementModelCmdPayload,
+	MarkMatrixOutOfSyncCmd, MarkMatrixOutOfSyncCmdPayload
 } from "@mojaloop/settlements-bc-domain-lib";
 import {CallSecurityContext} from "@mojaloop/security-bc-public-types-lib";
 import {MLKafkaJsonConsumer} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
@@ -113,7 +115,8 @@ export class SettlementsCommandHandler{
 							sectCtx,
 							createPayload.matrixId,
 							createPayload.settlementModel,
-							createPayload.currencyCode,
+							createPayload.currencyCodes,
+							createPayload.batchStatuses,
 							createPayload.fromDate,
 							createPayload.toDate
 						);
@@ -191,6 +194,15 @@ export class SettlementsCommandHandler{
 							sectCtx,
 							removePayload.matrixId,
 							removePayload.batchIds
+						);
+						break;
+					case MarkMatrixOutOfSyncCmd.name:
+						// eslint-disable-next-line no-case-declarations
+						const batchUpdatedPayload = message.payload as MarkMatrixOutOfSyncCmdPayload;
+						await this._settlementsAgg.markMatrixOutOfSyncWhereBatch(
+							sectCtx,
+							batchUpdatedPayload.originMatrixId,
+							batchUpdatedPayload.batchIds
 						);
 						break;
 					default: {

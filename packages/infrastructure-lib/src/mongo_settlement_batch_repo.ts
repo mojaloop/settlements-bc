@@ -28,7 +28,7 @@
 "use strict";
 
 import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
-import {MongoClient, Collection} from "mongodb";
+import {MongoClient, Collection, Filter} from "mongodb";
 import {
 	ISettlementBatchRepo,
 	UnableToInitRepoError
@@ -134,15 +134,25 @@ export class MongoSettlementBatchRepo implements ISettlementBatchRepo {
 		}
 	}
 
-	async getBatchesByCriteria(fromDate: number, toDate: number, currencyCode: string, model: string): Promise<ISettlementBatch[]>{
+	async getBatchesByCriteria(
+		fromDate: number,
+		toDate: number,
+		model: string,
+		currencyCodes: string[],
+		batchStatuses: string[]
+	): Promise<ISettlementBatch[]>{
 		try {
+			const paramsForQuery :any= [
+				{timestamp: {$gte:fromDate}},
+				{timestamp: {$lte: toDate}},
+				{settlementModel: model}
+			];
+
+			if (currencyCodes && currencyCodes.length > 0) paramsForQuery.push({currencyCode: {$in: currencyCodes}});
+			if (batchStatuses && batchStatuses.length > 0) paramsForQuery.push({state: {$in: batchStatuses}});
+
 			const batches = await this._collection.find({
-				$and:[
-					{timestamp: {$gte:fromDate}},
-					{timestamp: {$lte: toDate}},
-					{currencyCode: currencyCode},
-					{settlementModel: model},
-				]
+				$and: paramsForQuery
 			}).project({_id: 0}).toArray();
 			return batches as ISettlementBatch[];
 		} catch (error: any) {

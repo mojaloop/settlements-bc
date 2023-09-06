@@ -31,11 +31,12 @@ import {
   ISettlementBatch,
   ISettlementMatrix,
   ISettlementMatrixBatch,
-  ISettlementMatrixParticipantBalance
-
+  ISettlementMatrixBalanceByCurrency,
+  ISettlementMatrixBalanceByStateAndCurrency,
+  ISettlementMatrixBalanceByParticipant
 } from "@mojaloop/settlements-bc-public-types-lib";
 import {randomUUID} from "crypto";
-import {CurrencyCodesDifferError} from "./errors";
+import {bigintToString, stringToBigint} from "../converters";
 
 export class SettlementMatrix implements ISettlementMatrix {
   id: string;
@@ -44,60 +45,146 @@ export class SettlementMatrix implements ISettlementMatrix {
 
   dateFrom: number | null;
   dateTo: number | null;
-  currencyCode: string;
+  currencyCodes: string[];
   settlementModel: string | null;
+  batchStatuses: string[];
 
   // multiple matrices can have the same batch, this can only be used to find a matrix batch
   // to find the actual owner of a batch, use the batch.ownerMatrixId
   batches: ISettlementMatrixBatch[];
-  participantBalances: ISettlementMatrixParticipantBalance[];
-  participantBalancesDisputed: ISettlementMatrixParticipantBalance[];
 
-  state: "IDLE" | "BUSY" | "DISPUTED" | "CLOSED" | "AWAITING_SETTLEMENT" | "SETTLED";
+  state: "IDLE" | "BUSY" | "FINALIZED" | "OUT_OF_SYNC"| "LOCKED";
   type: "STATIC" | "DYNAMIC";
 
   generationDurationSecs: number | null;
-  totalDebitBalance: string;
-  totalCreditBalance: string;
-  totalDebitBalanceDisputed: string;
-  totalCreditBalanceDisputed: string;
 
-  protected constructor(type: "STATIC" | "DYNAMIC", currency: string) {
+  balancesByCurrency: ISettlementMatrixBalanceByCurrency[];
+  balancesByStateAndCurrency: ISettlementMatrixBalanceByStateAndCurrency[];
+  balancesByParticipant: ISettlementMatrixBalanceByParticipant[];
+
+  protected constructor(type: "STATIC" | "DYNAMIC") {
     this.id = randomUUID();
     this.createdAt = this.updatedAt = Date.now();
     this.dateFrom = null;
     this.dateTo = null;
-    this.currencyCode = currency;
+    this.currencyCodes = [];
     this.settlementModel = null;
+    this.batchStatuses = [];
 
     this.state = "IDLE";
     this.type = type;
 
     this.batches  = [];
-    this.participantBalances = [];
-    this.participantBalancesDisputed = [];
-    this.totalDebitBalance = "0";
-    this.totalCreditBalance = "0";
-    this.totalDebitBalanceDisputed = "0";
-    this.totalCreditBalanceDisputed = "0";
+    this.balancesByParticipant = [];
+    this.balancesByCurrency = [];
+    this.balancesByStateAndCurrency = [];
   }
+
+  addBalance(
+      participantId:string,
+      currencyCode: string,
+      state: string,
+      debitBalance: bigint,
+      creditBalance: bigint,
+      currencyDecimals: number
+  ): void {
+    if(!this.balancesByParticipant) this.balancesByParticipant =[];
+    if(!this.balancesByCurrency) this.balancesByCurrency =[];
+    if(!this.balancesByStateAndCurrency) this.balancesByStateAndCurrency =[];
+
+    // byParticipant
+    const byParticipant = this.balancesByParticipant.find(value =>
+        value.state === state && value.currencyCode === currencyCode && value.participantId === participantId);
+    if (byParticipant) {
+      byParticipant.debitBalance = bigintToString(
+          stringToBigint(byParticipant.debitBalance, currencyDecimals) + debitBalance,
+          currencyDecimals
+      );
+      byParticipant.creditBalance = bigintToString(
+          stringToBigint(byParticipant.creditBalance, currencyDecimals) + creditBalance,
+          currencyDecimals
+      );
+    }else {
+      this.balancesByParticipant.push({
+        participantId: participantId,
+        state: state,
+        currencyCode: currencyCode,
+        debitBalance: bigintToString(debitBalance, currencyDecimals),
+        creditBalance: bigintToString(creditBalance, currencyDecimals)
+      });
+    }
+
+    // byCurrency
+    const byCurrency = this.balancesByCurrency.find(value => value.currencyCode === currencyCode);
+    if (byCurrency) {
+      byCurrency.debitBalance = bigintToString(
+          stringToBigint(byCurrency.debitBalance, currencyDecimals) + debitBalance,
+          currencyDecimals
+      );
+      byCurrency.creditBalance = bigintToString(
+          stringToBigint(byCurrency.creditBalance, currencyDecimals) + creditBalance,
+          currencyDecimals
+      );
+    }else{
+      this.balancesByCurrency.push({
+        currencyCode: currencyCode,
+        debitBalance: bigintToString(debitBalance, currencyDecimals),
+        creditBalance: bigintToString(creditBalance, currencyDecimals)
+      });
+    }
+
+
+    // byStateAndCurrency
+    const byStateAndCurrency = this.balancesByStateAndCurrency.find(
+        value =>  value.state === state && value.currencyCode === currencyCode);
+    if (byStateAndCurrency) {
+      byStateAndCurrency.debitBalance = bigintToString(
+          stringToBigint(byStateAndCurrency.debitBalance, currencyDecimals) + debitBalance,
+          currencyDecimals
+      );
+      byStateAndCurrency.creditBalance = bigintToString(
+          stringToBigint(byStateAndCurrency.creditBalance, currencyDecimals) + creditBalance,
+          currencyDecimals
+      );
+    }else{
+      this.balancesByStateAndCurrency.push({
+        state: state,
+        currencyCode: currencyCode,
+        debitBalance: bigintToString(debitBalance, currencyDecimals),
+        creditBalance: bigintToString(creditBalance, currencyDecimals)
+      });
+    }
+
+
+  }
+
+ /* addParticipantBalance(
+      currencyCode: string,
+      participantId: string,
+      state: string,
+      debitBalance: string,
+      creditBalance: string
+  ): void {
+    this.participantBalances.push({
+      participantId,
+      currencyCode,
+      state,
+      debitBalance,
+      creditBalance
+    });
+  }*/
 
   addBatch(
     batch: ISettlementBatch,
-    debitBalance: string = "0",
-    creditBalance: string = "0"
+    debitBalance: string,
+    creditBalance: string
   ): void {
-    if (this.type === 'STATIC' && this.batches.length === 0) {
-      this.currencyCode = batch.currencyCode;
-    }
-
-    if (batch.currencyCode !== this.currencyCode) {
-      throw new CurrencyCodesDifferError(`Matrix expects '${this.currencyCode}' but was '${batch.currencyCode}'`);
-    }
+    if (this.type === 'STATIC') this.currencyCodes = [];
 
     this.batches.push({
       id: batch.id,
       name: batch.batchName,
+      currencyCode: batch.currencyCode,
       batchDebitBalance: debitBalance,
       batchCreditBalance: creditBalance,
       state: batch.state,
@@ -105,7 +192,7 @@ export class SettlementMatrix implements ISettlementMatrix {
   }
 
   removeBatchById(batchId: string):void{
-    this.batches = this.batches.filter(itm => itm.id!==batchId);
+    this.batches = this.batches.filter(itm => itm.id !== batchId);
   }
 
   removeBatch(batch: ISettlementBatch): void {
@@ -114,52 +201,51 @@ export class SettlementMatrix implements ISettlementMatrix {
 
   clear(){
     this.batches = [];
-    this.participantBalances = [];
-    this.participantBalancesDisputed = [];
-    this.totalDebitBalance = "0";
-    this.totalCreditBalance = "0";
-    this.totalDebitBalanceDisputed = "0";
-    this.totalCreditBalanceDisputed = "0";
+    this.balancesByParticipant = [];
+    this.balancesByCurrency = [];
+    this.balancesByStateAndCurrency = [];
   }
 
-  static CreateStatic(currency: string): SettlementMatrix {
-    return new SettlementMatrix("STATIC", currency);
+  static CreateStatic(): SettlementMatrix {
+    return new SettlementMatrix("STATIC");
   }
 
   static CreateDynamic(
     dateFrom: number | null,
     dateTo: number | null,
-    currencyCode: string,
-    settlementModel: string | null
+    currencyCodes: string[],
+    settlementModel: string,
+    batchStatuses: string[]
   ) : SettlementMatrix {
-    const newInstance = new SettlementMatrix("DYNAMIC", currencyCode);
+    const newInstance = new SettlementMatrix("DYNAMIC");
     newInstance.dateFrom = dateFrom;
     newInstance.dateTo = dateTo;
     newInstance.settlementModel = settlementModel;
+    newInstance.batchStatuses = batchStatuses;
+    newInstance.currencyCodes = currencyCodes;
     return newInstance;
   }
 
   static CreateFromDto(dto: ISettlementMatrix): SettlementMatrix {
-    const newInstance = new SettlementMatrix(dto.type, dto.currencyCode);
+    const newInstance = new SettlementMatrix(dto.type);
 
     newInstance.id = dto.id;
     newInstance.createdAt = dto.createdAt;
     newInstance.updatedAt = dto.updatedAt;
     newInstance.state = dto.state;
+    newInstance.currencyCodes = dto.currencyCodes;
 
     newInstance.dateFrom = dto.dateFrom;
     newInstance.dateTo = dto.dateTo;
     newInstance.settlementModel = dto.settlementModel;
+    newInstance.batchStatuses = dto.batchStatuses;
 
     newInstance.batches = dto.batches;
-    newInstance.participantBalances = dto.participantBalances;
-    newInstance.participantBalancesDisputed = dto.participantBalancesDisputed;
+    newInstance.balancesByParticipant = dto.balancesByParticipant;
 
     newInstance.generationDurationSecs = dto.generationDurationSecs;
-    newInstance.totalDebitBalance = dto.totalDebitBalance;
-    newInstance.totalCreditBalance = dto.totalCreditBalance;
-    newInstance.totalDebitBalanceDisputed = dto.totalDebitBalanceDisputed;
-    newInstance.totalCreditBalanceDisputed = dto.totalCreditBalanceDisputed;
+    newInstance.balancesByCurrency = dto.balancesByCurrency;
+    newInstance.balancesByStateAndCurrency = dto.balancesByStateAndCurrency;
 
     return newInstance;
   }
