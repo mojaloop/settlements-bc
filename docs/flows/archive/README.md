@@ -263,11 +263,12 @@ State transitions for settlement matrices and batches are described in the follo
 ### 5.1 Settlement Matrix
 The table below illustrates the states for a settlement matrix:
 
-| State       | Description                                                                                                       | 
-|-------------|-------------------------------------------------------------------------------------------------------------------|
-| `IDLE`      | Matrix is awaiting input (initial state)                                                                          |
-| `BUSY`      | Matrix is currently busy processing a request, all commands will be blocked until completed                       |
-| `FINALIZED` | Matrix has been actioned to settled all IDLE or CLOSED batches. Once a matrix is settled, it is considered final  |
+| State       | Description                                                                                                     | 
+|-------------|-----------------------------------------------------------------------------------------------------------------|
+| `IDLE`      | Matrix is awaiting input (initial state)                                                                        |
+| `BUSY`      | Matrix is currently busy processing a request, all commands will be blocked until completed                     |
+| `LOCKED`    | Matrix has been actioned to lock batches. Batches will be marked as `AWAITING_SETTLEMENT`                        |
+| `FINALIZED` | Matrix has been actioned to settled all IDLE or CLOSED batches. Once a matrix is settled, it is considered final |
 
 ### 5.2 Settlement Matrix Batch
 The table below illustrates the states for a settlement batch:

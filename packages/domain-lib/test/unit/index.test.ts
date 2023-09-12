@@ -1777,4 +1777,89 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		expect(matrix!.state).toEqual('IDLE');
 		expect(matrix!.batches.length).toBeGreaterThan(1);
 	});
+
+	test("test matrix - settled batch to be part of matrix even if settled with another matrix", async () => {
+		const payer = randomUUID();
+		const payee = randomUUID();
+		const reqTransferDto_1: ITransferDto = {
+			id: null,
+			transferId: randomUUID(),
+			payerFspId: payer,
+			payeeFspId: payee,
+			currencyCode: 'EUR',
+			amount: '10000', //100 EURO
+			timestamp: Date.now(),
+			settlementModel: 'MULTI_MATRIX'
+		};
+		const reqTransferDto_2: ITransferDto = {
+			id: null,
+			transferId: randomUUID(),
+			payerFspId: payer,
+			payeeFspId: payee,
+			currencyCode: 'EUR',
+			amount: '10000', //100 EURO
+			timestamp: Date.now(),
+			settlementModel: 'MULTI_MATRIX'
+		};
+		const batchId_1: string = await aggregate.handleTransfer(securityContext, reqTransferDto_1);
+		expect(batchId_1).toBeDefined();
+
+		// Initial state for a batch is [OPEN]:
+		let batch_1 = await settleBatchRepo.getBatch(batchId_1);
+		expect(batch_1).toBeDefined();
+		expect(batch_1!.id).toEqual(batchId_1);
+		expect(batch_1!.state).toEqual('OPEN');
+
+		const matrixId_1 = await aggregate.createStaticSettlementMatrix(
+			securityContext,
+			null, // matrix-id
+			[batchId_1]
+		);
+		expect(matrixId_1).toBeDefined();
+
+		// close the matrix with batch [batchId_1]:
+		await aggregate.closeSettlementMatrix(securityContext, matrixId_1);
+		let matrix1 = await aggregate.getSettlementMatrix(securityContext, matrixId_1);
+		expect(matrix1).toBeDefined();
+		expect(matrix1!.id).toEqual(matrixId_1);
+		expect(matrix1!.state).toEqual('IDLE');
+
+		const batchId_2: string = await aggregate.handleTransfer(securityContext, reqTransferDto_2);
+		expect(batchId_2).toBeDefined();
+		expect(batchId_1).toBeDefined();
+		expect(batchId_2 === batchId_1).toEqual(false);
+
+		const matrixId_2 = await aggregate.createStaticSettlementMatrix(
+			securityContext,
+			null, // matrix-id
+			[batchId_1, batchId_2]
+		);
+		expect(matrixId_1).toBeDefined();
+		let matrix2 = await aggregate.getSettlementMatrix(securityContext, matrixId_2);
+		expect(matrix2).toBeDefined();
+		expect(matrix2!.id).toEqual(matrixId_2);
+		expect(matrix2!.state).toEqual('IDLE');
+		expect(matrix2!.batches.length).toEqual(2);
+
+		// Settle matrix1:
+		await aggregate.lockSettlementMatrixForAwaitingSettlement(securityContext, matrixId_1);
+		await aggregate.settleSettlementMatrix(securityContext, matrixId_1);
+
+		// Ensure it has been settled:
+		batch_1 = await settleBatchRepo.getBatch(batchId_1);
+		expect(batch_1).toBeDefined();
+		expect(batch_1!.ownerMatrixId).toBe(matrixId_1);
+		expect(batch_1!.state).toBe('SETTLED');
+
+		// Confirm status of Matrix 2:
+		await aggregate.recalculateSettlementMatrix(securityContext, matrixId_2);
+		matrix2 = await aggregate.getSettlementMatrix(securityContext, matrixId_2);
+		expect(matrix2).toBeDefined();
+		expect(matrix2!.id).toEqual(matrixId_2);
+		expect(matrix2!.state).toEqual('IDLE');
+		expect(matrix2!.batches.length).toEqual(2);
+		expect(matrix2!.balancesByCurrency.length).toEqual(1);// EUR only.
+		expect(matrix2!.balancesByStateAndCurrency.length).toEqual(2);// 1 OPEN and 1 SETTLED
+		expect(matrix2!.balancesByParticipant.length).toEqual(4);// 2 OPEN and 2 SETTLED
+	});
 });

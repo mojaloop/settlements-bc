@@ -1053,8 +1053,7 @@ export class SettlementsAggregate {
 			await this._updateBatchAccountBalances(batches);
 
 			for (const batch of batches) {
-				if (batch.state === "SETTLED") continue;
-				else if (settlingMatrix) {
+				if (settlingMatrix) {
 					// when settling, we can only settle batches that are AWAITING_SETTLEMENT and are already owned by this matrix
 					if (!batch.ownerMatrixId || batch.ownerMatrixId !== matrix.id) continue;
 					else if (batch.state !== "AWAITING_SETTLEMENT") continue;
