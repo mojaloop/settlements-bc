@@ -33,9 +33,8 @@ import {IAuditClient} from "@mojaloop/auditing-bc-public-types-lib";
 import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import {IMessage,IMessageConsumer, IMessageProducer, CommandMsg} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import {
-	SettlementsBCTopics,
 	TransfersBCTopics,
-	TransferCommittedFulfiledEvtPayload,
+	TransferReserveFulfiledEvt,
 	TransferCommittedFulfiledEvt
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import {ProcessTransferCmd, ProcessTransferCmdPayload} from "@mojaloop/settlements-bc-domain-lib";
@@ -74,14 +73,13 @@ export class SettlementsEventHandler{
 				let settlementsCmd: CommandMsg | null = null;
 
 				switch (message.msgName) {
+					case TransferReserveFulfiledEvt.name:
 					case TransferCommittedFulfiledEvt.name:
-						// TODO make sure transferState === COMPLETED (should always be the case in a TransferCommittedFulfiledEvt
 						// eslint-disable-next-line no-case-declarations
 						//const msgPayload = message.payload as TransferCommittedFulfiledEvtPayload;
 						// eslint-disable-next-line no-case-declarations
 						settlementsCmd = this._TransferCommittedFulfiledEvtToProcessTransfCmd(message as TransferCommittedFulfiledEvt);
-						break;
-
+					break;
 					default: {
 						this._logger.isWarnEnabled() && this._logger.warn(`SettlementsEventHandler - Skipping unknown event - msgName: ${message?.msgName} msgKey: ${message?.msgKey} msgId: ${message?.msgId}`);
 					}
