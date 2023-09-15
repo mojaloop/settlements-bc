@@ -1012,8 +1012,8 @@ export class SettlementsAggregate {
 		for (const batchId of batchIds) {
 			const idleInSyncMatrices =
 				await this._settlementMatrixReqRepo.getIdleMatricesWithBatchId(batchId);
-			for(const matrixDto of idleInSyncMatrices){
-				if (originMatrixId === matrixDto.id) return;
+			for (const matrixDto of idleInSyncMatrices){
+				if (originMatrixId === matrixDto.id) continue;
 
 				const startTimestamp = Date.now();
 				const matrix = SettlementMatrix.CreateFromDto(matrixDto);
