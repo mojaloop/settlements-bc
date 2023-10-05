@@ -1,0 +1,80 @@
+@startuml Close_Settlement_Batches
+
+participant "Admin API /UI" as admin_api #FDEFE0
+
+box Settlements BC #DDD5F3
+    participant "Settlements API" as sbc_api #D0BFFF
+    participant "Settlements \nCommand Handler" as sbc_grpc #D0BFFF 
+    participant "Settlements \nDomain Logic" as sbc_app_logic #D0BFFF
+    database "Settlements \nDatabase" as sbc_db #D0BFFF
+end box
+
+participant "Accounts & \nBalances BC" as ab_bc #66A767
+
+group Generate Settlement Matrix
+autonumber
+    admin_api -> sbc_api++          : Send request to generate \na matrix of settlement \nbatches (specify criteria)
+    sbc_api -> sbc_api              : Validate criteria
+    sbc_api <-> sbc_db              : Matrix duplicate check
+
+    sbc_api -> sbc_grpc             : Publish event to \ngenerate matrix
+    return Accepted request
+
+    sbc_grpc -\\ sbc_app_logic++    : Consume event to \ngenerate matrix
+
+    sbc_app_logic -> sbc_db         : Initiate matrix & \nset status to //BUSY//
+    sbc_app_logic <-> sbc_db        : Lookup batches \nfor the matrix
+
+    sbc_app_logic -> ab_bc++        : Fetch batch account balances
+    return Batch account balances
+
+    sbc_app_logic <-> sbc_db        : Associate batches & \nbalances with matrix
+
+    sbc_app_logic -> sbc_db         : Set matrix \nstatus to //IDLE//
+    return Matrix generated
+
+end
+
+group Retrieve Settlement Matrix (optional)
+    admin_api -> sbc_api++          : Use ID to lookup matrix
+    sbc_api -> sbc_app_logic++      : Request settlement matrix & batch data
+    sbc_app_logic -> sbc_db++       : Fetch data
+    return Settlement matrix & \nbatch data
+    return Settlement matrix with batches
+    return Settlement matrix \nwith batch data
+end
+
+
+group Close Settlement Batches
+    admin_api -> sbc_api++          : Send request to close \na matrix of settlement \nbatches (some or all batches)
+    sbc_api -> sbc_api              : Validate criteria
+    sbc_api <-> sbc_db              : Matrix existence check
+
+    sbc_api -> sbc_grpc             : Publish event to \nclose matrix
+    return Accepted request
+
+    sbc_grpc -\\ sbc_app_logic++    : Consume event to \nclose batches
+
+    sbc_app_logic -> sbc_db         : Update matrix \nstatus to //BUSY//
+    sbc_app_logic -> sbc_db         : Close batches where status \nis //OPEN// or //DISPUTED//
+    
+    sbc_app_logic -> ab_bc++        : Fetch settlement batch \naccount balances
+    return Account balances for batches
+
+    sbc_app_logic <-> sbc_db        : Update settlement \nmatrix with balances
+    sbc_app_logic -> sbc_db         : Set matrix \nstatus to //IDLE//
+
+    sbc_app_logic -> sbc_grpc       : Matrix batches closed
+    return Publish event to \nmark related matrices \nout-of-sync
+    
+    /' sbc_app_logic -> sbc_grpc       : Publish event to \nmark related matrices \nout-of-sync
+    return Matrix batches closed --> '/
+
+    sbc_grpc -\\ sbc_app_logic++    : Consume event to \nsync matrices
+    sbc_app_logic -> sbc_db         : Fetch matrices where batch \nrelationships are held for \nbatches updated
+    sbc_app_logic -> sbc_db         : Mark related matrices \nstatus to //OUT_OF_SYNC//
+    return Related Matrices\nmarked out-of-sync
+
+end
+
+@enduml 

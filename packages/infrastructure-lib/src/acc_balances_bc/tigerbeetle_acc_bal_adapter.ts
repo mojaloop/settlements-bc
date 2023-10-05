@@ -92,15 +92,17 @@ export class TigerBeetleAccountsAndBalancesAdapter implements IAccountsBalancesA
         // Create request for TigerBeetle:
         const request: TB.Account[] = [{
             id: this._uuidToBigint(requestedId), // u128
-            user_data: 0n, // u128, opaque third-party identifier to link this account to an external entity:
-            reserved: Buffer.alloc(48, 0), // [48]u8
-            ledger: this._obtainLedgerFromCurrency(currencyCode),   // u32, ledger value
-            code: Number(type), // u16, a chart of accounts code describing the type of account (e.g. clearing, settlement)
-            flags: 0,  // u16
             debits_pending: 0n,  // u64
             debits_posted: 0n,  // u64
             credits_pending: 0n, // u64
             credits_posted: 0n, // u64
+            user_data_128: this._uuidToBigint(ownerId), // u128, opaque third-party identifier to link this account to an external entity:
+            user_data_64: 0n,// u64
+            user_data_32: 0,// u32
+            reserved: 0, // [48]u8
+            ledger: this._obtainLedgerFromCurrency(currencyCode),   // u32, ledger value
+            code: Number(type), // u16, a chart of accounts code describing the type of account (e.g. clearing, settlement)
+            flags: 0,  // u16
             timestamp: 0n, // u64, Reserved: This will be set by the server.
         }];
 
@@ -128,24 +130,25 @@ export class TigerBeetleAccountsAndBalancesAdapter implements IAccountsBalancesA
     ): Promise<string> {
         // Create request for TigerBeetle:
         const request: TB.Transfer[] = [{
-                id: this._uuidToBigint(requestedId), // u128
-                pending_id: 0n, // u128
-                // Double-entry accounting:
-                debit_account_id: this._uuidToBigint(debitedAccountId),  // u128
-                credit_account_id: this._uuidToBigint(creditedAccountId), // u128
-                // Opaque third-party identifier to link this transfer to an external entity:
-                user_data: this._uuidToBigint(ownerId), // u128
-                reserved: 0n, // u128
-                // Timeout applicable for a pending/2-phase transfer:
-                timeout: 0n, // u64, in nano-seconds.
-                // Collection of accounts usually grouped by the currency:
-                // You can't transfer money between accounts with different ledgers:
-                ledger: this._obtainLedgerFromCurrency(currencyCode),  // u32, ledger for transfer (e.g. currency).
-                // Chart of accounts code describing the reason for the transfer:
-                code: 1,  // u16, (e.g. deposit, settlement)
-                flags: 0, // u16
-                amount: BigInt(amount), // u64
-                timestamp: 0n, //u64, Reserved: This will be set by the server.
+            id: this._uuidToBigint(requestedId), // u128
+            // Double-entry accounting:
+            debit_account_id: this._uuidToBigint(debitedAccountId),  // u128
+            credit_account_id: this._uuidToBigint(creditedAccountId), // u128
+            amount: BigInt(amount), // u64
+            pending_id: 0n, // u128
+            // Opaque third-party identifier to link this transfer to an external entity:
+            user_data_128: this._uuidToBigint(ownerId), // u128
+            user_data_64: 0n,
+            user_data_32: 0,
+            // Timeout applicable for a pending/2-phase transfer:
+            timeout: 0, // u64, in nano-seconds.
+            // Collection of accounts usually grouped by the currency:
+            // You can't transfer money between accounts with different ledgers:
+            ledger: this._obtainLedgerFromCurrency(currencyCode),  // u32, ledger for transfer (e.g. currency).
+            // Chart of accounts code describing the reason for the transfer:
+            code: 2,  // u16, (e.g. 1-deposit, 2-settlement)
+            flags: 0, // u16
+            timestamp: 0n, //u64, Reserved: This will be set by the server.
         }];
 
         // Invoke Client:
@@ -229,7 +232,7 @@ export class TigerBeetleAccountsAndBalancesAdapter implements IAccountsBalancesA
     private _mapTbAccountToABAccount(item: TB.Account): AccountsAndBalancesAccount {
         return {
             id: this._bigIntToUuid(item.id),
-            ownerId: this._bigIntToUuid(item.user_data),
+            ownerId: this._bigIntToUuid(item.user_data_128),
             state: "ACTIVE" as AccountsAndBalancesAccountState,
             type: this._coaTxtFrom(item.code) as AccountsAndBalancesAccountType,
             currencyCode: this._obtainCurrencyFromLedger(item.ledger),
@@ -245,7 +248,7 @@ export class TigerBeetleAccountsAndBalancesAdapter implements IAccountsBalancesA
     private _mapTbTransferToABTransfer(item: TB.Transfer): AccountsAndBalancesJournalEntry {
         return {
             id: this._bigIntToUuid(item.id),
-            ownerId: this._bigIntToUuid(item.user_data),
+            ownerId: this._bigIntToUuid(item.user_data_128),
             currencyCode: this._obtainCurrencyFromLedger(item.ledger),
             amount: `${item.amount}`,
             pending: false,
@@ -291,7 +294,7 @@ export class TigerBeetleAccountsAndBalancesAdapter implements IAccountsBalancesA
     }
 
     // inspired from https://stackoverflow.com/a/53751162/5743904
-    private _uuidToBigint(uuid:string): bigint {
+    private _uuidToBigint(uuid: string) : bigint {
         // let hex = uuid.replaceAll("-",""); // replaceAll only works on es2021
         let hex = uuid.replace(/-/g, "");
         if (hex.length % 2) { hex = "0" + hex; }

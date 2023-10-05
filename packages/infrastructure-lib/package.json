@@ -38,8 +38,8 @@
     "@mojaloop/accounts-and-balances-bc-public-types-lib": "~0.2.2",
     "@mojaloop/security-bc-client-lib": "~0.2.3",
     "@mojaloop/security-bc-public-types-lib": "~0.2.1",
-    "tigerbeetle-node": "0.13.126",
+    "tigerbeetle-node": "0.13.138",
     "tslib": "~2.6.2",
-    "mongodb": "~6.0.0"
+    "mongodb": "~6.1.0"
   }
 }
