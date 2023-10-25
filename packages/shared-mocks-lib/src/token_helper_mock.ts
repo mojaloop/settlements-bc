@@ -28,9 +28,10 @@
 "use strict";
 
 
-import {ITokenHelper} from "@mojaloop/security-bc-public-types-lib";
+import {CallSecurityContext, ITokenHelper} from "@mojaloop/security-bc-public-types-lib";
 
 export class TokenHelperMock implements ITokenHelper{
+
 	// private _logger: any;
 	// private _jwksUrl: string;
 	// private _issuerName: string | null;
@@ -50,5 +51,9 @@ export class TokenHelperMock implements ITokenHelper{
 
 	async verifyToken(accessToken: string): Promise<boolean>{
 		return true;
+	}
+
+	getCallSecurityContextFromAccessToken(accessToken: string): Promise<CallSecurityContext | null> {
+		throw new Error("Not implemented");
 	}
 }

@@ -33,7 +33,7 @@
   "devDependencies": {},
   "dependencies": {
     "@mojaloop/logging-bc-public-types-lib": "~0.1.20",
-    "@mojaloop/security-bc-public-types-lib": "~0.2.1",
+    "@mojaloop/security-bc-public-types-lib": "~0.3.3",
     "@mojaloop/settlements-bc-public-types-lib": "~0.2.3",
     "tslib": "~2.6.2"
   }

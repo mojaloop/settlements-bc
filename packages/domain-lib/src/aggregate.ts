@@ -154,7 +154,7 @@ export class SettlementsAggregate {
 	private _enforcePrivilege(secCtx: CallSecurityContext, privName: string): void {
 		return;// TODO re-enable _enforcePrivilege()
 
-		for (const roleId of secCtx.rolesIds) {
+		for (const roleId of secCtx.platformRoleIds) {
 			if (this._authorizationClient.roleHasPrivilege(roleId, privName)) return;
 		}
 		throw new ForbiddenError(`Required privilege "${privName}" not held by caller`);
@@ -165,7 +165,7 @@ export class SettlementsAggregate {
 		return {
 			userId: secCtx.username,
 			appId: secCtx.clientId,
-			role: secCtx.rolesIds[0] // TODO: get role.
+			role: secCtx.platformRoleIds[0] // TODO: get role.
 		};
 	}
 

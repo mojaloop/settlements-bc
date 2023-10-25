@@ -37,7 +37,7 @@
   },
   "devDependencies": {
     "@mojaloop/settlements-bc-shared-mocks-lib": "*",
-    "@types/express": "~4.17.18",
+    "@types/express": "~4.17.20",
     "axios": "~1.5.1"
   },
   "dependencies": {
@@ -49,8 +49,8 @@
     "@mojaloop/logging-bc-client-lib": "~0.1.26",
     "@mojaloop/logging-bc-public-types-lib": "~0.1.20",
     "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib": "~0.3.67",
-    "@mojaloop/security-bc-client-lib": "~0.2.3",
-    "@mojaloop/security-bc-public-types-lib": "~0.2.1",
+    "@mojaloop/security-bc-client-lib": "~0.3.3",
+    "@mojaloop/security-bc-public-types-lib": "~0.3.3",
     "express": "~4.18.2"
   }
 }
