@@ -1,6 +1,6 @@
 {
   "name": "@mojaloop/settlements-bc-command-handler-svc",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Mojaloop vNext Settlements BC - Command Handler Service",
   "license": "Apache-2.0",
   "homepage": "https://github.com/mojaloop/settlements-bc/command-handler-svc",
