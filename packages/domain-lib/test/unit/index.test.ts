@@ -93,7 +93,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		securityContext = {
 			username: 'unit-test',
 			clientId: 'client-id',
-			rolesIds: ['settlement-role'],
+			platformRoleIds: ['settlement-role'],
 			accessToken: 'bear-token'
 		};
 

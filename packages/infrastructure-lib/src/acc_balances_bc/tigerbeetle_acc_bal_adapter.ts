@@ -242,7 +242,7 @@ export class TigerBeetleAccountsAndBalancesAdapter implements IAccountsBalancesA
             pendingCreditBalance: `${item.credits_pending}`,
             balance: `${item.credits_posted - item.debits_posted}`,
             timestampLastJournalEntry: Number(item.timestamp)
-        }
+        };
     }
 
     private _mapTbTransferToABTransfer(item: TB.Transfer): AccountsAndBalancesJournalEntry {
@@ -255,7 +255,7 @@ export class TigerBeetleAccountsAndBalancesAdapter implements IAccountsBalancesA
             debitedAccountId: this._bigIntToUuid(item.debit_account_id),
             creditedAccountId: this._bigIntToUuid(item.credit_account_id),
             timestamp: Number(item.timestamp)
-        }
+        };
     }
 
     // check if addresses are IPs or names, resolve if names
@@ -337,14 +337,14 @@ export class TigerBeetleAccountsAndBalancesAdapter implements IAccountsBalancesA
     }
 
     private _obtainLedgerFromCurrency(currencyTxt: string) : number {
-        const returnVal = this._currencyMapping.find(itm => itm.currency === currencyTxt)
-        if (returnVal) return returnVal.code
-        return 0
+        const returnVal = this._currencyMapping.find(itm => itm.currency === currencyTxt);
+        if (returnVal) return returnVal.code;
+        return 0;
     }
 
     private _obtainCurrencyFromLedger(ledgerVal: number) : string {
-        const returnVal = this._currencyMapping.find(itm => itm.code === ledgerVal)
-        if (returnVal) return returnVal.currency
-        return ''
+        const returnVal = this._currencyMapping.find(itm => itm.code === ledgerVal);
+        if (returnVal) return returnVal.currency;
+        return '';
     }
 }

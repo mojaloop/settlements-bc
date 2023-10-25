@@ -22,6 +22,7 @@
     "audit:check": "npm -ws -p run audit:check",
     "audit:fix": "npm -ws -p run audit:fix",
     "lint": "npm -ws -p run lint",
+    "lint:fix": "npm -ws run lint:fix",
     "build": "npm -ws run build",
     "test:unit": "npm -ws -p run test:unit",
     "test:unit:domain": "npm -ws -p run test:unit:domain",

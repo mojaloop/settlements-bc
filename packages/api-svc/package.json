@@ -1,6 +1,6 @@
 {
   "name": "@mojaloop/settlements-bc-settlements-api-svc",
-  "version": "0.1.12",
+  "version": "0.3.0",
   "description": "Settlements BC - HTTP Service",
   "license": "Apache-2.0",
   "homepage": "https://github.com/mojaloop/settlements-bc/tree/main/packages/http-svc",
@@ -30,7 +30,8 @@
     "dep:update": "ncu -e 2 -u",
     "audit:check": "npm audit",
     "audit:fix": "npm audit fix",
-    "lint": "eslint src/",
+    "lint": "npm run build && npx eslint ./src",
+    "lint:fix": "npm run build && npx eslint ./src --fix",
     "build": "tsc",
     "test:unit": "jest --passWithNoTests --testMatch '**/test/unit/**/*.test.ts'",
     "test:unit:domain": "echo 'skpping'"

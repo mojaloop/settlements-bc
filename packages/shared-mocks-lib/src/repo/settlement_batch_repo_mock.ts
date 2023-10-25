@@ -49,7 +49,7 @@ export class SettlementBatchRepoMock implements ISettlementBatchRepo {
 		if (batch === undefined) return Promise.resolve();
 
 		const newArray: Array<ISettlementBatch> = this.batches.filter(value => value.id !== batch.id);
-		newArray.push(batch)
+		newArray.push(batch);
 		this.batches = newArray;
 
 		return Promise.resolve();

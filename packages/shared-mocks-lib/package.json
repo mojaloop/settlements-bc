@@ -24,7 +24,8 @@
     "dep:update": "ncu -e2 -u",
     "audit:check": "npm audit",
     "audit:fix": "npm audit fix",
-    "lint": "eslint src/",
+    "lint": "npm run build && npx eslint ./src",
+    "lint:fix": "npm run build && npx eslint ./src --fix",
     "build": "tsc",
     "test:unit": "echo \"shared-mocks-lib doesn't have unit tests\"",
     "test:unit:domain": "echo 'skpping'"
