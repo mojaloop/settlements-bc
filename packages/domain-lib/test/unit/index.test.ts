@@ -66,6 +66,7 @@ import {
 } from "@mojaloop/settlements-bc-shared-mocks-lib";
 import {ITransferDto} from "@mojaloop/settlements-bc-public-types-lib";
 import {IMessageProducer, MessageTypes} from "@mojaloop/platform-shared-lib-messaging-types-lib";
+import {IMetrics, MetricsMock} from "@mojaloop/platform-shared-lib-observability-types-lib";
 
 let authorizationClient: IAuthorizationClient;
 let authorizationClientNoAuth: IAuthorizationClient;
@@ -111,6 +112,9 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		msgCache = new MessageCache();
 		msgProducer = new MessageProducerMock(logger, msgCache);
 
+		// metrics:
+		const metricsMock: IMetrics = new MetricsMock();
+
 		// aggregate:
 		aggregate = new SettlementsAggregate(
 			logger,
@@ -122,7 +126,8 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 			settleMatrixReqRepo,
 			partNotifier,
 			abAdapter,
-			msgProducer
+			msgProducer,
+			metricsMock
 		);
 		aggregateNoAuth = new SettlementsAggregate(
 			logger,
@@ -134,7 +139,8 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 			settleMatrixReqRepo,
 			partNotifier,
 			abAdapter,
-			msgProducer
+			msgProducer,
+			metricsMock
 		);
 	});
 

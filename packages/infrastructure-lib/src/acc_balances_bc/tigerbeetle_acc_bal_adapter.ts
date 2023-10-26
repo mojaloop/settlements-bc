@@ -32,11 +32,13 @@ import {
     AccountsAndBalancesAccountType,
     AccountsAndBalancesJournalEntry
 } from "@mojaloop/accounts-and-balances-bc-public-types-lib";
+
 import * as TB from "tigerbeetle-node";
-import net from "net";
-import dns from "dns";
 import {CreateAccountsError} from "tigerbeetle-node/src/bindings";
 import {CreateTransfersError} from "tigerbeetle-node";
+
+import net from "net";
+import dns from "dns";
 import {IAccountsBalancesAdapter} from "@mojaloop/settlements-bc-domain-lib";
 
 export class TigerBeetleAccountsAndBalancesAdapter implements IAccountsBalancesAdapter {

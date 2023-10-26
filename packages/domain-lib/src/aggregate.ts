@@ -87,6 +87,8 @@ import {
 	SettlementMatrixSettledEvtPayloadParticipantItem
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 
+import {ICounter, IHistogram, IMetrics} from "@mojaloop/platform-shared-lib-observability-types-lib";
+
 const CURRENCIES_FILE_NAME: string = "currencies.json";
 const SEQUENCE_STR_LENGTH = 3;
 const BATCH_ACCOUNT_TYPE_IN_ACCOUNTS_AND_BALANCES: AccountsAndBalancesAccountType = "SETTLEMENT";
@@ -122,6 +124,8 @@ export class SettlementsAggregate {
 	private readonly _abAdapter: IAccountsBalancesAdapter;
 	private readonly _msgProducer: IMessageProducer;
 	private readonly _currencies: ICurrency[];
+	private _histo: IHistogram;
+	private _commandsCounter:ICounter;
 
 	constructor(
 		logger: ILogger,
@@ -133,7 +137,8 @@ export class SettlementsAggregate {
 		settlementMatrixReqRepo: ISettlementMatrixRequestRepo,
 		participantAccNotifier: IParticipantAccountNotifier,
 		abAdapter: IAccountsBalancesAdapter,
-		msgProducer: IMessageProducer
+		msgProducer: IMessageProducer,
+		metrics: IMetrics
 	) {
 		this._logger = logger;
 		this._authorizationClient = authorizationClient;
@@ -149,6 +154,10 @@ export class SettlementsAggregate {
 		// TODO: @jason Need to obtain currencies from PlatForm config perhaps:
 		const currenciesFilePath: string = join(__dirname, CURRENCIES_FILE_NAME);
 		this._currencies = JSON.parse(readFileSync(currenciesFilePath, "utf-8"));
+
+		// Metrics:
+		this._histo = metrics.getHistogram("SettlementsAggregate", "SettlementsAggregate calls", ["callName", "success"]);
+		this._commandsCounter = metrics.getCounter("SettlementsAggregate_CommandsProcessed", "Commands processed by the Settlements Aggregate", ["commandName"]);
 	}
 
 	private _enforcePrivilege(secCtx: CallSecurityContext, privName: string): void {
@@ -214,19 +223,25 @@ export class SettlementsAggregate {
 		await this._msgProducer.send(cmd);
 	}
 
-	async processTransferCmd(secCtx: CallSecurityContext, processTransferCmd: ProcessTransferCmd): Promise<string> {
+	async processTransferCmd(secCtx: CallSecurityContext, cmd: ProcessTransferCmd): Promise<string> {
 		const transferDto: ITransferDto = {
 			id: null,
-			transferId: processTransferCmd.payload.transferId,
-			currencyCode: processTransferCmd.payload.currencyCode,
-			amount: processTransferCmd.payload.amount,
-			timestamp: new Date(processTransferCmd.payload.completedTimestamp).valueOf(),
-			payeeFspId: processTransferCmd.payload.payeeFspId,
-			payerFspId: processTransferCmd.payload.payerFspId,
-			settlementModel: processTransferCmd.payload.settlementModel
+			transferId: cmd.payload.transferId,
+			currencyCode: cmd.payload.currencyCode,
+			amount: cmd.payload.amount,
+			timestamp: new Date(cmd.payload.completedTimestamp).valueOf(),
+			payeeFspId: cmd.payload.payeeFspId,
+			payerFspId: cmd.payload.payerFspId,
+			settlementModel: cmd.payload.settlementModel
 		};
 
-		return this.handleTransfer(secCtx, transferDto);
+		// Metrics and process transfer:
+		this._commandsCounter.inc({commandName: cmd.msgName}, 1);
+
+		const execStarts_timerEndFn = this._histo.startTimer({ callName: "aggregate_handleTransfer"});
+		const returnVal = this.handleTransfer(secCtx, transferDto);
+		execStarts_timerEndFn({success:"true"});
+		return returnVal;
 	}
 
 	async handleTransfer(secCtx: CallSecurityContext, transferDto: ITransferDto): Promise<string> {

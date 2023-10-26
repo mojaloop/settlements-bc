@@ -79,6 +79,8 @@ import {
 	MongoSettlementTransferRepo
 } from "@mojaloop/settlements-bc-infrastructure-lib";
 import {MongoSettlementMatrixRepo} from "@mojaloop/settlements-bc-infrastructure-lib";
+import {IMetrics} from "@mojaloop/platform-shared-lib-observability-types-lib";
+import {PrometheusMetrics} from "@mojaloop/platform-shared-lib-observability-client-lib";
 
 import configClient from "./config";
 import {DEFAULT_SETTLEMENT_MODEL_ID, DEFAULT_SETTLEMENT_MODEL_NAME} from "@mojaloop/settlements-bc-public-types-lib";
@@ -111,9 +113,8 @@ const SVC_CLIENT_ID = process.env["SVC_CLIENT_ID"] || "settlements-bc-command-ha
 const SVC_CLIENT_SECRET = process.env["SVC_CLIENT_ID"] || "superServiceSecret";
 
 const USE_TIGERBEETLE = process.env["USE_TIGERBEETLE"] || false;
-const TIGERBEETLE_CLUSTER_ID = process.env["TIGERBEETLE_CLUSTER_ID"] || 0;
+const TIGERBEETLE_CLUSTER_ID = process.env["TIGERBEETLE_CLUSTER_ID"] || 1;
 const TIGERBEETLE_CLUSTER_REPLICA_ADDRESSES = process.env["TIGERBEETLE_CLUSTER_REPLICA_ADDRESSES"] || "default_CHANGEME";
-
 
 const DB_NAME: string = "settlements";
 const SETTLEMENT_CONFIGS_COLLECTION_NAME: string = "configs";
@@ -137,7 +138,6 @@ let globalLogger: ILogger;
 export class Service {
 	static logger: ILogger;
 	static app: Express;
-	static expressServer: Server;
 	static tokenHelper: ITokenHelper;
 	static loginHelper: ILoginHelper;
 	static authorizationClient: IAuthorizationClient;
@@ -152,6 +152,7 @@ export class Service {
 	static messageProducer: IMessageProducer;
 	static aggregate: SettlementsAggregate;
 	static handler: SettlementsCommandHandler;
+	static metrics: IMetrics;
 
 	static async start(
 		logger?: ILogger,
@@ -167,6 +168,7 @@ export class Service {
 		matrixRepo?: ISettlementMatrixRequestRepo,
 		messageConsumer?: IMessageConsumer,
 		messageProducer?: IMessageProducer,
+		metrics?: IMetrics,
 	): Promise<void> {
 		console.log(`Service starting with PID: ${process.pid}`);
 
@@ -324,7 +326,6 @@ export class Service {
 
 		// TODO implement remaining repositories and adapters
 
-
 		if (!participantAccountNotifier) {
 			participantAccountNotifier = new ParticipantAccountNotifierMock();
 		}
@@ -342,6 +343,17 @@ export class Service {
 		}
 		this.messageProducer = messageProducer;
 
+		// metrics client
+		if (!metrics) {
+			const labels: Map<string, string> = new Map<string, string>();
+			labels.set("bc", BC_NAME);
+			labels.set("app", APP_NAME);
+			labels.set("version", APP_VERSION);
+			PrometheusMetrics.Setup({prefix:"", defaultLabels: labels}, this.logger);
+			metrics = PrometheusMetrics.getInstance();
+		}
+		this.metrics = metrics;
+
 		// Aggregate:
 		this.aggregate = new SettlementsAggregate(
 			this.logger,
@@ -353,7 +365,8 @@ export class Service {
 			this.matrixRepo,
 			this.participantAccountNotifier,
 			this.accountsAndBalancesAdapter,
-			this.messageProducer
+			this.messageProducer,
+			this.metrics
 		);
 
 		// create handler and start it

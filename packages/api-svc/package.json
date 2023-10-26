@@ -52,6 +52,8 @@
     "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib": "~0.3.67",
     "@mojaloop/security-bc-client-lib": "~0.3.3",
     "@mojaloop/security-bc-public-types-lib": "~0.3.3",
+    "@mojaloop/platform-shared-lib-observability-client-lib": "~0.1.10",
+    "@mojaloop/platform-shared-lib-observability-types-lib": "~0.1.9",
     "express": "~4.18.2"
   }
 }

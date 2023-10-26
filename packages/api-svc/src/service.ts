@@ -71,7 +71,8 @@ import {
 	ParticipantAccountNotifierMock
 } from "@mojaloop/settlements-bc-shared-mocks-lib";
 import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
-
+import {IMetrics} from "@mojaloop/platform-shared-lib-observability-types-lib";
+import {PrometheusMetrics} from "@mojaloop/platform-shared-lib-observability-client-lib";
 
 const BC_NAME = "settlements-bc";
 const APP_NAME = "settlements-api-svc";
@@ -79,7 +80,6 @@ const APP_VERSION = packageJSON.version;
 const PRODUCTION_MODE = process.env["PRODUCTION_MODE"] || false;
 const LOG_LEVEL: LogLevel = process.env["LOG_LEVEL"] as LogLevel || LogLevel.DEBUG;
 const ENV_NAME = process.env["ENV_NAME"] || "dev";
-
 
 const AUTH_N_SVC_BASEURL = process.env["AUTH_N_SVC_BASEURL"] || "http://localhost:3201";
 const AUTH_N_SVC_TOKEN_URL = AUTH_N_SVC_BASEURL + "/token"; // TODO this should not be known here, libs that use the base should add the suffix
@@ -133,6 +133,7 @@ export class Service {
 	static participantAccountNotifier: IParticipantAccountNotifier;
 	static batchTransferRepo: ISettlementBatchTransferRepo;
 	static matrixRepo: ISettlementMatrixRequestRepo;
+	static metrics: IMetrics;
 
 	static async start(
 		logger?:ILogger,
@@ -146,6 +147,7 @@ export class Service {
 		matrixRepo?: ISettlementMatrixRequestRepo,
 		participantAccountNotifier?: IParticipantAccountNotifier,
 		messageProducer?: IMessageProducer,
+		metrics?: IMetrics,
 	):Promise<void>{
 		console.log(`Service starting with PID: ${process.pid}`);
 
@@ -265,7 +267,6 @@ export class Service {
 		}
 		this.matrixRepo = matrixRepo;
 
-
 		if (!participantAccountNotifier) {
 			participantAccountNotifier = new ParticipantAccountNotifierMock();
 		}
@@ -279,6 +280,17 @@ export class Service {
 		}
 		this.messageProducer = messageProducer;
 
+		// metrics client
+		if (!metrics) {
+			const labels: Map<string, string> = new Map<string, string>();
+			labels.set("bc", BC_NAME);
+			labels.set("app", APP_NAME);
+			labels.set("version", APP_VERSION);
+			PrometheusMetrics.Setup({prefix:"", defaultLabels: labels}, this.logger);
+			metrics = PrometheusMetrics.getInstance();
+		}
+		this.metrics = metrics;
+
 		// Aggregate:
 		this.aggregate = new SettlementsAggregate(
 			this.logger,
@@ -290,7 +302,8 @@ export class Service {
 			this.matrixRepo,
 			this.participantAccountNotifier,
 			this.accountsAndBalancesAdapter,
-			this.messageProducer
+			this.messageProducer,
+			this.metrics
 		);
 
 		await this.setupExpress();
