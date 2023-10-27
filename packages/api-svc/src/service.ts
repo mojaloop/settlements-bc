@@ -134,6 +134,8 @@ export class Service {
 	static batchTransferRepo: ISettlementBatchTransferRepo;
 	static matrixRepo: ISettlementMatrixRequestRepo;
 	static metrics: IMetrics;
+	static messageProducer: IMessageProducer;
+	//static aggregate: SettlementsAggregate;
 
 	static async start(
 		logger?:ILogger,
@@ -291,6 +293,7 @@ export class Service {
 		}
 		this.metrics = metrics;
 
+		/* Aggregate cannot be used outside the command-handler
 		// Aggregate:
 		this.aggregate = new SettlementsAggregate(
 			this.logger,
@@ -304,13 +307,11 @@ export class Service {
 			this.accountsAndBalancesAdapter,
 			this.messageProducer,
 			this.metrics
-		);
+		);*/
 
 		await this.setupExpress();
 	}
-	static messageProducer: IMessageProducer;
 
-	static aggregate: SettlementsAggregate;
 
 	static setupExpress(): Promise<void>{
 		return new Promise<void>((resolve, reject) => {
