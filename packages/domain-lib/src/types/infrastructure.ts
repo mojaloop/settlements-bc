@@ -34,6 +34,7 @@ import {
 	ISettlementMatrix,
 	BatchSearchResults,
 	MatrixSearchResults,
+	BatchTransferSearchResults,
 } from "@mojaloop/settlements-bc-public-types-lib";
 
 import {
@@ -126,6 +127,11 @@ export interface ISettlementBatchTransferRepo {
 	destroy(): Promise<void>;
 	storeBatchTransfer(batchTransfer: ISettlementBatchTransfer): Promise<void>;
 	getBatchTransfersByBatchIds(batchIds: string[]): Promise<ISettlementBatchTransfer[]>;
+	getBatchTransfersByBatchIdsWithPagi(
+		batchIds: string[], 
+		pageIndex?: number, 
+		pageSize?: number,
+	): Promise<BatchTransferSearchResults>;
 	getBatchTransfersByBatchNames(batchNames: string[]): Promise<ISettlementBatchTransfer[]>;
 	getBatchTransfersByTransferId(transferId: string): Promise<ISettlementBatchTransfer[]>;
 	getBatchTransfers(): Promise<ISettlementBatchTransfer[]>;

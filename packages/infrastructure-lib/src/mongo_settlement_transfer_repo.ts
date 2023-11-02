@@ -32,8 +32,11 @@ import {MongoClient, Collection} from "mongodb";
 import {
 	UnableToInitRepoError
 } from "@mojaloop/settlements-bc-domain-lib";
-import {ISettlementBatchTransfer} from "@mojaloop/settlements-bc-public-types-lib";
+import {BatchTransferSearchResults, ISettlementBatchTransfer} from "@mojaloop/settlements-bc-public-types-lib";
 import {ISettlementBatchTransferRepo} from "@mojaloop/settlements-bc-domain-lib";
+
+
+const MAX_ENTRIES_PER_PAGE = 100;
 
 
 export class MongoSettlementTransferRepo implements ISettlementBatchTransferRepo {
@@ -104,6 +107,59 @@ export class MongoSettlementTransferRepo implements ISettlementBatchTransferRepo
 		try {
 			const batches = await this._collection.find({batchId: {$in: batchIds}}).project({_id: 0}).toArray();
 			return batches as ISettlementBatchTransfer[];
+		} catch (error: any) {
+			throw new Error("Unable to get transfers by batchIds from repo - msg: " + error.message);
+		}
+	}
+
+	async getBatchTransfersByBatchIdsWithPagi(
+		batchIds: string[],
+		pageIndex: number = 0,
+        pageSize: number = MAX_ENTRIES_PER_PAGE,
+	): Promise<BatchTransferSearchResults> {
+		try {
+			// Pagination settings
+			pageIndex = Math.max(pageIndex, 0);
+			pageSize = Math.min(pageSize, MAX_ENTRIES_PER_PAGE);
+			const skip = pageIndex * pageSize;
+
+			const pipeline = [
+				{
+					$facet: {
+						items: [{ $skip: skip }, { $limit: pageSize }],
+						totalDoc: [{
+							$group: { _id: null, count: { $sum: 1 } }
+						}]
+					}
+				}, 
+				{
+					$unwind: "$totalDoc"
+				},
+				{
+					$project: {
+						items: 1,
+						totalDoc: "$totalDoc.count"
+					}
+				}
+			];
+
+			const resultArr = await this._collection.aggregate(pipeline).toArray();
+
+			const searchResults: BatchTransferSearchResults = {
+				pageIndex: pageIndex,
+				pageSize: pageSize,
+				totalPages: 0,
+				items: []
+			}
+
+			if (resultArr && resultArr.length > 0) {
+				const result = resultArr[0] as any;
+				searchResults.items = result.items;
+				searchResults.totalPages = Math.ceil(result.totalDoc / pageSize);
+			}
+
+			return searchResults;
+
 		} catch (error: any) {
 			throw new Error("Unable to get transfers by batchIds from repo - msg: " + error.message);
 		}

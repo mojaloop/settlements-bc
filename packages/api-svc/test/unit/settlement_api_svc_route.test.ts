@@ -356,8 +356,8 @@ describe("Settlement BC api-svc route test", () => {
 
         //Assert
         expect(response.status).toBe(200);
-        expect(Array.isArray(response.body)).toBe(true);
-        expect(response.body.length).toBe(2);
+        expect(Array.isArray(response.body.items)).toBe(true);
+        expect(response.body.items.length).toBe(2);
     });
 
     test("GET /transfers - should fetch batchTransfers by batchName", async () => {

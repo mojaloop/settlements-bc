@@ -405,10 +405,18 @@ export class ExpressRoutes {
 		const batchName = req.query.batchName as string || req.query.batchname as string;
 		const transferId = req.query.transferId as string || req.query.transferid as string;
 		const matrixId = req.query.matrixId as string || req.query.matrixid as string;
+		const pageIndex = req.query.pageIndex ? Number(req.query.pageIndex) : undefined;
+		const pageSize = req.query.pageSize ? Number(req.query.pageSize) : undefined;
+
 		try {
 			let settlementTransfers:ISettlementBatchTransfer[];
 			if (batchId) {
-				settlementTransfers = await this._batchTransferRepo.getBatchTransfersByBatchIds([batchId]);
+				const resp = await this._batchTransferRepo.getBatchTransfersByBatchIdsWithPagi([batchId], pageIndex, pageSize);
+				if (!resp || !resp.items || resp.items.length <= 0) {
+					res.sendStatus(404);
+					return;
+				}
+				return this.sendSuccessResponse(res, 200, resp);// OK
 			} else if (batchName) {
 				settlementTransfers = await this._batchTransferRepo.getBatchTransfersByBatchNames([batchName]);
 			} else if (transferId) {

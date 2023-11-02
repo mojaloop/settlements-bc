@@ -218,3 +218,7 @@ export type BatchSearchResults = SearchReults & {
 export type MatrixSearchResults = SearchReults & {
     items: ISettlementMatrix[];
 }
+
+export type BatchTransferSearchResults = SearchReults & {
+	items: ISettlementBatchTransfer[];
+}
