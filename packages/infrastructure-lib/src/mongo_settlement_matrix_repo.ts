@@ -33,7 +33,10 @@ import {
 	ISettlementMatrixRequestRepo,
 	UnableToInitRepoError
 } from "@mojaloop/settlements-bc-domain-lib";
-import {ISettlementMatrix} from "@mojaloop/settlements-bc-public-types-lib";
+import {ISettlementMatrix, MatrixSearchResults} from "@mojaloop/settlements-bc-public-types-lib";
+
+
+const MAX_ENTRIES_PER_PAGE = 100;
 
 
 export class MongoSettlementMatrixRepo implements ISettlementMatrixRequestRepo {
@@ -101,15 +104,68 @@ export class MongoSettlementMatrixRepo implements ISettlementMatrixRequestRepo {
 		}
 	}
 
-	async getMatrices(state?:string): Promise<ISettlementMatrix[]>{
+	async getMatrices(
+		matrixId?: string,
+		type?: string,
+		state?: string,
+		model?: string,
+		currencyCodes?: string[],
+		createdAt?: string,
+		pageIndex: number = 0,
+        pageSize: number = MAX_ENTRIES_PER_PAGE,
+	): Promise<MatrixSearchResults> {
 		try {
-			let resp;
-			if(state){
-				resp = await this._collection.find({state: state}).project({_id: 0}).toArray();
-			}else{
-				resp = await this._collection.find().project({_id: 0}).toArray();
+			// Pagination settings
+			pageIndex = Math.max(pageIndex, 0);
+			pageSize = Math.min(pageSize, MAX_ENTRIES_PER_PAGE);
+			const skip = pageIndex * pageSize;
+
+			const filter = [];
+			if (matrixId) filter.push({ id: matrixId });
+			if (type) filter.push({ type: type });
+			if (state) filter.push({ state: state });
+			if (model) filter.push({ settlementModel: model });
+			if (currencyCodes && currencyCodes.length > 0) filter.push({ currencyCodes: { $in: currencyCodes } });
+			if (createdAt) filter.push({ createdAt: createdAt });
+
+			const pipeline = [
+				{ $match: { $and: filter } },
+				{
+					$facet: {
+						items: [{ $skip: skip }, { $limit: pageSize }],
+						totalDoc: [{
+							$group: { _id: null, count: { $sum: 1 } }
+						}]
+					}
+				}, 
+				{
+					$unwind: "$totalDoc"
+				},
+				{
+					$project: {
+						items: 1,
+						totalDoc: "$totalDoc.count"
+					}
+				}
+			];
+
+			const resultArr = await this._collection.aggregate(pipeline).toArray();
+
+			const searchResults: MatrixSearchResults = {
+				pageIndex: pageIndex,
+				pageSize: pageSize,
+				totalPages: 0,
+				items: []
 			}
-			return resp as (ISettlementMatrix[]);
+
+			if (resultArr && resultArr.length > 0) {
+				const result = resultArr[0] as any;
+				searchResults.items = result.items;
+				searchResults.totalPages = Math.ceil(result.totalDoc / pageSize);
+			}
+
+			return searchResults;
+
 		} catch (error: any) {
 			throw new Error("Unable to getMatrices from repo - msg: " + error.message);
 		}

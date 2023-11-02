@@ -202,3 +202,19 @@ export interface ISettlementModelClient {
 		extensionList: { key: string; value: string; }[]
 	): Promise<string>;
 }
+
+
+// Search result types with pagination
+export type SearchReults = {
+	pageIndex: number;
+	pageSize: number;
+    totalPages: number;
+}
+
+export type BatchSearchResults = SearchReults & {
+    items: ISettlementBatch[];
+}
+
+export type MatrixSearchResults = SearchReults & {
+    items: ISettlementMatrix[];
+}

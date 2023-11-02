@@ -33,7 +33,13 @@ import {
 	ISettlementBatchRepo,
 	UnableToInitRepoError
 } from "@mojaloop/settlements-bc-domain-lib";
-import {ISettlementBatch} from "@mojaloop/settlements-bc-public-types-lib";
+import {
+	ISettlementBatch,
+	BatchSearchResults,
+} from "@mojaloop/settlements-bc-public-types-lib";
+
+
+const MAX_ENTRIES_PER_PAGE = 100;
 
 
 export class MongoSettlementBatchRepo implements ISettlementBatchRepo {
@@ -125,6 +131,60 @@ export class MongoSettlementBatchRepo implements ISettlementBatchRepo {
 		}
 	}
 
+	async getBatchesByNameWithPagi(
+		batchName: string, 
+		pageIndex: number = 0,
+        pageSize: number = MAX_ENTRIES_PER_PAGE,
+	): Promise<BatchSearchResults> {
+		try {
+			// Pagination settings
+			pageIndex = Math.max(pageIndex, 0);
+			pageSize = Math.min(pageSize, MAX_ENTRIES_PER_PAGE);
+			const skip = pageIndex * pageSize;
+
+			const pipeline = [
+				{ $match: { batchName: batchName } },
+				{
+					$facet: {
+						items: [{ $skip: skip }, { $limit: pageSize }],
+						totalDoc: [{
+							$group: { _id: null, count: { $sum: 1 } }
+						}]
+					}
+				}, 
+				{
+					$unwind: "$totalDoc"
+				},
+				{
+					$project: {
+						items: 1,
+						totalDoc: "$totalDoc.count"
+					}
+				}
+			];
+
+			const resultArr = await this._collection.aggregate(pipeline).toArray();
+
+			const searchResults: BatchSearchResults = {
+				pageIndex: pageIndex,
+				pageSize: pageSize,
+				totalPages: 0,
+				items: []
+			}
+
+			if (resultArr && resultArr.length > 0) {
+				const result = resultArr[0] as any;
+				searchResults.items = result.items;
+				searchResults.totalPages = Math.ceil(result.totalDoc / pageSize);
+			}
+
+			return searchResults;
+
+		} catch (error: any) {
+			throw new Error("Unable to get batches by name from repo - msg: " + error.message);
+		}
+	}
+
 	async getBatchesByIds(batchIds: string[]): Promise<ISettlementBatch[]>{
 		try {
 			const batches = await this._collection.find({id: {$in: batchIds}}).project({_id: 0}).toArray();
@@ -155,6 +215,73 @@ export class MongoSettlementBatchRepo implements ISettlementBatchRepo {
 				$and: paramsForQuery
 			}).project({_id: 0}).toArray();
 			return batches as ISettlementBatch[];
+		} catch (error: any) {
+			throw new Error("Unable to get batches by criteria from repo - msg: " + error.message);
+		}
+	}
+
+	async getBatchesByCriteriaWithPagi(
+		fromDate: number,
+		toDate: number,
+		model: string,
+		currencyCodes: string[],
+		batchStatuses: string[],
+		pageIndex: number = 0,
+        pageSize: number = MAX_ENTRIES_PER_PAGE,
+	): Promise<BatchSearchResults> {
+		try {
+			// Pagination settings
+			pageIndex = Math.max(pageIndex, 0);
+			pageSize = Math.min(pageSize, MAX_ENTRIES_PER_PAGE);
+			const skip = pageIndex * pageSize;
+
+			const paramsForQuery :any= [
+				{timestamp: {$gte:fromDate}},
+				{timestamp: {$lte: toDate}},
+				{settlementModel: model}
+			];
+
+			if (currencyCodes && currencyCodes.length > 0) paramsForQuery.push({currencyCode: {$in: currencyCodes}});
+			if (batchStatuses && batchStatuses.length > 0) paramsForQuery.push({state: {$in: batchStatuses}});
+
+			const pipeline = [
+				{ $match: { $and: paramsForQuery } },
+				{
+					$facet: {
+						items: [{ $skip: skip }, { $limit: pageSize }],
+						totalDoc: [{
+							$group: { _id: null, count: { $sum: 1 } }
+						}]
+					}
+				}, 
+				{
+					$unwind: "$totalDoc"
+				},
+				{
+					$project: {
+						items: 1,
+						totalDoc: "$totalDoc.count"
+					}
+				}
+			];
+
+			const resultArr = await this._collection.aggregate(pipeline).toArray();
+
+			const searchResults: BatchSearchResults = {
+				pageIndex: pageIndex,
+				pageSize: pageSize,
+				totalPages: 0,
+				items: []
+			}
+
+			if (resultArr && resultArr.length > 0) {
+				const result = resultArr[0] as any;
+				searchResults.items = result.items;
+				searchResults.totalPages = Math.ceil(result.totalDoc / pageSize);
+			}
+
+			return searchResults;
+
 		} catch (error: any) {
 			throw new Error("Unable to get batches by criteria from repo - msg: " + error.message);
 		}

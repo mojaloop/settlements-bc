@@ -339,6 +339,10 @@ export class ExpressRoutes {
 		let currencyCodesStr = req.query.currencyCodes as string;
 		let batchStatusesStr = req.query.batchStatuses as string;
 
+		// Pagination
+		const pageIndex = req.query.pageIndex ? Number(req.query.pageIndex) : undefined;
+		const pageSize = req.query.pageSize ? Number(req.query.pageSize) : undefined;
+
 		let currencyCodes: string[] = [];
 		let batchStatuses: string[] = [];
 
@@ -365,8 +369,8 @@ export class ExpressRoutes {
 		// TODO enforce privileges
 		try {
 			if (batchName) {
-				const settlementBatches = await this._batchRepo.getBatchesByName(batchName);
-				if (!settlementBatches || settlementBatches.length<=0) {
+				const settlementBatches = await this._batchRepo.getBatchesByNameWithPagi(batchName, pageIndex, pageSize);
+				if (!settlementBatches || !settlementBatches.items || settlementBatches.items.length <= 0) {
 					res.sendStatus(404);
 					return;
 				}
@@ -374,14 +378,16 @@ export class ExpressRoutes {
 			} else {
 				this._logger.debug(`got getSettlementBatches request - Settlement Batches model: ${settlementModel} from [${new Date(Number(fromDate))}] to [${new Date(Number(toDate))}].`);
 
-				const settlementBatches = await this._batchRepo.getBatchesByCriteria(
+				const settlementBatches = await this._batchRepo.getBatchesByCriteriaWithPagi(
 					Number(fromDate),
 					Number(toDate),
 					settlementModel,
 					currencyCodes,
-					batchStatuses
+					batchStatuses,
+					pageIndex,
+					pageSize,
 				);
-				if (!settlementBatches || settlementBatches.length <= 0) {
+				if (!settlementBatches || !settlementBatches.items || settlementBatches.items.length <= 0) {
 					res.sendStatus(404);
 					return;
 				}
@@ -603,14 +609,31 @@ export class ExpressRoutes {
 		// TODO enforce privileges
 
 		try {
-			const state = req.params.state as string;
+			const matrixId = req.query.matrixId as string;
+			const type = req.query.type as string;
+			const state = req.query.state as string;
+			const model = req.query.model as string;
+			let currencyCodesStr = req.query.currencyCodes as string;
+			const createdAt = req.query.createdAt as string;
+			const pageIndex = req.query.pageIndex ? Number(req.query.pageIndex) : undefined;
+			const pageSize = req.query.pageSize ? Number(req.query.pageSize) : undefined;
 
-			const resp = await this._matrixRepo.getMatrices(state ?? null);
+			let currencyCodes: string[] = [];
+			if (currencyCodesStr && Array.isArray(currencyCodesStr)) {
+				currencyCodes = currencyCodesStr;
+			} else if (currencyCodesStr) {
+				currencyCodesStr = decodeURIComponent(currencyCodesStr);
+				currencyCodes = JSON.parse(currencyCodesStr);
+			}
 
-			if(!resp || resp.length<=0){
+			const resp = await this._matrixRepo.getMatrices(matrixId, type, state, model, currencyCodes, createdAt, pageIndex, pageSize);
+
+			if (!resp || !resp.items || resp.items.length <= 0) {
 				return this.sendErrorResponse(res, 404, "No matrices found");
 			}
+
 			this.sendSuccessResponse(res, 200, resp);// OK
+
 		} catch (error: any) {
 			this._logger.error(error);
 			this.sendErrorResponse(res, 500, error.message || ExpressRoutes.UNKNOWN_ERROR_MESSAGE);

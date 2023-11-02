@@ -31,7 +31,9 @@ import {
 	ISettlementConfig,
 	ISettlementBatch,
 	ISettlementBatchTransfer,
-	ISettlementMatrix
+	ISettlementMatrix,
+	BatchSearchResults,
+	MatrixSearchResults,
 } from "@mojaloop/settlements-bc-public-types-lib";
 
 import {
@@ -95,6 +97,8 @@ export interface ISettlementBatchRepo {
 	// there can be multiple batches with the same name (excludes sequence number)
 	getBatchesByName(batchName: string): Promise<ISettlementBatch[]>;
 
+	getBatchesByNameWithPagi(batchName: string, pageIndex?: number, pageSize?: number,): Promise<BatchSearchResults>;
+
 	// there can be multiple batches with the same name (excludes sequence number)
 	getBatchesByIds(batchIds: string[]): Promise<ISettlementBatch[]>;
 
@@ -103,8 +107,18 @@ export interface ISettlementBatchRepo {
 		toDate: number,
 		model: string,
 		currencyCodes: string[],
-		batchStatuses: string[]
+		batchStatuses: string[],
 	): Promise<ISettlementBatch[]>;
+
+	getBatchesByCriteriaWithPagi(
+		fromDate: number,
+		toDate: number,
+		model: string,
+		currencyCodes: string[],
+		batchStatuses: string[],
+		pageIndex?: number,
+		pageSize?: number,
+	): Promise<BatchSearchResults>;
 }
 
 export interface ISettlementBatchTransferRepo {
@@ -128,7 +142,16 @@ export interface ISettlementMatrixRequestRepo {
 	destroy(): Promise<void>;
 	storeMatrix(matrix: ISettlementMatrix): Promise<void>; // Throws if account.id is not unique.
 	getMatrixById(id: string): Promise<ISettlementMatrix | null>;
-	getMatrices(state?:string): Promise<ISettlementMatrix[]>;
+	getMatrices(
+		matrixId?: string,
+		type?: string,
+		state?: string,
+		model?: string,
+		currencyCodes?: string[],
+		createdAt?: string,
+		pageIndex?: number,
+		pageSize?: number,
+	): Promise<MatrixSearchResults>;
 
 	getIdleMatricesWithBatchId(batchId: string): Promise<ISettlementMatrix[]>;
 }

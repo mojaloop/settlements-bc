@@ -28,7 +28,9 @@
 "use strict";
 
 import {ISettlementMatrixRequestRepo} from "@mojaloop/settlements-bc-domain-lib";
-import {ISettlementMatrix} from "@mojaloop/settlements-bc-public-types-lib";
+import {ISettlementMatrix, MatrixSearchResults} from "@mojaloop/settlements-bc-public-types-lib";
+
+const MAX_ENTRIES_PER_PAGE = 100;
 
 export class SettlementMatrixRequestRepoMock implements ISettlementMatrixRequestRepo {
 	matrixRequests: Array<ISettlementMatrix> = [];
@@ -60,15 +62,43 @@ export class SettlementMatrixRequestRepoMock implements ISettlementMatrixRequest
 		return Promise.resolve(null);
 	}
 
-	async getMatrices(state?:string): Promise<ISettlementMatrix[]>{
-		const ret: ISettlementMatrix[] = [];
+	async getMatrices(
+		matrixId?: string,
+		type?: string,
+		state?: string,
+		model?: string,
+		currencyCodes?: string[],
+		createdAt?: string,
+		pageIndex: number = 0,
+        pageSize: number = MAX_ENTRIES_PER_PAGE,
+	): Promise<MatrixSearchResults>{
+		pageIndex = Math.max(pageIndex, 0);
+		pageSize = Math.min(pageSize, MAX_ENTRIES_PER_PAGE);
+		const index = pageIndex * pageSize;
+		const total = index + pageSize;
+
+		const returnVal: ISettlementMatrix[] = [];
 
 		for (const matrixReqIter of this.matrixRequests) {
 			if (!state || matrixReqIter.state.toUpperCase() !== state.toUpperCase()) {
-				ret.push(matrixReqIter);
+				returnVal.push(matrixReqIter);
 			}
 		}
-		return Promise.resolve(ret);
+
+		const searchResults: MatrixSearchResults = {
+			pageIndex: pageIndex,
+			pageSize: pageSize,
+			totalPages: 0,
+			items: []
+		}
+
+		if (returnVal.length > 0) {
+			const paginatedVal = returnVal.slice(index, total);
+			searchResults.items = paginatedVal;
+			searchResults.totalPages = Math.ceil(returnVal.length / pageSize);
+		}
+
+		return Promise.resolve(searchResults);
 	}
 
 	async getIdleMatricesWithBatchId(batchId: string): Promise<ISettlementMatrix[]>{

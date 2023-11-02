@@ -28,7 +28,11 @@
 "use strict";
 
 import {ISettlementBatchRepo} from "@mojaloop/settlements-bc-domain-lib";
-import {ISettlementBatch} from "@mojaloop/settlements-bc-public-types-lib";
+import {ISettlementBatch, BatchSearchResults} from "@mojaloop/settlements-bc-public-types-lib";
+
+
+const MAX_ENTRIES_PER_PAGE = 100;
+
 
 export class SettlementBatchRepoMock implements ISettlementBatchRepo {
 
@@ -71,6 +75,34 @@ export class SettlementBatchRepoMock implements ISettlementBatchRepo {
 		return Promise.resolve(returnVal);
 	}
 
+	async getBatchesByNameWithPagi(
+		batchName: string,
+		pageIndex: number = 0,
+        pageSize: number = MAX_ENTRIES_PER_PAGE,
+	): Promise<BatchSearchResults> {
+		pageIndex = Math.max(pageIndex, 0);
+		pageSize = Math.min(pageSize, MAX_ENTRIES_PER_PAGE);
+		const index = pageIndex * pageSize;
+		const total = index + pageSize;
+
+		const returnVal: Array<ISettlementBatch> = this.batches.filter(value => batchName == value.batchName);
+
+		const searchResults: BatchSearchResults = {
+			pageIndex: pageIndex,
+			pageSize: pageSize,
+			totalPages: 0,
+			items: []
+		}
+
+		if (returnVal.length > 0) {
+			const paginatedVal = returnVal.slice(index, total);
+			searchResults.items = paginatedVal;
+			searchResults.totalPages = Math.ceil(returnVal.length / pageSize);
+		}
+
+		return Promise.resolve(searchResults);
+	}
+
 	async getBatchesByIds(ids: string[]): Promise<ISettlementBatch[]> {
 		const returnVal: Array<ISettlementBatch> = this.batches.filter(value => ids.includes(value.id) );
 
@@ -104,6 +136,56 @@ export class SettlementBatchRepoMock implements ISettlementBatchRepo {
 				&& ((modelMatch && currencyMatch) && statusMatch);
 		});
 		return Promise.resolve(returnVal);
+	}
+
+	async getBatchesByCriteriaWithPagi(
+		fromDate: number,
+		toDate: number,
+		model: string,
+		currencyCodes: string[],
+		batchStatuses: string[],
+		pageIndex: number = 0,
+        pageSize: number = MAX_ENTRIES_PER_PAGE,
+	): Promise<BatchSearchResults> {
+		pageIndex = Math.max(pageIndex, 0);
+		pageSize = Math.min(pageSize, MAX_ENTRIES_PER_PAGE);
+		const index = pageIndex * pageSize;
+		const total = index + pageSize;
+
+		const returnVal: Array<ISettlementBatch> = this.batches.filter(value => {
+			let currencyMatch = true;
+			if (currencyCodes && currencyCodes.length > 0) {
+				const matches = currencyCodes.filter(curr => value.currencyCode === curr);
+				currencyMatch = matches.length > 0;
+			}
+
+			let modelMatch = true;
+			if (model) modelMatch = (model === value.settlementModel);
+
+			let statusMatch = true;
+			if (batchStatuses && batchStatuses.length > 0) {
+				const matches = batchStatuses.filter(status => value.state === status);
+				statusMatch = matches.length > 0;
+			}
+
+			return (value.timestamp >= fromDate && value.timestamp <= toDate)
+				&& ((modelMatch && currencyMatch) && statusMatch);
+		});
+
+		const searchResults: BatchSearchResults = {
+			pageIndex: pageIndex,
+			pageSize: pageSize,
+			totalPages: 0,
+			items: []
+		}
+
+		if (returnVal.length > 0) {
+			const paginatedVal = returnVal.slice(index, total);
+			searchResults.items = paginatedVal;
+			searchResults.totalPages = Math.ceil(returnVal.length / pageSize);
+		}
+
+		return Promise.resolve(searchResults);
 	}
 
 }

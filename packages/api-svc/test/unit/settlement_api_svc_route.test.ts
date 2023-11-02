@@ -297,8 +297,8 @@ describe("Settlement BC api-svc route test", () => {
             })
             .set('authorization', AUTH_TOKEN);
         expect(responseBatchName.status).toBe(200);
-        expect(Array.isArray(responseBatchName.body)).toBe(true);
-        expect(responseBatchName.body.length).toBe(1);
+        expect(Array.isArray(responseBatchName.body.items)).toBe(true);
+        expect(responseBatchName.body.items.length).toBe(1);
 
         const dateTo = (Date.now() + 5000);
         const dateFrom = (Date.now() - 5000);
@@ -313,8 +313,8 @@ describe("Settlement BC api-svc route test", () => {
             })
             .set('authorization', AUTH_TOKEN);
         expect(responseSettlementModels.status).toBe(200);
-        expect(Array.isArray(responseSettlementModels.body)).toBe(true);
-        expect(responseSettlementModels.body.length).toBe(1);
+        expect(Array.isArray(responseSettlementModels.body.items)).toBe(true);
+        expect(responseSettlementModels.body.items.length).toBe(1);
 
         // Batch by currency:
         const responseCurrency = await request(server)
@@ -326,8 +326,8 @@ describe("Settlement BC api-svc route test", () => {
             })
             .set('authorization', AUTH_TOKEN);
         expect(responseCurrency.status).toBe(200);
-        expect(Array.isArray(responseCurrency.body)).toBe(true);
-        expect(responseCurrency.body.length).toBeGreaterThan(1);
+        expect(Array.isArray(responseCurrency.body.items)).toBe(true);
+        expect(responseCurrency.body.items.length).toBeGreaterThan(1);
 
         // Batch by currency:
         const responseStatus = await request(server)
@@ -339,8 +339,8 @@ describe("Settlement BC api-svc route test", () => {
             })
             .set('authorization', AUTH_TOKEN);
         expect(responseStatus.status).toBe(200);
-        expect(Array.isArray(responseStatus.body)).toBe(true);
-        expect(responseStatus.body.length).toBeGreaterThan(1);
+        expect(Array.isArray(responseStatus.body.items)).toBe(true);
+        expect(responseStatus.body.items.length).toBeGreaterThan(1);
     });
 
     test("GET /transfers - should fetch batchTransfers by batchId", async () => {
@@ -1013,6 +1013,6 @@ describe("Settlement BC api-svc route test", () => {
 
         //Assert
         expect(response.status).toBe(200);
-        expect(Array.isArray(response.body)).toBe(true);
+        expect(Array.isArray(response.body.items)).toBe(true);
     });
 });
