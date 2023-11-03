@@ -123,6 +123,9 @@ export class MongoSettlementTransferRepo implements ISettlementBatchTransferRepo
 			pageSize = Math.min(pageSize, MAX_ENTRIES_PER_PAGE);
 			const skip = pageIndex * pageSize;
 
+			const filter = [];
+			if (batchIds && batchIds.length > 0) filter.push({ batchId: { $in: batchIds } });
+
 			const pipeline = [
 				{
 					$facet: {
