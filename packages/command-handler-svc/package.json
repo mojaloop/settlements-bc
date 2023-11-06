@@ -1,6 +1,6 @@
 {
   "name": "@mojaloop/settlements-bc-command-handler-svc",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "Mojaloop vNext Settlements BC - Command Handler Service",
   "license": "Apache-2.0",
   "homepage": "https://github.com/mojaloop/settlements-bc/command-handler-svc",
@@ -48,6 +48,8 @@
     "@mojaloop/platform-configuration-bc-public-types-lib": "^0.2.5",
     "@mojaloop/platform-configuration-bc-client-lib": "~0.1.22",
     "@mojaloop/auditing-bc-client-lib": "~0.0.15",
+    "@mojaloop/platform-shared-lib-observability-types-lib": "~0.1.9",
+    "@mojaloop/platform-shared-lib-observability-client-lib": "~0.1.10",
     "express": "^4.18.2"
   },
   "devDependencies": {
