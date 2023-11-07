@@ -340,8 +340,8 @@ export class ExpressRoutes {
 		let batchStatusesStr = req.query.batchStatuses as string;
 
 		// Pagination
-		const pageIndex = req.query.pageIndex ? Number(req.query.pageIndex) : undefined;
-		const pageSize = req.query.pageSize ? Number(req.query.pageSize) : undefined;
+		const pageIndex = req.query.pageIndex ? parseInt(req.query.pageIndex as string) : undefined;
+		const pageSize = req.query.pageSize ? parseInt(req.query.pageSize as string) : undefined;
 
 		let currencyCodes: string[] = [];
 		let batchStatuses: string[] = [];
@@ -405,8 +405,8 @@ export class ExpressRoutes {
 		const batchName = req.query.batchName as string || req.query.batchname as string;
 		const transferId = req.query.transferId as string || req.query.transferid as string;
 		const matrixId = req.query.matrixId as string || req.query.matrixid as string;
-		const pageIndex = req.query.pageIndex ? Number(req.query.pageIndex) : undefined;
-		const pageSize = req.query.pageSize ? Number(req.query.pageSize) : undefined;
+		const pageIndex = req.query.pageIndex ? parseInt(req.query.pageIndex as string) : undefined;
+		const pageSize = req.query.pageSize ? parseInt(req.query.pageSize as string) : undefined;
 
 		try {
 			let settlementTransfers:ISettlementBatchTransfer[];
@@ -623,8 +623,8 @@ export class ExpressRoutes {
 			const model = req.query.model as string;
 			let currencyCodesStr = req.query.currencyCodes as string;
 			const createdAt = req.query.createdAt as string;
-			const pageIndex = req.query.pageIndex ? Number(req.query.pageIndex) : undefined;
-			const pageSize = req.query.pageSize ? Number(req.query.pageSize) : undefined;
+			const pageIndex = req.query.pageIndex ? parseInt(req.query.pageIndex as string) : undefined;
+			const pageSize = req.query.pageSize ? parseInt(req.query.pageSize as string) : undefined;
 
 			let currencyCodes: string[] = [];
 			if (currencyCodesStr && Array.isArray(currencyCodesStr)) {
