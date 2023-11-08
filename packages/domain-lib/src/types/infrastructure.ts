@@ -96,22 +96,12 @@ export interface ISettlementBatchRepo {
 	getOpenBatchByName(batchName: string): Promise<ISettlementBatch | null>;
 
 	// there can be multiple batches with the same name (excludes sequence number)
-	getBatchesByName(batchName: string): Promise<ISettlementBatch[]>;
-
-	getBatchesByNameWithPagi(batchName: string, pageIndex?: number, pageSize?: number,): Promise<BatchSearchResults>;
+	getBatchesByName(batchName: string, pageIndex?: number, pageSize?: number,): Promise<BatchSearchResults>;
 
 	// there can be multiple batches with the same name (excludes sequence number)
 	getBatchesByIds(batchIds: string[]): Promise<ISettlementBatch[]>;
 
 	getBatchesByCriteria(
-		fromDate: number,
-		toDate: number,
-		model: string,
-		currencyCodes: string[],
-		batchStatuses: string[],
-	): Promise<ISettlementBatch[]>;
-
-	getBatchesByCriteriaWithPagi(
 		fromDate: number,
 		toDate: number,
 		model: string,
@@ -126,8 +116,7 @@ export interface ISettlementBatchTransferRepo {
 	init(): Promise<void>;
 	destroy(): Promise<void>;
 	storeBatchTransfer(batchTransfer: ISettlementBatchTransfer): Promise<void>;
-	getBatchTransfersByBatchIds(batchIds: string[]): Promise<ISettlementBatchTransfer[]>;
-	getBatchTransfersByBatchIdsWithPagi(
+	getBatchTransfersByBatchIds(
 		batchIds: string[], 
 		pageIndex?: number, 
 		pageSize?: number,

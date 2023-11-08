@@ -122,16 +122,7 @@ export class MongoSettlementBatchRepo implements ISettlementBatchRepo {
 	}
 
 	// there can be multiple batches with the same name (excludes sequence number)
-	async getBatchesByName(batchName: string): Promise<ISettlementBatch[]>{
-		try {
-			const batches = await this._collection.find({batchName: batchName}).project({_id: 0}).toArray();
-			return batches as ISettlementBatch[];
-		} catch (error: any) {
-			throw new Error("Unable to get batches by name from repo - msg: " + error.message);
-		}
-	}
-
-	async getBatchesByNameWithPagi(
+	async getBatchesByName(
 		batchName: string, 
 		pageIndex: number = 0,
         pageSize: number = MAX_ENTRIES_PER_PAGE,
@@ -142,40 +133,24 @@ export class MongoSettlementBatchRepo implements ISettlementBatchRepo {
 			pageSize = Math.min(pageSize, MAX_ENTRIES_PER_PAGE);
 			const skip = pageIndex * pageSize;
 
-			const pipeline = [
-				{ $match: { batchName: batchName } },
-				{
-					$facet: {
-						items: [{ $skip: skip }, { $limit: pageSize }],
-						totalDoc: [{
-							$group: { _id: null, count: { $sum: 1 } }
-						}]
-					}
-				}, 
-				{
-					$unwind: "$totalDoc"
-				},
-				{
-					$project: {
-						items: 1,
-						totalDoc: "$totalDoc.count"
-					}
-				}
-			];
+			const match = { batchName: batchName };
 
-			const resultArr = await this._collection.aggregate(pipeline).toArray();
+			const resultArr = await this._collection.find(
+				match,
+				{
+					sort:["timestamp", "desc"],
+					skip: skip,
+                    limit: pageSize,
+				}
+			).project({_id: 0}).toArray();
+
+			const totalDoc = await this._collection.countDocuments(match);
 
 			const searchResults: BatchSearchResults = {
 				pageIndex: pageIndex,
 				pageSize: pageSize,
-				totalPages: 0,
-				items: []
-			}
-
-			if (resultArr && resultArr.length > 0) {
-				const result = resultArr[0] as any;
-				searchResults.items = result.items;
-				searchResults.totalPages = Math.ceil(result.totalDoc / pageSize);
+				totalPages: Math.ceil(totalDoc / pageSize),
+				items: resultArr as ISettlementBatch[]
 			}
 
 			return searchResults;
@@ -199,32 +174,6 @@ export class MongoSettlementBatchRepo implements ISettlementBatchRepo {
 		toDate: number,
 		model: string,
 		currencyCodes: string[],
-		batchStatuses: string[]
-	): Promise<ISettlementBatch[]>{
-		try {
-			const paramsForQuery :any= [
-				{timestamp: {$gte:fromDate}},
-				{timestamp: {$lte: toDate}},
-				{settlementModel: model}
-			];
-
-			if (currencyCodes && currencyCodes.length > 0) paramsForQuery.push({currencyCode: {$in: currencyCodes}});
-			if (batchStatuses && batchStatuses.length > 0) paramsForQuery.push({state: {$in: batchStatuses}});
-
-			const batches = await this._collection.find({
-				$and: paramsForQuery
-			}).project({_id: 0}).toArray();
-			return batches as ISettlementBatch[];
-		} catch (error: any) {
-			throw new Error("Unable to get batches by criteria from repo - msg: " + error.message);
-		}
-	}
-
-	async getBatchesByCriteriaWithPagi(
-		fromDate: number,
-		toDate: number,
-		model: string,
-		currencyCodes: string[],
 		batchStatuses: string[],
 		pageIndex: number = 0,
         pageSize: number = MAX_ENTRIES_PER_PAGE,
@@ -244,40 +193,24 @@ export class MongoSettlementBatchRepo implements ISettlementBatchRepo {
 			if (currencyCodes && currencyCodes.length > 0) paramsForQuery.push({currencyCode: {$in: currencyCodes}});
 			if (batchStatuses && batchStatuses.length > 0) paramsForQuery.push({state: {$in: batchStatuses}});
 
-			const pipeline = [
-				{ $match: { $and: paramsForQuery } },
-				{
-					$facet: {
-						items: [{ $skip: skip }, { $limit: pageSize }],
-						totalDoc: [{
-							$group: { _id: null, count: { $sum: 1 } }
-						}]
-					}
-				}, 
-				{
-					$unwind: "$totalDoc"
-				},
-				{
-					$project: {
-						items: 1,
-						totalDoc: "$totalDoc.count"
-					}
-				}
-			];
+			const match = { $and: paramsForQuery };
 
-			const resultArr = await this._collection.aggregate(pipeline).toArray();
+			const resultArr = await this._collection.find(
+				match,
+				{
+					sort:["timestamp", "desc"],
+					skip: skip,
+                    limit: pageSize,
+				}
+			).project({_id: 0}).toArray();
+
+			const totalDoc = await this._collection.countDocuments(match);
 
 			const searchResults: BatchSearchResults = {
 				pageIndex: pageIndex,
 				pageSize: pageSize,
-				totalPages: 0,
-				items: []
-			}
-
-			if (resultArr && resultArr.length > 0) {
-				const result = resultArr[0] as any;
-				searchResults.items = result.items;
-				searchResults.totalPages = Math.ceil(result.totalDoc / pageSize);
+				totalPages: Math.ceil(totalDoc / pageSize),
+				items: resultArr as ISettlementBatch[]
 			}
 
 			return searchResults;

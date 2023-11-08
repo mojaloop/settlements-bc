@@ -238,16 +238,17 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		// locate the transfer link in settlement and ensure they match up:
 		const accDRTransferSttl = await settleTransferRepo.getBatchTransfersByBatchIds([batchId]);
 		expect(accDRTransferSttl).toBeDefined();
-		expect(accDRTransferSttl.length).toEqual(1);
-		expect(accDRTransferSttl[0].transferId).toBeDefined();
-		expect(accDRTransferSttl[0].transferTimestamp).toBeGreaterThan(0);
-		expect(accDRTransferSttl[0].payerFspId).toEqual(reqTransferDto.payerFspId);
-		expect(accDRTransferSttl[0].payeeFspId).toEqual(reqTransferDto.payeeFspId);
-		expect(accDRTransferSttl[0].currencyCode).toEqual(reqTransferDto.currencyCode);
-		expect(accDRTransferSttl[0].amount).toEqual(reqTransferDto.amount);
-		expect(accDRTransferSttl[0].batchId).toEqual(batchId);
-		expect(accDRTransferSttl[0].batchName).toEqual(batches[0].batchName);
-		expect(accDRTransferSttl[0].journalEntryId).toEqual(accDRTransfers[0].id);
+		expect(accDRTransferSttl.items).toBeDefined();
+		expect(accDRTransferSttl.items.length).toEqual(1);
+		expect(accDRTransferSttl.items[0].transferId).toBeDefined();
+		expect(accDRTransferSttl.items[0].transferTimestamp).toBeGreaterThan(0);
+		expect(accDRTransferSttl.items[0].payerFspId).toEqual(reqTransferDto.payerFspId);
+		expect(accDRTransferSttl.items[0].payeeFspId).toEqual(reqTransferDto.payeeFspId);
+		expect(accDRTransferSttl.items[0].currencyCode).toEqual(reqTransferDto.currencyCode);
+		expect(accDRTransferSttl.items[0].amount).toEqual(reqTransferDto.amount);
+		expect(accDRTransferSttl.items[0].batchId).toEqual(batchId);
+		expect(accDRTransferSttl.items[0].batchName).toEqual(batches[0].batchName);
+		expect(accDRTransferSttl.items[0].journalEntryId).toEqual(accDRTransfers[0].id);
 	});
 
 	test("create settlement transfer and ensure batch allocation is correct based on settlement model", async () => {

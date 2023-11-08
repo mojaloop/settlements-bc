@@ -69,13 +69,7 @@ export class SettlementBatchRepoMock implements ISettlementBatchRepo {
 		return Promise.resolve(returnVal || null);
 	}
 
-	async getBatchesByName(batchName: string): Promise<ISettlementBatch[]> {
-		const returnVal: Array<ISettlementBatch> = this.batches.filter(value => batchName == value.batchName);
-
-		return Promise.resolve(returnVal);
-	}
-
-	async getBatchesByNameWithPagi(
+	async getBatchesByName(
 		batchName: string,
 		pageIndex: number = 0,
         pageSize: number = MAX_ENTRIES_PER_PAGE,
@@ -110,35 +104,6 @@ export class SettlementBatchRepoMock implements ISettlementBatchRepo {
 	}
 
 	async getBatchesByCriteria(
-		fromDate: number,
-		toDate: number,
-		model: string,
-		currencyCodes: string[],
-		batchStatuses: string[]
-	): Promise<ISettlementBatch[]> {
-		const returnVal: Array<ISettlementBatch> = this.batches.filter(value => {
-			let currencyMatch = true;
-			if (currencyCodes && currencyCodes.length > 0) {
-				const matches = currencyCodes.filter(curr => value.currencyCode === curr);
-				currencyMatch = matches.length > 0;
-			}
-
-			let modelMatch = true;
-			if (model) modelMatch = (model === value.settlementModel);
-
-			let statusMatch = true;
-			if (batchStatuses && batchStatuses.length > 0) {
-				const matches = batchStatuses.filter(status => value.state === status);
-				statusMatch = matches.length > 0;
-			}
-
-			return (value.timestamp >= fromDate && value.timestamp <= toDate)
-				&& ((modelMatch && currencyMatch) && statusMatch);
-		});
-		return Promise.resolve(returnVal);
-	}
-
-	async getBatchesByCriteriaWithPagi(
 		fromDate: number,
 		toDate: number,
 		model: string,

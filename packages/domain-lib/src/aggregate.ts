@@ -1051,13 +1051,15 @@ export class SettlementsAggregate {
 			batches = await this._batchRepo.getBatchesByIds(batchIds);
 		} else {
 			// this will pick up any new batches:
-			batches = await this._batchRepo.getBatchesByCriteria(
+			const result = await this._batchRepo.getBatchesByCriteria(
 				matrix.dateFrom!,
 				matrix.dateTo!,
 				matrix.settlementModel!,
 				matrix.currencyCodes!,
 				matrix.batchStatuses!
 			);
+
+			batches = result.items;
 		}
 
 		// remove batches and zero totals
@@ -1143,10 +1145,10 @@ export class SettlementsAggregate {
 			currencyCodes,
 			batchStatuses
 		);
-		if(!batches || batches.length <=0 ) return [];
+		if(!batches || !batches.items || batches.items.length <=0 ) return [];
 
-		await this._updateBatchAccountBalances(batches);
-		return batches;
+		await this._updateBatchAccountBalances(batches.items);
+		return batches.items;
 	}
 
 	async getSettlementBatch(
@@ -1166,10 +1168,10 @@ export class SettlementsAggregate {
 		this._enforcePrivilege(secCtx, Privileges.RETRIEVE_SETTLEMENT_BATCH_ACCOUNTS);
 
 		const batches = await this._batchRepo.getBatchesByName(batchName);
-		if (!batches || batches.length <= 0) return [];
+		if(!batches || !batches.items || batches.items.length <=0 ) return [];
 
-		await this._updateBatchAccountBalances(batches);
-		return batches;
+		await this._updateBatchAccountBalances(batches.items);
+		return batches.items;
 	}
 
 	async getSettlementBatchTransfersByBatchId(secCtx: CallSecurityContext, batchId : string): Promise<ISettlementBatchTransfer[]> {
@@ -1180,17 +1182,19 @@ export class SettlementsAggregate {
 			throw new SettlementBatchNotFoundError(`Unable to locate Settlement Batch with 'Batch Id"" '${batchId}'.`);
 		}
 
-		return await this._batchTransferRepo.getBatchTransfersByBatchIds([batchId]);
+		const result = await this._batchTransferRepo.getBatchTransfersByBatchIds([batchId]);
+		return result.items;
 	}
 
 	async getSettlementBatchTransfersByBatchName(secCtx: CallSecurityContext, batchName: string): Promise<ISettlementBatchTransfer[]> {
 		this._enforcePrivilege(secCtx, Privileges.RETRIEVE_SETTLEMENT_TRANSFERS);
 
 		const batches = await this._batchRepo.getBatchesByName(batchName);
-		if (!batches || batches.length <= 0) return [];
+		if (!batches || !batches.items || batches.items.length <= 0) return [];
 
-		const batchIds = batches.map(value => value.id);
-		return await this._batchTransferRepo.getBatchTransfersByBatchIds(batchIds);
+		const batchIds = batches.items.map(value => value.id);
+		const result = await this._batchTransferRepo.getBatchTransfersByBatchIds(batchIds);
+		return result.items;
 	}
 
 	private _generateBatchName(
@@ -1224,7 +1228,7 @@ export class SettlementsAggregate {
 		const batchName = this._generateBatchName(model, currencyCode, toDate);
 		const existingBatches = await this._batchRepo.getBatchesByName(batchName);
 
-		if (!existingBatches || existingBatches.length <= 0) {
+		if (!existingBatches || !existingBatches.items || existingBatches.items.length <= 0) {
 			// no batch exists with that name, let's create a new with seq number 1
 			const newBatchId = this._generateBatchIdentifier(batchName, 1);
 			const newBatch  = new SettlementBatch(
@@ -1241,7 +1245,7 @@ export class SettlementsAggregate {
 
 		// let's find the highest seq open batch
 		// sort in decreasing order
-		const sortedBatches = existingBatches.sort((a, b) => b.batchSequence - a.batchSequence);
+		const sortedBatches = existingBatches.items.sort((a, b) => b.batchSequence - a.batchSequence);
 		if (sortedBatches[0].state === "OPEN") {
 			// highest seq is open, return it
 			const batchDto = sortedBatches[0];

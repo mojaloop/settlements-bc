@@ -103,16 +103,7 @@ export class MongoSettlementTransferRepo implements ISettlementBatchTransferRepo
 		}
 	}
 
-	async getBatchTransfersByBatchIds(batchIds: string[]): Promise<ISettlementBatchTransfer[]> {
-		try {
-			const batches = await this._collection.find({batchId: {$in: batchIds}}).project({_id: 0}).toArray();
-			return batches as ISettlementBatchTransfer[];
-		} catch (error: any) {
-			throw new Error("Unable to get transfers by batchIds from repo - msg: " + error.message);
-		}
-	}
-
-	async getBatchTransfersByBatchIdsWithPagi(
+	async getBatchTransfersByBatchIds(
 		batchIds: string[],
 		pageIndex: number = 0,
         pageSize: number = MAX_ENTRIES_PER_PAGE,
@@ -123,42 +114,24 @@ export class MongoSettlementTransferRepo implements ISettlementBatchTransferRepo
 			pageSize = Math.min(pageSize, MAX_ENTRIES_PER_PAGE);
 			const skip = pageIndex * pageSize;
 
-			const filter = [];
-			if (batchIds && batchIds.length > 0) filter.push({ batchId: { $in: batchIds } });
+			const match = { batchId: { $in: batchIds } };
 
-			const pipeline = [
+			const resultArr = await this._collection.find(
+				match,
 				{
-					$facet: {
-						items: [{ $skip: skip }, { $limit: pageSize }],
-						totalDoc: [{
-							$group: { _id: null, count: { $sum: 1 } }
-						}]
-					}
-				}, 
-				{
-					$unwind: "$totalDoc"
-				},
-				{
-					$project: {
-						items: 1,
-						totalDoc: "$totalDoc.count"
-					}
+					sort:["transferTimestamp", "desc"],
+					skip: skip,
+                    limit: pageSize,
 				}
-			];
+			).project({_id: 0}).toArray();
 
-			const resultArr = await this._collection.aggregate(pipeline).toArray();
+			const totalDoc = await this._collection.countDocuments(match);
 
 			const searchResults: BatchTransferSearchResults = {
 				pageIndex: pageIndex,
 				pageSize: pageSize,
-				totalPages: 0,
-				items: []
-			}
-
-			if (resultArr && resultArr.length > 0) {
-				const result = resultArr[0] as any;
-				searchResults.items = result.items;
-				searchResults.totalPages = Math.ceil(result.totalDoc / pageSize);
+				totalPages: Math.ceil(totalDoc / pageSize),
+				items: resultArr as ISettlementBatchTransfer[]
 			}
 
 			return searchResults;

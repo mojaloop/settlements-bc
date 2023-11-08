@@ -47,11 +47,7 @@ export class SettlementBatchTransferRepoMock implements ISettlementBatchTransfer
 		return Promise.resolve();
 	}
 
-	async getBatchTransfersByBatchIds(batchIds: string[]): Promise<ISettlementBatchTransfer[]>{
-		return this._list.filter(value => batchIds.includes(value.batchId));
-	}
-
-	async getBatchTransfersByBatchIdsWithPagi(
+	async getBatchTransfersByBatchIds(
 		batchIds: string[],
 		pageIndex: number = 0,
         pageSize: number = MAX_ENTRIES_PER_PAGE,

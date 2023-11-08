@@ -37,8 +37,8 @@
     "@mojaloop/logging-bc-public-types-lib": "~0.1.22",
     "@mojaloop/accounts-and-balances-bc-grpc-client-lib": "~0.3.2",
     "@mojaloop/accounts-and-balances-bc-public-types-lib": "~0.3.2",
-    "@mojaloop/security-bc-client-lib": "~0.3.5",
-    "@mojaloop/security-bc-public-types-lib": "~0.3.4",
+    "@mojaloop/security-bc-client-lib": "~0.3.6",
+    "@mojaloop/security-bc-public-types-lib": "~0.3.5",
     "tigerbeetle-node": "0.14.160",
     "tslib": "~2.6.2",
     "mongodb": "~6.2.0"

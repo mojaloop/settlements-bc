@@ -339,7 +339,7 @@ export class ExpressRoutes {
 		let currencyCodesStr = req.query.currencyCodes as string;
 		let batchStatusesStr = req.query.batchStatuses as string;
 
-		// Pagination
+		// Optional pagination
 		const pageIndex = req.query.pageIndex ? parseInt(req.query.pageIndex as string) : undefined;
 		const pageSize = req.query.pageSize ? parseInt(req.query.pageSize as string) : undefined;
 
@@ -369,7 +369,7 @@ export class ExpressRoutes {
 		// TODO enforce privileges
 		try {
 			if (batchName) {
-				const settlementBatches = await this._batchRepo.getBatchesByNameWithPagi(batchName, pageIndex, pageSize);
+				const settlementBatches = await this._batchRepo.getBatchesByName(batchName, pageIndex, pageSize);
 				if (!settlementBatches || !settlementBatches.items || settlementBatches.items.length <= 0) {
 					res.sendStatus(404);
 					return;
@@ -378,7 +378,7 @@ export class ExpressRoutes {
 			} else {
 				this._logger.debug(`got getSettlementBatches request - Settlement Batches model: ${settlementModel} from [${new Date(Number(fromDate))}] to [${new Date(Number(toDate))}].`);
 
-				const settlementBatches = await this._batchRepo.getBatchesByCriteriaWithPagi(
+				const settlementBatches = await this._batchRepo.getBatchesByCriteria(
 					Number(fromDate),
 					Number(toDate),
 					settlementModel,
@@ -405,18 +405,21 @@ export class ExpressRoutes {
 		const batchName = req.query.batchName as string || req.query.batchname as string;
 		const transferId = req.query.transferId as string || req.query.transferid as string;
 		const matrixId = req.query.matrixId as string || req.query.matrixid as string;
+
+		// Optional pagination
 		const pageIndex = req.query.pageIndex ? parseInt(req.query.pageIndex as string) : undefined;
 		const pageSize = req.query.pageSize ? parseInt(req.query.pageSize as string) : undefined;
 
 		try {
 			let settlementTransfers:ISettlementBatchTransfer[];
 			if (batchId) {
-				const resp = await this._batchTransferRepo.getBatchTransfersByBatchIdsWithPagi([batchId], pageIndex, pageSize);
-				if (!resp || !resp.items || resp.items.length <= 0) {
+				const result = await this._batchTransferRepo.getBatchTransfersByBatchIds([batchId], pageIndex, pageSize);
+				if (!result.items || result.items.length <= 0) {
 					res.sendStatus(404);
 					return;
 				}
-				return this.sendSuccessResponse(res, 200, resp);// OK
+
+				return this.sendSuccessResponse(res, 200, result);// OK
 			} else if (batchName) {
 				settlementTransfers = await this._batchTransferRepo.getBatchTransfersByBatchNames([batchName]);
 			} else if (transferId) {
@@ -428,7 +431,8 @@ export class ExpressRoutes {
 					return;
 				}
 				const batchIds = matrix.batches.map(item => item.id);
-				settlementTransfers = await this._batchTransferRepo.getBatchTransfersByBatchIds(batchIds);
+				const result = await this._batchTransferRepo.getBatchTransfersByBatchIds(batchIds);
+				settlementTransfers = result.items;
 			} else {
 				settlementTransfers = await this._batchTransferRepo.getBatchTransfers();
 			}
@@ -623,6 +627,8 @@ export class ExpressRoutes {
 			const model = req.query.model as string;
 			let currencyCodesStr = req.query.currencyCodes as string;
 			const createdAt = req.query.createdAt as string;
+
+			// Optional pagination
 			const pageIndex = req.query.pageIndex ? parseInt(req.query.pageIndex as string) : undefined;
 			const pageSize = req.query.pageSize ? parseInt(req.query.pageSize as string) : undefined;
 

@@ -45,12 +45,12 @@
     "@mojaloop/logging-bc-public-types-lib": "~0.1.22",
     "@mojaloop/platform-configuration-bc-public-types-lib": "~0.2.5",
     "@mojaloop/platform-configuration-bc-client-lib": "~0.1.22",
-    "@mojaloop/platform-shared-lib-messaging-types-lib": "~0.2.102",
-    "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib": "~0.3.70",
-    "@mojaloop/security-bc-public-types-lib": "~0.3.4"
+    "@mojaloop/platform-shared-lib-messaging-types-lib": "~0.2.103",
+    "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib": "~0.3.71",
+    "@mojaloop/security-bc-public-types-lib": "~0.3.5"
   },
   "devDependencies": {
-    "@types/jest": "^29.5.7",
+    "@types/jest": "^29.5.8",
     "@types/node": "^18.15.13",
     "@typescript-eslint/eslint-plugin": "^5.57.1",
     "@typescript-eslint/parser": "^5.57.1",

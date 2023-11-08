@@ -131,40 +131,22 @@ export class MongoSettlementMatrixRepo implements ISettlementMatrixRequestRepo {
 			let match = {};
 			if (filter.length > 0) match = { $and: filter };
 
-			const pipeline = [
-				{ $match: match },
+			const resultArr = await this._collection.find(
+				match,
 				{
-					$facet: {
-						items: [{ $skip: skip }, { $limit: pageSize }],
-						totalDoc: [{
-							$group: { _id: null, count: { $sum: 1 } }
-						}]
-					}
-				}, 
-				{
-					$unwind: "$totalDoc"
-				},
-				{
-					$project: {
-						items: 1,
-						totalDoc: "$totalDoc.count"
-					}
+					sort:["createdAt", "desc"],
+					skip: skip,
+                    limit: pageSize,
 				}
-			];
+			).project({_id: 0}).toArray();
 
-			const resultArr = await this._collection.aggregate(pipeline).toArray();
+			const totalDoc = await this._collection.countDocuments(match);
 
 			const searchResults: MatrixSearchResults = {
 				pageIndex: pageIndex,
 				pageSize: pageSize,
-				totalPages: 0,
-				items: []
-			}
-
-			if (resultArr && resultArr.length > 0) {
-				const result = resultArr[0] as any;
-				searchResults.items = result.items;
-				searchResults.totalPages = Math.ceil(result.totalDoc / pageSize);
+				totalPages: Math.ceil(totalDoc / pageSize),
+				items: resultArr as ISettlementMatrix[]
 			}
 
 			return searchResults;
