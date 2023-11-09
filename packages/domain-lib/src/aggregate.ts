@@ -96,7 +96,7 @@ const BATCH_ACCOUNT_TYPE_IN_ACCOUNTS_AND_BALANCES: AccountsAndBalancesAccountTyp
 enum AuditingActions {
 	SETTLEMENT_BATCH_CREATED = "SETTLEMENT_BATCH_CREATED",
 	SETTLEMENT_BATCH_ACCOUNT_CREATED = "SETTLEMENT_BATCH_ACCOUNT_CREATED",
-	SETTLEMENT_TRANSFER_CREATED = "SETTLEMENT_TRANSFER_CREATED",
+//	SETTLEMENT_TRANSFER_CREATED = "SETTLEMENT_TRANSFER_CREATED",
 	SETTLEMENT_MATRIX_CLOSED = "SETTLEMENT_MATRIX_CLOSED",
 	SETTLEMENT_MATRIX_SETTLED = "SETTLEMENT_MATRIX_SETTLED",
 	SETTLEMENT_MATRIX_DISPUTED = "SETTLEMENT_MATRIX_DISPUTED",
@@ -161,8 +161,6 @@ export class SettlementsAggregate {
 	}
 
 	private _enforcePrivilege(secCtx: CallSecurityContext, privName: string): void {
-		return;// TODO re-enable _enforcePrivilege()
-
 		for (const roleId of secCtx.platformRoleIds) {
 			if (this._authorizationClient.roleHasPrivilege(roleId, privName)) return;
 		}
@@ -349,13 +347,12 @@ export class SettlementsAggregate {
 			);
 		}
 
-		// We perform an async audit:
-		// @esli
-		this._auditingClient.audit(
+		// this should not be audited - we only audit operator actions or odd things
+		/*this._auditingClient.audit(
 			AuditingActions.SETTLEMENT_TRANSFER_CREATED,
 			true,
 			this._getAuditSecurityContext(secCtx), [{key: "settlementTransferId", value: transferDto.transferId}]
-		);
+		);*/
 
 		return batch.id;
 	}
@@ -1186,6 +1183,7 @@ export class SettlementsAggregate {
 		return result.items;
 	}
 
+	/* Not used? Commenting it out.
 	async getSettlementBatchTransfersByBatchName(secCtx: CallSecurityContext, batchName: string): Promise<ISettlementBatchTransfer[]> {
 		this._enforcePrivilege(secCtx, Privileges.RETRIEVE_SETTLEMENT_TRANSFERS);
 
@@ -1195,7 +1193,7 @@ export class SettlementsAggregate {
 		const batchIds = batches.items.map(value => value.id);
 		const result = await this._batchTransferRepo.getBatchTransfersByBatchIds(batchIds);
 		return result.items;
-	}
+	}*/
 
 	private _generateBatchName(
 		model: string,

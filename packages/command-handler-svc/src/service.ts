@@ -62,7 +62,6 @@ import {
 	SettlementsAggregate
 } from "@mojaloop/settlements-bc-domain-lib";
 import {Express} from "express";
-import {Server} from "net";
 import {IAuthorizationClient, ITokenHelper, ILoginHelper} from "@mojaloop/security-bc-public-types-lib";
 
 /* import configs - other imports stay above */
@@ -120,8 +119,6 @@ const DB_NAME: string = "settlements";
 const SETTLEMENT_CONFIGS_COLLECTION_NAME: string = "configs";
 const SETTLEMENT_BATCHES_COLLECTION_NAME: string = "batches";
 const SETTLEMENT_MATRICES_COLLECTION_NAME: string = "matrices";
-const AWAITING_SETTLEMENTS_COLLECTION_NAME: string = "awaiting_settlements";
-const BATCH_SPECIFIC_SETTLEMENT_MATRICES_COLLECTION_NAME: string = "batch_specific_matrices";
 const SETTLEMENT_TRANSFERS_COLLECTION_NAME: string = "transfers";
 
 const kafkaConsumerOptions: MLKafkaJsonConsumerOptions = {

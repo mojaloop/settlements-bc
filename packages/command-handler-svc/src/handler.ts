@@ -31,7 +31,7 @@
 "use strict";
 import {IAuditClient} from "@mojaloop/auditing-bc-public-types-lib";
 import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
-import {IMessage,IMessageConsumer, CommandMsg} from "@mojaloop/platform-shared-lib-messaging-types-lib";
+import {IMessage,IMessageConsumer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import {SettlementsBCTopics} from "@mojaloop/platform-shared-lib-public-messages-lib";
 
 import {
@@ -62,9 +62,7 @@ import {
 	MarkMatrixOutOfSyncCmd, MarkMatrixOutOfSyncCmdPayload
 } from "@mojaloop/settlements-bc-domain-lib";
 import {CallSecurityContext} from "@mojaloop/security-bc-public-types-lib";
-import {MLKafkaJsonConsumer} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
-import {ILoginHelper, ITokenHelper, UnauthorizedError} from "@mojaloop/security-bc-public-types-lib";
-import {ISettlementConfig } from "@mojaloop/settlements-bc-public-types-lib";
+import {ILoginHelper, UnauthorizedError} from "@mojaloop/security-bc-public-types-lib";
 
 export class SettlementsCommandHandler{
 	private _logger: ILogger;

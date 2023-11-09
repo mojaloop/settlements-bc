@@ -86,7 +86,7 @@ export class SettlementBatchRepoMock implements ISettlementBatchRepo {
 			pageSize: pageSize,
 			totalPages: 0,
 			items: []
-		}
+		};
 
 		if (returnVal.length > 0) {
 			const paginatedVal = returnVal.slice(index, total);
@@ -142,7 +142,7 @@ export class SettlementBatchRepoMock implements ISettlementBatchRepo {
 			pageSize: pageSize,
 			totalPages: 0,
 			items: []
-		}
+		};
 
 		if (returnVal.length > 0) {
 			const paginatedVal = returnVal.slice(index, total);

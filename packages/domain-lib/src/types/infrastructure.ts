@@ -96,7 +96,7 @@ export interface ISettlementBatchRepo {
 	getOpenBatchByName(batchName: string): Promise<ISettlementBatch | null>;
 
 	// there can be multiple batches with the same name (excludes sequence number)
-	getBatchesByName(batchName: string, pageIndex?: number, pageSize?: number,): Promise<BatchSearchResults>;
+	getBatchesByName(batchName: string, pageIndex?: number, pageSize?: number): Promise<BatchSearchResults>;
 
 	// there can be multiple batches with the same name (excludes sequence number)
 	getBatchesByIds(batchIds: string[]): Promise<ISettlementBatch[]>;
@@ -108,7 +108,7 @@ export interface ISettlementBatchRepo {
 		currencyCodes: string[],
 		batchStatuses: string[],
 		pageIndex?: number,
-		pageSize?: number,
+		pageSize?: number
 	): Promise<BatchSearchResults>;
 }
 
@@ -119,7 +119,7 @@ export interface ISettlementBatchTransferRepo {
 	getBatchTransfersByBatchIds(
 		batchIds: string[], 
 		pageIndex?: number, 
-		pageSize?: number,
+		pageSize?: number
 	): Promise<BatchTransferSearchResults>;
 	getBatchTransfersByBatchNames(batchNames: string[]): Promise<ISettlementBatchTransfer[]>;
 	getBatchTransfersByTransferId(transferId: string): Promise<ISettlementBatchTransfer[]>;
@@ -145,7 +145,7 @@ export interface ISettlementMatrixRequestRepo {
 		currencyCodes?: string[],
 		createdAt?: string,
 		pageIndex?: number,
-		pageSize?: number,
+		pageSize?: number
 	): Promise<MatrixSearchResults>;
 
 	getIdleMatricesWithBatchId(batchId: string): Promise<ISettlementMatrix[]>;

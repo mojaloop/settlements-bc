@@ -28,7 +28,7 @@
 "use strict";
 
 import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
-import {MongoClient, Collection, Filter} from "mongodb";
+import {MongoClient, Collection, Filter, FindOptions} from "mongodb";
 import {
 	ISettlementBatchRepo,
 	UnableToInitRepoError
@@ -121,37 +121,45 @@ export class MongoSettlementBatchRepo implements ISettlementBatchRepo {
 		}
 	}
 
-	// there can be multiple batches with the same name (excludes sequence number)
+	/**
+	 * Return Batches by batch name - if pageSize is not passed pagination is ignored and all matching records returned
+	 * there can be multiple batches with the same name (excludes sequence number)
+	 * @param batchName
+	 * @param pageIndex
+	 * @param pageSize
+	 */
 	async getBatchesByName(
 		batchName: string, 
-		pageIndex: number = 0,
-        pageSize: number = MAX_ENTRIES_PER_PAGE,
+		pageIndex?: number,
+        pageSize?: number
 	): Promise<BatchSearchResults> {
 		try {
-			// Pagination settings
-			pageIndex = Math.max(pageIndex, 0);
-			pageSize = Math.min(pageSize, MAX_ENTRIES_PER_PAGE);
-			const skip = pageIndex * pageSize;
-
 			const match = { batchName: batchName };
+			const options: FindOptions<Document>  ={
+				sort:["timestamp", "desc"]
+			};
+
+			// ignore pagination if no pageSize provided - default for internal aggregate calls which need all recs
+			if(pageSize){
+				pageIndex = Math.max(pageIndex || 0, 0);
+				pageSize = Math.min(pageSize, MAX_ENTRIES_PER_PAGE);
+				options.skip = pageIndex * pageSize;
+				options.limit= pageSize;
+			}
 
 			const resultArr = await this._collection.find(
 				match,
-				{
-					sort:["timestamp", "desc"],
-					skip: skip,
-                    limit: pageSize,
-				}
+				options
 			).project({_id: 0}).toArray();
 
 			const totalDoc = await this._collection.countDocuments(match);
 
 			const searchResults: BatchSearchResults = {
-				pageIndex: pageIndex,
-				pageSize: pageSize,
-				totalPages: Math.ceil(totalDoc / pageSize),
+				pageIndex: pageIndex || 0,
+				pageSize: pageSize ?? totalDoc,
+				totalPages: pageSize ?  Math.ceil(totalDoc / pageSize) : 1,
 				items: resultArr as ISettlementBatch[]
-			}
+			};
 
 			return searchResults;
 
@@ -169,21 +177,26 @@ export class MongoSettlementBatchRepo implements ISettlementBatchRepo {
 		}
 	}
 
+	/**
+	 * gets batches by search criteria (same as dynamic matrices) - if pageSize is not passed pagination is ignored and all matching records returned
+	 * @param fromDate
+	 * @param toDate
+	 * @param model
+	 * @param currencyCodes
+	 * @param batchStatuses
+	 * @param pageIndex
+	 * @param pageSize
+	 */
 	async getBatchesByCriteria(
 		fromDate: number,
 		toDate: number,
 		model: string,
 		currencyCodes: string[],
 		batchStatuses: string[],
-		pageIndex: number = 0,
-        pageSize: number = MAX_ENTRIES_PER_PAGE,
+		pageIndex?: number,
+		pageSize?: number
 	): Promise<BatchSearchResults> {
 		try {
-			// Pagination settings
-			pageIndex = Math.max(pageIndex, 0);
-			pageSize = Math.min(pageSize, MAX_ENTRIES_PER_PAGE);
-			const skip = pageIndex * pageSize;
-
 			const paramsForQuery :any= [
 				{timestamp: {$gte:fromDate}},
 				{timestamp: {$lte: toDate}},
@@ -194,24 +207,31 @@ export class MongoSettlementBatchRepo implements ISettlementBatchRepo {
 			if (batchStatuses && batchStatuses.length > 0) paramsForQuery.push({state: {$in: batchStatuses}});
 
 			const match = { $and: paramsForQuery };
+			const options: FindOptions<Document>  ={
+				sort:["timestamp", "desc"]
+			};
+
+			// ignore pagination if no pageSize provided - default for internal aggregate calls which need all recs
+			if(pageSize){
+				pageIndex = Math.max(pageIndex || 0, 0);
+				pageSize = Math.min(pageSize, MAX_ENTRIES_PER_PAGE);
+				options.skip = pageIndex * pageSize;
+				options.limit= pageSize;
+			}
 
 			const resultArr = await this._collection.find(
 				match,
-				{
-					sort:["timestamp", "desc"],
-					skip: skip,
-                    limit: pageSize,
-				}
+				options
 			).project({_id: 0}).toArray();
 
 			const totalDoc = await this._collection.countDocuments(match);
 
 			const searchResults: BatchSearchResults = {
-				pageIndex: pageIndex,
-				pageSize: pageSize,
-				totalPages: Math.ceil(totalDoc / pageSize),
+				pageIndex: pageIndex || 0,
+				pageSize: pageSize ?? totalDoc,
+				totalPages: pageSize ?  Math.ceil(totalDoc / pageSize) : 1,
 				items: resultArr as ISettlementBatch[]
-			}
+			};
 
 			return searchResults;
 

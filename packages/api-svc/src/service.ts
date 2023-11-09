@@ -30,8 +30,6 @@
 
 "use strict";
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const packageJSON = require("../package.json");
 
 import {IAuditClient} from "@mojaloop/auditing-bc-public-types-lib";
 import {KafkaLogger} from "@mojaloop/logging-bc-client-lib";
@@ -45,8 +43,7 @@ import {
 	ISettlementBatchTransferRepo,
 	ISettlementConfigRepo,
 	ISettlementMatrixRequestRepo,
-	Privileges,
-	SettlementsAggregate
+	Privileges
 } from "@mojaloop/settlements-bc-domain-lib";
 import process from "process";
 import {existsSync} from "fs";
@@ -74,12 +71,14 @@ import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-li
 import {IMetrics} from "@mojaloop/platform-shared-lib-observability-types-lib";
 import {PrometheusMetrics} from "@mojaloop/platform-shared-lib-observability-client-lib";
 
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const packageJSON = require("../package.json");
 const BC_NAME = "settlements-bc";
 const APP_NAME = "settlements-api-svc";
 const APP_VERSION = packageJSON.version;
 const PRODUCTION_MODE = process.env["PRODUCTION_MODE"] || false;
 const LOG_LEVEL: LogLevel = process.env["LOG_LEVEL"] as LogLevel || LogLevel.DEBUG;
-const ENV_NAME = process.env["ENV_NAME"] || "dev";
+//const ENV_NAME = process.env["ENV_NAME"] || "dev";
 
 const AUTH_N_SVC_BASEURL = process.env["AUTH_N_SVC_BASEURL"] || "http://localhost:3201";
 const AUTH_N_SVC_TOKEN_URL = AUTH_N_SVC_BASEURL + "/token"; // TODO this should not be known here, libs that use the base should add the suffix
@@ -99,7 +98,6 @@ const KAFKA_LOGS_TOPIC = process.env["KAFKA_LOGS_TOPIC"] || "logs";
 const AUDIT_KEY_FILE_PATH = process.env["AUDIT_KEY_FILE_PATH"] || "/app/data/audit_private_key.pem";
 
 const ACCOUNTS_BALANCES_COA_SVC_URL = process.env["ACCOUNTS_BALANCES_COA_SVC_URL"] || "localhost:3300";
-const PARTICIPANTS_SVC_URL = process.env["PARTICIPANTS_SVC_URL"] || "http://localhost:3010";
 
 const SVC_CLIENT_ID = process.env["SVC_CLIENT_ID"] || "settlements-bc-api-svc";
 const SVC_CLIENT_SECRET = process.env["SVC_CLIENT_ID"] || "superServiceSecret";
@@ -110,8 +108,6 @@ const DB_NAME: string = "settlements";
 const SETTLEMENT_CONFIGS_COLLECTION_NAME: string = "configs";
 const SETTLEMENT_BATCHES_COLLECTION_NAME: string = "batches";
 const SETTLEMENT_MATRICES_COLLECTION_NAME: string = "matrices";
-const AWAITING_SETTLEMENTS_COLLECTION_NAME: string = "awaiting_settlements";
-const BATCH_SPECIFIC_SETTLEMENT_MATRICES_COLLECTION_NAME: string = "batch_specific_matrices";
 const SETTLEMENT_TRANSFERS_COLLECTION_NAME: string = "transfers";
 
 const kafkaProducerOptions: MLKafkaJsonProducerOptions = {
@@ -314,7 +310,7 @@ export class Service {
 
 
 	static setupExpress(): Promise<void>{
-		return new Promise<void>((resolve, reject) => {
+		return new Promise<void>((resolve) => {
 			this.app = express();
 			this.app.use(express.json()); // for parsing application/json
 			this.app.use(express.urlencoded({extended: true})); // for parsing application/x-www-form-urlencoded

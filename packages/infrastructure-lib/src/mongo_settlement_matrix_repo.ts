@@ -34,6 +34,7 @@ import {
 	UnableToInitRepoError
 } from "@mojaloop/settlements-bc-domain-lib";
 import {ISettlementMatrix, MatrixSearchResults} from "@mojaloop/settlements-bc-public-types-lib";
+import {FindOptions} from "mongodb/mongodb";
 
 
 const MAX_ENTRIES_PER_PAGE = 100;
@@ -104,6 +105,17 @@ export class MongoSettlementMatrixRepo implements ISettlementMatrixRequestRepo {
 		}
 	}
 
+	/**
+	 * Get matrices based on search criteria - if pageSize is not passed pagination is ignored and all matching records returned
+	 * @param matrixId
+	 * @param type
+	 * @param state
+	 * @param model
+	 * @param currencyCodes
+	 * @param createdAt
+	 * @param pageIndex
+	 * @param pageSize
+	 */
 	async getMatrices(
 		matrixId?: string,
 		type?: string,
@@ -111,15 +123,10 @@ export class MongoSettlementMatrixRepo implements ISettlementMatrixRequestRepo {
 		model?: string,
 		currencyCodes?: string[],
 		createdAt?: string,
-		pageIndex: number = 0,
-        pageSize: number = MAX_ENTRIES_PER_PAGE,
+		pageIndex?: number,
+        pageSize?: number
 	): Promise<MatrixSearchResults> {
 		try {
-			// Pagination settings
-			pageIndex = Math.max(pageIndex, 0);
-			pageSize = Math.min(pageSize, MAX_ENTRIES_PER_PAGE);
-			const skip = pageIndex * pageSize;
-
 			const filter = [];
 			if (matrixId) filter.push({ id: matrixId });
 			if (type) filter.push({ type: type });
@@ -128,26 +135,32 @@ export class MongoSettlementMatrixRepo implements ISettlementMatrixRequestRepo {
 			if (currencyCodes && currencyCodes.length > 0) filter.push({ currencyCodes: { $in: currencyCodes } });
 			if (createdAt) filter.push({ createdAt: { $eq: Number(createdAt) } });
 
-			let match = {};
-			if (filter.length > 0) match = { $and: filter };
+			const match = filter.length > 0 ? { $and: filter } : {};
+			const options: FindOptions<Document>  ={
+				sort:["createdAt", "desc"]
+			};
+
+			// ignore pagination if no pageSize provided - default for internal aggregate calls which need all recs
+			if(pageSize){
+				pageIndex = Math.max(pageIndex || 0, 0);
+				pageSize = Math.min(pageSize, MAX_ENTRIES_PER_PAGE);
+				options.skip = pageIndex * pageSize;
+				options.limit= pageSize;
+			}
 
 			const resultArr = await this._collection.find(
 				match,
-				{
-					sort:["createdAt", "desc"],
-					skip: skip,
-                    limit: pageSize,
-				}
+				options
 			).project({_id: 0}).toArray();
 
 			const totalDoc = await this._collection.countDocuments(match);
 
 			const searchResults: MatrixSearchResults = {
-				pageIndex: pageIndex,
-				pageSize: pageSize,
-				totalPages: Math.ceil(totalDoc / pageSize),
+				pageIndex: pageIndex || 0,
+				pageSize: pageSize ?? totalDoc,
+				totalPages: pageSize ?  Math.ceil(totalDoc / pageSize) : 1,
 				items: resultArr as ISettlementMatrix[]
-			}
+			};
 
 			return searchResults;
 

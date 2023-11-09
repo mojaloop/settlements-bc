@@ -34,6 +34,7 @@ import {
 } from "@mojaloop/settlements-bc-domain-lib";
 import {BatchTransferSearchResults, ISettlementBatchTransfer} from "@mojaloop/settlements-bc-public-types-lib";
 import {ISettlementBatchTransferRepo} from "@mojaloop/settlements-bc-domain-lib";
+import {FindOptions} from "mongodb/mongodb";
 
 
 const MAX_ENTRIES_PER_PAGE = 100;
@@ -103,36 +104,44 @@ export class MongoSettlementTransferRepo implements ISettlementBatchTransferRepo
 		}
 	}
 
+	/**
+	 * Get batch transfers based for all batches mathing the passed ids - if pageSize is not passed pagination is ignored and all matching records returned
+	 * @param batchIds
+	 * @param pageIndex
+	 * @param pageSize
+	 */
 	async getBatchTransfersByBatchIds(
 		batchIds: string[],
-		pageIndex: number = 0,
-        pageSize: number = MAX_ENTRIES_PER_PAGE,
+		pageIndex?: number,
+        pageSize?: number
 	): Promise<BatchTransferSearchResults> {
 		try {
-			// Pagination settings
-			pageIndex = Math.max(pageIndex, 0);
-			pageSize = Math.min(pageSize, MAX_ENTRIES_PER_PAGE);
-			const skip = pageIndex * pageSize;
-
 			const match = { batchId: { $in: batchIds } };
+			const options: FindOptions<Document>  ={
+				sort:["transferTimestamp", "desc"]
+			};
+
+			// ignore pagination if no pageSize provided - default for internal aggregate calls which need all recs
+			if(pageSize){
+				pageIndex = Math.max(pageIndex || 0, 0);
+				pageSize = Math.min(pageSize, MAX_ENTRIES_PER_PAGE);
+				options.skip = pageIndex * pageSize;
+				options.limit= pageSize;
+			}
 
 			const resultArr = await this._collection.find(
 				match,
-				{
-					sort:["transferTimestamp", "desc"],
-					skip: skip,
-                    limit: pageSize,
-				}
+				options
 			).project({_id: 0}).toArray();
 
 			const totalDoc = await this._collection.countDocuments(match);
 
 			const searchResults: BatchTransferSearchResults = {
-				pageIndex: pageIndex,
-				pageSize: pageSize,
-				totalPages: Math.ceil(totalDoc / pageSize),
+				pageIndex: pageIndex || 0,
+				pageSize: pageSize ?? totalDoc,
+				totalPages: pageSize ?  Math.ceil(totalDoc / pageSize) : 1,
 				items: resultArr as ISettlementBatchTransfer[]
-			}
+			};
 
 			return searchResults;
 

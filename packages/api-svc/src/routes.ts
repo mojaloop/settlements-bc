@@ -29,11 +29,6 @@
 
 import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import {
-	SettlementBatchNotFoundError,
-	UnauthorizedError,
-	SettlementMatrixNotFoundError,
-	SettlementMatrixIsBusyError,
-	SettlementMatrixIsClosedError,
 	ISettlementBatchRepo,
 	ISettlementMatrixRequestRepo,
 	ISettlementBatchTransferRepo,
@@ -49,7 +44,6 @@ import {
 	AddBatchesToMatrixCmd,
 	RemoveBatchesFromMatrixCmdPayload,
 	RemoveBatchesFromMatrixCmd,
-	CreateSettlementModelCmdPayload,
 	CreateSettlementModelCmd, LockMatrixCmd, UnlockMatrixCmd
 } from "@mojaloop/settlements-bc-domain-lib";
 import {CallSecurityContext} from "@mojaloop/security-bc-public-types-lib";
@@ -69,6 +63,8 @@ declare module "express-serve-static-core" {
 		securityContext: CallSecurityContext | null;
 	}
 }
+
+const MAX_ENTRIES_PER_PAGE = 100;
 
 export class ExpressRoutes {
 	private readonly _logger: ILogger;
@@ -341,10 +337,10 @@ export class ExpressRoutes {
 
 		// Optional pagination
 		const pageIndexStr = req.query.pageIndex as string || req.query.pageindex as string;
-		const pageIndex = pageIndexStr ? parseInt(pageIndexStr) : undefined;
+		const pageIndex = pageIndexStr ? parseInt(pageIndexStr) : 0;
 
 		const pageSizeStr = req.query.pageSize as string || req.query.pagesize as string;
-		const pageSize = pageSizeStr ? parseInt(pageSizeStr) : undefined;
+		const pageSize = pageSizeStr ? parseInt(pageSizeStr) : MAX_ENTRIES_PER_PAGE;
 
 		let currencyCodes: string[] = [];
 		let batchStatuses: string[] = [];
@@ -411,10 +407,10 @@ export class ExpressRoutes {
 
 		// Optional pagination
 		const pageIndexStr = req.query.pageIndex as string || req.query.pageindex as string;
-		const pageIndex = pageIndexStr ? parseInt(pageIndexStr) : undefined;
+		const pageIndex = pageIndexStr ? parseInt(pageIndexStr) : 0;
 
 		const pageSizeStr = req.query.pageSize as string || req.query.pagesize as string;
-		const pageSize = pageSizeStr ? parseInt(pageSizeStr) : undefined;
+		const pageSize = pageSizeStr ? parseInt(pageSizeStr) : MAX_ENTRIES_PER_PAGE;
 
 		try {
 			let settlementTransfers:ISettlementBatchTransfer[];
@@ -636,10 +632,10 @@ export class ExpressRoutes {
 
 			// Optional pagination
 			const pageIndexStr = req.query.pageIndex as string || req.query.pageindex as string;
-            const pageIndex = pageIndexStr ? parseInt(pageIndexStr) : undefined;
+            const pageIndex = pageIndexStr ? parseInt(pageIndexStr) : 0;
     
             const pageSizeStr = req.query.pageSize as string || req.query.pagesize as string;
-            const pageSize = pageSizeStr ? parseInt(pageSizeStr) : undefined;
+            const pageSize = pageSizeStr ? parseInt(pageSizeStr) : MAX_ENTRIES_PER_PAGE;
 
 			let currencyCodes: string[] = [];
 			if (currencyCodesStr && Array.isArray(currencyCodesStr)) {

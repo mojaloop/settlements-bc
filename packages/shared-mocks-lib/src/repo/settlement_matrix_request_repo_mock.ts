@@ -90,7 +90,7 @@ export class SettlementMatrixRequestRepoMock implements ISettlementMatrixRequest
 			pageSize: pageSize,
 			totalPages: 0,
 			items: []
-		}
+		};
 
 		if (returnVal.length > 0) {
 			const paginatedVal = returnVal.slice(index, total);

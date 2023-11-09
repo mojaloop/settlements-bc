@@ -928,7 +928,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 	});
 
 	test("test exceptions/errors responses for lookups", async () => {
-		const batch = await aggregateNoAuth.getSettlementBatch(securityContext, '12345');
+		const batch = await aggregate.getSettlementBatch(securityContext, '12345');
 		expect(batch).toBeNull();
 	});
 
