@@ -340,8 +340,11 @@ export class ExpressRoutes {
 		let batchStatusesStr = req.query.batchStatuses as string;
 
 		// Optional pagination
-		const pageIndex = req.query.pageIndex ? parseInt(req.query.pageIndex as string) : undefined;
-		const pageSize = req.query.pageSize ? parseInt(req.query.pageSize as string) : undefined;
+		const pageIndexStr = req.query.pageIndex as string || req.query.pageindex as string;
+		const pageIndex = pageIndexStr ? parseInt(pageIndexStr) : undefined;
+
+		const pageSizeStr = req.query.pageSize as string || req.query.pagesize as string;
+		const pageSize = pageSizeStr ? parseInt(pageSizeStr) : undefined;
 
 		let currencyCodes: string[] = [];
 		let batchStatuses: string[] = [];
@@ -407,8 +410,11 @@ export class ExpressRoutes {
 		const matrixId = req.query.matrixId as string || req.query.matrixid as string;
 
 		// Optional pagination
-		const pageIndex = req.query.pageIndex ? parseInt(req.query.pageIndex as string) : undefined;
-		const pageSize = req.query.pageSize ? parseInt(req.query.pageSize as string) : undefined;
+		const pageIndexStr = req.query.pageIndex as string || req.query.pageindex as string;
+		const pageIndex = pageIndexStr ? parseInt(pageIndexStr) : undefined;
+
+		const pageSizeStr = req.query.pageSize as string || req.query.pagesize as string;
+		const pageSize = pageSizeStr ? parseInt(pageSizeStr) : undefined;
 
 		try {
 			let settlementTransfers:ISettlementBatchTransfer[];
@@ -629,8 +635,11 @@ export class ExpressRoutes {
 			const createdAt = req.query.createdAt as string;
 
 			// Optional pagination
-			const pageIndex = req.query.pageIndex ? parseInt(req.query.pageIndex as string) : undefined;
-			const pageSize = req.query.pageSize ? parseInt(req.query.pageSize as string) : undefined;
+			const pageIndexStr = req.query.pageIndex as string || req.query.pageindex as string;
+            const pageIndex = pageIndexStr ? parseInt(pageIndexStr) : undefined;
+    
+            const pageSizeStr = req.query.pageSize as string || req.query.pagesize as string;
+            const pageSize = pageSizeStr ? parseInt(pageSizeStr) : undefined;
 
 			let currencyCodes: string[] = [];
 			if (currencyCodesStr && Array.isArray(currencyCodesStr)) {
