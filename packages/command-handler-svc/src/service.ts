@@ -49,7 +49,8 @@ import {
 import process from "process";
 import {SettlementsCommandHandler} from "./handler";
 import {
-    LoginHelper
+	AuthenticatedHttpRequester,
+	LoginHelper
 } from "@mojaloop/security-bc-client-lib";
 
 import {
@@ -109,7 +110,7 @@ const AUTH_Z_SVC_BASEURL = process.env["AUTH_Z_SVC_BASEURL"] || "http://localhos
 const ACCOUNTS_BALANCES_COA_SVC_URL = process.env["ACCOUNTS_BALANCES_COA_SVC_URL"] || "localhost:3300";
 
 const SVC_CLIENT_ID = process.env["SVC_CLIENT_ID"] || "settlements-bc-command-handler-svc";
-const SVC_CLIENT_SECRET = process.env["SVC_CLIENT_ID"] || "superServiceSecret";
+const SVC_CLIENT_SECRET = process.env["SVC_CLIENT_SECRET"] || "superServiceSecret";
 
 const USE_TIGERBEETLE = process.env["USE_TIGERBEETLE"] || false;
 const TIGERBEETLE_CLUSTER_ID = process.env["TIGERBEETLE_CLUSTER_ID"] || 1;
@@ -205,14 +206,28 @@ export class Service {
 
 		// authorization client
 		if (!authorizationClient) {
+			// create the instance of IAuthenticatedHttpRequester
+			const authRequester = new AuthenticatedHttpRequester(logger, AUTH_N_SVC_TOKEN_URL);
+			authRequester.setAppCredentials(SVC_CLIENT_ID, SVC_CLIENT_SECRET);
+
+			const consumerHandlerLogger = logger.createChild("authorizationClientConsumer");
+			const messageConsumer = new MLKafkaJsonConsumer({
+				kafkaBrokerList: KAFKA_URL,
+				kafkaGroupId: `${BC_NAME}_${APP_NAME}_authz_client`
+			}, consumerHandlerLogger);
+
 			// setup privileges - bootstrap app privs and get priv/role associations
 			authorizationClient = new AuthorizationClient(
-				BC_NAME, APP_NAME, APP_VERSION, AUTH_Z_SVC_BASEURL, this.logger.createChild("AuthorizationClient")
+				BC_NAME, APP_NAME, APP_VERSION,
+				AUTH_Z_SVC_BASEURL, logger.createChild("AuthorizationClient"),
+				authRequester,
+				messageConsumer
 			);
 			addPrivileges(authorizationClient as AuthorizationClient);
 			await (authorizationClient as AuthorizationClient).bootstrap(true);
 			await (authorizationClient as AuthorizationClient).fetch();
-
+			// init message consumer to automatically update on role changed events
+			await (authorizationClient as AuthorizationClient).init();
 		}
 		this.authorizationClient = authorizationClient;
 

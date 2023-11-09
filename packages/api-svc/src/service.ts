@@ -34,8 +34,17 @@
 import {IAuditClient} from "@mojaloop/auditing-bc-public-types-lib";
 import {KafkaLogger} from "@mojaloop/logging-bc-client-lib";
 import {ILogger, LogLevel} from "@mojaloop/logging-bc-public-types-lib";
-import {MLKafkaJsonProducer, MLKafkaJsonProducerOptions} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
-import {AuthorizationClient, LoginHelper, TokenHelper} from "@mojaloop/security-bc-client-lib";
+import {
+	MLKafkaJsonConsumer,
+	MLKafkaJsonProducer,
+	MLKafkaJsonProducerOptions
+} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
+import {
+	AuthenticatedHttpRequester,
+	AuthorizationClient,
+	LoginHelper,
+	TokenHelper
+} from "@mojaloop/security-bc-client-lib";
 import {
 	IAccountsBalancesAdapter,
 	IParticipantAccountNotifier,
@@ -100,7 +109,7 @@ const AUDIT_KEY_FILE_PATH = process.env["AUDIT_KEY_FILE_PATH"] || "/app/data/aud
 const ACCOUNTS_BALANCES_COA_SVC_URL = process.env["ACCOUNTS_BALANCES_COA_SVC_URL"] || "localhost:3300";
 
 const SVC_CLIENT_ID = process.env["SVC_CLIENT_ID"] || "settlements-bc-api-svc";
-const SVC_CLIENT_SECRET = process.env["SVC_CLIENT_ID"] || "superServiceSecret";
+const SVC_CLIENT_SECRET = process.env["SVC_CLIENT_SECRET"] || "superServiceSecret";
 
 const SVC_DEFAULT_HTTP_PORT = process.env["SVC_DEFAULT_HTTP_PORT"] || 3600;
 
@@ -172,14 +181,28 @@ export class Service {
 
 		// authorization client
 		if (!authorizationClient) {
+			// create the instance of IAuthenticatedHttpRequester
+			const authRequester = new AuthenticatedHttpRequester(logger, AUTH_N_SVC_TOKEN_URL);
+			authRequester.setAppCredentials(SVC_CLIENT_ID, SVC_CLIENT_SECRET);
+
+			const consumerHandlerLogger = logger.createChild("authorizationClientConsumer");
+			const messageConsumer = new MLKafkaJsonConsumer({
+				kafkaBrokerList: KAFKA_URL,
+				kafkaGroupId: `${BC_NAME}_${APP_NAME}_authz_client`
+			}, consumerHandlerLogger);
+
 			// setup privileges - bootstrap app privs and get priv/role associations
 			authorizationClient = new AuthorizationClient(
-				BC_NAME, APP_NAME, APP_VERSION, AUTH_Z_SVC_BASEURL, logger.createChild("AuthorizationClient")
+				BC_NAME, APP_NAME, APP_VERSION,
+				AUTH_Z_SVC_BASEURL, logger.createChild("AuthorizationClient"),
+				authRequester,
+				messageConsumer
 			);
 			addPrivileges(authorizationClient as AuthorizationClient);
 			await (authorizationClient as AuthorizationClient).bootstrap(true);
 			await (authorizationClient as AuthorizationClient).fetch();
-
+			// init message consumer to automatically update on role changed events
+			await (authorizationClient as AuthorizationClient).init();
 		}
 		this.authorizationClient = authorizationClient;
 
