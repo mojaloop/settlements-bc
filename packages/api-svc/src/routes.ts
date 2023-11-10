@@ -48,7 +48,7 @@ import {
 } from "@mojaloop/settlements-bc-domain-lib";
 import {CallSecurityContext} from "@mojaloop/security-bc-public-types-lib";
 import {
-	ISettlementBatchTransfer, ISettlementConfig,
+	BatchSearchResults, BatchTransferSearchResults, ISettlementConfig
 } from "@mojaloop/settlements-bc-public-types-lib";
 import express from "express";
 import {ITokenHelper} from "@mojaloop/security-bc-public-types-lib";
@@ -336,17 +336,13 @@ export class ExpressRoutes {
 
 		// TODO enforce privileges
 		try {
+			let results: BatchSearchResults;
 			if (batchName) {
-				const settlementBatches = await this._batchRepo.getBatchesByName(batchName, pageIndex, pageSize);
-				if (!settlementBatches || !settlementBatches.items || settlementBatches.items.length <= 0) {
-					res.sendStatus(404);
-					return;
-				}
-				this.sendSuccessResponse(res, 200, settlementBatches);// OK
+				results = await this._batchRepo.getBatchesByName(batchName, pageIndex, pageSize);
+
 			} else {
 				this._logger.debug(`got getSettlementBatches request - Settlement Batches model: ${settlementModel} from [${new Date(Number(fromDate))}] to [${new Date(Number(toDate))}].`);
-
-				const settlementBatches = await this._batchRepo.getBatchesByCriteria(
+				results = await this._batchRepo.getBatchesByCriteria(
 					Number(fromDate),
 					Number(toDate),
 					settlementModel,
@@ -355,12 +351,12 @@ export class ExpressRoutes {
 					pageIndex,
 					pageSize,
 				);
-				if (!settlementBatches || !settlementBatches.items || settlementBatches.items.length <= 0) {
-					res.sendStatus(404);
-					return;
-				}
-				this.sendSuccessResponse(res, 200, settlementBatches);// OK
 			}
+			if (!results || !results.items || results.items.length <= 0) {
+				res.sendStatus(404);
+				return;
+			}
+			this.sendSuccessResponse(res, 200, results);// OK
 		} catch (error: any) {
 			this._logger.error(error);
 			this.sendErrorResponse(res, 500, error.message || ExpressRoutes.UNKNOWN_ERROR_MESSAGE);
@@ -382,19 +378,25 @@ export class ExpressRoutes {
 		const pageSize = pageSizeStr ? parseInt(pageSizeStr) : MAX_ENTRIES_PER_PAGE;
 
 		try {
-			let settlementTransfers:ISettlementBatchTransfer[];
+			let result:BatchTransferSearchResults;
 			if (batchId) {
-				const result = await this._batchTransferRepo.getBatchTransfersByBatchIds([batchId], pageIndex, pageSize);
-				if (!result.items || result.items.length <= 0) {
-					res.sendStatus(404);
-					return;
-				}
-
-				return this.sendSuccessResponse(res, 200, result);// OK
+				result = await this._batchTransferRepo.getBatchTransfersByBatchIds([batchId], pageIndex, pageSize);
 			} else if (batchName) {
-				settlementTransfers = await this._batchTransferRepo.getBatchTransfersByBatchNames([batchName]);
+				const transfers = await this._batchTransferRepo.getBatchTransfersByBatchNames([batchName]);
+				result = {
+					pageIndex:0,
+					pageSize:1,
+					items: transfers,
+					totalPages: 1
+				};
 			} else if (transferId) {
-				settlementTransfers = await this._batchTransferRepo.getBatchTransfersByTransferId(transferId);
+				const transfers = await this._batchTransferRepo.getBatchTransfersByTransferId(transferId);
+				result = {
+					pageIndex:0,
+					pageSize:1,
+					items: transfers,
+					totalPages: 1
+				};
 			} else if (matrixId) {
 				const matrix = await this._matrixRepo.getMatrixById(matrixId);
 				if (!matrix) {
@@ -402,17 +404,23 @@ export class ExpressRoutes {
 					return;
 				}
 				const batchIds = matrix.batches.map(item => item.id);
-				const result = await this._batchTransferRepo.getBatchTransfersByBatchIds(batchIds);
-				settlementTransfers = result.items;
+				result = await this._batchTransferRepo.getBatchTransfersByBatchIds(batchIds);
 			} else {
-				settlementTransfers = await this._batchTransferRepo.getBatchTransfers();
+				// TODO this one also needs pagination
+				const transfers = await this._batchTransferRepo.getBatchTransfers();
+				result = {
+					pageIndex:0,
+					pageSize:1,
+					items: transfers,
+					totalPages: 1
+				};
 			}
 
-			if (!settlementTransfers || settlementTransfers.length <= 0) {
+			if (!result || !result.items) {
 				res.sendStatus(404);
 				return;
 			}
-			this.sendSuccessResponse(res, 200, settlementTransfers);// OK
+			this.sendSuccessResponse(res, 200, result);// OK
 		} catch (error: any) {
 			this._logger.error(error);
 			this.sendErrorResponse(res, 500, error.message || ExpressRoutes.UNKNOWN_ERROR_MESSAGE);

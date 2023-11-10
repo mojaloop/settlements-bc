@@ -374,7 +374,7 @@ describe("Settlement BC api-svc route test", () => {
 
         //Assert
         expect(response.status).toBe(200);
-        expect(Array.isArray(response.body)).toBe(true);
+        expect(Array.isArray(response.body.items)).toBe(true);
     });
 
 
@@ -392,8 +392,8 @@ describe("Settlement BC api-svc route test", () => {
 
         //Assert
         expect(response.status).toBe(200);
-        expect(Array.isArray(response.body)).toBe(true);
-        expect(response.body[0]).toEqual(mockedSettlementBatchTransfers[1]);
+        expect(Array.isArray(response.body.items)).toBe(true);
+        expect(response.body.items[0]).toEqual(mockedSettlementBatchTransfers[1]);
     });
 
     test("GET /transfers - should fetch batchTransfer by matrixId", async () => {
@@ -411,8 +411,8 @@ describe("Settlement BC api-svc route test", () => {
 
         //Assert
         expect(response.status).toBe(200);
-        expect(Array.isArray(response.body)).toBe(true);
-        expect(response.body.length).toEqual(2);
+        expect(Array.isArray(response.body.items)).toBe(true);
+        expect(response.body.items.length).toEqual(2);
     });
 
 

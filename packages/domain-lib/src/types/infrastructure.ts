@@ -123,6 +123,8 @@ export interface ISettlementBatchTransferRepo {
 	): Promise<BatchTransferSearchResults>;
 	getBatchTransfersByBatchNames(batchNames: string[]): Promise<ISettlementBatchTransfer[]>;
 	getBatchTransfersByTransferId(transferId: string): Promise<ISettlementBatchTransfer[]>;
+
+	// TODO this one also needs pagination
 	getBatchTransfers(): Promise<ISettlementBatchTransfer[]>;
 }
 

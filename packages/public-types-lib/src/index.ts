@@ -205,20 +205,20 @@ export interface ISettlementModelClient {
 
 
 // Search result types with pagination
-export type SearchReults = {
+export type SearchResults = {
 	pageIndex: number;
 	pageSize: number;
     totalPages: number;
 }
 
-export type BatchSearchResults = SearchReults & {
+export type BatchSearchResults = SearchResults & {
     items: ISettlementBatch[];
 }
 
-export type MatrixSearchResults = SearchReults & {
+export type MatrixSearchResults = SearchResults & {
     items: ISettlementMatrix[];
 }
 
-export type BatchTransferSearchResults = SearchReults & {
+export type BatchTransferSearchResults = SearchResults & {
 	items: ISettlementBatchTransfer[];
 }
