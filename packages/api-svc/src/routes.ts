@@ -188,37 +188,6 @@ export class ExpressRoutes {
 		return this._router;
 	}
 
-	/*
-	// this is for tests only, normal path is though events (event/command handler)
-	private async postHandleTransfer(req: express.Request, res: express.Response): Promise<void> {
-		try {
-			this._logger.debug(`Settlement postHandleTransfer - Transfer Req Body: ${JSON.stringify(req.body)}`);
-			const batchId = await this._aggregate.handleTransfer(req.securityContext!, req.body);
-			this.sendSuccessResponse(res, 202, batchId);
-			return;
-		} catch (error: any) {
-			this._logger.error(error);
-			if (error instanceof UnauthorizedError) {
-				this.sendErrorResponse(res, 403, "unauthorized");// TODO: verify.
-			} else if (error instanceof InvalidExternalIdError) {
-				this.sendErrorResponse(res, 400, "invalid external id");
-			} else if (error instanceof InvalidCurrencyCodeError) {
-				this.sendErrorResponse(res, 400, "invalid currency code");
-			} else if (error instanceof InvalidCreditAccountError) {
-				this.sendErrorResponse(res, 400, "invalid credit account id");
-			} else if (error instanceof InvalidDebitAccountError) {
-				this.sendErrorResponse(res, 400, "invalid debit account id");
-			} else if (error instanceof UnableToGetAccountError) {
-				this.sendErrorResponse(res, 400, "invalid account");
-			} else if (error instanceof InvalidTimestampError) {
-				this.sendErrorResponse(res, 400, "invalid timestamp");
-			} else {
-				this.sendErrorResponse(res, 500, error.message || ExpressRoutes.UNKNOWN_ERROR_MESSAGE);
-			}
-		}
-	}
-	*/
-
 	private async getSettlementModels(req: express.Request, res: express.Response): Promise<void>{
 		// TODO enforce privileges
 

@@ -243,7 +243,7 @@ export class SettlementsAggregate {
 	}
 
 	async handleTransfer(secCtx: CallSecurityContext, transferDto: ITransferDto): Promise<string> {
-		this._enforcePrivilege(secCtx, Privileges.CREATE_SETTLEMENT_TRANSFER);
+		//this._enforcePrivilege(secCtx, Privileges.CREATE_SETTLEMENT_TRANSFER);
 
 		if (!transferDto.timestamp || transferDto.timestamp < 1 ) throw new InvalidTimestampError();
 		if (!transferDto.settlementModel) throw new InvalidBatchSettlementModelError();
@@ -1015,7 +1015,8 @@ export class SettlementsAggregate {
 		originMatrixId: string,
 		batchIds: string[]
 	): Promise<void> {
-		this._enforcePrivilege(secCtx, Privileges.MARK_SETTLEMENT_MATRIX_OUT_OF_SYNC);
+		// This privilege doesn't make sense, it is an internal process
+		//this._enforcePrivilege(secCtx, Privileges.MARK_SETTLEMENT_MATRIX_OUT_OF_SYNC);
 
 		if (!batchIds || batchIds.length < 1) return Promise.resolve();
 
@@ -1125,6 +1126,7 @@ export class SettlementsAggregate {
 		}
 	}
 
+	// TODO: if this method is only for tests, remove it
 	async getSettlementBatchesByCriteria(
 		secCtx: CallSecurityContext,
 		currencyCodes: string[],
@@ -1152,7 +1154,7 @@ export class SettlementsAggregate {
 		secCtx: CallSecurityContext,
 		batchIdentifier : string,
 	): Promise<ISettlementBatch | null> {
-		this._enforcePrivilege(secCtx, Privileges.RETRIEVE_SETTLEMENT_BATCH_ACCOUNTS);
+		this._enforcePrivilege(secCtx, Privileges.RETRIEVE_SETTLEMENT_BATCH);
 
 		const batch = await this._batchRepo.getBatch(batchIdentifier);
 		if (!batch) return null;
@@ -1161,7 +1163,8 @@ export class SettlementsAggregate {
 		return batch;
 	}
 
-	async getSettlementBatchesByName(secCtx: CallSecurityContext, batchName: string): Promise<ISettlementBatch[]> {
+	// TODO: if this method is only for tests, remove it, also, why the RETRIEVE_SETTLEMENT_BATCH_ACCOUNTS privilege?
+	/*async getSettlementBatchesByName(secCtx: CallSecurityContext, batchName: string): Promise<ISettlementBatch[]> {
 		this._enforcePrivilege(secCtx, Privileges.RETRIEVE_SETTLEMENT_BATCH_ACCOUNTS);
 
 		const batches = await this._batchRepo.getBatchesByName(batchName);
@@ -1169,9 +1172,10 @@ export class SettlementsAggregate {
 
 		await this._updateBatchAccountBalances(batches.items);
 		return batches.items;
-	}
+	}*/
 
-	async getSettlementBatchTransfersByBatchId(secCtx: CallSecurityContext, batchId : string): Promise<ISettlementBatchTransfer[]> {
+	// TODO: if this method is only for tests, remove it, also, why the RETRIEVE_SETTLEMENT_TRANSFERS privilege?
+	/*async getSettlementBatchTransfersByBatchId(secCtx: CallSecurityContext, batchId : string): Promise<ISettlementBatchTransfer[]> {
 		this._enforcePrivilege(secCtx, Privileges.RETRIEVE_SETTLEMENT_TRANSFERS);
 
 		const batch = await this._batchRepo.getBatch(batchId);
@@ -1181,7 +1185,7 @@ export class SettlementsAggregate {
 
 		const result = await this._batchTransferRepo.getBatchTransfersByBatchIds([batchId]);
 		return result.items;
-	}
+	}*/
 
 	/* Not used? Commenting it out.
 	async getSettlementBatchTransfersByBatchName(secCtx: CallSecurityContext, batchName: string): Promise<ISettlementBatchTransfer[]> {

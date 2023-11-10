@@ -399,11 +399,12 @@ export class Service {
 
 
 function addPrivileges(authorizationClient: AuthorizationClient): void {
-	authorizationClient.addPrivilege(
-		Privileges.CREATE_SETTLEMENT_TRANSFER,
-		Privileges.CREATE_SETTLEMENT_TRANSFER,
-		"Allows the creation of a settlement transfer."
-	);
+	// processing of transfers must always happen, this priv is not required
+	// authorizationClient.addPrivilege(
+	// 	Privileges.CREATE_SETTLEMENT_TRANSFER,
+	// 	Privileges.CREATE_SETTLEMENT_TRANSFER,
+	// 	"Allows the creation of a settlement transfer."
+	// );
 	authorizationClient.addPrivilege(
 		Privileges.CREATE_DYNAMIC_SETTLEMENT_MATRIX,
 		Privileges.CREATE_DYNAMIC_SETTLEMENT_MATRIX,
@@ -414,16 +415,7 @@ function addPrivileges(authorizationClient: AuthorizationClient): void {
 		Privileges.CREATE_STATIC_SETTLEMENT_MATRIX,
 		"Allows the creation of a static settlement matrix."
 	);
-	authorizationClient.addPrivilege(
-		Privileges.CREATE_SETTLEMENT_BATCH,
-		Privileges.CREATE_SETTLEMENT_BATCH,
-		"Allows the creation of a settlement batch."
-	);
-	authorizationClient.addPrivilege(
-		Privileges.CREATE_SETTLEMENT_BATCH_ACCOUNT,
-		Privileges.CREATE_SETTLEMENT_BATCH_ACCOUNT,
-		"Allows the creation of a settlement batch account."
-	);
+
 	authorizationClient.addPrivilege(
 		Privileges.GET_SETTLEMENT_MATRIX,
 		Privileges.GET_SETTLEMENT_MATRIX,
@@ -454,16 +446,6 @@ function addPrivileges(authorizationClient: AuthorizationClient): void {
 		Privileges.RETRIEVE_SETTLEMENT_BATCH,
 		"Allows the retrieval of a settlement batch."
 	);
-	authorizationClient.addPrivilege(
-		Privileges.RETRIEVE_SETTLEMENT_BATCH_ACCOUNTS,
-		Privileges.RETRIEVE_SETTLEMENT_BATCH_ACCOUNTS,
-		"Allows the retrieval of a settlement batch account."
-	);
-	authorizationClient.addPrivilege(
-		Privileges.RETRIEVE_SETTLEMENT_TRANSFERS,
-		Privileges.RETRIEVE_SETTLEMENT_TRANSFERS,
-		"Allows the retrieval of a settlement transfer."
-	);
 }
 
 
@@ -492,10 +474,10 @@ process.on("SIGTERM", _handle_int_and_term_signals);
 
 //do something when app is closing
 process.on("exit", async () => {
-	globalLogger.info("Microservice - exiting...");
+	console.info("Microservice - exiting...");
 });
 process.on("uncaughtException", (err: Error) => {
-	globalLogger.error(err);
+	console.error(err);
 	console.log("UncaughtException - EXITING...");
 	process.exit(999);
 });

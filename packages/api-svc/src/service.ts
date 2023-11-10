@@ -198,7 +198,8 @@ export class Service {
 				authRequester,
 				messageConsumer
 			);
-			addPrivileges(authorizationClient as AuthorizationClient);
+			// MUST only add privileges once, the cmd handler is already doing it
+			//addPrivileges(authorizationClient as AuthorizationClient);
 			await (authorizationClient as AuthorizationClient).bootstrap(true);
 			await (authorizationClient as AuthorizationClient).fetch();
 			// init message consumer to automatically update on role changed events
@@ -381,70 +382,36 @@ export class Service {
 	}
 }
 
-function addPrivileges(authorizationClient: AuthorizationClient): void {
-	authorizationClient.addPrivilege(
-		Privileges.CREATE_SETTLEMENT_TRANSFER,
-		Privileges.CREATE_SETTLEMENT_TRANSFER,
-		"Allows the creation of a settlement transfer."
-	);
-	authorizationClient.addPrivilege(
-		Privileges.CREATE_DYNAMIC_SETTLEMENT_MATRIX,
-		Privileges.CREATE_DYNAMIC_SETTLEMENT_MATRIX,
-		"Allows the creation of a dynamic settlement matrix."
-	);
-	authorizationClient.addPrivilege(
-		Privileges.CREATE_STATIC_SETTLEMENT_MATRIX,
-		Privileges.CREATE_STATIC_SETTLEMENT_MATRIX,
-		"Allows the creation of a static settlement matrix."
-	);
-	authorizationClient.addPrivilege(
-		Privileges.CREATE_SETTLEMENT_BATCH,
-		Privileges.CREATE_SETTLEMENT_BATCH,
-		"Allows the creation of a settlement batch."
-	);
-	authorizationClient.addPrivilege(
-		Privileges.CREATE_SETTLEMENT_BATCH_ACCOUNT,
-		Privileges.CREATE_SETTLEMENT_BATCH_ACCOUNT,
-		"Allows the creation of a settlement batch account."
-	);
-	authorizationClient.addPrivilege(
-		Privileges.GET_SETTLEMENT_MATRIX,
-		Privileges.GET_SETTLEMENT_MATRIX,
-		"Allows the retrieval of a settlement matrix."
-	);
-	authorizationClient.addPrivilege(
-		Privileges.SETTLEMENTS_CLOSE_MATRIX,
-		Privileges.SETTLEMENTS_CLOSE_MATRIX,
-		"Allows the settling of a settlement matrix."
-	);
-	authorizationClient.addPrivilege(
-		Privileges.SETTLEMENTS_SETTLE_MATRIX,
-		Privileges.SETTLEMENTS_SETTLE_MATRIX,
-		"Allows the dispute of a settlement matrix."
-	);
-	authorizationClient.addPrivilege(
-		Privileges.SETTLEMENTS_DISPUTE_MATRIX,
-		Privileges.SETTLEMENTS_DISPUTE_MATRIX,
-		"Allows the dispute of a settlement matrix."
-	);
-	authorizationClient.addPrivilege(
-		Privileges.GET_SETTLEMENT_MATRIX,
-		Privileges.GET_SETTLEMENT_MATRIX,
-		"Allows the retrieval of a settlement matrix request."
-	);
-	authorizationClient.addPrivilege(
-		Privileges.RETRIEVE_SETTLEMENT_BATCH,
-		Privileges.RETRIEVE_SETTLEMENT_BATCH,
-		"Allows the retrieval of a settlement batch."
-	);
-	authorizationClient.addPrivilege(
-		Privileges.RETRIEVE_SETTLEMENT_BATCH_ACCOUNTS,
-		Privileges.RETRIEVE_SETTLEMENT_BATCH_ACCOUNTS,
-		"Allows the retrieval of a settlement batch account."
-	);
-	authorizationClient.addPrivilege(
-		Privileges.RETRIEVE_SETTLEMENT_TRANSFERS,
-		Privileges.RETRIEVE_SETTLEMENT_TRANSFERS,
-		"Allows the retrieval of a settlement transfer."
-	);
+
+/**
+ * process termination and cleanup
+ */
+
+async function _handle_int_and_term_signals(signal: NodeJS.Signals): Promise<void> {
+	console.info(`Service - ${signal} received - cleaning up...`);
+	let clean_exit = false;
+	setTimeout(() => {
+		clean_exit || process.exit(99);
+	}, 5000);
+
+	// call graceful stop routine
+	await Service.stop();
+
+	clean_exit = true;
+	process.exit();
 }
+
+//catches ctrl+c event
+process.on("SIGINT", _handle_int_and_term_signals);
+//catches program termination event
+process.on("SIGTERM", _handle_int_and_term_signals);
+
+//do something when app is closing
+process.on("exit", async () => {
+	console.info("Microservice - exiting...");
+});
+process.on("uncaughtException", (err: Error) => {
+	console.error(err);
+	console.log("UncaughtException - EXITING...");
+	process.exit(999);
+});

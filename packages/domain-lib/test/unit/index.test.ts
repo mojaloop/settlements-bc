@@ -757,7 +757,8 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 			expect(batch.batchSequence).toEqual(2);
 		}
 
-		const batchesByName = await aggregate.getSettlementBatchesByName(securityContext, batches[0].batchName);
+		//const batchesByName = await aggregate.getSettlementBatchesByName(securityContext, batches[0].batchName);
+		const batchesByName = await settleBatchRepo.getBatchesByName(batches[0].batchName)
 		expect(batchesByName).toBeDefined();
 		expect(batches.length).toEqual(2);
 		expect(batches[0].id === batches[1].id).toEqual(false);
@@ -860,19 +861,20 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		const batchId = await aggregate.processTransferCmd(securityContext, reqTransferCmd);
 		expect(batchId).toBeDefined();
 
-		const transfers = await aggregate.getSettlementBatchTransfersByBatchId(securityContext, batchId);
+		const results = await settleTransferRepo.getBatchTransfersByBatchIds([batchId]);
+		const transfers = results.items;
 		expect(transfers).toBeDefined();
 		expect(transfers.length).toEqual(1);
 		expect(transfers[0].transferId).toEqual(payload.transferId);
 
 		// lookup with invalid batch-id
-		try {
-			await aggregate.getSettlementBatchTransfersByBatchId(securityContext, randomUUID());
-			fail('Expected to throw error!');
-		} catch (err: any) {
-			expect(err).toBeDefined();
-			expect(err instanceof SettlementBatchNotFoundError).toEqual(true);
-		}
+		// try {
+			const results2 = await settleTransferRepo.getBatchTransfersByBatchIds([randomUUID()]);
+			expect(results2.items.length).toEqual(0);
+		// } catch (err: any) {
+		// 	expect(err).toBeDefined();
+		// 	expect(err instanceof SettlementBatchNotFoundError).toEqual(true);
+		// }
 	});
 
 	test("matrix re-calculate logic", async () => {
