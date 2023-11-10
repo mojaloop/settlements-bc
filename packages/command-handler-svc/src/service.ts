@@ -437,6 +437,16 @@ function addPrivileges(authorizationClient: AuthorizationClient): void {
 		"Allows the dispute of a settlement matrix."
 	);
 	authorizationClient.addPrivilege(
+		Privileges.SETTLEMENTS_LOCK_MATRIX,
+		Privileges.SETTLEMENTS_LOCK_MATRIX,
+		"Allows the locking of a settlement matrix."
+	);
+	authorizationClient.addPrivilege(
+		Privileges.SETTLEMENTS_UNLOCK_MATRIX,
+		Privileges.SETTLEMENTS_UNLOCK_MATRIX,
+		"Allows the unlocking of a settlement matrix."
+	);
+	authorizationClient.addPrivilege(
 		Privileges.GET_SETTLEMENT_MATRIX,
 		Privileges.GET_SETTLEMENT_MATRIX,
 		"Allows the retrieval of a settlement matrix request."
