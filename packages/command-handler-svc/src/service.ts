@@ -122,6 +122,8 @@ const SETTLEMENT_BATCHES_COLLECTION_NAME: string = "batches";
 const SETTLEMENT_MATRICES_COLLECTION_NAME: string = "matrices";
 const SETTLEMENT_TRANSFERS_COLLECTION_NAME: string = "transfers";
 
+const SERVICE_START_TIMEOUT_MS= (process.env["SERVICE_START_TIMEOUT_MS"] && parseInt(process.env["SERVICE_START_TIMEOUT_MS"])) || 60_000;
+
 const kafkaConsumerOptions: MLKafkaJsonConsumerOptions = {
 	kafkaBrokerList: KAFKA_URL,
 	kafkaGroupId: `${BC_NAME}_${APP_NAME}`
@@ -151,6 +153,7 @@ export class Service {
 	static aggregate: SettlementsAggregate;
 	static handler: SettlementsCommandHandler;
 	static metrics: IMetrics;
+	static startupTimer: NodeJS.Timeout;
 
 	static async start(
 		logger?: ILogger,
@@ -169,6 +172,10 @@ export class Service {
 		metrics?: IMetrics,
 	): Promise<void> {
 		console.log(`Service starting with PID: ${process.pid}`);
+
+		this.startupTimer = setTimeout(()=>{
+			throw new Error("Service start timed-out");
+		}, SERVICE_START_TIMEOUT_MS);
 
 		/// start config client - this is not mockable (can use STANDALONE MODE if desired)
 		await configClient.init();
@@ -386,6 +393,9 @@ export class Service {
 		await this.handler.start();
 
 		this.logger.info(`Settlements Command Handler Service started, version: ${configClient.applicationVersion}`);
+
+		// remove startup timeout
+		clearTimeout(this.startupTimer);
 	}
 
 	static async stop() {

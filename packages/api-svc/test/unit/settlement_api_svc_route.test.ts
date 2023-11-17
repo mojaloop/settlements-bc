@@ -78,7 +78,6 @@ describe("Settlement BC api-svc route test", () => {
             tokenHelper,
             mockAuthorizationClientNoAuth,
             mockAuditClient,
-            mockAccountsAndBalancesAdapter,
             mockConfigRepo,
             mockBatchRepo,
             mockBatchTransferRepo,

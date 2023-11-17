@@ -42,17 +42,14 @@ import {
 import {
 	AuthenticatedHttpRequester,
 	AuthorizationClient,
-	LoginHelper,
 	TokenHelper
 } from "@mojaloop/security-bc-client-lib";
 import {
-	IAccountsBalancesAdapter,
 	IParticipantAccountNotifier,
 	ISettlementBatchRepo,
 	ISettlementBatchTransferRepo,
 	ISettlementConfigRepo,
 	ISettlementMatrixRequestRepo,
-	Privileges
 } from "@mojaloop/settlements-bc-domain-lib";
 import process from "process";
 import {existsSync} from "fs";
@@ -62,7 +59,6 @@ import {
 	LocalAuditClientCryptoProvider
 } from "@mojaloop/auditing-bc-client-lib";
 import {
-	GrpcAccountsAndBalancesAdapter,
 	MongoSettlementBatchRepo,
 	MongoSettlementConfigRepo,
 	MongoSettlementMatrixRepo,
@@ -106,8 +102,6 @@ const KAFKA_AUDITS_TOPIC = process.env["KAFKA_AUDITS_TOPIC"] || "audits";
 const KAFKA_LOGS_TOPIC = process.env["KAFKA_LOGS_TOPIC"] || "logs";
 const AUDIT_KEY_FILE_PATH = process.env["AUDIT_KEY_FILE_PATH"] || "/app/data/audit_private_key.pem";
 
-const ACCOUNTS_BALANCES_COA_SVC_URL = process.env["ACCOUNTS_BALANCES_COA_SVC_URL"] || "localhost:3300";
-
 const SVC_CLIENT_ID = process.env["SVC_CLIENT_ID"] || "settlements-bc-api-svc";
 const SVC_CLIENT_SECRET = process.env["SVC_CLIENT_SECRET"] || "superServiceSecret";
 
@@ -118,6 +112,8 @@ const SETTLEMENT_CONFIGS_COLLECTION_NAME: string = "configs";
 const SETTLEMENT_BATCHES_COLLECTION_NAME: string = "batches";
 const SETTLEMENT_MATRICES_COLLECTION_NAME: string = "matrices";
 const SETTLEMENT_TRANSFERS_COLLECTION_NAME: string = "transfers";
+
+const SERVICE_START_TIMEOUT_MS= (process.env["SERVICE_START_TIMEOUT_MS"] && parseInt(process.env["SERVICE_START_TIMEOUT_MS"])) || 60_000;
 
 const kafkaProducerOptions: MLKafkaJsonProducerOptions = {
 	kafkaBrokerList: KAFKA_URL
@@ -132,7 +128,6 @@ export class Service {
 	static tokenHelper: ITokenHelper;
 	static authorizationClient: IAuthorizationClient;
 	static auditClient: IAuditClient;
-	static accountsAndBalancesAdapter: IAccountsBalancesAdapter;
 	static configRepo: ISettlementConfigRepo;
 	static batchRepo: ISettlementBatchRepo;
 	static participantAccountNotifier: IParticipantAccountNotifier;
@@ -140,14 +135,13 @@ export class Service {
 	static matrixRepo: ISettlementMatrixRequestRepo;
 	static metrics: IMetrics;
 	static messageProducer: IMessageProducer;
-	//static aggregate: SettlementsAggregate;
+	static startupTimer: NodeJS.Timeout;
 
 	static async start(
 		logger?:ILogger,
 		tokenHelper?: ITokenHelper,
 		authorizationClient?: IAuthorizationClient,
 		auditClient?: IAuditClient,
-		accountsAndBalancesAdapter?:IAccountsBalancesAdapter,
 		configRepo?: ISettlementConfigRepo,
 		batchRepo?: ISettlementBatchRepo,
 		batchTransferRepo?: ISettlementBatchTransferRepo,
@@ -157,6 +151,10 @@ export class Service {
 		metrics?: IMetrics,
 	):Promise<void>{
 		console.log(`Service starting with PID: ${process.pid}`);
+
+		this.startupTimer = setTimeout(()=>{
+			throw new Error("Service start timed-out");
+		}, SERVICE_START_TIMEOUT_MS);
 
 		if (!logger) {
 			logger = new KafkaLogger(
@@ -236,13 +234,13 @@ export class Service {
 		}
 		this.auditClient = auditClient;
 
-		if (!accountsAndBalancesAdapter) {
-			const loginHelper = new LoginHelper(AUTH_N_SVC_TOKEN_URL, logger);
-			loginHelper.setAppCredentials(SVC_CLIENT_ID, SVC_CLIENT_SECRET);
-			accountsAndBalancesAdapter = new GrpcAccountsAndBalancesAdapter(ACCOUNTS_BALANCES_COA_SVC_URL, loginHelper, this.logger);
-			await accountsAndBalancesAdapter.init();
-		}
-		this.accountsAndBalancesAdapter = accountsAndBalancesAdapter;
+		// if (!accountsAndBalancesAdapter) {
+		// 	const loginHelper = new LoginHelper(AUTH_N_SVC_TOKEN_URL, logger);
+		// 	loginHelper.setAppCredentials(SVC_CLIENT_ID, SVC_CLIENT_SECRET);
+		// 	accountsAndBalancesAdapter = new GrpcAccountsAndBalancesAdapter(ACCOUNTS_BALANCES_COA_SVC_URL, loginHelper, this.logger);
+		// 	await accountsAndBalancesAdapter.init();
+		// }
+		// this.accountsAndBalancesAdapter = accountsAndBalancesAdapter;
 
 		// repositories
 		if (!configRepo) {
@@ -330,6 +328,9 @@ export class Service {
 		);*/
 
 		await this.setupExpress();
+
+		// remove startup timeout
+		clearTimeout(this.startupTimer);
 	}
 
 
@@ -376,7 +377,6 @@ export class Service {
 		if (this.batchRepo) await this.batchRepo.destroy();
 		if (this.batchTransferRepo) await this.batchTransferRepo.destroy();
 		if (this.matrixRepo) await this.matrixRepo.destroy();
-		if (this.accountsAndBalancesAdapter) await this.accountsAndBalancesAdapter.destroy();
 		if (this.participantAccountNotifier) await this.participantAccountNotifier.destroy();
 		if (this.logger instanceof KafkaLogger) await this.logger.destroy();
 	}
