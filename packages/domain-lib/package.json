@@ -38,9 +38,9 @@
   "dependencies": {
     "@mojaloop/settlements-bc-model-lib": "*",
     "@mojaloop/settlements-bc-public-types-lib": "*",
-    "@mojaloop/platform-shared-lib-public-messages-lib": "~0.1.163",
-    "@mojaloop/auditing-bc-public-types-lib": "~0.3.1",
-    "@mojaloop/logging-bc-public-types-lib": "~0.1.22",
+    "@mojaloop/platform-shared-lib-public-messages-lib": "~0.1.164",
+    "@mojaloop/auditing-bc-public-types-lib": "~0.3.2",
+    "@mojaloop/logging-bc-public-types-lib": "~0.1.23",
     "@mojaloop/security-bc-public-types-lib": "~0.3.6",
     "@mojaloop/accounts-and-balances-bc-public-types-lib": "~0.3.2",
     "@mojaloop/platform-shared-lib-observability-types-lib": "~0.1.9"

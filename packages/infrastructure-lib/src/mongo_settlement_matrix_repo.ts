@@ -133,7 +133,13 @@ export class MongoSettlementMatrixRepo implements ISettlementMatrixRequestRepo {
 			if (state) filter.push({ state: state });
 			if (model) filter.push({ settlementModel: model });
 			if (currencyCodes && currencyCodes.length > 0) filter.push({ currencyCodes: { $in: currencyCodes } });
-			if (createdAt) filter.push({ createdAt: { $eq: Number(createdAt) } });
+			if (createdAt) {
+				const createdAtStart = parseInt(createdAt);
+				const createdAtEnd = createdAtStart + (24 * 60 * 60 * 1000); // 24hrs in miliseconds
+
+				filter.push({ createdAt: { $gte: createdAtStart } });
+				filter.push({ createdAt: { $lt: createdAtEnd } });
+			}
 
 			const match = filter.length > 0 ? { $and: filter } : {};
 			const options: FindOptions<Document>  ={
