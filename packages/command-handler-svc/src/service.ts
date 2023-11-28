@@ -65,10 +65,8 @@ import {
 import {Express} from "express";
 import {IAuthorizationClient, ITokenHelper, ILoginHelper} from "@mojaloop/security-bc-public-types-lib";
 
-/* import configs - other imports stay above */
 import {AuthorizationClient, TokenHelper} from "@mojaloop/security-bc-client-lib";
 import {IMessageConsumer, IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
-import {ParticipantAccountNotifierMock} from "@mojaloop/settlements-bc-shared-mocks-lib";
 import {
 	GrpcAccountsAndBalancesAdapter,
 	TigerBeetleAccountsAndBalancesAdapter,
@@ -84,6 +82,8 @@ import {PrometheusMetrics} from "@mojaloop/platform-shared-lib-observability-cli
 
 import configClient from "./config";
 import {DEFAULT_SETTLEMENT_MODEL_ID, DEFAULT_SETTLEMENT_MODEL_NAME} from "@mojaloop/settlements-bc-public-types-lib";
+import {IConfigurationClient} from "@mojaloop/platform-configuration-bc-public-types-lib";
+import { ConfigurationClient,IConfigProvider } from "@mojaloop/platform-configuration-bc-client-lib";
 
 const BC_NAME = configClient.boundedContextName;
 const APP_NAME = configClient.applicationName;
@@ -145,7 +145,6 @@ export class Service {
 	static accountsAndBalancesAdapter: IAccountsBalancesAdapter;
 	static configRepo: ISettlementConfigRepo;
 	static batchRepo: ISettlementBatchRepo;
-	static participantAccountNotifier: IParticipantAccountNotifier;
 	static batchTransferRepo: ISettlementBatchTransferRepo;
 	static matrixRepo: ISettlementMatrixRequestRepo;
 	static messageConsumer: IMessageConsumer;
@@ -165,7 +164,6 @@ export class Service {
 		configRepo?: ISettlementConfigRepo,
 		batchRepo?: ISettlementBatchRepo,
 		batchTransferRepo?: ISettlementBatchTransferRepo,
-		participantAccountNotifier?: IParticipantAccountNotifier,
 		matrixRepo?: ISettlementMatrixRequestRepo,
 		messageConsumer?: IMessageConsumer,
 		messageProducer?: IMessageProducer,
@@ -176,13 +174,6 @@ export class Service {
 		this.startupTimer = setTimeout(()=>{
 			throw new Error("Service start timed-out");
 		}, SERVICE_START_TIMEOUT_MS);
-
-		/// start config client - this is not mockable (can use STANDALONE MODE if desired)
-		await configClient.init();
-		await configClient.bootstrap(true);
-
-		//TODO: re-enable configClient.fetch();
-		//await configClient.fetch();
 
 		console.log(`Service starting with PID: ${process.pid}`);
 
@@ -343,14 +334,6 @@ export class Service {
 		}
 		this.batchTransferRepo = batchTransferRepo;
 
-		// TODO implement remaining repositories and adapters
-
-		if (!participantAccountNotifier) {
-			participantAccountNotifier = new ParticipantAccountNotifierMock();
-		}
-		this.participantAccountNotifier = participantAccountNotifier;
-
-
 		if (!messageConsumer) {
 			messageConsumer = new MLKafkaJsonConsumer(kafkaConsumerOptions, this.logger);
 		}
@@ -362,7 +345,7 @@ export class Service {
 		}
 		this.messageProducer = messageProducer;
 
-		// metrics client
+		// metrics client:
 		if (!metrics) {
 			const labels: Map<string, string> = new Map<string, string>();
 			labels.set("bc", BC_NAME);
@@ -378,11 +361,11 @@ export class Service {
 			this.logger,
 			this.authorizationClient,
 			this.auditClient,
+			configClient,
 			this.batchRepo,
 			this.batchTransferRepo,
 			this.configRepo,
 			this.matrixRepo,
-			this.participantAccountNotifier,
 			this.accountsAndBalancesAdapter,
 			this.messageProducer,
 			this.metrics
