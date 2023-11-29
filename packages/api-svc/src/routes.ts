@@ -605,7 +605,11 @@ export class ExpressRoutes {
 			const state = req.query.state as string;
 			const model = req.query.model as string;
 			let currencyCodesStr = req.query.currencyCodes as string;
-			const createdAt = req.query.createdAt as string;
+			const startDateStr = req.query.startDate as string || req.query.startdate as string;
+            const startDate = startDateStr ? parseInt(startDateStr) : undefined;
+            const endDateStr = req.query.endDate as string || req.query.enddate as string;
+            const endDate = endDateStr ? parseInt(endDateStr) : undefined;
+
 
 			// Optional pagination
 			const pageIndexStr = req.query.pageIndex as string || req.query.pageindex as string;
@@ -622,7 +626,17 @@ export class ExpressRoutes {
 				currencyCodes = JSON.parse(currencyCodesStr);
 			}
 
-			const resp = await this._matrixRepo.getMatrices(matrixId, type, state, model, currencyCodes, createdAt, pageIndex, pageSize);
+			const resp = await this._matrixRepo.getMatrices(
+				matrixId, 
+				type, 
+				state, 
+				model, 
+				currencyCodes, 
+				startDate, 
+				endDate, 
+				pageIndex, 
+				pageSize
+			);
 
 			if (!resp || !resp.items || resp.items.length <= 0) {
 				return this.sendErrorResponse(res, 404, "No matrices found");

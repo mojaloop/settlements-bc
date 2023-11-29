@@ -68,7 +68,8 @@ export class SettlementMatrixRequestRepoMock implements ISettlementMatrixRequest
 		state?: string,
 		model?: string,
 		currencyCodes?: string[],
-		createdAt?: string,
+		startDate?: number,
+        endDate?: number,
 		pageIndex: number = 0,
         pageSize: number = MAX_ENTRIES_PER_PAGE,
 	): Promise<MatrixSearchResults>{

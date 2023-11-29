@@ -122,7 +122,8 @@ export class MongoSettlementMatrixRepo implements ISettlementMatrixRequestRepo {
 		state?: string,
 		model?: string,
 		currencyCodes?: string[],
-		createdAt?: string,
+		startDate?: number,
+        endDate?: number,
 		pageIndex?: number,
         pageSize?: number
 	): Promise<MatrixSearchResults> {
@@ -133,17 +134,12 @@ export class MongoSettlementMatrixRepo implements ISettlementMatrixRequestRepo {
 			if (state) filter.push({ state: state });
 			if (model) filter.push({ settlementModel: model });
 			if (currencyCodes && currencyCodes.length > 0) filter.push({ currencyCodes: { $in: currencyCodes } });
-			if (createdAt) {
-				const createdAtStart = parseInt(createdAt);
-				const createdAtEnd = createdAtStart + (24 * 60 * 60 * 1000); // 24hrs in miliseconds
-
-				filter.push({ createdAt: { $gte: createdAtStart } });
-				filter.push({ createdAt: { $lt: createdAtEnd } });
-			}
+			if (startDate) filter.push({ updatedAt: { $gte: startDate } });
+			if (endDate) filter.push({ updatedAt: { $lte: endDate } });
 
 			const match = filter.length > 0 ? { $and: filter } : {};
 			const options: FindOptions<Document>  ={
-				sort:["createdAt", "desc"]
+				sort:["updatedAt", "desc"]
 			};
 
 			// ignore pagination if no pageSize provided - default for internal aggregate calls which need all recs
