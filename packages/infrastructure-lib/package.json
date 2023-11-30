@@ -34,7 +34,7 @@
   },
   "dependencies": {
     "@mojaloop/settlements-bc-domain-lib": "*",
-    "@mojaloop/logging-bc-public-types-lib": "~0.1.22",
+    "@mojaloop/logging-bc-public-types-lib": "~0.1.23",
     "@mojaloop/accounts-and-balances-bc-grpc-client-lib": "~0.3.4",
     "@mojaloop/accounts-and-balances-bc-public-types-lib": "~0.3.2",
     "@mojaloop/security-bc-client-lib": "~0.3.9",

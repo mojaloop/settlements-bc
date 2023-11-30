@@ -67,7 +67,7 @@ export class SettlementsEventHandler{
 	private async _msgHandler(message: IMessage): Promise<void> {
 		// eslint-disable-next-line no-async-promise-executor
 		return await new Promise<void>(async (resolve) => {
-			this._logger.debug(`Got message in SettlementsEventHandler with name: ${message.msgName}`);
+			//this._logger.debug(`Got message in SettlementsEventHandler with name: ${message.msgName}`);
 			try {
 				let settlementsCmd: CommandMsg | null = null;
 
@@ -79,14 +79,14 @@ export class SettlementsEventHandler{
 						settlementsCmd = this._TransferCommittedFulfiledEvtToProcessTransfCmd(message as TransferFulfiledEvt);
 					break;
 					default: {
-						this._logger.isWarnEnabled() && this._logger.warn(`SettlementsEventHandler - Skipping unknown event - msgName: ${message?.msgName} msgKey: ${message?.msgKey} msgId: ${message?.msgId}`);
+						//this._logger.isWarnEnabled() && this._logger.warn(`SettlementsEventHandler - Skipping unknown event - msgName: ${message?.msgName} msgKey: ${message?.msgKey} msgId: ${message?.msgId}`);
 					}
 				}
 
 				if (settlementsCmd) {
-					this._logger.info(`SettlementsEventHandler - publishing cmd - ${message?.msgName}:${message?.msgKey}:${message?.msgId} - Cmd: ${settlementsCmd.msgName}:${settlementsCmd.msgId}`);
+					this._logger.debug(`SettlementsEventHandler - publishing cmd - ${message?.msgName}:${message?.msgKey}:${message?.msgId} - Cmd: ${settlementsCmd.msgName}:${settlementsCmd.msgId}`);
 					await this._messageProducer.send(settlementsCmd);
-					this._logger.info(`SettlementsEventHandler - publishing cmd Finished - ${message?.msgName}:${message?.msgKey}:${message?.msgId}`);
+					this._logger.debug(`SettlementsEventHandler - publishing cmd Finished - ${message?.msgName}:${message?.msgKey}:${message?.msgId}`);
 				}
 			} catch(err: unknown) {
 				this._logger.error(err, `SettlementsEventHandler - processing event - ${message?.msgName}:${message?.msgKey}:${message?.msgId} - Error: ${(err as Error)?.message?.toString()}`);

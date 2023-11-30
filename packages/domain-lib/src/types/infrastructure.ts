@@ -145,7 +145,8 @@ export interface ISettlementMatrixRequestRepo {
 		state?: string,
 		model?: string,
 		currencyCodes?: string[],
-		createdAt?: string,
+		startDate?: number,
+        endDate?: number,
 		pageIndex?: number,
 		pageSize?: number
 	): Promise<MatrixSearchResults>;
