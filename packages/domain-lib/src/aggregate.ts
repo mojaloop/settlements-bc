@@ -64,7 +64,6 @@ import {SettlementBatch} from "./types/batch";
 
 import {
 	ISettlementBatch,
-	ISettlementBatchTransfer,
 	ISettlementMatrix,
 	ITransferDto,
 } from "@mojaloop/settlements-bc-public-types-lib";
@@ -74,7 +73,6 @@ import {CallSecurityContext, ForbiddenError, IAuthorizationClient} from "@mojalo
 import {Privileges} from "./privileges";
 import {join} from "path";
 import {readFileSync} from "fs";
-import {ICurrency} from "./types/currency";
 import {bigintToString, stringToBigint} from "./converters";
 import {SettlementConfig} from "./types/settlement_config";
 import {AccountsAndBalancesAccountType} from "@mojaloop/accounts-and-balances-bc-public-types-lib";
@@ -88,6 +86,7 @@ import {
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 
 import {ICounter, IHistogram, IMetrics} from "@mojaloop/platform-shared-lib-observability-types-lib";
+import {Currency, IConfigurationClient} from "@mojaloop/platform-configuration-bc-public-types-lib";
 
 const CURRENCIES_FILE_NAME: string = "currencies.json";
 const SEQUENCE_STR_LENGTH = 3;
@@ -116,14 +115,14 @@ export class SettlementsAggregate {
 	private readonly _logger: ILogger;
 	private readonly _authorizationClient: IAuthorizationClient;
 	private readonly _auditingClient: IAuditClient;
+	private readonly _configClient: IConfigurationClient;
 	private readonly _batchRepo: ISettlementBatchRepo;
-	private readonly _participantAccNotifier: IParticipantAccountNotifier;
 	private readonly _batchTransferRepo: ISettlementBatchTransferRepo;
 	private readonly _configRepo: ISettlementConfigRepo;
 	private readonly _settlementMatrixReqRepo: ISettlementMatrixRequestRepo;
 	private readonly _abAdapter: IAccountsBalancesAdapter;
 	private readonly _msgProducer: IMessageProducer;
-	private readonly _currencies: ICurrency[];
+	private readonly  _currencyList: Currency[];
 	private _histo: IHistogram;
 	private _commandsCounter:ICounter;
 
@@ -131,11 +130,11 @@ export class SettlementsAggregate {
 		logger: ILogger,
 		authorizationClient: IAuthorizationClient,
 		auditingClient: IAuditClient,
+		configClient: IConfigurationClient,
 		batchRepo: ISettlementBatchRepo,
 		batchTransferRepo: ISettlementBatchTransferRepo,
 		configRepo: ISettlementConfigRepo,
 		settlementMatrixReqRepo: ISettlementMatrixRequestRepo,
-		participantAccNotifier: IParticipantAccountNotifier,
 		abAdapter: IAccountsBalancesAdapter,
 		msgProducer: IMessageProducer,
 		metrics: IMetrics
@@ -143,21 +142,23 @@ export class SettlementsAggregate {
 		this._logger = logger;
 		this._authorizationClient = authorizationClient;
 		this._auditingClient = auditingClient;
+		this._configClient = configClient;
 		this._batchRepo = batchRepo;
-		this._participantAccNotifier = participantAccNotifier;
 		this._batchTransferRepo = batchTransferRepo;
 		this._configRepo = configRepo;
 		this._settlementMatrixReqRepo = settlementMatrixReqRepo;
 		this._abAdapter = abAdapter;
 		this._msgProducer = msgProducer;
 
-		// TODO: @jason Need to obtain currencies from PlatForm config perhaps:
-		const currenciesFilePath: string = join(__dirname, CURRENCIES_FILE_NAME);
-		this._currencies = JSON.parse(readFileSync(currenciesFilePath, "utf-8"));
-
 		// Metrics:
 		this._histo = metrics.getHistogram("SettlementsAggregate", "SettlementsAggregate calls", ["callName", "success"]);
 		this._commandsCounter = metrics.getCounter("SettlementsAggregate_CommandsProcessed", "Commands processed by the Settlements Aggregate", ["commandName"]);
+
+		// Configs:
+		this._configClient.init();
+		this._configClient.bootstrap(true);
+		this._configClient.fetch();
+		this._currencyList = this._configClient.globalConfigs.getCurrencies();
 	}
 
 	private _enforcePrivilege(secCtx: CallSecurityContext, privName: string): void {
@@ -176,17 +177,16 @@ export class SettlementsAggregate {
 		};
 	}
 
-	private _getCurrencyOrThrow(currencyCode: string): { code: string, decimals: number } {
-		// Validate the currency code and get the currency.
-		const currency: { code: string, decimals: number } | undefined
-			= this._currencies.find((value) => value.code === currencyCode);
+	private _getCurrencyOrThrow(currencyCode: string): Currency {
+		const currency: Currency | undefined
+			= this._currencyList.find((value) => value.code === currencyCode);
 		if (!currency) {
 			throw new InvalidCurrencyCodeError(`Currency code: ${currencyCode} not found`);
 		}
 		return currency;
 	}
 
-	private _getAmountOrThrow(amountTxt :string, currency: ICurrency) {
+	private _getAmountOrThrow(amountTxt :string, currency: Currency) {
 		// convert the amount and confirm if it's valid:
 		let amount: bigint;
 		try {

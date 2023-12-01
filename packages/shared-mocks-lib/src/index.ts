@@ -28,11 +28,15 @@
 "use strict";
 
 export * from "./audit_client_mock";
+
+export * from "./config_client_mock"
+export * from "./configurationset_wrappers"
+
 export * from "./authentication_service_mock";
 export * from "./token_helper_mock";
 export * from "./message_mock";
-
 export * from "./authorization_client_mock";
+
 export * from "./repo/config_repo_mock";
 export * from "./repo/participant_account_notifier_mock";
 

@@ -31,6 +31,8 @@
 "use strict";
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
+import {ConsoleLogger, ILogger} from "@mojaloop/logging-bc-public-types-lib";
+
 const packageJSON = require("../../package.json");
 
 
@@ -38,6 +40,8 @@ import {
     ConfigurationClient,
     DefaultConfigProvider
 } from "@mojaloop/platform-configuration-bc-client-lib";
+import {AuthenticatedHttpRequester} from "@mojaloop/security-bc-client-lib";
+import {MLKafkaJsonConsumer} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 // import { ConfigParameterTypes } from "@mojaloop/platform-configuration-bc-public-types-lib";
 
 // configs - constants / code dependent
@@ -47,23 +51,26 @@ const APP_VERSION = packageJSON.version;
 const CONFIGSET_VERSION = "0.0.1";
 
 // configs - non-constants
-const ENV_NAME = process.env["ENV_NAME"] || "dev";
+const KAFKA_URL = process.env["KAFKA_URL"] || "localhost:9092";
+
+// security
+const SVC_CLIENT_ID = process.env["SVC_CLIENT_ID"] || "interop-api-bc-fspiop-api-svc";
+const SVC_CLIENT_SECRET = process.env["SVC_CLIENT_SECRET"] || "superServiceSecret";
+const AUTH_N_SVC_BASEURL = process.env["AUTH_N_SVC_BASEURL"] || "http://localhost:3201";
+const AUTH_N_SVC_TOKEN_URL = AUTH_N_SVC_BASEURL + "/token"; // TODO this should not be known here, libs that use the base should add the suffix
+
+const logger: ILogger = new ConsoleLogger();
 
 // use default url from PLATFORM_CONFIG_CENTRAL_URL env var
-const defaultConfigProvider: DefaultConfigProvider = new DefaultConfigProvider();
+const authRequester = new AuthenticatedHttpRequester(logger, AUTH_N_SVC_TOKEN_URL);
+authRequester.setAppCredentials(SVC_CLIENT_ID, SVC_CLIENT_SECRET);
 
-const configClient = new ConfigurationClient(ENV_NAME, BC_NAME, APP_NAME, APP_VERSION, CONFIGSET_VERSION, defaultConfigProvider);
+const messageConsumer = new MLKafkaJsonConsumer({
+ kafkaBrokerList: KAFKA_URL,
+ kafkaGroupId: `${APP_NAME}_${Date.now()}` // unique consumer group - use instance id when possible
+}, logger.createChild("configClient.consumer"));
+const defaultConfigProvider: DefaultConfigProvider = new DefaultConfigProvider(logger, authRequester, messageConsumer);
 
-/*
-* Add application parameters here
-* */
-
-// configClient.appConfigs.addNewParam(
-//         "PARAM_NAME",
-//         ConfigParameterTypes.BOOL,
-//         true,
-//         "param description"
-// );
-
+const configClient = new ConfigurationClient(BC_NAME, APP_NAME, APP_VERSION, CONFIGSET_VERSION, defaultConfigProvider);
 export = configClient;
 

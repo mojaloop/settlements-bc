@@ -67,6 +67,8 @@ import {
 import {ITransferDto} from "@mojaloop/settlements-bc-public-types-lib";
 import {IMessageProducer, MessageTypes} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import {IMetrics, MetricsMock} from "@mojaloop/platform-shared-lib-observability-types-lib";
+import {IConfigurationClient} from "@mojaloop/platform-configuration-bc-public-types-lib";
+import {ConfigurationClientMock} from "@mojaloop/settlements-bc-shared-mocks-lib/dist/config_client_mock";
 
 let authorizationClient: IAuthorizationClient;
 let authorizationClientNoAuth: IAuthorizationClient;
@@ -74,7 +76,6 @@ let configRepo: ISettlementConfigRepo;
 let settleBatchRepo: ISettlementBatchRepo;
 let settleTransferRepo: ISettlementBatchTransferRepo;
 let settleMatrixReqRepo: ISettlementMatrixRequestRepo;
-let partNotifier: IParticipantAccountNotifier;
 let abAdapter: IAccountsBalancesAdapter;
 let msgCache: MessageCache;
 let msgProducer: IMessageProducer;
@@ -90,6 +91,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		authorizationClient = new AuthorizationClientMock(logger, true);
 		authorizationClientNoAuth = new AuthorizationClientMock(logger, false);
 		const auditingClient: IAuditClient = new AuditClientMock(logger);
+		const configClient: IConfigurationClient = new ConfigurationClientMock(logger);
 
 		securityContext = {
 			username: 'unit-test',
@@ -105,7 +107,6 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		settleMatrixReqRepo = new SettlementMatrixRequestRepoMock();
 
 		// adapters:
-		partNotifier = new ParticipantAccountNotifierMock();
 		abAdapter = new AccountsBalancesAdapterMock();
 
 		// other:
@@ -120,11 +121,11 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 			logger,
 			authorizationClient,
 			auditingClient,
+			configClient,
 			settleBatchRepo,
 			settleTransferRepo,
 			configRepo,
 			settleMatrixReqRepo,
-			partNotifier,
 			abAdapter,
 			msgProducer,
 			metricsMock
@@ -133,11 +134,11 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 			logger,
 			authorizationClientNoAuth,
 			auditingClient,
+			configClient,
 			settleBatchRepo,
 			settleTransferRepo,
 			configRepo,
 			settleMatrixReqRepo,
-			partNotifier,
 			abAdapter,
 			msgProducer,
 			metricsMock
