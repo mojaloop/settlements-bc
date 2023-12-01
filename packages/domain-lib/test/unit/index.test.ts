@@ -1319,6 +1319,111 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		expect(batchExpSettled!.state).toEqual('SETTLED');
 	});
 
+	test("settlement matrix balances", async () => {
+		const reqTransferDto: ITransferDto = {
+			id: null,
+			transferId: randomUUID(),
+			payerFspId: randomUUID(),
+			payeeFspId: randomUUID(),
+			currencyCode: 'EUR',
+			amount: '1300', //13 EURO
+			timestamp: Date.now(),
+			settlementModel: 'BAL-TEST'
+		};
+		const batchId: string = await aggregate.handleTransfer(securityContext, reqTransferDto);
+		expect(batchId).toBeDefined();
+
+		const payerTxn2and3 = randomUUID();
+		const payeeTxn2and3 = randomUUID();
+		const reqTransferDto2: ITransferDto = {
+			id: null,
+			transferId: randomUUID(),
+			payerFspId: payerTxn2and3,
+			payeeFspId: payeeTxn2and3,
+			currencyCode: 'EUR',
+			amount: '1300', //13 EURO
+			timestamp: Date.now(),
+			settlementModel: 'BAL-TEST'
+		};
+		const batchId2: string = await aggregate.handleTransfer(securityContext, reqTransferDto2);
+		expect(batchId2).toBeDefined();
+		expect(batchId).toEqual(batchId2);
+
+		const reqTransferDto3: ITransferDto = {
+			id: null,
+			transferId: randomUUID(),
+			payerFspId: payerTxn2and3,
+			payeeFspId: payeeTxn2and3,
+			currencyCode: 'EUR',
+			amount: '1300', //13 EURO
+			timestamp: Date.now(),
+			settlementModel: 'BAL-TEST'
+		};
+		const batchId3: string = await aggregate.handleTransfer(securityContext, reqTransferDto3);
+		expect(batchId3).toBeDefined();
+		expect(batchId2).toEqual(batchId3);
+
+		// Create a settlement matrix with batches:
+		const matrixIdDisp = await aggregate.createStaticSettlementMatrix(
+			securityContext,
+			null, // matrix-id
+			[batchId]
+		);
+		expect(matrixIdDisp).toBeDefined();
+
+		let matrixDisp = await aggregate.getSettlementMatrix(securityContext, matrixIdDisp);
+		expect(matrixDisp).toBeDefined();
+		expect(matrixDisp!.id).toEqual(matrixIdDisp);
+		expect(matrixDisp!.state).toEqual('IDLE');
+		expect(matrixDisp!.type).toEqual('STATIC');
+
+		// Totals:
+		expect(matrixDisp!.balancesByStateAndCurrency.length).toEqual(1);
+		expect(matrixDisp!.balancesByStateAndCurrency[0].debitBalance).toEqual("3900");
+		expect(matrixDisp!.balancesByStateAndCurrency[0].creditBalance).toEqual("3900");
+		expect(matrixDisp!.balancesByStateAndCurrency[0].currencyCode).toEqual("EUR");
+		expect(matrixDisp!.balancesByStateAndCurrency[0].state).toEqual("OPEN");
+		// Participants:
+		expect(matrixDisp!.balancesByParticipant.length).toEqual(4);
+		// Payer from Transfers 1:
+		expect(matrixDisp!.balancesByParticipant[0].debitBalance).toEqual("1300");
+		expect(matrixDisp!.balancesByParticipant[0].creditBalance).toEqual("0");
+		expect(matrixDisp!.balancesByParticipant[0].participantId).toEqual(reqTransferDto.payerFspId);
+		expect(matrixDisp!.balancesByParticipant[0].currencyCode).toEqual("EUR");
+		expect(matrixDisp!.balancesByParticipant[0].state).toEqual("OPEN");
+		// Payee from Transfer 1:
+		expect(matrixDisp!.balancesByParticipant[1].debitBalance).toEqual("0");
+		expect(matrixDisp!.balancesByParticipant[1].creditBalance).toEqual("1300");
+		expect(matrixDisp!.balancesByParticipant[1].participantId).toEqual(reqTransferDto.payeeFspId);
+		expect(matrixDisp!.balancesByParticipant[1].currencyCode).toEqual("EUR");
+		expect(matrixDisp!.balancesByParticipant[1].state).toEqual("OPEN");
+		// Payer from Transfers 2 & 3:
+		expect(matrixDisp!.balancesByParticipant[2].debitBalance).toEqual("2600");
+		expect(matrixDisp!.balancesByParticipant[2].creditBalance).toEqual("0");
+		expect(matrixDisp!.balancesByParticipant[2].participantId).toEqual(payerTxn2and3);
+		// Payee from Transfers 2 & 3:
+		expect(matrixDisp!.balancesByParticipant[3].debitBalance).toEqual("0");
+		expect(matrixDisp!.balancesByParticipant[3].creditBalance).toEqual("2600");
+		expect(matrixDisp!.balancesByParticipant[3].participantId).toEqual(payeeTxn2and3);
+
+		// Batch balances:
+		const awaitSettleByBatch = await settleBatchRepo.getBatch(batchId);
+		expect(awaitSettleByBatch).toBeDefined();
+		expect(awaitSettleByBatch!.accounts).toBeDefined();
+		expect(awaitSettleByBatch!.accounts.length).toEqual(4);
+		expect(awaitSettleByBatch!.id).toEqual(batchId);
+		expect(awaitSettleByBatch!.state).toEqual('OPEN');
+
+		// Batch Total Balances:
+		var totalDebit = 0, totalCredit = 0;
+		awaitSettleByBatch!.accounts.forEach(accItm => {
+			totalCredit += Number(accItm.creditBalance);
+			totalDebit += Number(accItm.debitBalance);
+		});
+		expect(totalDebit).toEqual(3900);
+		expect(totalCredit).toEqual(3900);
+	});
+
 	test("test awaiting settlement lock and unlock (awaiting settlement)", async () => {
 		const reqTransferDto: ITransferDto = {
 			id: null,
