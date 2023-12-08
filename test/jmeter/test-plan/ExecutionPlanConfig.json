@@ -1,0 +1,12 @@
+{
+  "settlement-transfer" : {
+    "count": 100,
+    "min-max-amount": [10, 50],
+    "currencies":["USD", "EUR"],
+    "participants": ["12345", "67890", "10111", "21314"]
+  },
+  "settlement-matrix" : {
+    "close-batches-every-x-seconds": 300,
+    "settle-batches-every-x-seconds": 300
+  }
+}
