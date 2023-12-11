@@ -2,9 +2,10 @@
 # Setup the following variables for your local environment:
 export JMETER_HOME="/opt/homebrew/Cellar/jmeter/5.6.2"
 export HEAP="-Xms3g -Xmx6g -XX:MaxMetaspaceSize=2024m"
-export JMETER_LIB_PATH="$JMETER_HOME/libexec/lib"
+export JMETER_LIB_PATH="$JMETER_HOME/libexec/lib/ext"
 # Optional:
 export JAVA_HOME=/Users/jasonbruwer/Library/Java/JavaVirtualMachines/corretto-1.8.0_382/Contents/Home
+# export JAVA_HOME=/Users/jasonbruwer/Library/Java/JavaVirtualMachines/corretto-20.0.2/Contents/Home
 
 # First build to get the latest:
 mvn clean
@@ -12,7 +13,7 @@ mvn clean install -U
 mvn clean install assembly:single
 
 # Copy the jar over:
-cp target/aptraws-jmeter-jar-with-dependencies.jar $JMETER_LIB_PATH
+cp target/settlement-bc-jmeter-jar-with-dependencies.jar $JMETER_LIB_PATH
 
 # Clear logs:
 rm jmeter.log

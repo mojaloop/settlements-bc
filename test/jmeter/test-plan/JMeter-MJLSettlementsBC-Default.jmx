@@ -48,7 +48,7 @@
             </collectionProp>
           </elementProp>
           <stringProp name="TestPlan.comments">Run the load test based on a template.</stringProp>
-          <stringProp name="classname">io.mojaloop.settlement.jmeter.StressTestMappingSampler</stringProp>
+          <stringProp name="classname">io.mojaloop.settlement.jmeter.plugin.StressTestMappingSampler</stringProp>
         </JavaSampler>
         <hashTree/>
         <ResultCollector guiclass="ViewResultsFullVisualizer" testclass="ResultCollector" testname="View Results Tree" enabled="true">

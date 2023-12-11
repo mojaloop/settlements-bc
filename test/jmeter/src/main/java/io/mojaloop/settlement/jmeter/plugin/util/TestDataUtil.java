@@ -60,7 +60,7 @@ public class TestDataUtil {
 
 		try (BufferedReader br = new BufferedReader(new FileReader(testData))) {
 			String line;
-			StringBuffer content = new StringBuffer();
+			StringBuilder content = new StringBuilder();
 			while ((line = br.readLine()) != null) {
 				content.append(line);
 				content.append("\n");
@@ -135,21 +135,34 @@ public class TestDataUtil {
 			TestDataCarrier toAdd = new TestDataCarrier(new JSONObject());
 			toAdd.setActionType(TestDataCarrier.ActionType.transfer);
 
-			int currencyIndex = randomNumberBetween(
-					0,
-					tpc.getSettlementTransfer().getCurrencies().size() - 1
-			);
+			int currencyIndex = randomNumberBetween(0, tpc.getSettlementTransfer().getCurrencies().size() - 1);
 			String currency = tpc.getSettlementTransfer().getCurrencies().get(currencyIndex);
 			int amount = randomNumberBetween(
 					tpc.getSettlementTransfer().getAmountMin(),
 					tpc.getSettlementTransfer().getAmountMax()
 			);
-			// TODO TestPlanConfig.Bank bankPayer = tpc.getBanks().get(randomNumberBetween(0, tpc.getBanks().size() - 1));
-			TransferReq fundTransfer = new TransferReq(new JSONObject());
-			fundTransfer.setRequestId(uuidNoDash());
-			fundTransfer.setTimestamp(new Date());
 
-			toAdd.setRequest(fundTransfer);
+			int payerIndex = randomNumberBetween(0, tpc.getSettlementTransfer().getParticipants().size() - 1);
+			int payeeIndex;
+			do {
+				payeeIndex = randomNumberBetween(0, tpc.getSettlementTransfer().getParticipants().size() - 1);
+			} while (payerIndex == payeeIndex);
+			String payee = tpc.getSettlementTransfer().getParticipants().get(payeeIndex);
+			String payer = tpc.getSettlementTransfer().getParticipants().get(payerIndex);
+			String settlementModel = tpc.getSettlementTransfer().getSettlementModels().get(
+					randomNumberBetween(0, tpc.getSettlementTransfer().getSettlementModels().size() - 1)
+			);
+
+			TransferReq settleTransfer = new TransferReq(new JSONObject());
+			settleTransfer.setTransferId(uuidNoDash());
+			settleTransfer.setPayerFspId(payer);
+			settleTransfer.setPayeeFspId(payee);
+			settleTransfer.setCurrencyCode(currency);
+			settleTransfer.setAmount(Integer.toString(amount));
+			settleTransfer.setTimestamp(new Date());
+			settleTransfer.setSettlementModel(settlementModel);
+
+			toAdd.setRequest(settleTransfer);
 			returnVal.add(toAdd);
 		}
 		return returnVal;

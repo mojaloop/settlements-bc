@@ -55,7 +55,7 @@ public class SamplerRunner {
 			switch (actionType) {
 				case transfer:
 					TransferReq fundTransfer = (TransferReq) testData.getRequest();
-					fundTransfer.setRequestId(UUID.randomUUID().toString());
+					fundTransfer.setTransferId(UUID.randomUUID().toString());
 					fundTransfer.setTimestamp(new Date(System.currentTimeMillis() + TimeUnit.DAYS.toMillis(1)));
 
 					contentToSend = fundTransfer.toJsonObject().toString();
@@ -73,7 +73,7 @@ public class SamplerRunner {
 					long timestamp = System.currentTimeMillis();
 					this.addValidFundTransfer(new FundTransfer(
 							timestamp,
-							fundTransfer.getRequestId()
+							fundTransfer.getTransferId()
 					));
 				break;
 				case transfer_raw:

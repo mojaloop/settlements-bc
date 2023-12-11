@@ -15,9 +15,11 @@ public class TransferRsp extends ABaseJSONObject {
 	public static final long serialVersionUID = 1L;
 
 	private String respCode;
+	private String batchId;
 
 	public static class JSONMapping {
 		public static final String RESPONSE_CODE = "respCode";
+		public static final String BATCH_ID = "batchId";
 	}
 
 	/**
@@ -29,6 +31,7 @@ public class TransferRsp extends ABaseJSONObject {
 		super(jsonObject);
 
 		if (jsonObject.has(JSONMapping.RESPONSE_CODE)) this.setRespCode(jsonObject.getString(JSONMapping.RESPONSE_CODE));
+		if (jsonObject.has(JSONMapping.BATCH_ID)) this.setBatchId(jsonObject.getString(JSONMapping.BATCH_ID));
 	}
 
 	@Override
@@ -37,6 +40,9 @@ public class TransferRsp extends ABaseJSONObject {
 
 		if (this.getRespCode() == null) returnVal.put(JSONMapping.RESPONSE_CODE, JSONObject.NULL);
 		else returnVal.put(JSONMapping.RESPONSE_CODE, this.getRespCode());
+
+		if (this.getBatchId() == null) returnVal.put(JSONMapping.BATCH_ID, JSONObject.NULL);
+		else returnVal.put(JSONMapping.BATCH_ID, this.getBatchId());
 
 		return returnVal;
 	}
