@@ -14,7 +14,7 @@ RUN npm install -g node-gyp
 # A wildcard is used to ensure both package.json AND package-lock.json are copied
 COPY package*.json ./
 
-COPY packages/shared-mocks-lib/package.json ./packages/shared-mocks-lib/
+#COPY packages/shared-mocks-lib/package.json ./packages/shared-mocks-lib/
 COPY packages/public-types-lib/package.json ./packages/public-types-lib/
 COPY packages/infrastructure-lib/package.json ./packages/infrastructure-lib/
 COPY packages/domain-lib/package.json ./packages/domain-lib/
@@ -37,7 +37,7 @@ RUN BUILD_LIBRDKAFKA=0 npm install
 COPY tsconfig.json ./
 
 # copy required supporting modules/packages (only the private ones not published to npm)
-COPY packages/shared-mocks-lib ./packages/shared-mocks-lib
+#COPY packages/shared-mocks-lib ./packages/shared-mocks-lib
 COPY packages/public-types-lib ./packages/public-types-lib
 COPY packages/infrastructure-lib ./packages/infrastructure-lib
 COPY packages/domain-lib ./packages/domain-lib

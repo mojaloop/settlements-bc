@@ -69,9 +69,7 @@ import {Server} from "net";
 import express, {Express} from "express";
 import {ExpressRoutes} from "./routes";
 import {ITokenHelper} from "@mojaloop/security-bc-public-types-lib/";
-import {
-	ParticipantAccountNotifierMock
-} from "@mojaloop/settlements-bc-shared-mocks-lib";
+
 import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import {IMetrics} from "@mojaloop/platform-shared-lib-observability-types-lib";
 import {PrometheusMetrics} from "@mojaloop/platform-shared-lib-observability-client-lib";
@@ -293,7 +291,9 @@ export class Service {
 		this.matrixRepo = matrixRepo;
 
 		if (!participantAccountNotifier) {
-			participantAccountNotifier = new ParticipantAccountNotifierMock();
+			// we cannot use mocks in production code, they need to be injected in the Service.Start() for tests
+			//participantAccountNotifier = new ParticipantAccountNotifierMock();
+			throw new Error("Invalid participantAccountNotifier provided on Service.Start()");
 		}
 		this.participantAccountNotifier = participantAccountNotifier;
 
