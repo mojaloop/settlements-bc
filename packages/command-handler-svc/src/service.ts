@@ -194,6 +194,10 @@ export class Service {
 		}
 		globalLogger = this.logger = logger;
 
+		await configClient.init();
+		await configClient.bootstrap(true);
+		await configClient.fetch();
+
 		if (!tokenHelper) {
 			tokenHelper = new TokenHelper(
 				AUTH_N_SVC_JWKS_URL, logger, AUTH_N_TOKEN_ISSUER_NAME, AUTH_N_TOKEN_AUDIENCE,
