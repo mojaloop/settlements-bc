@@ -1,41 +1,44 @@
 {
   "name": "@mojaloop/settlements-bc-model-lib",
-  "version": "0.3.5",
+  "version": "0.5.0",
   "description": "Settlements BC - Settlement Model Library",
   "license": "Apache-2.0",
   "homepage": "https://github.com/mojaloop/settlements-bc/tree/main/packages/settlement-model-lib",
   "bugs": {
-    "url": "https://github.com/mojaloop/settlements-bc/issues#readme"
+	"url": "https://github.com/mojaloop/settlements-bc/issues#readme"
   },
   "contributors": [
-    "Jason Bruwer <jason.bruwer@coil.com>"
+	"Jason Bruwer <jason.bruwer@coil.com>"
   ],
   "private": false,
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "files": [
-    "/dist"
+	"/dist"
   ],
   "scripts": {
-    "clean": "npm run clean:npm; npm run clean:dist",
-    "clean:dist": "rm -rf dist",
-    "clean:npm": "rm -rf node_modules",
-    "dep:check": "ncu -e 2",
-    "dep:update": "ncu -e 2 -u",
-    "audit:check": "npm audit",
-    "audit:fix": "npm audit fix",
-    "lint": "npm run build && npx eslint ./src",
-    "lint:fix": "npm run build && npx eslint ./src --fix",
-    "build": "tsc",
-    "test:unit": "jest",
-    "test:unit:domain": "echo 'skpping'",
-    "test:unit-single": "jest --coverage false -t"
+	"clean": "npm run clean:npm; npm run clean:dist",
+	"clean:dist": "rm -rf dist",
+	"clean:npm": "rm -rf node_modules",
+	"dep:check": "ncu -e 2",
+	"dep:update": "ncu -e 2 -u",
+	"audit:check": "npm audit",
+	"audit:fix": "npm audit fix",
+	"lint": "npm run build && npx eslint ./src",
+	"lint:fix": "npm run build && npx eslint ./src --fix",
+	"build": "tsc",
+	"test:unit": "jest",
+	"test:unit:domain": "echo 'skpping'",
+	"test:unit-single": "jest --coverage false -t"
   },
   "devDependencies": {},
   "dependencies": {
-    "@mojaloop/logging-bc-public-types-lib": "~0.1.23",
-    "@mojaloop/security-bc-public-types-lib": "~0.3.6",
-    "@mojaloop/settlements-bc-public-types-lib": "~0.3.3",
-    "tslib": "~2.6.2"
+	"@mojaloop/logging-bc-public-types-lib": "~0.5.2",
+	"@mojaloop/security-bc-public-types-lib": "~0.5.5",
+	"@mojaloop/settlements-bc-public-types-lib": "~0.3.3",
+	"tslib": "~2.6.2"
+  },
+  "engines": {
+	"node": ">=20.10.0"
   }
 }

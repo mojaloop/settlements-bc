@@ -30,11 +30,7 @@
 
 "use strict";
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
 import process from "process";
-
-const packageJSON = require("../../package.json");
-
 import {
     ConfigurationClient,
     DefaultConfigProvider
@@ -49,6 +45,9 @@ import {
  AuthenticatedHttpRequester,
 } from "@mojaloop/security-bc-client-lib";
 import {ConsoleLogger, ILogger} from "@mojaloop/logging-bc-public-types-lib";
+
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const packageJSON = require("../../package.json");
 
 // configs - constants / code dependent
 const BC_NAME = "settlements-bc";

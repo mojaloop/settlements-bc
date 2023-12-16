@@ -35,6 +35,7 @@ import {
 import {BoundedContextConfigurationClientMock, GlobalConfigurationClientMock} from "./configurationset_wrappers";
 
 const BC_NAME = "settlements-bc";
+// eslint-disable-next-line @typescript-eslint/no-var-requires
 const packageJSON = require("../package.json");
 const APP_VERSION = packageJSON.version;
 const APP_NAME = "settlements-svc";
