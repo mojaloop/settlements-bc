@@ -290,12 +290,12 @@ export class Service {
 		}
 		this.matrixRepo = matrixRepo;
 
-		if (!participantAccountNotifier) {
-			// we cannot use mocks in production code, they need to be injected in the Service.Start() for tests
-			//participantAccountNotifier = new ParticipantAccountNotifierMock();
-			throw new Error("Invalid participantAccountNotifier provided on Service.Start()");
-		}
-		this.participantAccountNotifier = participantAccountNotifier;
+		// if (!participantAccountNotifier) {
+		// 	// we cannot use mocks in production code, they need to be injected in the Service.Start() for tests
+		// 	//participantAccountNotifier = new ParticipantAccountNotifierMock();
+		// 	throw new Error("Invalid participantAccountNotifier provided on Service.Start()");
+		// }
+		// this.participantAccountNotifier = participantAccountNotifier;
 
 		if (!messageProducer) {
 			const producerLogger = this.logger.createChild("messageProducer");
