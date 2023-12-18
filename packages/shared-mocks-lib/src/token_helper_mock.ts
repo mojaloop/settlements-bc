@@ -42,6 +42,10 @@ export class TokenHelperMock implements ITokenHelper{
 		return;
 	}
 
+	destroy(): Promise<void> {
+		return Promise.resolve();
+	}
+
 	decodeToken(accessToken: string): any | null{
 		return {
 			sub: "app::transfers-bc-api-svc",

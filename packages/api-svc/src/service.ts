@@ -69,12 +69,11 @@ import {Server} from "net";
 import express, {Express} from "express";
 import {ExpressRoutes} from "./routes";
 import {ITokenHelper} from "@mojaloop/security-bc-public-types-lib/";
-import {
-	ParticipantAccountNotifierMock
-} from "@mojaloop/settlements-bc-shared-mocks-lib";
+
 import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import {IMetrics} from "@mojaloop/platform-shared-lib-observability-types-lib";
 import {PrometheusMetrics} from "@mojaloop/platform-shared-lib-observability-client-lib";
+import crypto from "crypto";
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const packageJSON = require("../package.json");
@@ -114,6 +113,9 @@ const SETTLEMENT_MATRICES_COLLECTION_NAME: string = "matrices";
 const SETTLEMENT_TRANSFERS_COLLECTION_NAME: string = "transfers";
 
 const SERVICE_START_TIMEOUT_MS= (process.env["SERVICE_START_TIMEOUT_MS"] && parseInt(process.env["SERVICE_START_TIMEOUT_MS"])) || 60_000;
+
+const INSTANCE_NAME = `${BC_NAME}_${APP_NAME}`;
+const INSTANCE_ID = `${INSTANCE_NAME}__${crypto.randomUUID()}`;
 
 const kafkaProducerOptions: MLKafkaJsonProducerOptions = {
 	kafkaBrokerList: KAFKA_URL
@@ -171,7 +173,8 @@ export class Service {
 
 		if(!tokenHelper){
 			tokenHelper = new TokenHelper(
-				AUTH_N_SVC_JWKS_URL, logger, AUTH_N_TOKEN_ISSUER_NAME,AUTH_N_TOKEN_AUDIENCE
+				AUTH_N_SVC_JWKS_URL, logger, AUTH_N_TOKEN_ISSUER_NAME,AUTH_N_TOKEN_AUDIENCE,
+				new MLKafkaJsonConsumer({kafkaBrokerList: KAFKA_URL, autoOffsetReset: "earliest", kafkaGroupId: INSTANCE_ID}, logger) // for jwt list - no groupId
 			);
 			await tokenHelper.init();
 		}
@@ -287,10 +290,12 @@ export class Service {
 		}
 		this.matrixRepo = matrixRepo;
 
-		if (!participantAccountNotifier) {
-			participantAccountNotifier = new ParticipantAccountNotifierMock();
-		}
-		this.participantAccountNotifier = participantAccountNotifier;
+		// if (!participantAccountNotifier) {
+		// 	// we cannot use mocks in production code, they need to be injected in the Service.Start() for tests
+		// 	//participantAccountNotifier = new ParticipantAccountNotifierMock();
+		// 	throw new Error("Invalid participantAccountNotifier provided on Service.Start()");
+		// }
+		// this.participantAccountNotifier = participantAccountNotifier;
 
 		if (!messageProducer) {
 			const producerLogger = this.logger.createChild("messageProducer");

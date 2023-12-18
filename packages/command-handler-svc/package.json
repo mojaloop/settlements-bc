@@ -1,6 +1,6 @@
 {
   "name": "@mojaloop/settlements-bc-command-handler-svc",
-  "version": "0.3.8",
+  "version": "0.5.2",
   "description": "Mojaloop vNext Settlements BC - Command Handler Service",
   "license": "Apache-2.0",
   "homepage": "https://github.com/mojaloop/settlements-bc/command-handler-svc",
@@ -56,7 +56,7 @@
     "@mojaloop/settlements-bc-shared-mocks-lib": "*",
     "@mojaloop/logging-bc-public-types-lib": "^0.1.23",
     "@types/express": "^4.17.21",
-    "@types/jest": "^29.5.10",
+    "@types/jest": "^29.5.11",
     "@types/node": "^18.15.13",
     "@typescript-eslint/eslint-plugin": "^5.57.1",
     "@typescript-eslint/parser": "^5.57.1",
@@ -66,5 +66,8 @@
     "npm-check-updates": "^16.10.19",
     "ts-jest": "^29.1.1",
     "typescript": "^5.0.4"
+  },
+  "engines": {
+    "node": ">=20.10.0"
   }
 }

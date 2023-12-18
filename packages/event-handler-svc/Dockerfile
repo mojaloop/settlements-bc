@@ -1,5 +1,5 @@
 ########################################
-FROM node:18.13-alpine as builder
+FROM node:20.10.0-alpine3.18 as builder
 
 # Create the project directory inside the container.
 WORKDIR /app
@@ -8,13 +8,13 @@ RUN apk add --no-cache -t build-dependencies git make gcc g++ python3 \
     libtool autoconf pkgconfig automake librdkafka-dev bash # wget tar xz
 
 RUN cd $(npm root -g)/npm
-RUN npm config set unsafe-perm true
+#RUN npm config set unsafe-perm true
 RUN npm install -g node-gyp
 
 # A wildcard is used to ensure both package.json AND package-lock.json are copied
 COPY package*.json ./
 
-COPY packages/shared-mocks-lib/package.json ./packages/shared-mocks-lib/
+#COPY packages/shared-mocks-lib/package.json ./packages/shared-mocks-lib/
 COPY packages/public-types-lib/package.json ./packages/public-types-lib/
 COPY packages/infrastructure-lib/package.json ./packages/infrastructure-lib/
 COPY packages/domain-lib/package.json ./packages/domain-lib/
@@ -37,7 +37,7 @@ RUN BUILD_LIBRDKAFKA=0 npm install
 COPY tsconfig.json ./
 
 # copy required supporting modules/packages (only the private ones not published to npm)
-COPY packages/shared-mocks-lib ./packages/shared-mocks-lib
+#COPY packages/shared-mocks-lib ./packages/shared-mocks-lib
 COPY packages/public-types-lib ./packages/public-types-lib
 COPY packages/infrastructure-lib ./packages/infrastructure-lib
 COPY packages/domain-lib ./packages/domain-lib
@@ -49,7 +49,7 @@ COPY packages/event-handler-svc ./packages/event-handler-svc
 RUN npm run build
 
 ########################################
-FROM node:18.13-alpine
+FROM node:20.10.0-alpine3.18
 WORKDIR /app
 RUN mkdir /app/data
 

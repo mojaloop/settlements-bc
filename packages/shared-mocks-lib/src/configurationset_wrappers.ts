@@ -359,7 +359,7 @@ export class GlobalConfigurationClientMock extends BaseConfigurationMockClient i
      * params - public change methods
      **************************/
     getCurrencies(): Currency[] {
-        var currencies: Currency[] = [];
+        const currencies: Currency[] = [];
         currencies.push(
             {code: "EUR", decimals: 2, num: "978"},
             {code: "USD", decimals: 2, num: "840"},

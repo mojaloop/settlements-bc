@@ -1,46 +1,49 @@
 {
   "name": "@mojaloop/settlements-bc-infrastructure-lib",
-  "version": "0.1.1",
+  "version": "0.5.0",
   "description": "Settlements BC - Infrastructure Library",
   "license": "Apache-2.0",
   "homepage": "https://github.com/mojaloop/settlements-bc/tree/main/packages/infrastructure-lib",
   "bugs": {
-    "url": "https://github.com/mojaloop/settlements-bc/issues#readme"
+	"url": "https://github.com/mojaloop/settlements-bc/issues#readme"
   },
   "contributors": [
-    "Jason Bruwer <jason.bruwer@coil.com>"
+	"Jason Bruwer <jason.bruwer@coil.com>"
   ],
   "private": true,
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "files": [
-    "/dist"
+	"/dist"
   ],
   "scripts": {
-    "clean": "npm run clean:npm; npm run clean:dist",
-    "clean:dist": "rm -rf dist",
-    "clean:npm": "rm -rf node_modules",
-    "dep:check": "ncu -e 2",
-    "dep:update": "ncu -e2 -u",
-    "audit:check": "npm audit",
-    "audit:fix": "npm audit fix",
-    "lint": "npm run build && npx eslint ./src",
-    "lint:fix": "npm run build && npx eslint ./src --fix",
-    "build": "tsc",
-    "test:unit": "echo \"infrastructure-lib doesn't have unit tests - it's only tested on the integration tests\"",
-    "test:unit:domain": "echo 'skpping'"
+	"clean": "npm run clean:npm; npm run clean:dist",
+	"clean:dist": "rm -rf dist",
+	"clean:npm": "rm -rf node_modules",
+	"dep:check": "ncu -e 2",
+	"dep:update": "ncu -e2 -u",
+	"audit:check": "npm audit",
+	"audit:fix": "npm audit fix",
+	"lint": "npm run build && npx eslint ./src",
+	"lint:fix": "npm run build && npx eslint ./src --fix",
+	"build": "tsc",
+	"test:unit": "echo \"infrastructure-lib doesn't have unit tests - it's only tested on the integration tests\"",
+	"test:unit:domain": "echo 'skpping'"
   },
   "devDependencies": {
   },
   "dependencies": {
-    "@mojaloop/settlements-bc-domain-lib": "*",
-    "@mojaloop/logging-bc-public-types-lib": "~0.1.23",
-    "@mojaloop/accounts-and-balances-bc-grpc-client-lib": "~0.3.4",
-    "@mojaloop/accounts-and-balances-bc-public-types-lib": "~0.3.2",
-    "@mojaloop/security-bc-client-lib": "~0.3.9",
-    "@mojaloop/security-bc-public-types-lib": "~0.3.6",
-    "tigerbeetle-node": "0.14.164",
-    "tslib": "~2.6.2",
-    "mongodb": "~6.3.0"
+	"@mojaloop/settlements-bc-domain-lib": "*",
+	"@mojaloop/logging-bc-public-types-lib": "~0.5.2",
+	"@mojaloop/accounts-and-balances-bc-grpc-client-lib": "~0.5.1",
+	"@mojaloop/accounts-and-balances-bc-public-types-lib": "~0.5.1",
+	"@mojaloop/security-bc-client-lib": "~0.5.7",
+	"@mojaloop/security-bc-public-types-lib": "~0.5.5",
+	"tigerbeetle-node": "0.14.164",
+	"tslib": "~2.6.2",
+	"mongodb": "~6.3.0"
+  },
+  "engines": {
+	"node": ">=20.10.0"
   }
 }

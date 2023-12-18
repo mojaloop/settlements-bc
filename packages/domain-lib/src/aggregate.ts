@@ -155,9 +155,6 @@ export class SettlementsAggregate {
 		this._commandsCounter = metrics.getCounter("SettlementsAggregate_CommandsProcessed", "Commands processed by the Settlements Aggregate", ["commandName"]);
 
 		// Configs:
-		this._configClient.init();
-		this._configClient.bootstrap(true);
-		this._configClient.fetch();
 		this._currencyList = this._configClient.globalConfigs.getCurrencies();
 	}
 

@@ -30,10 +30,8 @@
 
 "use strict";
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-import {ConsoleLogger, ILogger} from "@mojaloop/logging-bc-public-types-lib";
 
-const packageJSON = require("../../package.json");
+import {ConsoleLogger, ILogger} from "@mojaloop/logging-bc-public-types-lib";
 
 
 import {
@@ -43,6 +41,9 @@ import {
 import {AuthenticatedHttpRequester} from "@mojaloop/security-bc-client-lib";
 import {MLKafkaJsonConsumer} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 // import { ConfigParameterTypes } from "@mojaloop/platform-configuration-bc-public-types-lib";
+
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const packageJSON = require("../../package.json");
 
 // configs - constants / code dependent
 const BC_NAME = "settlements-bc";
