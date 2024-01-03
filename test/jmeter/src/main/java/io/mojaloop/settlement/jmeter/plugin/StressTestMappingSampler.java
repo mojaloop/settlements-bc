@@ -28,14 +28,12 @@ public class StressTestMappingSampler extends AbstractJavaSamplerClient {
 	 */
 	private static class Arg {
 		private static final String _0_INPUT_FILE = "inputFile";
-		private static final String _1_INPUT_DIRECTORY = "inputDirectory";
 		private static final String _2_URL = "url";
 	}
 
 	private Logger logger = this.getNewLogger();
 
 	private String inputFile = null;
-	private String inputDirectory = null;
 	private String url = "http://localhost:3001";
 
 	private SettlementBCClient settleClient = null;
@@ -50,25 +48,19 @@ public class StressTestMappingSampler extends AbstractJavaSamplerClient {
 	@Override
 	public void setupTest(JavaSamplerContext context) {
 		super.setupTest(context);
-		this.logger.info("Initiating test data." + context.getJMeterProperties());
+		this.logger.info("Initiating test data. {}", JavaSamplerContext.getJMeterProperties());
 		this.counter = 0;
 
 		// Set Params:
 		this.inputFile = context.getParameter(Arg._0_INPUT_FILE);
-		this.inputDirectory = context.getParameter(Arg._1_INPUT_DIRECTORY);
 
 		File inputFileVal = new File(this.inputFile);
 		this.allTestData = TestDataUtil.readTestDataFromFile(inputFileVal);
 		if (this.allTestData.isEmpty()) {
-			File inputDirVal = new File(this.inputDirectory);
-			this.logger.info(String.format("Test file '%s' empty. Making use of directory '%s' instead.",
-					inputFileVal.getAbsolutePath(), inputDirVal.getAbsolutePath()));
-			this.allTestData = TestDataUtil.readRawTestDataFromFile(inputDirVal);
-		}
-
-		if (this.allTestData.isEmpty()) {
-			throw new IllegalStateException(String.format("No test data. Please provide '%s' or '%s' parameter data and content.",
-					Arg._0_INPUT_FILE, Arg._1_INPUT_DIRECTORY));
+			throw new IllegalStateException(
+					String.format("No test data. Please provide '%s' parameter data and content.",
+					Arg._0_INPUT_FILE)
+			);
 		}
 
 		this.commandCount = this.allTestData.size();
@@ -86,7 +78,6 @@ public class StressTestMappingSampler extends AbstractJavaSamplerClient {
 		Arguments defaultParameters = new Arguments();
 		String userHome = System.getProperty("user.home");
 		defaultParameters.addArgument(Arg._0_INPUT_FILE, userHome);
-		defaultParameters.addArgument(Arg._1_INPUT_DIRECTORY, userHome);
 		defaultParameters.addArgument(Arg._2_URL, this.url);
 		return defaultParameters;
 	}

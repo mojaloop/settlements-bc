@@ -112,13 +112,12 @@ public class SamplerRunner {
 			String samplerLabel = result.getSampleLabel();
 			result.setSampleLabel(String.format("%s:%s", samplerLabel, except.getRspCode()));
 		} catch (Exception except) {
+			logger.error(except.getMessage(), except);
 			result.sampleEnd();
-			except.printStackTrace();
 			String errMsg = except.getMessage();
 			if (errMsg == null) errMsg = "[Msg not set for error.]";
 
 			result.setSuccessful(Boolean.FALSE);
-			this.logger.error(errMsg, except);
 			result.setResponseData(errMsg, "UTF-8");
 			result.setResponseMessage("ERROR-EXCEPTION ("+ testData.getActionType()+"): "+ errMsg);
 			result.setResponseCode("500");

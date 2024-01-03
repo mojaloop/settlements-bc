@@ -18,8 +18,8 @@
           <stringProp name="LoopController.loops">10</stringProp>
           <boolProp name="LoopController.continue_forever">false</boolProp>
         </elementProp>
-        <stringProp name="ThreadGroup.num_threads">1</stringProp>
-        <stringProp name="ThreadGroup.ramp_time">0</stringProp>
+        <stringProp name="ThreadGroup.num_threads">5</stringProp>
+        <stringProp name="ThreadGroup.ramp_time">4</stringProp>
         <boolProp name="ThreadGroup.scheduler">false</boolProp>
         <stringProp name="ThreadGroup.duration"></stringProp>
         <stringProp name="ThreadGroup.delay"></stringProp>
@@ -32,12 +32,7 @@
             <collectionProp name="Arguments.arguments">
               <elementProp name="inputFile" elementType="Argument">
                 <stringProp name="Argument.name">inputFile</stringProp>
-                <stringProp name="Argument.value">/Users/jasonbruwer/WorkspacePlayground/Test20231207.json</stringProp>
-                <stringProp name="Argument.metadata">=</stringProp>
-              </elementProp>
-              <elementProp name="inputDirectory" elementType="Argument">
-                <stringProp name="Argument.name">inputDirectory</stringProp>
-                <stringProp name="Argument.value">1</stringProp>
+                <stringProp name="Argument.value">/Users/jasonbruwer/WorkspacePlayground/Mojaloop/settlements-bc/test/jmeter/test-plan/SampleSettlementBC.json</stringProp>
                 <stringProp name="Argument.metadata">=</stringProp>
               </elementProp>
               <elementProp name="url" elementType="Argument">

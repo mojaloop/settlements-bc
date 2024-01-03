@@ -23,5 +23,5 @@ rm jMeterResults.log
 if [ "$1" == "console" ]; then
     $JMETER_HOME/bin/jmeter -n -t test-plan/JMeter-MJLSettlementsBC-Default.jmx -l jMeterResults.log -e -o jMeterOut
 else
-    $JMETER_HOME/bin/jmeter -t test-plan/JMeter-MJLSettlementsBC-Default.jmx
+    $JMETER_HOME/libexec/bin/jmeter -t ./test-plan/JMeter-MJLSettlementsBC-Default.jmx
 fi
