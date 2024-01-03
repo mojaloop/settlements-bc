@@ -41,15 +41,16 @@ import {
 } from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 import {
 	AuthenticatedHttpRequester,
-	AuthorizationClient,
+	AuthorizationClient, LoginHelper,
 	TokenHelper
 } from "@mojaloop/security-bc-client-lib";
 import {
-	IParticipantAccountNotifier,
+	IAccountsBalancesAdapter,
 	ISettlementBatchRepo,
 	ISettlementBatchTransferRepo,
 	ISettlementConfigRepo,
 	ISettlementMatrixRequestRepo,
+	SettlementsAggregate
 } from "@mojaloop/settlements-bc-domain-lib";
 import process from "process";
 import {existsSync} from "fs";
@@ -59,6 +60,7 @@ import {
 	LocalAuditClientCryptoProvider
 } from "@mojaloop/auditing-bc-client-lib";
 import {
+	GrpcAccountsAndBalancesAdapter,
 	MongoSettlementBatchRepo,
 	MongoSettlementConfigRepo,
 	MongoSettlementMatrixRepo,
@@ -74,6 +76,8 @@ import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-li
 import {IMetrics} from "@mojaloop/platform-shared-lib-observability-types-lib";
 import {PrometheusMetrics} from "@mojaloop/platform-shared-lib-observability-client-lib";
 import crypto from "crypto";
+import {IConfigurationClient} from "@mojaloop/platform-configuration-bc-public-types-lib";
+import {ConfigurationClientMock} from "@mojaloop/settlements-bc-shared-mocks-lib";
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const packageJSON = require("../package.json");
@@ -105,6 +109,7 @@ const SVC_CLIENT_ID = process.env["SVC_CLIENT_ID"] || "settlements-bc-api-svc";
 const SVC_CLIENT_SECRET = process.env["SVC_CLIENT_SECRET"] || "superServiceSecret";
 
 const SVC_DEFAULT_HTTP_PORT = process.env["SVC_DEFAULT_HTTP_PORT"] || 3600;
+const ACCOUNTS_BALANCES_COA_SVC_URL = process.env["ACCOUNTS_BALANCES_COA_SVC_URL"] || "localhost:3300";
 
 const DB_NAME: string = "settlements";
 const SETTLEMENT_CONFIGS_COLLECTION_NAME: string = "configs";
@@ -130,27 +135,30 @@ export class Service {
 	static tokenHelper: ITokenHelper;
 	static authorizationClient: IAuthorizationClient;
 	static auditClient: IAuditClient;
+	static configClient: IConfigurationClient;
 	static configRepo: ISettlementConfigRepo;
 	static batchRepo: ISettlementBatchRepo;
-	static participantAccountNotifier: IParticipantAccountNotifier;
 	static batchTransferRepo: ISettlementBatchTransferRepo;
 	static matrixRepo: ISettlementMatrixRequestRepo;
 	static metrics: IMetrics;
 	static messageProducer: IMessageProducer;
 	static startupTimer: NodeJS.Timeout;
+	static abAdapter: IAccountsBalancesAdapter;
+	static aggregate: SettlementsAggregate;
 
 	static async start(
 		logger?:ILogger,
 		tokenHelper?: ITokenHelper,
 		authorizationClient?: IAuthorizationClient,
 		auditClient?: IAuditClient,
+		configClient?: IConfigurationClient,
 		configRepo?: ISettlementConfigRepo,
 		batchRepo?: ISettlementBatchRepo,
 		batchTransferRepo?: ISettlementBatchTransferRepo,
 		matrixRepo?: ISettlementMatrixRequestRepo,
-		participantAccountNotifier?: IParticipantAccountNotifier,
 		messageProducer?: IMessageProducer,
 		metrics?: IMetrics,
+		accountsAndBalancesAdapter?: IAccountsBalancesAdapter
 	):Promise<void>{
 		console.log(`Service starting with PID: ${process.pid}`);
 
@@ -237,13 +245,18 @@ export class Service {
 		}
 		this.auditClient = auditClient;
 
-		// if (!accountsAndBalancesAdapter) {
-		// 	const loginHelper = new LoginHelper(AUTH_N_SVC_TOKEN_URL, logger);
-		// 	loginHelper.setAppCredentials(SVC_CLIENT_ID, SVC_CLIENT_SECRET);
-		// 	accountsAndBalancesAdapter = new GrpcAccountsAndBalancesAdapter(ACCOUNTS_BALANCES_COA_SVC_URL, loginHelper, this.logger);
-		// 	await accountsAndBalancesAdapter.init();
-		// }
-		// this.accountsAndBalancesAdapter = accountsAndBalancesAdapter;
+		if (!configClient) {
+			configClient = new ConfigurationClientMock(this.logger);
+		}
+		this.configClient = configClient;
+
+		if (!accountsAndBalancesAdapter) {
+			const loginHelper = new LoginHelper(AUTH_N_SVC_TOKEN_URL, logger);
+			loginHelper.setAppCredentials(SVC_CLIENT_ID, SVC_CLIENT_SECRET);
+			accountsAndBalancesAdapter = new GrpcAccountsAndBalancesAdapter(ACCOUNTS_BALANCES_COA_SVC_URL, loginHelper, this.logger);
+			await accountsAndBalancesAdapter.init();
+		}
+		this.abAdapter = accountsAndBalancesAdapter;
 
 		// repositories
 		if (!configRepo) {
@@ -290,13 +303,6 @@ export class Service {
 		}
 		this.matrixRepo = matrixRepo;
 
-		// if (!participantAccountNotifier) {
-		// 	// we cannot use mocks in production code, they need to be injected in the Service.Start() for tests
-		// 	//participantAccountNotifier = new ParticipantAccountNotifierMock();
-		// 	throw new Error("Invalid participantAccountNotifier provided on Service.Start()");
-		// }
-		// this.participantAccountNotifier = participantAccountNotifier;
-
 		if (!messageProducer) {
 			const producerLogger = this.logger.createChild("messageProducer");
 			producerLogger.setLogLevel(LogLevel.INFO);
@@ -316,28 +322,27 @@ export class Service {
 		}
 		this.metrics = metrics;
 
-		/* Aggregate cannot be used outside the command-handler
+		// Aggregate cannot be used outside the command-handler
 		// Aggregate:
 		this.aggregate = new SettlementsAggregate(
 			this.logger,
 			this.authorizationClient,
 			this.auditClient,
+			this.configClient,
 			this.batchRepo,
 			this.batchTransferRepo,
 			this.configRepo,
 			this.matrixRepo,
-			this.participantAccountNotifier,
-			this.accountsAndBalancesAdapter,
+			this.abAdapter,
 			this.messageProducer,
 			this.metrics
-		);*/
+		);
 
 		await this.setupExpress();
 
 		// remove startup timeout
 		clearTimeout(this.startupTimer);
 	}
-
 
 	static setupExpress(): Promise<void>{
 		return new Promise<void>((resolve) => {
@@ -352,7 +357,8 @@ export class Service {
 				this.batchRepo,
 				this.batchTransferRepo,
 				this.matrixRepo,
-				this.messageProducer
+				this.messageProducer,
+				this.aggregate
 			);
 
 			this.app.use("/", routes.MainRouter);
@@ -382,7 +388,6 @@ export class Service {
 		if (this.batchRepo) await this.batchRepo.destroy();
 		if (this.batchTransferRepo) await this.batchTransferRepo.destroy();
 		if (this.matrixRepo) await this.matrixRepo.destroy();
-		if (this.participantAccountNotifier) await this.participantAccountNotifier.destroy();
 		if (this.logger instanceof KafkaLogger) await this.logger.destroy();
 	}
 }
@@ -391,7 +396,6 @@ export class Service {
 /**
  * process termination and cleanup
  */
-
 async function _handle_int_and_term_signals(signal: NodeJS.Signals): Promise<void> {
 	console.info(`Service - ${signal} received - cleaning up...`);
 	let clean_exit = false;

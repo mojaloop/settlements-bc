@@ -44,7 +44,8 @@ import {
 	AddBatchesToMatrixCmd,
 	RemoveBatchesFromMatrixCmdPayload,
 	RemoveBatchesFromMatrixCmd,
-	CreateSettlementModelCmd, LockMatrixCmd, UnlockMatrixCmd
+	CreateSettlementModelCmd, LockMatrixCmd, UnlockMatrixCmd,
+	SettlementsAggregate, UnauthorizedError
 } from "@mojaloop/settlements-bc-domain-lib";
 import {CallSecurityContext} from "@mojaloop/security-bc-public-types-lib";
 import {
@@ -69,7 +70,7 @@ const MAX_ENTRIES_PER_PAGE = 100;
 export class ExpressRoutes {
 	private readonly _logger: ILogger;
 	private readonly _tokenHelper: ITokenHelper;
-	// private readonly _aggregate: SettlementsAggregate;
+	private readonly _aggregate: SettlementsAggregate;
 	private readonly _configRepo: ISettlementConfigRepo;
 	private readonly _batchRepo: ISettlementBatchRepo;
 	private readonly _batchTransferRepo: ISettlementBatchTransferRepo;
@@ -85,7 +86,8 @@ export class ExpressRoutes {
 		batchRepo: ISettlementBatchRepo,
 		batchTransferRepo: ISettlementBatchTransferRepo,
 		matrixRepo: ISettlementMatrixRequestRepo,
-		messageProducer: IMessageProducer
+		messageProducer: IMessageProducer,
+		aggregate: SettlementsAggregate
 	) {
 		this._logger = logger.createChild(this.constructor.name);
 		this._tokenHelper = tokenHelper;
@@ -94,6 +96,7 @@ export class ExpressRoutes {
 		this._batchTransferRepo = batchTransferRepo;
 		this._matrixRepo = matrixRepo;
 		this._messageProducer = messageProducer;
+		this._aggregate = aggregate;
 
 		this._router = express.Router();
 
@@ -102,16 +105,16 @@ export class ExpressRoutes {
 		// Inject authentication - all requests require a valid token.
 		this._router.use(this._authenticationMiddleware.bind(this)); // All requests require authentication.
 		
-		// transfer inject
+		// Transfer inject
 		// this is for tests only, normal path is though events (event/command handler)
-		// this._router.post("/transfer", this.postHandleTransfer.bind(this));
+		this._router.post("/transfer", this.postHandleTransfer.bind(this));
 
-		// models
+		// Models:
 		this._router.get("/models", this.getSettlementModels.bind(this));
 		this._router.get("/models/:id", this.getSettlementModelById.bind(this));
 		this._router.post("/models", this.postCreateSettlementModel.bind(this));
 
-		// Batches
+		// Batches:
 		this._router.get("/batches/:id", this.getSettlementBatch.bind(this));
 		this._router.get("/batches", this.getSettlementBatches.bind(this));
 		// this._router.get("/settlement_accounts", this.getSettlementBatchAccounts.bind(this)); // TODO is this necessary? batches already have the accounts
@@ -145,8 +148,7 @@ export class ExpressRoutes {
 	private async _authenticationMiddleware(req: express.Request, res: express.Response, next: express.NextFunction) {
 		const authorizationHeader = req.headers["authorization"];
 
-		if (!authorizationHeader)
-			return res.sendStatus(401);
+		if (!authorizationHeader) return res.sendStatus(401);
 
 		const bearer = authorizationHeader.trim().split(" ");
 		if (bearer.length!=2 || !bearer[1]) {
@@ -186,6 +188,23 @@ export class ExpressRoutes {
 
 	get MainRouter(): express.Router {
 		return this._router;
+	}
+
+	// this is for tests only, normal path is though events (event/command handler)
+	private async postHandleTransfer(req: express.Request, res: express.Response): Promise<void> {
+		try {
+			this._logger.debug(`Settlement postHandleTransfer - Transfer Req Body: ${JSON.stringify(req.body)}`);
+			const batchId = await this._aggregate.handleTransfer(req.securityContext!, req.body);
+			this.sendSuccessResponse(res, 202, batchId);
+			return;
+		} catch (error: any) {
+			this._logger.error(error);
+			if (error instanceof UnauthorizedError) {
+				this.sendErrorResponse(res, 403, "unauthorized");// TODO: verify.
+			} else {
+				this.sendErrorResponse(res, 500, error.message || ExpressRoutes.UNKNOWN_ERROR_MESSAGE);
+			}
+		}
 	}
 
 	private async getSettlementModels(req: express.Request, res: express.Response): Promise<void>{
