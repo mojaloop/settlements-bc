@@ -274,7 +274,8 @@ export class Service {
 				accountsAndBalancesAdapter = new TigerBeetleAccountsAndBalancesAdapter(
 					Number(TIGERBEETLE_CLUSTER_ID),
 					[TIGERBEETLE_CLUSTER_REPLICA_ADDRESSES],
-					this.logger
+					this.logger,
+					configClient
 				);
 				await accountsAndBalancesAdapter.init();
 			} else {

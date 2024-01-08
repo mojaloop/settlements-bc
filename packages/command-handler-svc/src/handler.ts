@@ -198,7 +198,6 @@ export class SettlementsCommandHandler{
 						// eslint-disable-next-line no-case-declarations
 						const batchUpdatedPayload = message.payload as MarkMatrixOutOfSyncCmdPayload;
 						await this._settlementsAgg.markMatrixOutOfSyncWhereBatch(
-							sectCtx,
 							batchUpdatedPayload.originMatrixId,
 							batchUpdatedPayload.batchIds
 						);

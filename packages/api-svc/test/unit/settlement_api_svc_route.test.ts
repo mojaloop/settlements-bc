@@ -4,9 +4,9 @@ import {
     AccountsBalancesAdapterMock,
     AuditClientMock,
     AuthorizationClientMock,
+    ConfigurationClientMock,
     MessageCache,
     MessageProducerMock,
-    ParticipantAccountNotifierMock,
     SettlementBatchRepoMock,
     SettlementBatchTransferRepoMock,
     SettlementConfigRepoMock,
@@ -38,6 +38,8 @@ import {
     ISettlementMatrixBalanceByStateAndCurrency
 } from "@mojaloop/settlements-bc-public-types-lib";
 import { randomUUID } from "crypto";
+import {IConfigurationClient} from "@mojaloop/platform-configuration-bc-public-types-lib";
+import {IMetrics, MetricsMock} from "@mojaloop/platform-shared-lib-observability-types-lib";
 
 
 const logger: ILogger = new ConsoleLogger();
@@ -52,10 +54,13 @@ const mockMessageProducer: IMessageProducer = new MessageProducerMock(logger, ms
 
 const mockAuthorizationClient: IAuthorizationClient = new AuthorizationClientMock(logger, true);
 const mockAuthorizationClientNoAuth: IAuthorizationClient = new AuthorizationClientMock(logger, false);
+
 const mockAuditClient: IAuditClient = new AuditClientMock(logger);
-const mockAccountsAndBalancesAdapter: IAccountsBalancesAdapter = new AccountsBalancesAdapterMock();
+const configClient: IConfigurationClient = new ConfigurationClientMock(logger);
+const metrics: IMetrics = new MetricsMock();
+
+const accBalAdapter: IAccountsBalancesAdapter = new AccountsBalancesAdapterMock();
 const mockConfigRepo: ISettlementConfigRepo = new SettlementConfigRepoMock();
-const mockParticipantAccountNotifier: IParticipantAccountNotifier = new ParticipantAccountNotifierMock();
 
 const server = (process.env["SETTLEMENT_SVC_URL"] || "http://localhost:3600");
 const AUTH_TOKEN = "bearer: FAKETOKEN";
@@ -72,18 +77,19 @@ let mockedSettlementMatrixBalancesStateAndCurrency: ISettlementMatrixBalanceBySt
 describe("Settlement BC api-svc route test", () => {
     beforeAll(async () => {
 
-
         await Service.start(
             logger,
             tokenHelper,
             mockAuthorizationClientNoAuth,
             mockAuditClient,
+            configClient,
             mockConfigRepo,
             mockBatchRepo,
             mockBatchTransferRepo,
             mockMatrixRequestRepo,
-            mockParticipantAccountNotifier,
-            mockMessageProducer
+            mockMessageProducer,
+            metrics,
+            accBalAdapter
         );
 
         //Prepare mocked batch data

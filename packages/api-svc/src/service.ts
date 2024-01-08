@@ -64,9 +64,10 @@ import {
 	MongoSettlementBatchRepo,
 	MongoSettlementConfigRepo,
 	MongoSettlementMatrixRepo,
-	MongoSettlementTransferRepo
+	MongoSettlementTransferRepo,
+	TigerBeetleAccountsAndBalancesAdapter
 } from "@mojaloop/settlements-bc-infrastructure-lib";
-import {IAuthorizationClient} from "@mojaloop/security-bc-public-types-lib";
+import {IAuthenticatedHttpRequester, IAuthorizationClient} from "@mojaloop/security-bc-public-types-lib";
 import {Server} from "net";
 import express, {Express} from "express";
 import {ExpressRoutes} from "./routes";
@@ -78,15 +79,16 @@ import {PrometheusMetrics} from "@mojaloop/platform-shared-lib-observability-cli
 import crypto from "crypto";
 import {IConfigurationClient} from "@mojaloop/platform-configuration-bc-public-types-lib";
 import {ConfigurationClientMock} from "@mojaloop/settlements-bc-shared-mocks-lib";
+import {ConfigurationClient, DefaultConfigProvider} from "@mojaloop/platform-configuration-bc-client-lib";
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const packageJSON = require("../package.json");
 const BC_NAME = "settlements-bc";
 const APP_NAME = "settlements-api-svc";
 const APP_VERSION = packageJSON.version;
+const CONFIGSET_VERSION = "0.0.1";
 const PRODUCTION_MODE = process.env["PRODUCTION_MODE"] || false;
 const LOG_LEVEL: LogLevel = process.env["LOG_LEVEL"] as LogLevel || LogLevel.DEBUG;
-//const ENV_NAME = process.env["ENV_NAME"] || "dev";
 
 const AUTH_N_SVC_BASEURL = process.env["AUTH_N_SVC_BASEURL"] || "http://localhost:3201";
 const AUTH_N_SVC_TOKEN_URL = AUTH_N_SVC_BASEURL + "/token"; // TODO this should not be known here, libs that use the base should add the suffix
@@ -96,7 +98,6 @@ const AUTH_N_TOKEN_AUDIENCE = process.env["AUTH_N_TOKEN_AUDIENCE"] || "mojaloop.
 const AUTH_N_SVC_JWKS_URL = process.env["AUTH_N_SVC_JWKS_URL"] || `${AUTH_N_SVC_BASEURL}/.well-known/jwks.json`;
 
 const AUTH_Z_SVC_BASEURL = process.env["AUTH_Z_SVC_BASEURL"] || "http://localhost:3202";
-
 
 const KAFKA_URL = process.env["KAFKA_URL"] || "localhost:9092";
 const MONGO_URL = process.env["MONGO_URL"] || "mongodb://root:example@localhost:27017/";
@@ -111,6 +112,7 @@ const SVC_CLIENT_SECRET = process.env["SVC_CLIENT_SECRET"] || "superServiceSecre
 const SVC_DEFAULT_HTTP_PORT = process.env["SVC_DEFAULT_HTTP_PORT"] || 3600;
 const ACCOUNTS_BALANCES_COA_SVC_URL = process.env["ACCOUNTS_BALANCES_COA_SVC_URL"] || "localhost:3300";
 
+// persistence related:
 const DB_NAME: string = "settlements";
 const SETTLEMENT_CONFIGS_COLLECTION_NAME: string = "configs";
 const SETTLEMENT_BATCHES_COLLECTION_NAME: string = "batches";
@@ -127,6 +129,18 @@ const kafkaProducerOptions: MLKafkaJsonProducerOptions = {
 };
 
 let globalLogger: ILogger;
+
+// tiger_beetle:
+const TIGERBEETLE_CLUSTER_ID = process.env["TIGERBEETLE_CLUSTER_ID"] || 1;
+const TIGERBEETLE_CLUSTER_REPLICA_ADDRESSES = process.env["TIGERBEETLE_CLUSTER_REPLICA_ADDRESSES"] || "default_CHANGEME";
+
+// environment:
+/*
+	- dev: default properties
+	- jmeter_mongo:
+	- jmeter_tiger_beetle:
+ */
+const ENV_NAME = process.env["ENV_NAME"] || "dev";
 
 export class Service {
 	static logger: ILogger;
@@ -166,6 +180,8 @@ export class Service {
 			throw new Error("Service start timed-out");
 		}, SERVICE_START_TIMEOUT_MS);
 
+		const jMeterStartup = this.isEnvJMeter();
+
 		if (!logger) {
 			logger = new KafkaLogger(
 				BC_NAME,
@@ -189,9 +205,10 @@ export class Service {
 		this.tokenHelper = tokenHelper;
 
 		// authorization client
+		let authRequester: IAuthenticatedHttpRequester|null = null;
 		if (!authorizationClient) {
 			// create the instance of IAuthenticatedHttpRequester
-			const authRequester = new AuthenticatedHttpRequester(logger, AUTH_N_SVC_TOKEN_URL);
+			authRequester = new AuthenticatedHttpRequester(logger, AUTH_N_SVC_TOKEN_URL);
 			authRequester.setAppCredentials(SVC_CLIENT_ID, SVC_CLIENT_SECRET);
 
 			const consumerHandlerLogger = logger.createChild("authorizationClientConsumer");
@@ -245,12 +262,23 @@ export class Service {
 		}
 		this.auditClient = auditClient;
 
-		if (!configClient) {
+		if (jMeterStartup) {
 			configClient = new ConfigurationClientMock(this.logger);
+		} else if (!configClient) {
+			const defaultConfigProvider: DefaultConfigProvider = new DefaultConfigProvider(logger, authRequester!, null);
+			configClient = new ConfigurationClient(BC_NAME, APP_NAME, APP_VERSION, CONFIGSET_VERSION, defaultConfigProvider);
 		}
 		this.configClient = configClient;
 
-		if (!accountsAndBalancesAdapter) {
+		if (jMeterStartup && this.isEnvJMeterTigerBeetle()) {
+			accountsAndBalancesAdapter = new TigerBeetleAccountsAndBalancesAdapter(
+				Number(TIGERBEETLE_CLUSTER_ID),
+				[TIGERBEETLE_CLUSTER_REPLICA_ADDRESSES],
+				this.logger,
+				this.configClient
+			);
+			await accountsAndBalancesAdapter.init();
+		} else if (!accountsAndBalancesAdapter) {
 			const loginHelper = new LoginHelper(AUTH_N_SVC_TOKEN_URL, logger);
 			loginHelper.setAppCredentials(SVC_CLIENT_ID, SVC_CLIENT_SECRET);
 			accountsAndBalancesAdapter = new GrpcAccountsAndBalancesAdapter(ACCOUNTS_BALANCES_COA_SVC_URL, loginHelper, this.logger);
@@ -258,7 +286,7 @@ export class Service {
 		}
 		this.abAdapter = accountsAndBalancesAdapter;
 
-		// repositories
+		// repositories:
 		if (!configRepo) {
 			configRepo = new MongoSettlementConfigRepo(
 				logger,
@@ -344,7 +372,7 @@ export class Service {
 		clearTimeout(this.startupTimer);
 	}
 
-	static setupExpress(): Promise<void>{
+	static setupExpress(): Promise<void> {
 		return new Promise<void>((resolve) => {
 			this.app = express();
 			this.app.use(express.json()); // for parsing application/json
@@ -379,7 +407,6 @@ export class Service {
 				resolve();
 			});
 		});
-
 	}
 
 	static async stop(): Promise<void> {
@@ -389,6 +416,18 @@ export class Service {
 		if (this.batchTransferRepo) await this.batchTransferRepo.destroy();
 		if (this.matrixRepo) await this.matrixRepo.destroy();
 		if (this.logger instanceof KafkaLogger) await this.logger.destroy();
+	}
+
+	static isEnvJMeter(): boolean {
+		return ENV_NAME.startsWith("jmeter_");
+	}
+
+	static isEnvJMeterMongo(): boolean {
+		return ENV_NAME === "jmeter_mongo";
+	}
+
+	static isEnvJMeterTigerBeetle(): boolean {
+		return ENV_NAME === "jmeter_tiger_beetle";
 	}
 }
 

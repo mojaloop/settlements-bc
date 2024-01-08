@@ -40,25 +40,25 @@ import {CreateTransfersError} from "tigerbeetle-node";
 import net from "net";
 import dns from "dns";
 import {IAccountsBalancesAdapter} from "@mojaloop/settlements-bc-domain-lib";
+import {Currency, IConfigurationClient} from "@mojaloop/platform-configuration-bc-public-types-lib";
 
 export class TigerBeetleAccountsAndBalancesAdapter implements IAccountsBalancesAdapter {
     private readonly _logger: ILogger;
     private readonly _clusterId: number;
     private _replicaAddresses: string[];
     private _client: TB.Client;
+    private _currencyList: Currency[];
 
-    private _currencyMapping = [
-        { currency: 'ZAR', code: 710 },
-        { currency: 'KES', code: 404 },
-        { currency: 'USD', code: 840 },
-        { currency: 'EUR', code: 978 },
-        { currency: 'GBP', code: 826 }
-    ];
-
-    constructor(clusterId: number, replicaAddresses: string[], logger: ILogger) {
+    constructor(
+        clusterId: number,
+        replicaAddresses: string[],
+        logger: ILogger,
+        configClient: IConfigurationClient
+    ) {
         this._clusterId = clusterId;
         this._replicaAddresses = replicaAddresses;
         this._logger = logger.createChild(this.constructor.name);
+        this._currencyList = configClient.globalConfigs.getCurrencies();
     }
 
     async init(): Promise<void> {
@@ -324,9 +324,9 @@ export class TigerBeetleAccountsAndBalancesAdapter implements IAccountsBalancesA
 
     private _bigIntToUuid(bi: bigint): string {
         let str = bi.toString(16);
-        while (str.length<32) str = "0"+str;
+        while (str.length < 32) str = "0"+str;
 
-        if (str.length !== 32){
+        if (str.length !== 32) {
             this._logger.warn(`_bigIntToUuid() got string that is not 32 chars long: "${str}"`);
         } else {
             str = str.substring(0, 8)+"-"+str.substring(8, 12)+"-"+str.substring(12, 16)+"-"+str.substring(16, 20)+"-"+str.substring(20);
@@ -339,14 +339,14 @@ export class TigerBeetleAccountsAndBalancesAdapter implements IAccountsBalancesA
     }
 
     private _obtainLedgerFromCurrency(currencyTxt: string) : number {
-        const returnVal = this._currencyMapping.find(itm => itm.currency === currencyTxt);
-        if (returnVal) return returnVal.code;
+        const returnVal = this._currencyList.find(itm => itm.code === currencyTxt);
+        if (returnVal) return Number(returnVal.num);
         return 0;
     }
 
     private _obtainCurrencyFromLedger(ledgerVal: number) : string {
-        const returnVal = this._currencyMapping.find(itm => itm.code === ledgerVal);
-        if (returnVal) return returnVal.currency;
+        const returnVal = this._currencyList.find(itm => Number(itm.num) === ledgerVal);
+        if (returnVal) return returnVal.code;
         return '';
     }
 }
