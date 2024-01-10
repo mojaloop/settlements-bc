@@ -30,13 +30,7 @@
 
 import {CallSecurityContext, ITokenHelper} from "@mojaloop/security-bc-public-types-lib";
 
-export class TokenHelperMock implements ITokenHelper{
-
-	// private _logger: any;
-	// private _jwksUrl: string;
-	// private _issuerName: string | null;
-	// private _audience: string | null;
-	// private _jwksClient: any;
+export class TokenHelperMock implements ITokenHelper {
 
 	async init(): Promise<void>{
 		return;

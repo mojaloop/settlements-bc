@@ -87,7 +87,8 @@ export class ExpressRoutes {
 		batchTransferRepo: ISettlementBatchTransferRepo,
 		matrixRepo: ISettlementMatrixRequestRepo,
 		messageProducer: IMessageProducer,
-		aggregate: SettlementsAggregate
+		aggregate: SettlementsAggregate,
+		barebones: boolean
 	) {
 		this._logger = logger.createChild(this.constructor.name);
 		this._tokenHelper = tokenHelper;
@@ -107,7 +108,9 @@ export class ExpressRoutes {
 		
 		// Transfer inject
 		// this is for tests only, normal path is though events (event/command handler)
-		this._router.post("/transfer", this.postHandleTransfer.bind(this));
+		if (barebones) {
+			this._router.post("/transfer", this.postHandleTransfer.bind(this));
+		}
 
 		// Models:
 		this._router.get("/models", this.getSettlementModels.bind(this));

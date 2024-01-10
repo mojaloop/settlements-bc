@@ -78,7 +78,11 @@ import {IMetrics} from "@mojaloop/platform-shared-lib-observability-types-lib";
 import {PrometheusMetrics} from "@mojaloop/platform-shared-lib-observability-client-lib";
 import crypto from "crypto";
 import {IConfigurationClient} from "@mojaloop/platform-configuration-bc-public-types-lib";
-import {ConfigurationClientMock} from "@mojaloop/settlements-bc-shared-mocks-lib";
+import {
+	AuthorizationClientMock,
+	ConfigurationClientMock,
+	TokenHelperMock
+} from "@mojaloop/settlements-bc-shared-mocks-lib";
 import {ConfigurationClient, DefaultConfigProvider} from "@mojaloop/platform-configuration-bc-client-lib";
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -131,14 +135,14 @@ const kafkaProducerOptions: MLKafkaJsonProducerOptions = {
 let globalLogger: ILogger;
 
 // tiger_beetle:
-const TIGERBEETLE_CLUSTER_ID = process.env["TIGERBEETLE_CLUSTER_ID"] || 1;
-const TIGERBEETLE_CLUSTER_REPLICA_ADDRESSES = process.env["TIGERBEETLE_CLUSTER_REPLICA_ADDRESSES"] || "default_CHANGEME";
+const USE_TIGERBEETLE = Boolean(process.env["USE_TIGERBEETLE"]) || false;
+const TIGERBEETLE_CLUSTER_ID = Number(process.env["TIGERBEETLE_CLUSTER_ID"]) || 1;
+const TIGERBEETLE_CLUSTER_REPLICA_ADDRESSES = process.env["TIGERBEETLE_CLUSTER_REPLICA_ADDRESSES"] || "localhost:9001";
 
 // environment:
 /*
-	- dev: default properties
-	- jmeter_mongo:
-	- jmeter_tiger_beetle:
+	- dev		: default properties
+	- jmeter	: barebone_jmeter_perf
  */
 const ENV_NAME = process.env["ENV_NAME"] || "dev";
 
@@ -180,8 +184,7 @@ export class Service {
 			throw new Error("Service start timed-out");
 		}, SERVICE_START_TIMEOUT_MS);
 
-		const jMeterStartup = this.isEnvJMeter();
-
+		const bareboneStartup = this.isEnvBarebone();
 		if (!logger) {
 			logger = new KafkaLogger(
 				BC_NAME,
@@ -195,7 +198,9 @@ export class Service {
 		}
 		globalLogger = this.logger = logger;
 
-		if(!tokenHelper){
+		if (!tokenHelper && bareboneStartup) {
+			tokenHelper = new TokenHelperMock();
+		} else if (!tokenHelper) {
 			tokenHelper = new TokenHelper(
 				AUTH_N_SVC_JWKS_URL, logger, AUTH_N_TOKEN_ISSUER_NAME,AUTH_N_TOKEN_AUDIENCE,
 				new MLKafkaJsonConsumer({kafkaBrokerList: KAFKA_URL, autoOffsetReset: "earliest", kafkaGroupId: INSTANCE_ID}, logger) // for jwt list - no groupId
@@ -206,7 +211,9 @@ export class Service {
 
 		// authorization client
 		let authRequester: IAuthenticatedHttpRequester|null = null;
-		if (!authorizationClient) {
+		if (!authorizationClient && bareboneStartup) {
+			authorizationClient = new AuthorizationClientMock(logger, true);
+		} else if (!authorizationClient) {
 			// create the instance of IAuthenticatedHttpRequester
 			authRequester = new AuthenticatedHttpRequester(logger, AUTH_N_SVC_TOKEN_URL);
 			authRequester.setAppCredentials(SVC_CLIENT_ID, SVC_CLIENT_SECRET);
@@ -262,7 +269,7 @@ export class Service {
 		}
 		this.auditClient = auditClient;
 
-		if (jMeterStartup) {
+		if (!configClient && bareboneStartup) {
 			configClient = new ConfigurationClientMock(this.logger);
 		} else if (!configClient) {
 			const defaultConfigProvider: DefaultConfigProvider = new DefaultConfigProvider(logger, authRequester!, null);
@@ -270,20 +277,19 @@ export class Service {
 		}
 		this.configClient = configClient;
 
-		if (jMeterStartup && this.isEnvJMeterTigerBeetle()) {
+		if ((!accountsAndBalancesAdapter && bareboneStartup) && USE_TIGERBEETLE) {
 			accountsAndBalancesAdapter = new TigerBeetleAccountsAndBalancesAdapter(
-				Number(TIGERBEETLE_CLUSTER_ID),
+				TIGERBEETLE_CLUSTER_ID,
 				[TIGERBEETLE_CLUSTER_REPLICA_ADDRESSES],
 				this.logger,
 				this.configClient
 			);
-			await accountsAndBalancesAdapter.init();
 		} else if (!accountsAndBalancesAdapter) {
 			const loginHelper = new LoginHelper(AUTH_N_SVC_TOKEN_URL, logger);
 			loginHelper.setAppCredentials(SVC_CLIENT_ID, SVC_CLIENT_SECRET);
 			accountsAndBalancesAdapter = new GrpcAccountsAndBalancesAdapter(ACCOUNTS_BALANCES_COA_SVC_URL, loginHelper, this.logger);
-			await accountsAndBalancesAdapter.init();
 		}
+		await accountsAndBalancesAdapter.init();
 		this.abAdapter = accountsAndBalancesAdapter;
 
 		// repositories:
@@ -366,13 +372,13 @@ export class Service {
 			this.metrics
 		);
 
-		await this.setupExpress();
+		await this.setupExpress(bareboneStartup);
 
 		// remove startup timeout
 		clearTimeout(this.startupTimer);
 	}
 
-	static setupExpress(): Promise<void> {
+	static setupExpress(barebones: boolean): Promise<void> {
 		return new Promise<void>((resolve) => {
 			this.app = express();
 			this.app.use(express.json()); // for parsing application/json
@@ -386,7 +392,8 @@ export class Service {
 				this.batchTransferRepo,
 				this.matrixRepo,
 				this.messageProducer,
-				this.aggregate
+				this.aggregate,
+				barebones
 			);
 
 			this.app.use("/", routes.MainRouter);
@@ -418,16 +425,8 @@ export class Service {
 		if (this.logger instanceof KafkaLogger) await this.logger.destroy();
 	}
 
-	static isEnvJMeter(): boolean {
-		return ENV_NAME.startsWith("jmeter_");
-	}
-
-	static isEnvJMeterMongo(): boolean {
-		return ENV_NAME === "jmeter_mongo";
-	}
-
-	static isEnvJMeterTigerBeetle(): boolean {
-		return ENV_NAME === "jmeter_tiger_beetle";
+	static isEnvBarebone(): boolean {
+		return ENV_NAME.startsWith("barebone_");
 	}
 }
 
