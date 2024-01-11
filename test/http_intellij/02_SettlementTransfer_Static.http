@@ -11,7 +11,7 @@ Content-Type: application/json
 > {% client.global.set("access_token", response.body.access_token); %}
 
 ### Test - [Settlement Transfer - Model = USD]:
-POST http://localhost:3600/transfer
+POST http://localhost:3600/transfers
 Content-Type: application/json
 X-Correlation-ID: Manual-{{$uuid}}
 Authorization: Bearer {{access_token}}

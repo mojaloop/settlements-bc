@@ -89,7 +89,7 @@ export class SettlementsCommandHandler{
 	private async _msgHandler(message: IMessage): Promise<void>{
 		// eslint-disable-next-line no-async-promise-executor
 		return await new Promise<void>(async (resolve) => {
-			this._logger.debug(`Got message in TransfersCommandHandler with name: ${message.msgName}`);
+			this._logger.debug(`Got message in SettlementsCommandHandler with name: ${message.msgName}`);
 			try {
 				const sectCtx = await this._getServiceSecContext();
 

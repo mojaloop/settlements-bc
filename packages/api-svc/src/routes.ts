@@ -109,8 +109,9 @@ export class ExpressRoutes {
 		// Transfer inject
 		// this is for tests only, normal path is though events (event/command handler)
 		if (barebones) {
-			this._router.post("/transfer", this.postHandleTransfer.bind(this));
+			this._router.post("/transfers", this.postHandleTransfer.bind(this));
 		}
+		this._router.get("/transfers", this.getSettlementBatchTransfers.bind(this));
 
 		// Models:
 		this._router.get("/models", this.getSettlementModels.bind(this));
@@ -120,33 +121,30 @@ export class ExpressRoutes {
 		// Batches:
 		this._router.get("/batches/:id", this.getSettlementBatch.bind(this));
 		this._router.get("/batches", this.getSettlementBatches.bind(this));
-		// this._router.get("/settlement_accounts", this.getSettlementBatchAccounts.bind(this)); // TODO is this necessary? batches already have the accounts
-		this._router.get("/transfers", this.getSettlementBatchTransfers.bind(this));
 
 		// Settlement Matrix:
-		this._router.post("/matrix", this.postCreateMatrix.bind(this));
-		this._router.post("/matrix/:id/batches", this.postAddBatchToStaticMatrix.bind(this));
-		this._router.delete("/matrix/:id/batches", this.postRemoveBatchFromStaticMatrix.bind(this));
+		this._router.post("/matrices", this.postCreateMatrix.bind(this));
+		this._router.post("/matrices/:id/batches", this.postAddBatchToStaticMatrix.bind(this));
+		this._router.delete("/matrices/:id/batches", this.postRemoveBatchFromStaticMatrix.bind(this));
 
-		// request recalculation of matrix
-		this._router.post("/matrix/:id/recalculate", this.postRecalculateMatrix.bind(this));
-		// request closure of a matrix
-		this._router.post("/matrix/:id/close", this.postCloseSettlementMatrix.bind(this));
-		// request settlement of a matrix
-		this._router.post("/matrix/:id/settle", this.postSettleSettlementMatrix.bind(this));
-		// request dispute of a matrix
-		this._router.post("/matrix/:id/dispute", this.postDisputeSettlementMatrix.bind(this));
-		// get matrix by id - static get, no recalculate
-		this._router.get("/matrix/:id", this.getSettlementMatrix.bind(this));
-		// get matrices - static get, no recalculate
-		this._router.get("/matrix", this.getSettlementMatrices.bind(this));
+		// Request recalculation of matrix:
+		this._router.post("/matrices/:id/recalculate", this.postRecalculateMatrix.bind(this));
+		// Request closure of a matrix:
+		this._router.post("/matrices/:id/close", this.postCloseSettlementMatrix.bind(this));
+		// Request settlement of a matrix:
+		this._router.post("/matrices/:id/settle", this.postSettleSettlementMatrix.bind(this));
+		// Request dispute of a matrix:
+		this._router.post("/matrices/:id/dispute", this.postDisputeSettlementMatrix.bind(this));
+		// Request lock of a matrix:
+		this._router.post("/matrices/:id/lock", this.postLockSettlementMatrix.bind(this));
+		// Request un-lock of a matrix
+		this._router.post("/matrices/:id/unlock", this.postUnlockSettlementMatrix.bind(this));
 
-		// request lock of a matrix
-		this._router.post("/matrix/:id/lock", this.postLockSettlementMatrix.bind(this));
-		// request un-lock of a matrix
-		this._router.post("/matrix/:id/unlock", this.postUnlockSettlementMatrix.bind(this));
+		// Get matrix by id - static get, no recalculate:
+		this._router.get("/matrices/:id", this.getSettlementMatrix.bind(this));
+		// Get matrices - static get, no recalculate:
+		this._router.get("/matrices", this.getSettlementMatrices.bind(this));
 	}
-
 
 	private async _authenticationMiddleware(req: express.Request, res: express.Response, next: express.NextFunction) {
 		const authorizationHeader = req.headers["authorization"];
@@ -198,12 +196,14 @@ export class ExpressRoutes {
 		try {
 			this._logger.debug(`Settlement postHandleTransfer - Transfer Req Body: ${JSON.stringify(req.body)}`);
 			const batchId = await this._aggregate.handleTransfer(req.securityContext!, req.body);
-			this.sendSuccessResponse(res, 202, batchId);
+			this.sendSuccessResponse(res, 200, {
+				"batchId": batchId
+			});
 			return;
 		} catch (error: any) {
 			this._logger.error(error);
 			if (error instanceof UnauthorizedError) {
-				this.sendErrorResponse(res, 403, "unauthorized");// TODO: verify.
+				this.sendErrorResponse(res, 403, "unauthorized");
 			} else {
 				this.sendErrorResponse(res, 500, error.message || ExpressRoutes.UNKNOWN_ERROR_MESSAGE);
 			}
@@ -216,11 +216,11 @@ export class ExpressRoutes {
 		const name = req.query.name as string;
 		try {
 			let retModels: ISettlementConfig[] = [];
-			if(name){
+			if (name) {
 				this._logger.debug(`Got getSettlementModels request for model name: ${name}`);
 				const found = await this._configRepo.getSettlementConfigByModelName(name);
 				if(found) retModels.push(found);
-			}else{
+			} else {
 				this._logger.debug("Got getSettlementModels request");
 				retModels = await this._configRepo.getAllSettlementConfigs();
 			}
@@ -252,7 +252,6 @@ export class ExpressRoutes {
 
 	private async postCreateSettlementModel(req: express.Request, res: express.Response): Promise<void>{
 		// TODO enforce privileges
-
 		let id = req.body.id;
 		const name = req.body.settlementModel;
 		const batchCreateInterval = req.body.batchCreateInterval;
@@ -265,20 +264,19 @@ export class ExpressRoutes {
 			}
 
 			const existingModelName = await this._configRepo.getSettlementConfigByModelName(name);
-			if(existingModelName){
+			if (existingModelName) {
 				this._logger.warn("Duplicate Model Name on Settlement Model creation");
 				return this.sendErrorResponse(res, 400, "Duplicate Model Name on Settlement Model creation");
 			}
 
-			if(!id) id = name.toUpperCase();
+			if (!id) id = name.toUpperCase();
 			const existingModelId = await this._configRepo.getSettlementConfig(id);
-			if(existingModelId){
+			if (existingModelId) {
 				this._logger.warn("Duplicate Model ID on Settlement Model creation");
 				return this.sendErrorResponse(res, 400, "Duplicate Model ID on Settlement Model creation");
 			}
 
 			this._logger.debug(`Got postCreateSettlementModel request for model name: ${name}`);
-
 
 			const cmd = new CreateSettlementModelCmd({
 				id: id,
@@ -286,7 +284,6 @@ export class ExpressRoutes {
 				batchCreateInterval: batchCreateInterval,
 				createdBy: createdBy,
 			});
-
 
 			await this._messageProducer.send(cmd);
 
