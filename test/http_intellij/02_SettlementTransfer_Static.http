@@ -19,10 +19,8 @@ Authorization: Bearer {{access_token}}
 {
   "id" : null,
   "transferId" : "{{$uuid}}",
-  "payerFspId": "payer",
-  "payeeFspId": "payee",
-  "debitParticipantAccountId" : "deb-acc",
-  "creditParticipantAccountId" : "credit-acc",
+  "payerFspId": "123e4567-e89b-12d3-a456-426614174000",
+  "payeeFspId": "123e4567-e89b-12d3-a456-426614174001",
   "currencyCode" : "USD",
   "amount" : "10000",
   "timestamp" : {{$timestamp}}000,
@@ -30,8 +28,8 @@ Authorization: Bearer {{access_token}}
 }
 
 > {%
-    client.global.set("txn_batch_id", response.body);
-	client.global.set("txn_batch_name", response.body.substring(0, response.body.length-4));
+    client.global.set("txn_batch_id", response.body.batchId);
+	//client.global.set("txn_batch_name", response.body.substring(0, response.body.length-4));
 %}
 
 ########################################

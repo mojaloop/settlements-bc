@@ -9,6 +9,17 @@ https://jmeter.apache.org/usermanual/get-started.html
 https://jmeter.apache.org/usermanual/best-practices.html
 https://jmeter.apache.org/usermanual/component_reference.html#listeners
 
+# Environment
+Make use of the Mojaloop infrastructure docker-compose at: `platform-shared-tools/packages/deployment/docker-compose-infra`.
+
+The following environment properties need to be set:
+```properties
+AUDIT_KEY_FILE_PATH=/Users/jasonbruwer/WorkspacePlayground/Mojaloop/settlements-bc/data/audit_private_key.pem;
+ENV_NAME=barebone_jmeter_perf;
+MONGO_URL=mongodb://root:mongoDbPas42@localhost:27017/;
+USE_TIGERBEETLE=true
+```
+
 ## Configure
 The following configuration possibilities exists for the MJL Settlements-BC JMeter stress testing.
 

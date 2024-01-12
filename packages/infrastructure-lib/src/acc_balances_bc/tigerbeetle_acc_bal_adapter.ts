@@ -68,7 +68,7 @@ export class TigerBeetleAccountsAndBalancesAdapter implements IAccountsBalancesA
 
         this._logger.info(`TigerBeetleAdapter.init() creating client instance to clusterId: ${this._clusterId} and replica addresses: ${this._replicaAddresses}...`);
         this._client = TB.createClient({
-            cluster_id: this._clusterId,
+            cluster_id: BigInt(this._clusterId),
             replica_addresses: this._replicaAddresses
         });
     }
@@ -103,7 +103,7 @@ export class TigerBeetleAccountsAndBalancesAdapter implements IAccountsBalancesA
             user_data_32: 0,// u32
             reserved: 0, // [48]u8
             ledger: this._obtainLedgerFromCurrency(currencyCode),   // u32, ledger value
-            code: Number(type), // u16, a chart of accounts code describing the type of account (e.g. clearing, settlement)
+            code: this._codeFromDescription(type), // u16, a chart of accounts code describing the type of account (e.g. clearing, settlement)
             flags: 0,  // u16
             timestamp: 0n, // u64, Reserved: This will be set by the server.
         }];
@@ -148,7 +148,7 @@ export class TigerBeetleAccountsAndBalancesAdapter implements IAccountsBalancesA
             // You can't transfer money between accounts with different ledgers:
             ledger: this._obtainLedgerFromCurrency(currencyCode),  // u32, ledger for transfer (e.g. currency).
             // Chart of accounts code describing the reason for the transfer:
-            code: 2,  // u16, (e.g. 1-deposit, 2-settlement)
+            code: this._codeFromDescription("SETTLEMENT"),  // u16, (e.g. 1-deposit, 2-settlement)
             flags: 0, // u16
             timestamp: 0n, //u64, Reserved: This will be set by the server.
         }];
@@ -258,6 +258,14 @@ export class TigerBeetleAccountsAndBalancesAdapter implements IAccountsBalancesA
             creditedAccountId: this._bigIntToUuid(item.credit_account_id),
             timestamp: Number(item.timestamp)
         };
+    }
+
+    private _codeFromDescription(desc: string) : number {
+        switch (desc) {
+            case "CLEARING": return 1;
+            case "SETTLEMENT": return 2;
+            default: return 1;
+        }
     }
 
     // check if addresses are IPs or names, resolve if names

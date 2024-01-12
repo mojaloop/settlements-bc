@@ -294,7 +294,7 @@ export class SettlementsAggregate {
 		// create the journal entry
 		const journalEntryId = await this._abAdapter.createJournalEntry(
 			randomUUID(),
-			batch.id, // allows us to segment transfers for batches easily.
+			batch.batchUUID, // allows us to segment transfers for batches easily.
 			currency.code,
 			transferDto.amount,
 			false, // not a 2-phase transfer.
@@ -1090,14 +1090,15 @@ export class SettlementsAggregate {
 		model: string,
 		currencyCode: string,
 		toDate: Date
-	):Promise<{batch: SettlementBatch, created:boolean}>{
-		const batchName = this._generateBatchName(model, currencyCode, toDate);
+	) : Promise<{batch: SettlementBatch, created: boolean}> {
+	 	const batchName = this._generateBatchName(model, currencyCode, toDate);
 		const existingBatches = await this._batchRepo.getBatchesByName(batchName);
 
 		if (!existingBatches || !existingBatches.items || existingBatches.items.length <= 0) {
 			// no batch exists with that name, let's create a new with seq number 1
 			const newBatchId = this._generateBatchIdentifier(batchName, 1);
 			const newBatch  = new SettlementBatch(
+				randomUUID(),
 				newBatchId,
 				Date.now(),
 				model,
@@ -1116,6 +1117,7 @@ export class SettlementsAggregate {
 			// highest seq is open, return it
 			const batchDto = sortedBatches[0];
 			const batch = new SettlementBatch(
+				batchDto.batchUUID,
 				batchDto.id,
 				batchDto.timestamp,
 				batchDto.settlementModel,
@@ -1132,6 +1134,7 @@ export class SettlementsAggregate {
 		const nextSeq = sortedBatches[0].batchSequence + 1;
 		const newBatchId = this._generateBatchIdentifier(batchName, nextSeq);
 		const newBatch = new SettlementBatch(
+			randomUUID(),
 			newBatchId,
 			Date.now(),
 			model,

@@ -85,6 +85,11 @@ import {DEFAULT_SETTLEMENT_MODEL_ID, DEFAULT_SETTLEMENT_MODEL_NAME} from "@mojal
 import {IConfigurationClient} from "@mojaloop/platform-configuration-bc-public-types-lib";
 import { ConfigurationClient,IConfigProvider } from "@mojaloop/platform-configuration-bc-client-lib";
 import crypto from "crypto";
+import {
+	AuthorizationClientMock,
+	ConfigurationClientMock,
+	TokenHelperMock
+} from "@mojaloop/settlements-bc-shared-mocks-lib";
 
 const BC_NAME = configClient.boundedContextName;
 const APP_NAME = configClient.applicationName;
@@ -113,10 +118,6 @@ const ACCOUNTS_BALANCES_COA_SVC_URL = process.env["ACCOUNTS_BALANCES_COA_SVC_URL
 const SVC_CLIENT_ID = process.env["SVC_CLIENT_ID"] || "settlements-bc-command-handler-svc";
 const SVC_CLIENT_SECRET = process.env["SVC_CLIENT_SECRET"] || "superServiceSecret";
 
-const USE_TIGERBEETLE = process.env["USE_TIGERBEETLE"] || false;
-const TIGERBEETLE_CLUSTER_ID = process.env["TIGERBEETLE_CLUSTER_ID"] || 1;
-const TIGERBEETLE_CLUSTER_REPLICA_ADDRESSES = process.env["TIGERBEETLE_CLUSTER_REPLICA_ADDRESSES"] || "default_CHANGEME";
-
 const DB_NAME: string = "settlements";
 const SETTLEMENT_CONFIGS_COLLECTION_NAME: string = "configs";
 const SETTLEMENT_BATCHES_COLLECTION_NAME: string = "batches";
@@ -137,6 +138,18 @@ const kafkaProducerOptions: MLKafkaJsonProducerOptions = {
 	kafkaBrokerList: KAFKA_URL
 };
 
+// Environment:
+/*
+	- dev		: default properties
+	- jmeter	: barebone_jmeter_perf
+ */
+const ENV_NAME = process.env["ENV_NAME"] || "dev";
+
+// TigerBeetle:
+const USE_TIGERBEETLE = Boolean(process.env["USE_TIGERBEETLE"]) || false;
+const TIGERBEETLE_CLUSTER_ID = Number(process.env["TIGERBEETLE_CLUSTER_ID"]) || 0;
+const TIGERBEETLE_CLUSTER_REPLICA_ADDRESSES = process.env["TIGERBEETLE_CLUSTER_REPLICA_ADDRESSES"] || "localhost:9001";
+
 let globalLogger: ILogger;
 
 export class Service {
@@ -156,6 +169,7 @@ export class Service {
 	static aggregate: SettlementsAggregate;
 	static handler: SettlementsCommandHandler;
 	static metrics: IMetrics;
+	static configurationClient: IConfigurationClient;
 	static startupTimer: NodeJS.Timeout;
 
 	static async start(
@@ -194,11 +208,18 @@ export class Service {
 		}
 		globalLogger = this.logger = logger;
 
-		await configClient.init();
-		await configClient.bootstrap(true);
-		await configClient.fetch();
+		const bareboneStartup = this.isEnvBarebone();
+		if (bareboneStartup) {
+			this.configurationClient = new ConfigurationClientMock(logger);
+		} else this.configurationClient = configClient;
 
-		if (!tokenHelper) {
+		await this.configurationClient.init();
+		await this.configurationClient.bootstrap(true);
+		await this.configurationClient.fetch();
+
+		if (bareboneStartup) {
+			tokenHelper = new TokenHelperMock();
+		} else if (!tokenHelper) {
 			tokenHelper = new TokenHelper(
 				AUTH_N_SVC_JWKS_URL, logger, AUTH_N_TOKEN_ISSUER_NAME, AUTH_N_TOKEN_AUDIENCE,
 				new MLKafkaJsonConsumer({kafkaBrokerList: KAFKA_URL, autoOffsetReset: "earliest", kafkaGroupId: INSTANCE_ID}, logger) // for jwt list - no groupId
@@ -207,14 +228,16 @@ export class Service {
 		}
 		this.tokenHelper = tokenHelper;
 
-		if(!loginHelper){
+		if (!loginHelper){
 			loginHelper = new LoginHelper(AUTH_N_SVC_TOKEN_URL, this.logger);
 			(loginHelper as LoginHelper).setAppCredentials(SVC_CLIENT_ID, SVC_CLIENT_SECRET);
 		}
 		this.loginHelper = loginHelper;
 
 		// authorization client
-		if (!authorizationClient) {
+		if (bareboneStartup) {
+			authorizationClient = new AuthorizationClientMock(logger, true);
+		} else if (!authorizationClient) {
 			// create the instance of IAuthenticatedHttpRequester
 			const authRequester = new AuthenticatedHttpRequester(logger, AUTH_N_SVC_TOKEN_URL);
 			authRequester.setAppCredentials(SVC_CLIENT_ID, SVC_CLIENT_SECRET);
@@ -272,17 +295,16 @@ export class Service {
 		if (!accountsAndBalancesAdapter) {
 			if (USE_TIGERBEETLE) {
 				accountsAndBalancesAdapter = new TigerBeetleAccountsAndBalancesAdapter(
-					Number(TIGERBEETLE_CLUSTER_ID),
+					TIGERBEETLE_CLUSTER_ID,
 					[TIGERBEETLE_CLUSTER_REPLICA_ADDRESSES],
 					this.logger,
-					configClient
+					this.configurationClient
 				);
-				await accountsAndBalancesAdapter.init();
 			} else {
 				accountsAndBalancesAdapter = new GrpcAccountsAndBalancesAdapter(ACCOUNTS_BALANCES_COA_SVC_URL, this.loginHelper as LoginHelper, this.logger);
-				await accountsAndBalancesAdapter.init();
 			}
 		}
+		await accountsAndBalancesAdapter.init();
 		this.accountsAndBalancesAdapter = accountsAndBalancesAdapter;
 
 		// repositories
@@ -373,7 +395,7 @@ export class Service {
 			this.logger,
 			this.authorizationClient,
 			this.auditClient,
-			configClient,
+			this.configurationClient,
 			this.batchRepo,
 			this.batchTransferRepo,
 			this.configRepo,
@@ -399,6 +421,10 @@ export class Service {
 
 		if (this.auditClient) await this.auditClient.destroy();
 		if (this.logger && this.logger instanceof KafkaLogger) await this.logger.destroy();
+	}
+
+	static isEnvBarebone(): boolean {
+		return ENV_NAME.startsWith("barebone_");
 	}
 }
 

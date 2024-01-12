@@ -99,6 +99,8 @@ const AUTH_N_SVC_TOKEN_URL = AUTH_N_SVC_BASEURL + "/token"; // TODO this should 
 const AUTH_N_TOKEN_ISSUER_NAME = process.env["AUTH_N_TOKEN_ISSUER_NAME"] || "mojaloop.vnext.dev.default_issuer";
 const AUTH_N_TOKEN_AUDIENCE = process.env["AUTH_N_TOKEN_AUDIENCE"] || "mojaloop.vnext.dev.default_audience";
 
+const CONFIG_SVC_BASEURL = process.env["CONFIG_SVC_BASEURL"] || "http://localhost:3203";
+
 const AUTH_N_SVC_JWKS_URL = process.env["AUTH_N_SVC_JWKS_URL"] || `${AUTH_N_SVC_BASEURL}/.well-known/jwks.json`;
 
 const AUTH_Z_SVC_BASEURL = process.env["AUTH_Z_SVC_BASEURL"] || "http://localhost:3202";
@@ -136,7 +138,7 @@ let globalLogger: ILogger;
 
 // tiger_beetle:
 const USE_TIGERBEETLE = Boolean(process.env["USE_TIGERBEETLE"]) || false;
-const TIGERBEETLE_CLUSTER_ID = Number(process.env["TIGERBEETLE_CLUSTER_ID"]) || 1;
+const TIGERBEETLE_CLUSTER_ID = Number(process.env["TIGERBEETLE_CLUSTER_ID"]) || 0;
 const TIGERBEETLE_CLUSTER_REPLICA_ADDRESSES = process.env["TIGERBEETLE_CLUSTER_REPLICA_ADDRESSES"] || "localhost:9001";
 
 // environment:
@@ -272,7 +274,12 @@ export class Service {
 		if (!configClient && bareboneStartup) {
 			configClient = new ConfigurationClientMock(this.logger);
 		} else if (!configClient) {
-			const defaultConfigProvider: DefaultConfigProvider = new DefaultConfigProvider(logger, authRequester!, null);
+			const defaultConfigProvider: DefaultConfigProvider = new DefaultConfigProvider(
+				logger,
+				authRequester!,
+				null,
+				CONFIG_SVC_BASEURL
+			);
 			configClient = new ConfigurationClient(BC_NAME, APP_NAME, APP_VERSION, CONFIGSET_VERSION, defaultConfigProvider);
 		}
 		this.configClient = configClient;
@@ -429,7 +436,6 @@ export class Service {
 		return ENV_NAME.startsWith("barebone_");
 	}
 }
-
 
 /**
  * process termination and cleanup
