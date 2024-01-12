@@ -95,6 +95,7 @@ describe("Settlement BC api-svc route test", () => {
         //Prepare mocked batch data
         mockedSettlementBatch =
         {
+            batchUUID: randomUUID(),
             id: "DEFAULT.USD.2023.06.19.08.30.001",
             timestamp: Date.now(),
             settlementModel: "DEFAULT",
@@ -215,6 +216,7 @@ describe("Settlement BC api-svc route test", () => {
         //Arrange
         const mockBatches: ISettlementBatch[] = [
             {
+                batchUUID: randomUUID(),
                 id: "DEFAULT.USD.2023.06.19.08.30.001",
                 timestamp: Date.now(),
                 settlementModel: "DEFAULT",
@@ -226,6 +228,7 @@ describe("Settlement BC api-svc route test", () => {
                 ownerMatrixId: null
             },
             {
+                batchUUID: randomUUID(),
                 id: "DEFAULT.USD.2023.06.20.01.20.001",
                 timestamp: Date.now(),
                 settlementModel: "CBX",
@@ -268,6 +271,7 @@ describe("Settlement BC api-svc route test", () => {
 
         const mockBatches: ISettlementBatch[] = [
             {
+                batchUUID: randomUUID(),
                 id: "DEFAULT.USD.2023.06.19.08.30.001",
                 timestamp: Date.now(),
                 settlementModel: 'DEFAULT',
@@ -279,6 +283,7 @@ describe("Settlement BC api-svc route test", () => {
                 ownerMatrixId: null
             },
             {
+                batchUUID: randomUUID(),
                 id: "CBX.USD.2023.06.20.01.20.001",
                 timestamp: Date.now(),
                 settlementModel: "CBX",
@@ -422,7 +427,7 @@ describe("Settlement BC api-svc route test", () => {
 
 
     /**Settlement Matrix Routes' Tests */
-    test("POST /matrix - should create matrix if doesn't exist", async () => {
+    test("POST /matrices - should create matrix if doesn't exist", async () => {
 
         //Arrange
 
@@ -497,7 +502,7 @@ describe("Settlement BC api-svc route test", () => {
 
         //Act
         const response = await request(server)
-            .post(`/matrix`)
+            .post(`/matrices`)
             .send(newMatrix)
             .set('authorization', AUTH_TOKEN);
 
@@ -507,7 +512,7 @@ describe("Settlement BC api-svc route test", () => {
     });
 
     /**Settlement Matrix Routes' Tests */
-    test("POST /matrix/:id/batches - should add batches to the given matrix", async () => {
+    test("POST /matrices/:id/batches - should add batches to the given matrix", async () => {
 
         //Arrange
 
@@ -565,7 +570,7 @@ describe("Settlement BC api-svc route test", () => {
 
         //Act
         const response = await request(server)
-            .post(`/matrix/${newMatrix.id}/batches`)
+            .post(`/matrices/${newMatrix.id}/batches`)
             .send(payload)
             .set('authorization', AUTH_TOKEN);
 
@@ -576,7 +581,7 @@ describe("Settlement BC api-svc route test", () => {
 
     });
 
-    test("DELETE /matrix/:id/batches should send message RemoveBatchesFromMatrixCmd to kafka queue", async () => {
+    test("DELETE /matrices/:id/batches should send message RemoveBatchesFromMatrixCmd to kafka queue", async () => {
         //Arrange
 
         //Prepare mocked Settlement Matrix batches
@@ -633,7 +638,7 @@ describe("Settlement BC api-svc route test", () => {
 
         //Act
         const response = await request(server)
-            .delete(`/matrix/${newMatrix.id}/batches`)
+            .delete(`/matrices/${newMatrix.id}/batches`)
             .send(payload)
             .set('authorization', AUTH_TOKEN);
 
@@ -643,7 +648,7 @@ describe("Settlement BC api-svc route test", () => {
         expect(response.body.id).toEqual(newMatrix.id);
     });
 
-    test("POST /matrix/:id/recalculate should send message RecalculateMatrixCmd to kafka queue", async () => {
+    test("POST /matrices/:id/recalculate should send message RecalculateMatrixCmd to kafka queue", async () => {
         //Arrange
 
         //Prepare mocked Settlement Matrix batches
@@ -700,7 +705,7 @@ describe("Settlement BC api-svc route test", () => {
 
         //Act
         const response = await request(server)
-            .post(`/matrix/TestMatrix/recalculate`)
+            .post(`/matrices/TestMatrix/recalculate`)
             .send(payload)
             .set('authorization', AUTH_TOKEN);
 
@@ -710,8 +715,7 @@ describe("Settlement BC api-svc route test", () => {
         expect(response.body.id).toEqual("TestMatrix");
     });
 
-    
-    test("POST /matrix/:id/close should send message CloseMatrixCmd to kafka queue", async () => {
+    test("POST /matrices/:id/close should send message CloseMatrixCmd to kafka queue", async () => {
         //Arrange
 
         //Prepare mocked Settlement Matrix batches
@@ -768,7 +772,7 @@ describe("Settlement BC api-svc route test", () => {
 
         //Act
         const response = await request(server)
-            .post(`/matrix/TestMatrix1/close`)
+            .post(`/matrices/TestMatrix1/close`)
             .send(payload)
             .set('authorization', AUTH_TOKEN);
 
@@ -778,9 +782,8 @@ describe("Settlement BC api-svc route test", () => {
         expect(response.body.id).toEqual("TestMatrix1");
     });
 
-    test("POST /matrix/:id/settle should send message SettleMatrixCmd to kafka queue", async () => {
+    test("POST /matrices/:id/settle should send message SettleMatrixCmd to kafka queue", async () => {
         //Arrange
-
         //Prepare mocked Settlement Matrix batches
         const settlementSettlementMatrixBatches: ISettlementMatrixBatch[] = [
             {
@@ -835,7 +838,7 @@ describe("Settlement BC api-svc route test", () => {
 
         //Act
         const response = await request(server)
-            .post(`/matrix/TestMatrix2/settle`)
+            .post(`/matrices/TestMatrix2/settle`)
             .send(payload)
             .set('authorization', AUTH_TOKEN);
 
@@ -845,7 +848,7 @@ describe("Settlement BC api-svc route test", () => {
         expect(response.body.id).toEqual("TestMatrix2");
     });
 
-    test("POST /matrix/:id/dispute should send message DisputeMatrixCmd to kafka queue", async () => {
+    test("POST /matrices/:id/dispute should send message DisputeMatrixCmd to kafka queue", async () => {
         //Arrange
 
         //Prepare mocked Settlement Matrix batches
@@ -902,7 +905,7 @@ describe("Settlement BC api-svc route test", () => {
 
         //Act
         const response = await request(server)
-            .post(`/matrix/TestMatrix3/dispute`)
+            .post(`/matrices/TestMatrix3/dispute`)
             .send(payload)
             .set('authorization', AUTH_TOKEN);
 
@@ -912,7 +915,7 @@ describe("Settlement BC api-svc route test", () => {
         expect(response.body.id).toEqual("TestMatrix3");
     });
 
-    test("GET /matrix/:id should get SettlementMatrix by Id", async () => {
+    test("GET /matrices/:id should get SettlementMatrix by Id", async () => {
         //Arrange
 
         //Prepare mocked Settlement Matrix batches
@@ -961,7 +964,7 @@ describe("Settlement BC api-svc route test", () => {
         
         //Act
         const response = await request(server)
-            .get(`/matrix/TestMatrix4`)
+            .get(`/matrices/TestMatrix4`)
             .set('authorization', AUTH_TOKEN);
 
         //Assert
@@ -969,7 +972,7 @@ describe("Settlement BC api-svc route test", () => {
         expect(response.body).toEqual(newMatrix);
     });
 
-    test("GET /matrix should get list of Matrices", async () => {
+    test("GET /matrices should get list of Matrices", async () => {
         //Arrange
         const matrix1: ISettlementMatrix = {
             id: "matrix1",
@@ -1010,10 +1013,9 @@ describe("Settlement BC api-svc route test", () => {
         await mockMatrixRequestRepo.storeMatrix(matrix1);
         await mockMatrixRequestRepo.storeMatrix(matrix2);
 
-
         //Act
         const response = await request(server)
-            .get(`/matrix`)
+            .get(`/matrices`)
             .set('authorization', AUTH_TOKEN);
 
         //Assert

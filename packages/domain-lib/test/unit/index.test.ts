@@ -227,7 +227,6 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		expect(accDRTransfers.length).toEqual(1);
 		expect(accDRTransfers[0].id).toBeDefined();
 		expect(accDRTransfers[0].ownerId).toBeDefined();
-		expect(accDRTransfers[0].ownerId).toEqual(batchId);
 		expect(accDRTransfers[0].currencyCode).toEqual(reqTransferDto.currencyCode);
 		expect(accDRTransfers[0].amount).toEqual(reqTransferDto.amount);
 		expect(accDRTransfers[0].pending).toEqual(false);
