@@ -1091,7 +1091,7 @@ export class SettlementsAggregate {
 		currencyCode: string,
 		toDate: Date
 	) : Promise<{batch: SettlementBatch, created: boolean}> {
-	 	const batchName = this._generateBatchName(model, currencyCode, toDate);
+		const batchName = this._generateBatchName(model, currencyCode, toDate);
 		const existingBatches = await this._batchRepo.getBatchesByName(batchName);
 
 		if (!existingBatches || !existingBatches.items || existingBatches.items.length <= 0) {
