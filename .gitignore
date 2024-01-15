@@ -128,3 +128,4 @@ devspace*
 
 # Jmeter Plugin classes
 test/jmeter/target
+test/jmeter/jMeterOut

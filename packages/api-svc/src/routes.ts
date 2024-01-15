@@ -107,8 +107,8 @@ export class ExpressRoutes {
 		this._router.use(this._authenticationMiddleware.bind(this)); // All requests require authentication.
 		
 		// Transfer inject
-		// this is for tests only, normal path is though events (event/command handler)
 		if (barebones) {
+			// this is for tests only, normal path is though events (event/command handler):
 			this._router.post("/transfers", this.postHandleTransfer.bind(this));
 		}
 		this._router.get("/transfers", this.getSettlementBatchTransfers.bind(this));

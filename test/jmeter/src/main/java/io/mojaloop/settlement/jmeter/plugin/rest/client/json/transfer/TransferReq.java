@@ -6,7 +6,6 @@ import lombok.Setter;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.text.SimpleDateFormat;
 import java.util.Date;
 
 /**
@@ -60,7 +59,8 @@ public class TransferReq extends ABaseJSONObject {
 			this.setAmount(jsonObject.getString(JSONMapping.AMOUNT));
 		}
 		if (jsonObject.has(JSONMapping.TIMESTAMP)) {
-			this.setTimestamp(this.dateFrom(jsonObject, JSONMapping.TIMESTAMP));
+			//this.setTimestamp(this.dateFrom(jsonObject, JSONMapping.TIMESTAMP));
+			this.setTimestamp(new Date(jsonObject.getLong(JSONMapping.TIMESTAMP)));
 		}
 		if (jsonObject.has(JSONMapping.SETTLEMENT_MODEL)) {
 			this.setSettlementModel(jsonObject.getString(JSONMapping.SETTLEMENT_MODEL));
@@ -87,7 +87,8 @@ public class TransferReq extends ABaseJSONObject {
 		else returnVal.put(JSONMapping.AMOUNT, this.getAmount());
 
 		if (this.getTimestamp() == null) returnVal.put(JSONMapping.TIMESTAMP, JSONObject.NULL);
-		else returnVal.put(JSONMapping.TIMESTAMP, new SimpleDateFormat(DATE_AND_TIME_FORMAT).format(this.getTimestamp()));
+		//else returnVal.put(JSONMapping.TIMESTAMP, new SimpleDateFormat(DATE_AND_TIME_FORMAT).format(this.getTimestamp()));
+		else returnVal.put(JSONMapping.TIMESTAMP, this.getTimestamp().getTime());
 
 		if (this.getSettlementModel() == null) returnVal.put(JSONMapping.SETTLEMENT_MODEL, JSONObject.NULL);
 		else returnVal.put(JSONMapping.SETTLEMENT_MODEL, this.getSettlementModel());

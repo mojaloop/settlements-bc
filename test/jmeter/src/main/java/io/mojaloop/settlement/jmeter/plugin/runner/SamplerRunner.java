@@ -18,7 +18,6 @@ import java.util.Date;
 import java.util.Queue;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Utility class used to run each of the test data types.
@@ -56,10 +55,10 @@ public class SamplerRunner {
 				case transfer:
 					TransferReq fundTransfer = (TransferReq) testData.getRequest();
 					fundTransfer.setTransferId(UUID.randomUUID().toString());
-					fundTransfer.setTimestamp(new Date(System.currentTimeMillis() + TimeUnit.DAYS.toMillis(1)));
+					fundTransfer.setTimestamp(new Date(System.currentTimeMillis()));
 
 					contentToSend = fundTransfer.toJsonObject().toString();
-					result.setRequestHeaders(this.createHeaderVal(actionType, "/settlement_transfer", testDataIndex));
+					result.setRequestHeaders(this.createHeaderVal(actionType, "/transfers", testDataIndex));
 					this.validateAndCorrectTransfer(fundTransfer);
 					result.sampleStart();
 					TransferRsp fundTransferRsp = this.settleClient.settlementTransfer(fundTransfer);
@@ -67,7 +66,7 @@ public class SamplerRunner {
 					responseJSON = fundTransferRsp.toJsonObject();
 
 					if (!fundTransferRsp.isSuccess()) {
-						throw new FailedResponseCodeException(fundTransferRsp.getRespCode(), responseJSON);
+						throw new FailedResponseCodeException("401", responseJSON);
 					}
 
 					long timestamp = System.currentTimeMillis();
@@ -86,7 +85,7 @@ public class SamplerRunner {
 					TransferRsp fundTransferRspRaw = new TransferRsp(responseJSON);
 
 					if (!fundTransferRspRaw.isSuccess()) {
-						throw new FailedResponseCodeException(fundTransferRspRaw.getRespCode(), responseJSON);
+						throw new FailedResponseCodeException("401", responseJSON);
 					}
 				break;
 				default:
