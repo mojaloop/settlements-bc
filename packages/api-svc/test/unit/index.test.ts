@@ -65,7 +65,6 @@ let settleBatchRepo: ISettlementBatchRepo;
 //let settleBatchAccRepo: ISettlementBatchAccountRepo;
 let settleTransferRepo: ISettlementBatchTransferRepo;
 let settleMatrixReqRepo: ISettlementMatrixRequestRepo;
-let partNotifier: IParticipantAccountNotifier;
 
 let auxiliarySettlementsHttpClient: AuxiliarySettlementsHttpClient;
 

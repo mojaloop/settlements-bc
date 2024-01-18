@@ -45,9 +45,9 @@ import {
 	TokenHelper
 } from "@mojaloop/security-bc-client-lib";
 import {
-	IAccountsBalancesAdapter,
+	IAccountsBalancesAdapter, ISettlementBatchCacheRepo,
 	ISettlementBatchRepo,
-	ISettlementBatchTransferRepo,
+	ISettlementBatchTransferRepo, ISettlementConfigCacheRepo,
 	ISettlementConfigRepo,
 	ISettlementMatrixRequestRepo,
 	SettlementsAggregate
@@ -81,9 +81,16 @@ import {IConfigurationClient} from "@mojaloop/platform-configuration-bc-public-t
 import {
 	AuthorizationClientMock,
 	ConfigurationClientMock,
-	TokenHelperMock
+	TokenHelperMock,
+	SettlementBatchTransferRepoTigerBeetle,
+	SettlementBatchCacheRepoMock,
+	AccountsBalancesAdapterMock,
+	AccountsBalancesAdapterVoid
 } from "@mojaloop/settlements-bc-shared-mocks-lib";
 import {ConfigurationClient, DefaultConfigProvider} from "@mojaloop/platform-configuration-bc-client-lib";
+import {
+	SettlementConfigCacheRepoMock
+} from "@mojaloop/settlements-bc-shared-mocks-lib/dist/repo/cache/settlement_config_cache_repo_mock";
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const packageJSON = require("../package.json");
@@ -92,7 +99,7 @@ const APP_NAME = "settlements-api-svc";
 const APP_VERSION = packageJSON.version;
 const CONFIGSET_VERSION = "0.0.1";
 const PRODUCTION_MODE = process.env["PRODUCTION_MODE"] || false;
-const LOG_LEVEL: LogLevel = process.env["LOG_LEVEL"] as LogLevel || LogLevel.DEBUG;
+const LOG_LEVEL: LogLevel = process.env["LOG_LEVEL"] as LogLevel || LogLevel.INFO;
 
 const AUTH_N_SVC_BASEURL = process.env["AUTH_N_SVC_BASEURL"] || "http://localhost:3201";
 const AUTH_N_SVC_TOKEN_URL = AUTH_N_SVC_BASEURL + "/token"; // TODO this should not be known here, libs that use the base should add the suffix
@@ -137,9 +144,11 @@ const kafkaProducerOptions: MLKafkaJsonProducerOptions = {
 let globalLogger: ILogger;
 
 // tiger_beetle:
-const USE_TIGERBEETLE = Boolean(process.env["USE_TIGERBEETLE"]) || false;
-const TIGERBEETLE_CLUSTER_ID = Number(process.env["TIGERBEETLE_CLUSTER_ID"]) || 0;
+const USE_TIGERBEETLE = process.env["USE_TIGERBEETLE"] || false;
+const TIGERBEETLE_CLUSTER_ID = process.env["TIGERBEETLE_CLUSTER_ID"] || 0;
 const TIGERBEETLE_CLUSTER_REPLICA_ADDRESSES = process.env["TIGERBEETLE_CLUSTER_REPLICA_ADDRESSES"] || "localhost:9001";
+
+const USE_MONGO_ADAPTER = process.env["USE_MONGO_ADAPTER"] || false;
 
 // environment:
 /*
@@ -164,6 +173,8 @@ export class Service {
 	static messageProducer: IMessageProducer;
 	static startupTimer: NodeJS.Timeout;
 	static abAdapter: IAccountsBalancesAdapter;
+	static configCache: ISettlementConfigCacheRepo;
+	static batchCache: ISettlementBatchCacheRepo;
 	static aggregate: SettlementsAggregate;
 
 	static async start(
@@ -178,7 +189,9 @@ export class Service {
 		matrixRepo?: ISettlementMatrixRequestRepo,
 		messageProducer?: IMessageProducer,
 		metrics?: IMetrics,
-		accountsAndBalancesAdapter?: IAccountsBalancesAdapter
+		accountsAndBalancesAdapter?: IAccountsBalancesAdapter,
+		configCache?: ISettlementConfigCacheRepo,
+		batchCache?: ISettlementBatchCacheRepo
 	):Promise<void>{
 		console.log(`Service starting with PID: ${process.pid}`);
 
@@ -284,13 +297,15 @@ export class Service {
 		}
 		this.configClient = configClient;
 
-		if ((!accountsAndBalancesAdapter && bareboneStartup) && USE_TIGERBEETLE) {
+		if ((!accountsAndBalancesAdapter && bareboneStartup) && USE_TIGERBEETLE === 'true') {
 			accountsAndBalancesAdapter = new TigerBeetleAccountsAndBalancesAdapter(
-				TIGERBEETLE_CLUSTER_ID,
+				Number(TIGERBEETLE_CLUSTER_ID),
 				[TIGERBEETLE_CLUSTER_REPLICA_ADDRESSES],
 				this.logger,
 				this.configClient
 			);
+		} else if (!accountsAndBalancesAdapter && USE_MONGO_ADAPTER === 'true') {
+			accountsAndBalancesAdapter = new AccountsBalancesAdapterVoid()
 		} else if (!accountsAndBalancesAdapter) {
 			const loginHelper = new LoginHelper(AUTH_N_SVC_TOKEN_URL, logger);
 			loginHelper.setAppCredentials(SVC_CLIENT_ID, SVC_CLIENT_SECRET);
@@ -322,15 +337,17 @@ export class Service {
 		}
 		this.batchRepo = batchRepo;
 
-		if (!batchTransferRepo) {
+		if ((!batchTransferRepo && bareboneStartup) && USE_TIGERBEETLE === 'true') {
+			batchTransferRepo = new SettlementBatchTransferRepoTigerBeetle();
+		} else if (!batchTransferRepo) {
 			batchTransferRepo = new MongoSettlementTransferRepo(
 				logger,
 				MONGO_URL,
 				DB_NAME,
 				SETTLEMENT_TRANSFERS_COLLECTION_NAME
 			);
-			await batchTransferRepo.init();
 		}
+		await batchTransferRepo.init();
 		this.batchTransferRepo = batchTransferRepo;
 
 		if (!matrixRepo) {
@@ -363,6 +380,18 @@ export class Service {
 		}
 		this.metrics = metrics;
 
+		if (!configCache) {
+			configCache = new SettlementConfigCacheRepoMock();
+		}
+		configCache.init();
+		this.configCache = configCache;
+
+		if (!batchCache) {
+			batchCache = new SettlementBatchCacheRepoMock();
+		}
+		batchCache.init();
+		this.batchCache = batchCache;
+
 		// Aggregate cannot be used outside the command-handler
 		// Aggregate:
 		this.aggregate = new SettlementsAggregate(
@@ -376,7 +405,9 @@ export class Service {
 			this.matrixRepo,
 			this.abAdapter,
 			this.messageProducer,
-			this.metrics
+			this.metrics,
+			this.configCache,
+			this.batchCache
 		);
 
 		await this.setupExpress(bareboneStartup);

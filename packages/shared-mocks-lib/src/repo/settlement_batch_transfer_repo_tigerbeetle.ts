@@ -27,28 +27,48 @@
 
 "use strict";
 
-export * from "./audit_client_mock";
+import {ISettlementBatchTransferRepo} from "@mojaloop/settlements-bc-domain-lib";
+import { BatchTransferSearchResults, ISettlementBatchTransfer } from "@mojaloop/settlements-bc-public-types-lib";
 
-export * from "./config_client_mock"
-export * from "./configurationset_wrappers"
+export class SettlementBatchTransferRepoTigerBeetle implements ISettlementBatchTransferRepo {
 
-export * from "./authentication_service_mock";
-export * from "./token_helper_mock";
-export * from "./message_mock";
-export * from "./authorization_client_mock";
+	async init(): Promise<void> {
+		return Promise.resolve();
+	}
+	async destroy(): Promise<void>{
+		return Promise.resolve();
+	}
 
-export * from "./repo/config_repo_mock";
+	async storeBatchTransfer(...batchTransfer: ISettlementBatchTransfer[]): Promise<void> {
+		// Already stored via the adapter.
+		return Promise.resolve();
+	}
 
-export * from "./repo/settlement_batch_repo_mock";
-export * from "./repo/settlement_batch_transfer_repo_mock";
+	async getBatchTransfersByBatchIds(
+		batchIds: string[],
+		pageIndex: number = 0,
+        pageSize: number = 100,
+	): Promise<BatchTransferSearchResults>{
+		const searchResults: BatchTransferSearchResults = {
+			pageIndex: pageIndex,
+			pageSize: pageSize,
+			totalPages: 0,
+			items: []
+		};
+		// TODO need to fetch the accounts and then the transfers for the accounts.
 
-export * from "./repo/settlement_matrix_request_repo_mock";
-export * from "./repo/settlement_batch_transfer_repo_tigerbeetle";
+		return Promise.resolve(searchResults);
+	}
 
-/** Adapter **/
-export * from "./adapter/accounts_balances_adapter_mock";
-export * from "./adapter/accounts_balances_adapter_void";
+	async getBatchTransfersByBatchNames(batchNames: string[]): Promise<ISettlementBatchTransfer[]> {
+		return Promise.resolve([]);
+	}
 
-/** Cache **/
-export * from "./repo/cache/settlement_batch_cache_repo_mock";
-export * from "./repo/cache/settlement_config_cache_repo_mock";
+	async getBatchTransfersByTransferId(transferId: string): Promise<ISettlementBatchTransfer[]> {
+		return Promise.resolve([]);
+	}
+
+	async getBatchTransfers(): Promise<ISettlementBatchTransfer[]>{
+		return Promise.resolve([]);
+	}
+}

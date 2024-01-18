@@ -84,7 +84,6 @@ export class MongoSettlementTransferRepo implements ISettlementBatchTransferRepo
 			this._logger.error(error, "MongoSettlementBatchRepo - initialisation failed");
 			throw new UnableToInitRepoError((error as any)?.message);
 		}
-
 	}
 
 	async destroy(): Promise<void> {

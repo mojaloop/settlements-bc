@@ -42,19 +42,20 @@
     "axios": "~1.6.2"
   },
   "dependencies": {
-    "@mojaloop/settlements-bc-domain-lib": "*",
-    "@mojaloop/settlements-bc-infrastructure-lib": "*",
-    "@mojaloop/settlements-bc-public-types-lib": "*",
     "@mojaloop/auditing-bc-client-lib": "~0.5.1",
     "@mojaloop/auditing-bc-public-types-lib": "~0.5.1",
     "@mojaloop/logging-bc-client-lib": "~0.5.2",
     "@mojaloop/logging-bc-public-types-lib": "~0.5.2",
     "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib": "~0.5.2",
-    "@mojaloop/security-bc-client-lib": "~0.5.7",
-    "@mojaloop/security-bc-public-types-lib": "~0.5.5",
     "@mojaloop/platform-shared-lib-observability-client-lib": "~0.5.1",
     "@mojaloop/platform-shared-lib-observability-types-lib": "~0.5.2",
-    "express": "~4.18.2"
+    "@mojaloop/security-bc-client-lib": "~0.5.7",
+    "@mojaloop/security-bc-public-types-lib": "~0.5.5",
+    "@mojaloop/settlements-bc-domain-lib": "*",
+    "@mojaloop/settlements-bc-infrastructure-lib": "*",
+    "@mojaloop/settlements-bc-public-types-lib": "*",
+    "express": "~4.18.2",
+    "newrelic": "^11.9.0"
   },
   "engines": {
     "node": ">=20.10.0"

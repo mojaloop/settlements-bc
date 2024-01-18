@@ -54,9 +54,9 @@ import {
 } from "@mojaloop/security-bc-client-lib";
 
 import {
-	IAccountsBalancesAdapter, IParticipantAccountNotifier,
+	IAccountsBalancesAdapter, ISettlementBatchCacheRepo,
 	ISettlementBatchRepo,
-	ISettlementBatchTransferRepo,
+	ISettlementBatchTransferRepo, ISettlementConfigCacheRepo,
 	ISettlementConfigRepo,
 	ISettlementMatrixRequestRepo,
 	Privileges,
@@ -87,9 +87,12 @@ import { ConfigurationClient,IConfigProvider } from "@mojaloop/platform-configur
 import crypto from "crypto";
 import {
 	AuthorizationClientMock,
-	ConfigurationClientMock,
+	ConfigurationClientMock, SettlementBatchCacheRepoMock,
 	TokenHelperMock
 } from "@mojaloop/settlements-bc-shared-mocks-lib";
+import {
+	SettlementConfigCacheRepoMock
+} from "@mojaloop/settlements-bc-shared-mocks-lib/dist/repo/cache/settlement_config_cache_repo_mock";
 
 const BC_NAME = configClient.boundedContextName;
 const APP_NAME = configClient.applicationName;
@@ -146,8 +149,8 @@ const kafkaProducerOptions: MLKafkaJsonProducerOptions = {
 const ENV_NAME = process.env["ENV_NAME"] || "dev";
 
 // TigerBeetle:
-const USE_TIGERBEETLE = Boolean(process.env["USE_TIGERBEETLE"]) || false;
-const TIGERBEETLE_CLUSTER_ID = Number(process.env["TIGERBEETLE_CLUSTER_ID"]) || 0;
+const USE_TIGERBEETLE = process.env["USE_TIGERBEETLE"] || false;
+const TIGERBEETLE_CLUSTER_ID = process.env["TIGERBEETLE_CLUSTER_ID"] || 0;
 const TIGERBEETLE_CLUSTER_REPLICA_ADDRESSES = process.env["TIGERBEETLE_CLUSTER_REPLICA_ADDRESSES"] || "localhost:9001";
 
 let globalLogger: ILogger;
@@ -166,6 +169,8 @@ export class Service {
 	static matrixRepo: ISettlementMatrixRequestRepo;
 	static messageConsumer: IMessageConsumer;
 	static messageProducer: IMessageProducer;
+	static configCache: ISettlementConfigCacheRepo;
+	static batchCache: ISettlementBatchCacheRepo;
 	static aggregate: SettlementsAggregate;
 	static handler: SettlementsCommandHandler;
 	static metrics: IMetrics;
@@ -186,6 +191,8 @@ export class Service {
 		messageConsumer?: IMessageConsumer,
 		messageProducer?: IMessageProducer,
 		metrics?: IMetrics,
+		configCache?: ISettlementConfigCacheRepo,
+		batchCache?: ISettlementBatchCacheRepo
 	): Promise<void> {
 		console.log(`Service starting with PID: ${process.pid}`);
 
@@ -293,9 +300,9 @@ export class Service {
 		this.auditClient = auditClient;
 
 		if (!accountsAndBalancesAdapter) {
-			if (USE_TIGERBEETLE) {
+			if (USE_TIGERBEETLE === 'true') {
 				accountsAndBalancesAdapter = new TigerBeetleAccountsAndBalancesAdapter(
-					TIGERBEETLE_CLUSTER_ID,
+					Number(TIGERBEETLE_CLUSTER_ID),
 					[TIGERBEETLE_CLUSTER_REPLICA_ADDRESSES],
 					this.logger,
 					this.configurationClient
@@ -390,6 +397,18 @@ export class Service {
 		}
 		this.metrics = metrics;
 
+		if (!configCache) {
+			configCache = new SettlementConfigCacheRepoMock();
+		}
+		configCache.init();
+		this.configCache = configCache;
+
+		if (!batchCache) {
+			batchCache = new SettlementBatchCacheRepoMock();
+		}
+		batchCache.init();
+		this.batchCache = batchCache;
+
 		// Aggregate:
 		this.aggregate = new SettlementsAggregate(
 			this.logger,
@@ -402,7 +421,9 @@ export class Service {
 			this.matrixRepo,
 			this.accountsAndBalancesAdapter,
 			this.messageProducer,
-			this.metrics
+			this.metrics,
+			this.configCache,
+			this.batchCache
 		);
 
 		// create handler and start it

@@ -128,12 +128,6 @@ export interface ISettlementBatchTransferRepo {
 	getBatchTransfers(): Promise<ISettlementBatchTransfer[]>;
 }
 
-export interface IParticipantAccountNotifier {
-	init(): Promise<void>;
-	destroy(): Promise<void>;
-	publishSettlementMatrixExecuteEvent(matrix: ISettlementMatrix): Promise<void>;
-}
-
 export interface ISettlementMatrixRequestRepo {
 	init(): Promise<void>;
 	destroy(): Promise<void>;
@@ -152,4 +146,20 @@ export interface ISettlementMatrixRequestRepo {
 	): Promise<MatrixSearchResults>;
 
 	getIdleMatricesWithBatchId(batchId: string): Promise<ISettlementMatrix[]>;
+}
+
+export interface ISettlementConfigCacheRepo {
+	init(): Promise<void>;
+	destroy(): Promise<void>;
+	invalidate(settlementModel: string): Promise<void>;
+	set(config: ISettlementConfig): Promise<void>;
+	get(settlementModel: string): Promise<ISettlementConfig | null | undefined>;
+}
+
+export interface ISettlementBatchCacheRepo {
+	init(): Promise<void>;
+	destroy(): Promise<void>;
+	invalidate(batchName: string): Promise<void>;
+	set(batchName: string, batchResult: BatchSearchResults): Promise<void>;
+	get(batchName: string): Promise<BatchSearchResults | null | undefined>;
 }

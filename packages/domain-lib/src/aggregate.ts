@@ -52,16 +52,16 @@ import {
 	SettlementModelAlreadyExistError
 } from "./types/errors";
 import {
-	IAccountsBalancesAdapter,
+	IAccountsBalancesAdapter, ISettlementBatchCacheRepo,
 	ISettlementBatchRepo,
-	ISettlementBatchTransferRepo,
+	ISettlementBatchTransferRepo, ISettlementConfigCacheRepo,
 	ISettlementConfigRepo,
 	ISettlementMatrixRequestRepo
 } from "./types/infrastructure";
 import {SettlementBatch} from "./types/batch";
 
 import {
-	ISettlementBatch,
+	ISettlementBatch, ISettlementConfig,
 	ISettlementMatrix,
 	ITransferDto
 } from "@mojaloop/settlements-bc-public-types-lib";
@@ -117,6 +117,9 @@ export class SettlementsAggregate {
 	private readonly  _currencyList: Currency[];
 	private _histo: IHistogram;
 	private _commandsCounter:ICounter;
+	private readonly _settleConfigCache: ISettlementConfigCacheRepo;
+	private readonly _settleBatchCache: ISettlementBatchCacheRepo;
+
 
 	constructor(
 		logger: ILogger,
@@ -129,7 +132,9 @@ export class SettlementsAggregate {
 		settlementMatrixReqRepo: ISettlementMatrixRequestRepo,
 		abAdapter: IAccountsBalancesAdapter,
 		msgProducer: IMessageProducer,
-		metrics: IMetrics
+		metrics: IMetrics,
+		configCache: ISettlementConfigCacheRepo,
+		batchCache: ISettlementBatchCacheRepo
 	) {
 		this._logger = logger;
 		this._authorizationClient = authorizationClient;
@@ -141,6 +146,8 @@ export class SettlementsAggregate {
 		this._settlementMatrixReqRepo = settlementMatrixReqRepo;
 		this._abAdapter = abAdapter;
 		this._msgProducer = msgProducer;
+		this._settleConfigCache = configCache;
+		this._settleBatchCache = batchCache;
 
 		// metrics:
 		this._histo = metrics.getHistogram("SettlementsAggregate", "SettlementsAggregate calls", ["callName", "success"]);
@@ -162,7 +169,7 @@ export class SettlementsAggregate {
 		return {
 			userId: secCtx.username,
 			appId: secCtx.clientId,
-			role: secCtx.platformRoleIds[0] // TODO: get role.
+			role: secCtx.platformRoleIds ? secCtx.platformRoleIds[0] : 'unknown'
 		};
 	}
 
@@ -226,14 +233,14 @@ export class SettlementsAggregate {
 		this._commandsCounter.inc({commandName: cmd.msgName}, 1);
 
 		const execStarts_timerEndFn = this._histo.startTimer({ callName: "aggregate_handleTransfer"});
-		const returnVal = this.handleTransfer(secCtx, transferDto);
+		const returnVal = await this.handleTransfer(secCtx, transferDto);
 		execStarts_timerEndFn({success:"true"});
 		return returnVal;
 	}
 
 	async handleTransfer(secCtx: CallSecurityContext, transferDto: ITransferDto): Promise<string> {
 		//this._enforcePrivilege(secCtx, Privileges.CREATE_SETTLEMENT_TRANSFER);
-
+		const start = Date.now();
 		if (!transferDto.timestamp || transferDto.timestamp < 1 ) throw new InvalidTimestampError();
 		if (!transferDto.settlementModel) throw new InvalidBatchSettlementModelError();
 		if (!transferDto.currencyCode) throw new InvalidCurrencyCodeError();
@@ -246,20 +253,15 @@ export class SettlementsAggregate {
 		const currency = this._getCurrencyOrThrow(transferDto.currencyCode);
 		this._getAmountOrThrow(transferDto.amount, currency);
 
-		// TODO implement cache and cache invalidation
-		const configDto = await this._configRepo.getSettlementConfigByModelName(transferDto.settlementModel);
-		if (!configDto) {
-			throw new NoSettlementConfig(`No settlement config for model '${transferDto.settlementModel}'.`);
-		}
-		const config = SettlementConfig.fromDto(configDto);
-
-		const batchStartDate: number = config.calculateBatchStartTimestamp(transferDto.timestamp);
-
+		const configDto = await this._getSettlementConfig(transferDto.settlementModel);
 		// get or create a batch
+		const config = SettlementConfig.fromDto(configDto);
+		const batchStartDate: number = config.calculateBatchStartTimestamp(transferDto.timestamp);
 		const resp = await this._getOrCreateBatch(transferDto.settlementModel, currency.code, new Date(batchStartDate));
 		const batch = resp.batch;
 
 		// find payer batch account (debit):
+		let accountAdded = false;
 		let debitedAccountExtId;
 		const debitedAccount = batch.getAccount(transferDto.payerFspId, currency.code);
 		if (debitedAccount) {
@@ -273,6 +275,7 @@ export class SettlementsAggregate {
 				currency.code
 			);
 			batch.addAccount(debitedAccountExtId, transferDto.payerFspId, currency.code);
+			accountAdded = true;
 		}
 
 		// find payee batch account (credit):
@@ -289,11 +292,12 @@ export class SettlementsAggregate {
 				currency.code
 			);
 			batch.addAccount(creditedAccountExtId, transferDto.payeeFspId, currency.code);
+			accountAdded = true;
 		}
 
 		// create the journal entry
 		const journalEntryId = await this._abAdapter.createJournalEntry(
-			randomUUID(),
+			transferDto.transferId,
 			batch.batchUUID, // allows us to segment transfers for batches easily.
 			currency.code,
 			transferDto.amount,
@@ -316,14 +320,16 @@ export class SettlementsAggregate {
 		);
 		await this._batchTransferRepo.storeBatchTransfer(batchTransfer);
 
-		// persist the batch changes
+		// persist the batch changes:
 		if (resp.created) {
 			await this._batchRepo.storeNewBatch(batch);
-		} else {
+			await this._settleBatchCache.invalidate(batch.batchName);
+		} else if (accountAdded) {
 			await this._batchRepo.updateBatch(batch);
+			await this._settleBatchCache.invalidate(batch.batchName);
 		}
 
-		if (resp.created) {
+		if (resp.created && this._auditingClient) {
 			// We perform an async audit:
 			// @esli
 			await this._auditingClient.audit(
@@ -335,6 +341,9 @@ export class SettlementsAggregate {
 				]
 			);
 		}
+
+		const took = (Date.now() - start);
+		if (took > 1000) this._logger.warn(`handleTransfer took too long: ${took}`);
 		return batch.id;
 	}
 
@@ -1086,13 +1095,31 @@ export class SettlementsAggregate {
 		return `${batchName}.${batchSeq.toString().padStart(SEQUENCE_STR_LENGTH, "0")}`;
 	}
 
+	private async _getSettlementConfig(model: string): Promise<ISettlementConfig> {
+		let configDto = await this._settleConfigCache.get(model);
+		if (configDto) return configDto;
+
+		configDto = await this._configRepo.getSettlementConfigByModelName(model);
+		if (!configDto) {
+			throw new NoSettlementConfig(`No settlement config for model '${model}'.`);
+		}
+		await this._settleConfigCache.set(configDto);
+		return configDto;
+	}
+
 	private async _getOrCreateBatch(
 		model: string,
 		currencyCode: string,
 		toDate: Date
 	) : Promise<{batch: SettlementBatch, created: boolean}> {
 		const batchName = this._generateBatchName(model, currencyCode, toDate);
-		const existingBatches = await this._batchRepo.getBatchesByName(batchName);
+
+		// Cache first then repo:
+		let existingBatches = await this._settleBatchCache.get(batchName);
+		if (!existingBatches) {
+			existingBatches = await this._batchRepo.getBatchesByName(batchName);
+			if (existingBatches) await this._settleBatchCache.set(batchName, existingBatches);
+		}
 
 		if (!existingBatches || !existingBatches.items || existingBatches.items.length <= 0) {
 			// no batch exists with that name, let's create a new with seq number 1
@@ -1107,11 +1134,12 @@ export class SettlementsAggregate {
 				batchName,
 				"OPEN"
 			);
-			return Promise.resolve({batch:newBatch, created: true});
+			await this._settleBatchCache.invalidate(batchName);
+			return Promise.resolve({batch: newBatch, created: true});
 		}
 
 		// let's find the highest seq open batch
-		// sort in decreasing order
+		// sort in decreasing order:
 		const sortedBatches = existingBatches.items.sort((a, b) => b.batchSequence - a.batchSequence);
 		if (sortedBatches[0].state === "OPEN") {
 			// highest seq is open, return it
@@ -1130,7 +1158,7 @@ export class SettlementsAggregate {
 			return Promise.resolve({batch: batch, created: false});
 		}
 
-		// if we got here, there is no open batch, let's open a new one
+		// if we got here, there is no open batch, let's open a new one:
 		const nextSeq = sortedBatches[0].batchSequence + 1;
 		const newBatchId = this._generateBatchIdentifier(batchName, nextSeq);
 		const newBatch = new SettlementBatch(
@@ -1143,6 +1171,7 @@ export class SettlementsAggregate {
 			batchName,
 			"OPEN"
 		);
+		await this._settleBatchCache.invalidate(batchName);
 		return Promise.resolve({batch: newBatch, created: true});
 	}
 }
