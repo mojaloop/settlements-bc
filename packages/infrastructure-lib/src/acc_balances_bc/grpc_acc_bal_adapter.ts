@@ -33,7 +33,7 @@
 import {GrpcCreateJournalEntryArray} from "@mojaloop/accounts-and-balances-bc-grpc-client-lib";
 import {AccountsAndBalancesAccountType} from "@mojaloop/accounts-and-balances-bc-public-types-lib";
 import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
-import {IAccountsBalancesAdapter} from "@mojaloop/settlements-bc-domain-lib";
+import {IAccountsBalancesAdapter, stringToBigint} from "@mojaloop/settlements-bc-domain-lib";
 
 import {
         AccountsAndBalancesAccount,
@@ -105,27 +105,30 @@ export class GrpcAccountsAndBalancesAdapter implements IAccountsBalancesAdapter 
         return createdIds.grpcIdArray![0].grpcId!;
     }
 
-    async createJournalEntry(
-        requestedId: string, ownerId: string , currencyCode: string,
-        amount: string, pending: boolean, debitedAccountId: string, creditedAccountId: string
-    ): Promise<string> {
-        const req: GrpcCreateJournalEntryArray = {
-            entriesToCreate: [{
-                requestedId: requestedId,
-                amount: amount,
-                pending: pending,
-                ownerId: ownerId,
-                currencyCode: currencyCode,
-                debitedAccountId: debitedAccountId,
-                creditedAccountId: creditedAccountId
-            }]
-        };
+    async createJournalEntries(
+        entries: AccountsAndBalancesJournalEntry[]
+    ): Promise<{id: string, errorCode: number}[]> {
+        const returnVal: {id: string, errorCode: number}[] = [];
+        for (const entry of entries) {
+            const req: GrpcCreateJournalEntryArray = {
+                entriesToCreate: [{
+                    requestedId: entry.id!,
+                    ownerId: entry.ownerId!,
+                    amount: entry.amount,
+                    pending: entry.pending,
+                    currencyCode: entry.currencyCode,
+                    debitedAccountId: entry.debitedAccountId,
+                    creditedAccountId: entry.creditedAccountId
+                }]
+            };
 
-        const createdId = await this._client.createJournalEntries(req).catch((reason) => {
-            this._logger.error(reason);
-            throw new Error("Could not create journalEntry in remote system: "+reason);
-        });
-        return createdId.grpcIdArray![0].grpcId!;
+            const createdId = await this._client.createJournalEntries(req).catch((reason) => {
+                this._logger.error(reason);
+                throw new Error("Could not create journalEntry in remote system: "+reason);
+            });
+            returnVal.push({id: createdId.grpcIdArray![0].grpcId!, errorCode: 0});
+        }
+        return Promise.resolve(returnVal);
     }
 
     async getJournalEntriesByAccountId(accountId: string): Promise<AccountsAndBalancesJournalEntry[]> {

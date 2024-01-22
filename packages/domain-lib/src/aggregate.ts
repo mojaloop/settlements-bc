@@ -40,7 +40,7 @@ import {
 	InvalidAmountError,
 	InvalidBatchSettlementModelError,
 	InvalidCurrencyCodeError,
-	InvalidIdError,
+	InvalidIdError, InvalidJournalEntryError,
 	InvalidSettlementModelError,
 	InvalidTimestampError,
 	InvalidTransferIdError,
@@ -71,7 +71,10 @@ import {CallSecurityContext, ForbiddenError, IAuthorizationClient} from "@mojalo
 import {Privileges} from "./privileges";
 import {bigintToString, stringToBigint} from "./converters";
 import {SettlementConfig} from "./types/settlement_config";
-import {AccountsAndBalancesAccountType} from "@mojaloop/accounts-and-balances-bc-public-types-lib";
+import {
+	AccountsAndBalancesAccountType,
+	AccountsAndBalancesJournalEntry
+} from "@mojaloop/accounts-and-balances-bc-public-types-lib";
 import {SettlementBatchTransfer} from "./types/transfer";
 import {SettlementMatrix} from "./types/matrix";
 import {MarkMatrixOutOfSyncCmd, CreateSettlementModelCmdPayload, ProcessTransferCmd} from "./commands";
@@ -248,10 +251,15 @@ export class SettlementsAggregate {
 		if (!transferDto.transferId) throw new InvalidTransferIdError();
 		if (!transferDto.payerFspId) throw new InvalidIdError("Invalid payerFspId in transfer");
 		if (!transferDto.payeeFspId) throw new InvalidIdError("Invalid payeeFspId in transfer");
+		const tookValidate = (Date.now() - start);
 
 		// verify the currency code (and get the corresponding currency decimals).
+		let tookInd = Date.now();
 		const currency = this._getCurrencyOrThrow(transferDto.currencyCode);
 		this._getAmountOrThrow(transferDto.amount, currency);
+
+		const tookCurrency = (Date.now() - tookInd);
+		tookInd = Date.now();
 
 		const configDto = await this._getSettlementConfig(transferDto.settlementModel);
 		// get or create a batch
@@ -259,6 +267,9 @@ export class SettlementsAggregate {
 		const batchStartDate: number = config.calculateBatchStartTimestamp(transferDto.timestamp);
 		const resp = await this._getOrCreateBatch(transferDto.settlementModel, currency.code, new Date(batchStartDate));
 		const batch = resp.batch;
+
+		const tookBatch = (Date.now() - tookInd);
+		tookInd = Date.now();
 
 		// find payer batch account (debit):
 		let accountAdded = false;
@@ -295,16 +306,34 @@ export class SettlementsAggregate {
 			accountAdded = true;
 		}
 
-		// create the journal entry
-		const journalEntryId = await this._abAdapter.createJournalEntry(
-			transferDto.transferId,
-			batch.batchUUID, // allows us to segment transfers for batches easily.
-			currency.code,
-			transferDto.amount,
-			false, // not a 2-phase transfer.
-			debitedAccountExtId,
-			creditedAccountExtId
-		);
+		const tookAccounts = (Date.now() - tookInd);
+		tookInd = Date.now();
+
+		// create the journal entry:
+		const journalEntries: AccountsAndBalancesJournalEntry[] = [
+			{
+				id: transferDto.transferId,
+				ownerId: batch.batchUUID, // allows us to segment transfers for batches easily.
+				amount: transferDto.amount,
+				debitedAccountId: debitedAccountExtId,
+				creditedAccountId: creditedAccountExtId,
+				currencyCode: currency.code,
+				pending: false, // not a 2-phase transfer.
+				timestamp: start
+			}
+		];
+		const journalResult = await this._abAdapter.createJournalEntries(journalEntries);
+		for (const entry of journalResult) {
+			//TODO send event that there were storage failures:
+			if (entry.errorCode > 0) {
+				throw new InvalidJournalEntryError(
+					`Unable to create journal entries. Error [${entry.errorCode}] for request [${entry.id}].`
+				);
+			}
+		}
+
+		const tookTransfer = (Date.now() - tookInd);
+		tookInd = Date.now();
 
 		// add the transfer record to the batch and persist the batch changes
 		const batchTransfer = new SettlementBatchTransfer(
@@ -316,9 +345,12 @@ export class SettlementsAggregate {
 			transferDto.amount,
 			batch.id,
 			batch.batchName,
-			journalEntryId
+			journalResult.length > 0 ? journalResult[0].id : transferDto.transferId
 		);
 		await this._batchTransferRepo.storeBatchTransfer(batchTransfer);
+
+		const tookTransferOther = (Date.now() - tookInd);
+		tookInd = Date.now();
 
 		// persist the batch changes:
 		if (resp.created) {
@@ -328,6 +360,8 @@ export class SettlementsAggregate {
 			await this._batchRepo.updateBatch(batch);
 			await this._settleBatchCache.invalidate(batch.batchName);
 		}
+
+		const tookBatchCreateUpdate = (Date.now() - tookInd);
 
 		if (resp.created && this._auditingClient) {
 			// We perform an async audit:
@@ -342,8 +376,10 @@ export class SettlementsAggregate {
 			);
 		}
 
-		const took = (Date.now() - start);
-		if (took > 1000) this._logger.warn(`handleTransfer took too long: ${took}`);
+		const tookAll = (Date.now() - start);
+		if (tookAll > 400) {
+			this._logger.warn(`handleTransfer took too long: ${tookAll} - Validate[${tookValidate}], Currency[${tookCurrency}], Batch[${tookBatch}], Account[${tookAccounts}], Transfer[${tookTransfer}], TransferOther[${tookTransferOther}], BatchCreateUpdate[${tookBatchCreateUpdate}]`);
+		}
 		return batch.id;
 	}
 

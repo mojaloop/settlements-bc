@@ -72,6 +72,7 @@ export class InvalidTransferIdError extends Error {}
 export class InvalidCurrencyCodeError extends Error {}
 export class InvalidCurrencyDecimalsError extends Error {}
 export class InvalidTimestampError extends Error {}
+export class InvalidJournalEntryError extends Error {}
 export class InvalidBatchDefinitionError extends Error {}
 export class InvalidBatchIdentifierError extends Error {}
 export class InvalidBatchSettlementModelError extends Error {}

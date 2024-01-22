@@ -74,15 +74,10 @@ export class AccountsBalancesAdapterVoid implements IAccountsBalancesAdapter {
 		return Promise.resolve([]);
 	}
 
-	async createJournalEntry(
-		requestedId: string,
-		ownerId: string,
-		currencyCode: string,
-		amount: string,
-		pending: boolean,
-		debitedAccountId: string,
-		creditedAccountId: string
-	): Promise<string> {
-		return Promise.resolve(requestedId);
+	async createJournalEntries(
+		entries: AccountsAndBalancesJournalEntry[]
+	): Promise<{id: string, errorCode: number}[]> {
+		const returnVal: {id: string, errorCode: number}[] = [];
+		return Promise.resolve(returnVal);
 	}
 }

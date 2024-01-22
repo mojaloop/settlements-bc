@@ -8,6 +8,7 @@ import org.apache.jmeter.config.Arguments;
 import org.apache.jmeter.protocol.java.sampler.AbstractJavaSamplerClient;
 import org.apache.jmeter.protocol.java.sampler.JavaSamplerContext;
 import org.apache.jmeter.samplers.SampleResult;
+import org.apache.jmeter.util.JMeterUtils;
 import org.slf4j.Logger;
 
 import java.io.File;
@@ -48,7 +49,7 @@ public class StressTestMappingSampler extends AbstractJavaSamplerClient {
 	@Override
 	public void setupTest(JavaSamplerContext context) {
 		super.setupTest(context);
-		this.logger.info("Initiating test data. {}", JavaSamplerContext.getJMeterProperties());
+		this.logger.info("Initiating test data. {}", JMeterUtils.getJMeterProperties());
 		this.counter = 0;
 
 		// Set Params:

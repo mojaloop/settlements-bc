@@ -35,15 +35,13 @@ import {
 	InvalidCurrencyCodeError,
 	InvalidIdError,
 	InvalidTimestampError,
-	InvalidTransferIdError,
-	IParticipantAccountNotifier,
+	InvalidTransferIdError, ISettlementBatchCacheRepo,
 	ISettlementBatchRepo,
-	ISettlementBatchTransferRepo,
+	ISettlementBatchTransferRepo, ISettlementConfigCacheRepo,
 	ISettlementConfigRepo,
 	ISettlementMatrixRequestRepo,
 	ProcessTransferCmd,
 	ProcessTransferCmdPayload,
-	SettlementBatchNotFoundError,
 	SettlementMatrixAlreadyExistsError,
 	SettlementMatrixNotFoundError,
 	SettlementsAggregate
@@ -57,10 +55,9 @@ import {
 	AuditClientMock,
 	AuthorizationClientMock,
 	MessageCache,
-	MessageProducerMock,
-	ParticipantAccountNotifierMock,
+	MessageProducerMock, SettlementBatchCacheRepoMock,
 	SettlementBatchRepoMock,
-	SettlementBatchTransferRepoMock,
+	SettlementBatchTransferRepoMock, SettlementConfigCacheRepoMock,
 	SettlementConfigRepoMock,
 	SettlementMatrixRequestRepoMock
 } from "@mojaloop/settlements-bc-shared-mocks-lib";
@@ -76,6 +73,8 @@ let configRepo: ISettlementConfigRepo;
 let settleBatchRepo: ISettlementBatchRepo;
 let settleTransferRepo: ISettlementBatchTransferRepo;
 let settleMatrixReqRepo: ISettlementMatrixRequestRepo;
+let confCacheRepo: ISettlementConfigCacheRepo;
+let batchCacheRepo: ISettlementBatchCacheRepo;
 let abAdapter: IAccountsBalancesAdapter;
 let msgCache: MessageCache;
 let msgProducer: IMessageProducer;
@@ -105,6 +104,8 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		settleBatchRepo = new SettlementBatchRepoMock();
 		settleTransferRepo = new SettlementBatchTransferRepoMock();
 		settleMatrixReqRepo = new SettlementMatrixRequestRepoMock();
+		confCacheRepo = new SettlementConfigCacheRepoMock();
+		batchCacheRepo = new SettlementBatchCacheRepoMock();
 
 		// adapters:
 		abAdapter = new AccountsBalancesAdapterMock();
@@ -128,7 +129,9 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 			settleMatrixReqRepo,
 			abAdapter,
 			msgProducer,
-			metricsMock
+			metricsMock,
+			confCacheRepo,
+			batchCacheRepo
 		);
 		aggregateNoAuth = new SettlementsAggregate(
 			logger,
@@ -141,7 +144,9 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 			settleMatrixReqRepo,
 			abAdapter,
 			msgProducer,
-			metricsMock
+			metricsMock,
+			confCacheRepo,
+			batchCacheRepo
 		);
 	});
 

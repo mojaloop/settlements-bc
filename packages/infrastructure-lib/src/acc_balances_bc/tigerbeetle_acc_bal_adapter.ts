@@ -42,23 +42,30 @@ import dns from "dns";
 import {IAccountsBalancesAdapter} from "@mojaloop/settlements-bc-domain-lib";
 import {Currency, IConfigurationClient} from "@mojaloop/platform-configuration-bc-public-types-lib";
 
+const MAX_ENTRIES_PER_BATCH = 5000;
+
 export class TigerBeetleAccountsAndBalancesAdapter implements IAccountsBalancesAdapter {
     private readonly _logger: ILogger;
     private readonly _clusterId: number;
+    private readonly _batchingEnabled: boolean;
     private _replicaAddresses: string[];
     private _client: TB.Client;
     private _currencyList: Currency[];
+    private _pendingBatch: TB.Transfer[];
 
     constructor(
         clusterId: number,
         replicaAddresses: string[],
         logger: ILogger,
-        configClient: IConfigurationClient
+        configClient: IConfigurationClient,
+        batchingEnabled: boolean = true
     ) {
         this._clusterId = clusterId;
         this._replicaAddresses = replicaAddresses;
         this._logger = logger.createChild(this.constructor.name);
         this._currencyList = configClient.globalConfigs.getCurrencies();
+        this._batchingEnabled = batchingEnabled;
+        if (this._batchingEnabled) this._pendingBatch = [];
     }
 
     async init(): Promise<void> {
@@ -121,49 +128,68 @@ export class TigerBeetleAccountsAndBalancesAdapter implements IAccountsBalancesA
         return requestedId;
     }
 
-    async createJournalEntry(
-      requestedId: string,
-      ownerId: string ,
-      currencyCode: string,
-      amount: string,
-      pending: boolean,
-      debitedAccountId: string,
-      creditedAccountId: string
-    ): Promise<string> {
-        // Create request for TigerBeetle:
-        const request: TB.Transfer[] = [{
-            id: this._uuidToBigint(requestedId), // u128
-            // Double-entry accounting:
-            debit_account_id: this._uuidToBigint(debitedAccountId),  // u128
-            credit_account_id: this._uuidToBigint(creditedAccountId), // u128
-            amount: BigInt(amount), // u64
-            pending_id: 0n, // u128
-            // Opaque third-party identifier to link this transfer to an external entity:
-            user_data_128: this._uuidToBigint(ownerId), // u128
-            user_data_64: 0n,
-            user_data_32: 0,
-            // Timeout applicable for a pending/2-phase transfer:
-            timeout: 0, // u64, in nano-seconds.
-            // Collection of accounts usually grouped by the currency:
-            // You can't transfer money between accounts with different ledgers:
-            ledger: this._obtainLedgerFromCurrency(currencyCode),  // u32, ledger for transfer (e.g. currency).
-            // Chart of accounts code describing the reason for the transfer:
-            code: this._codeFromDescription("SETTLEMENT"),  // u16, (e.g. 1-deposit, 2-settlement)
-            flags: 0, // u16
-            timestamp: 0n, //u64, Reserved: This will be set by the server.
-        }];
+    async createJournalEntries(
+        entries: AccountsAndBalancesJournalEntry[]
+    ): Promise<{id: string, errorCode: number}[]> {
+        const returnVal: {id: string, errorCode: number}[] = [];
+        const requests: TB.Transfer[] = [];
+        for (const entry of entries) {
+            requests.push(
+                {
+                    id: this._uuidToBigint(entry.id!), // u128
+                    // Double-entry accounting:
+                    debit_account_id: this._uuidToBigint(entry.debitedAccountId),  // u128
+                    credit_account_id: this._uuidToBigint(entry.creditedAccountId), // u128
+                    amount: BigInt(entry.amount), // u64
+                    pending_id: 0n, // u128
+                    // Opaque third-party identifier to link this transfer to an external entity:
+                    user_data_128: this._uuidToBigint(entry.ownerId!), // u128
+                    user_data_64: 0n,
+                    user_data_32: 0,
+                    // Timeout applicable for a pending/2-phase transfer:
+                    timeout: 0, // u64, in nano-seconds.
+                    // Collection of accounts usually grouped by the currency:
+                    // You can't transfer money between accounts with different ledgers:
+                    ledger: this._obtainLedgerFromCurrency(entry.currencyCode),  // u32, ledger for transfer (e.g. currency).
+                    // Chart of accounts code describing the reason for the transfer:
+                    code: this._codeFromDescription("SETTLEMENT"),  // u16, (e.g. 1-deposit, 2-settlement)
+                    flags: 0, // u16
+                    timestamp: 0n, //u64, Reserved: This will be set by the server.
+                }
+            );
+        }
 
-        // Invoke Client:
+        const toStore = await this._processJournalEntriesToStore(requests);
         try {
-            const errors: CreateTransfersError[] = await this._client.createTransfers(request);
-            if (errors.length) {
-                throw new Error("Cannot create transfers - error code: "+errors[0].result);
+            if (toStore.length) {
+                // Create request for TigerBeetle:
+                const errors: CreateTransfersError[] = await this._client.createTransfers(toStore);
+                if (errors.length) {
+                    for (const err of errors) {
+                        const errorReq = toStore[err.index];
+                        returnVal.push({id: this._bigIntToUuid(errorReq.id), errorCode: err.result});
+                    }
+                }
             }
         } catch (error: unknown) {
             this._logger.error(error);
             throw error;
         }
-        return requestedId;
+        return Promise.resolve(returnVal);
+    }
+
+    private async _processJournalEntriesToStore(entries: TB.Transfer[]): Promise<TB.Transfer[]> {
+        if (!this._batchingEnabled) return entries;
+
+        if (this._pendingBatch.length >= MAX_ENTRIES_PER_BATCH) {
+            const returnVal = this._pendingBatch.splice(0);
+            this._logger.debug(`Sending at total of ${returnVal.length} transfers to TB.`);
+            this._pendingBatch = [];
+            return returnVal;
+        }
+        entries.forEach(itm => this._pendingBatch.push(itm));
+
+        return [];
     }
 
     async getJournalEntriesByAccountId(ledgerAccountId: string): Promise<AccountsAndBalancesJournalEntry[]> {

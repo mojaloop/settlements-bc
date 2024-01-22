@@ -608,8 +608,7 @@ public abstract class ABaseRESTClient implements AutoCloseable {
 			}
 
 			// Create a custom response handler
-			ResponseHandler<String> responseHandler = this.getJsonResponseHandler(
-					this.endpointUrl.concat(postfixUrl));
+			ResponseHandler<String> responseHandler = this.getJsonResponseHandler(this.endpointUrl.concat(postfixUrl));
 
 			responseBody = this.executeHttp(httpclient, uriRequest, responseHandler, postfixUrl);
 			if (responseBody == null || responseBody.trim().isEmpty()) {
@@ -751,6 +750,9 @@ public abstract class ABaseRESTClient implements AutoCloseable {
 	private CloseableHttpClient getClient() {
 		if (this.closeableHttpClient != null) return this.closeableHttpClient;
 
+		int maxConnsPerRoute = 2000;
+		boolean conManagerShared = false;
+
 		//Only accept self signed certificate if in Junit test case.
 		String pathToFluidTrustStore = this.getPathToFluidSpecificTrustStore();
 		//Test mode...
@@ -778,8 +780,8 @@ public abstract class ABaseRESTClient implements AutoCloseable {
 				SSLContext sslContext = builder.build();
 				this.closeableHttpClient = HttpClients.custom()
 						.setSSLSocketFactory(new SSLConnectionSocketFactory(sslContext))
-						.setConnectionManagerShared(true)
-						.setMaxConnPerRoute(200)
+						.setConnectionManagerShared(conManagerShared)
+						.setMaxConnPerRoute(maxConnsPerRoute)
 						.build();
 			} catch (NoSuchAlgorithmException e) {
 				//Changed for Java 1.6 compatibility...
@@ -807,8 +809,8 @@ public abstract class ABaseRESTClient implements AutoCloseable {
 			//Default HTTP Client...
 			//this.closeableHttpClient = HttpClients.createDefault();
 			this.closeableHttpClient = HttpClients.custom()
-					.setMaxConnPerRoute(200)
-					.setConnectionManagerShared(true)
+					.setMaxConnPerRoute(maxConnsPerRoute)
+					.setConnectionManagerShared(conManagerShared)
 					.build();
 		}
 

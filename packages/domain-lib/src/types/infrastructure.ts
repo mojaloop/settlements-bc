@@ -40,6 +40,7 @@ import {
 import {
 	AccountsAndBalancesAccount, AccountsAndBalancesAccountType,AccountsAndBalancesJournalEntry
 } from "@mojaloop/accounts-and-balances-bc-public-types-lib";
+import {SettlementBatch} from "./batch";
 
 
 export interface IAccountsBalancesAdapter {
@@ -55,16 +56,7 @@ export interface IAccountsBalancesAdapter {
 	getAccounts(accountIds: string[]): Promise<AccountsAndBalancesAccount[]>;
 	getParticipantAccounts(participantId: string): Promise<AccountsAndBalancesAccount[]>;
 
-	createJournalEntry(
-		requestedId: string,
-		ownerId: string,
-		currencyCode: string,
-		amount: string,
-		pending: boolean,
-		debitedAccountId: string,
-		creditedAccountId: string
-	): Promise<string>;
-
+	createJournalEntries(entries: AccountsAndBalancesJournalEntry[]): Promise<{id: string, errorCode: number}[]>;
 	getJournalEntriesByAccountId(accountId: string): Promise<AccountsAndBalancesJournalEntry[]>;
 }
 

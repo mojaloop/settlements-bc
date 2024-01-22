@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Setup the following variables for your local environment:
-export JMETER_HOME="/opt/homebrew/Cellar/jmeter/5.6.2"
+export JMETER_HOME="/opt/homebrew/Cellar/jmeter/5.6.3"
 export HEAP="-Xms3g -Xmx6g -XX:MaxMetaspaceSize=2024m"
 export JMETER_LIB_PATH="$JMETER_HOME/libexec/lib/ext"
 # Optional:
