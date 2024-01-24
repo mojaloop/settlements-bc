@@ -83,7 +83,7 @@ import {PrometheusMetrics} from "@mojaloop/platform-shared-lib-observability-cli
 import configClient from "./config";
 import {DEFAULT_SETTLEMENT_MODEL_ID, DEFAULT_SETTLEMENT_MODEL_NAME} from "@mojaloop/settlements-bc-public-types-lib";
 import {IConfigurationClient} from "@mojaloop/platform-configuration-bc-public-types-lib";
-import { ConfigurationClient,IConfigProvider } from "@mojaloop/platform-configuration-bc-client-lib";
+
 import crypto from "crypto";
 import {
 	AuthorizationClientMock,
@@ -98,7 +98,7 @@ const BC_NAME = configClient.boundedContextName;
 const APP_NAME = configClient.applicationName;
 const APP_VERSION = configClient.applicationVersion;
 const PRODUCTION_MODE = process.env["PRODUCTION_MODE"] || false;
-const LOG_LEVEL: LogLevel = process.env["LOG_LEVEL"] as LogLevel || LogLevel.DEBUG;
+const LOG_LEVEL: LogLevel = process.env["LOG_LEVEL"] as LogLevel || LogLevel.INFO;
 
 const KAFKA_URL = process.env["KAFKA_URL"] || "localhost:9092";
 const MONGO_URL = process.env["MONGO_URL"] || "mongodb://root:example@localhost:27017/";
@@ -427,7 +427,14 @@ export class Service {
 		);
 
 		// create handler and start it
-		this.handler = new SettlementsCommandHandler(this.logger, this.auditClient, this.messageConsumer, this.aggregate, this.loginHelper);
+		this.handler = new SettlementsCommandHandler(
+			this.logger,
+			this.auditClient,
+			this.messageConsumer,
+			this.aggregate,
+			this.loginHelper,
+			bareboneStartup
+		);
 		await this.handler.start();
 
 		this.logger.info(`Settlements Command Handler Service started, version: ${configClient.applicationVersion}`);

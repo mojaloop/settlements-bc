@@ -1,6 +1,7 @@
 package io.mojaloop.settlement.jmeter.plugin;
 
-import io.mojaloop.settlement.jmeter.plugin.rest.client.SettlementBCClient;
+import io.mojaloop.settlement.jmeter.plugin.kafka.TxnProducer;
+import io.mojaloop.settlement.jmeter.plugin.rest.client.SettlementBCRestClient;
 import io.mojaloop.settlement.jmeter.plugin.rest.client.json.testdata.TestDataCarrier;
 import io.mojaloop.settlement.jmeter.plugin.runner.SamplerRunner;
 import io.mojaloop.settlement.jmeter.plugin.util.TestDataUtil;
@@ -30,14 +31,17 @@ public class StressTestMappingSampler extends AbstractJavaSamplerClient {
 	private static class Arg {
 		private static final String _0_INPUT_FILE = "inputFile";
 		private static final String _2_URL = "url";
+		private static final String _3_TOPIC = "topic";
 	}
 
 	private Logger logger = this.getNewLogger();
 
 	private String inputFile = null;
 	private String url = "http://localhost:3001";
+	private String topic = "";
 
-	private SettlementBCClient settleClient = null;
+	private SettlementBCRestClient settleClient = null;
+	private TxnProducer txnProducer = null;
 
 	private int counter;
 	private int commandCount;
@@ -68,10 +72,21 @@ public class StressTestMappingSampler extends AbstractJavaSamplerClient {
 		this.logger.info(String.format("Test file '%s' read a total of '%d' test scenarios.", this.inputFile, this.commandCount));
 
 		this.url = context.getParameter(Arg._2_URL, this.url);
-		this.settleClient = new SettlementBCClient(this.url);
+		this.topic = context.getParameter(Arg._3_TOPIC, this.topic);
 
-		//Populate the form containers...
-		this.logger.info("Initiation of test data for [{}] COMPLETE.", this.url);
+		if (this.isRest()) {
+			this.settleClient = new SettlementBCRestClient(this.url);
+			this.logger.info("REST: Initiation of test data for [{}] COMPLETE.", this.url);
+		} else {
+			// SettlementsBcCommands
+			this.txnProducer = new TxnProducer();
+			this.txnProducer.init(this.url, this.topic);
+			this.logger.info("Kafka: Initiation of test data for [{}:{}] COMPLETE.", this.url, this.topic);
+		}
+	}
+
+	private boolean isRest() {
+		return this.url.toLowerCase().trim().startsWith("http");
 	}
 
 	@Override
@@ -80,6 +95,7 @@ public class StressTestMappingSampler extends AbstractJavaSamplerClient {
 		String userHome = System.getProperty("user.home");
 		defaultParameters.addArgument(Arg._0_INPUT_FILE, userHome);
 		defaultParameters.addArgument(Arg._2_URL, this.url);
+		defaultParameters.addArgument(Arg._3_TOPIC, this.topic);
 		return defaultParameters;
 	}
 
@@ -94,12 +110,14 @@ public class StressTestMappingSampler extends AbstractJavaSamplerClient {
 		String testDataType = testData.getActionType().name();
 		try {
 			returnVal.setSampleLabel(String.format("[%s]:[%s]", this.url, testDataType));
-			returnVal.setURL(new URL(this.url));
+
+			if (this.isRest()) returnVal.setURL(new URL(this.url));
+
 			returnVal.setDataType(SampleResult.TEXT);
 			returnVal.setContentType("application/json");
 
 			// the execution utility...
-			SamplerRunner sr = new SamplerRunner(this.logger, this.settleClient);
+			SamplerRunner sr = new SamplerRunner(this.logger, this.settleClient, this.txnProducer);
 			sr.execute(testData, returnVal, this.counter + 1);
 		} catch (MalformedURLException eParam) {
 			throw new IllegalStateException(eParam.getMessage(), eParam);
@@ -114,5 +132,6 @@ public class StressTestMappingSampler extends AbstractJavaSamplerClient {
 	public void teardownTest(JavaSamplerContext context) {
 		super.teardownTest(context);
 		SamplerRunner.clearQueues();
+		if (this.txnProducer != null) this.txnProducer.destroy();
 	}
 }

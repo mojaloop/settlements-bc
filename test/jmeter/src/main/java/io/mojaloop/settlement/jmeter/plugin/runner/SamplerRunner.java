@@ -1,8 +1,9 @@
 package io.mojaloop.settlement.jmeter.plugin.runner;
 
 import io.mojaloop.settlement.jmeter.plugin.exception.FailedResponseCodeException;
+import io.mojaloop.settlement.jmeter.plugin.kafka.TxnProducer;
 import io.mojaloop.settlement.jmeter.plugin.rest.client.RESTClientException;
-import io.mojaloop.settlement.jmeter.plugin.rest.client.SettlementBCClient;
+import io.mojaloop.settlement.jmeter.plugin.rest.client.SettlementBCRestClient;
 import io.mojaloop.settlement.jmeter.plugin.rest.client.json.testdata.TestDataCarrier;
 import io.mojaloop.settlement.jmeter.plugin.rest.client.json.transfer.TransferReq;
 import io.mojaloop.settlement.jmeter.plugin.rest.client.json.transfer.TransferRsp;
@@ -10,6 +11,7 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 import org.apache.jmeter.samplers.SampleResult;
+import org.apache.kafka.clients.producer.RecordMetadata;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 
@@ -29,7 +31,8 @@ public class SamplerRunner {
 	private static Queue<FundTransfer> validFundtransfer = new ConcurrentLinkedQueue<>();
 
 	private final Logger logger;
-	private final SettlementBCClient settleClient;
+	private final SettlementBCRestClient settleClient;
+	private final TxnProducer txnProducer;
 
 	@RequiredArgsConstructor
 	@Getter
@@ -61,19 +64,25 @@ public class SamplerRunner {
 					result.setRequestHeaders(this.createHeaderVal(actionType, "/transfers", testDataIndex));
 					this.validateAndCorrectTransfer(fundTransfer);
 					result.sampleStart();
-					TransferRsp fundTransferRsp = this.settleClient.settlementTransfer(fundTransfer);
-					result.sampleEnd();
-					responseJSON = fundTransferRsp.toJsonObject();
 
-					if (!fundTransferRsp.isSuccess()) {
-						throw new FailedResponseCodeException("401", responseJSON);
+					if (this.txnProducer == null) {
+						TransferRsp fundTransferRsp = this.settleClient.settlementTransfer(fundTransfer);
+						result.sampleEnd();
+						responseJSON = fundTransferRsp.toJsonObject();
+						if (!fundTransferRsp.isSuccess()) throw new FailedResponseCodeException("401", responseJSON);
+					} else {
+						RecordMetadata metadata = this.txnProducer.send(fundTransfer);
+						result.sampleEnd();
+						responseJSON = new JSONObject();
+						responseJSON.put("timestamp", metadata.timestamp());
+						responseJSON.put("topic", metadata.topic());
 					}
-
+					/*
 					long timestamp = System.currentTimeMillis();
 					this.addValidFundTransfer(new FundTransfer(
 							timestamp,
 							fundTransfer.getTransferId()
-					));
+					));*/
 				break;
 				case transfer_raw:
 					result.setRequestHeaders(this.createHeaderVal(actionType, "/fundtransfer", testDataIndex));

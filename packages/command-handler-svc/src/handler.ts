@@ -70,13 +70,22 @@ export class SettlementsCommandHandler{
 	private _messageConsumer: IMessageConsumer;
 	private _settlementsAgg: SettlementsAggregate;
 	private _loginHelper: ILoginHelper;
+	private _barebone: boolean;
 
-    constructor(logger: ILogger, auditClient:IAuditClient, messageConsumer: IMessageConsumer, agg: SettlementsAggregate, loginHelper:ILoginHelper) {
+    constructor(
+		logger: ILogger,
+		auditClient: IAuditClient,
+		messageConsumer: IMessageConsumer,
+		agg: SettlementsAggregate,
+		loginHelper: ILoginHelper,
+		barebone: boolean
+	) {
 		this._logger = logger.createChild(this.constructor.name);
 		this._auditClient = auditClient;
 		this._messageConsumer = messageConsumer;
 		this._settlementsAgg = agg;
 		this._loginHelper = loginHelper;
+		this._barebone = barebone;
 	}
 
 	async start():Promise<void>{
@@ -207,15 +216,25 @@ export class SettlementsCommandHandler{
 					}
 				}
 
-			}catch(err: unknown){
+			} catch (err) {
 				this._logger.error(err, `TransfersCommandHandler - processing command - ${message?.msgName}:${message?.msgKey}:${message?.msgId} - Error: ${(err as Error)?.message?.toString()}`);
-			}finally {
+			} finally {
 				resolve();
 			}
 		});
 	}
 
 	private async _getServiceSecContext():Promise<CallSecurityContext>{
+		if (this._barebone) {
+			const secCts: CallSecurityContext = {
+				clientId: 'barebone',
+				accessToken: '<none>',
+				platformRoleIds: [],
+				username: null
+			};
+			return secCts;
+		}
+
 		// this will only fetch a new token when the current one is expired or null
 		const token = await this._loginHelper.getToken();
 		if(!token){

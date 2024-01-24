@@ -22,6 +22,7 @@ public class TransferReq extends ABaseJSONObject {
 	private String currencyCode;
 	private String amount;
 	private Date timestamp;
+	private Long completedTimestamp;
 	private String settlementModel;
 
 
@@ -32,6 +33,7 @@ public class TransferReq extends ABaseJSONObject {
 		public static final String CURRENCY_CODE = "currencyCode";
 		public static final String AMOUNT = "amount";
 		public static final String TIMESTAMP = "timestamp";
+		public static final String COMPLETED_TIMESTAMP = "completedTimestamp";
 		public static final String SETTLEMENT_MODEL = "settlementModel";
 	}
 
@@ -62,6 +64,9 @@ public class TransferReq extends ABaseJSONObject {
 			//this.setTimestamp(this.dateFrom(jsonObject, JSONMapping.TIMESTAMP));
 			this.setTimestamp(new Date(jsonObject.getLong(JSONMapping.TIMESTAMP)));
 		}
+		if (jsonObject.has(JSONMapping.COMPLETED_TIMESTAMP)) {
+			this.setCompletedTimestamp(jsonObject.getLong(JSONMapping.COMPLETED_TIMESTAMP));
+		}
 		if (jsonObject.has(JSONMapping.SETTLEMENT_MODEL)) {
 			this.setSettlementModel(jsonObject.getString(JSONMapping.SETTLEMENT_MODEL));
 		}
@@ -89,6 +94,9 @@ public class TransferReq extends ABaseJSONObject {
 		if (this.getTimestamp() == null) returnVal.put(JSONMapping.TIMESTAMP, JSONObject.NULL);
 		//else returnVal.put(JSONMapping.TIMESTAMP, new SimpleDateFormat(DATE_AND_TIME_FORMAT).format(this.getTimestamp()));
 		else returnVal.put(JSONMapping.TIMESTAMP, this.getTimestamp().getTime());
+
+		if (this.getTimestamp() == null) returnVal.put(JSONMapping.COMPLETED_TIMESTAMP, JSONObject.NULL);
+		else returnVal.put(JSONMapping.COMPLETED_TIMESTAMP, this.getTimestamp().getTime());
 
 		if (this.getSettlementModel() == null) returnVal.put(JSONMapping.SETTLEMENT_MODEL, JSONObject.NULL);
 		else returnVal.put(JSONMapping.SETTLEMENT_MODEL, this.getSettlementModel());

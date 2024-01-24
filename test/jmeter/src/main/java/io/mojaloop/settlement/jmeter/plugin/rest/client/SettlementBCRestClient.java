@@ -12,9 +12,9 @@ import java.util.UUID;
 /**
  * Rest client for making calls to Settlement-BC.
  */
-public class SettlementBCClient extends ABaseRESTClient {
+public class SettlementBCRestClient extends ABaseRESTClient {
 
-	public SettlementBCClient(String endpointBaseUrl) {
+	public SettlementBCRestClient(String endpointBaseUrl) {
 		super(endpointBaseUrl);
 	}
 
