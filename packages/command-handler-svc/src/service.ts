@@ -93,11 +93,13 @@ const PRODUCTION_MODE = process.env["PRODUCTION_MODE"] || false;
 const LOG_LEVEL: LogLevel = process.env["LOG_LEVEL"] as LogLevel || LogLevel.DEBUG;
 
 const KAFKA_URL = process.env["KAFKA_URL"] || "localhost:9092";
-const MONGO_URL = process.env["MONGO_URL"] || "mongodb://root:example@localhost:27017/";
+const MONGO_URL = process.env["MONGO_URL"] || "mongodb://root:mongoDbPas42@localhost:27017/";
 
 const KAFKA_AUDITS_TOPIC = process.env["KAFKA_AUDITS_TOPIC"] || "audits";
 const KAFKA_LOGS_TOPIC = process.env["KAFKA_LOGS_TOPIC"] || "logs";
-const AUDIT_KEY_FILE_PATH = process.env["AUDIT_KEY_FILE_PATH"] || "/app/data/audit_private_key.pem";
+//const AUDIT_KEY_FILE_PATH = process.env["AUDIT_KEY_FILE_PATH"] || "/app/data/audit_private_key.pem";
+const AUDIT_KEY_FILE_PATH = process.env["AUDIT_KEY_FILE_PATH"] || "../../../../audit_private_key.pem";
+
 
 const AUTH_N_SVC_BASEURL = process.env["AUTH_N_SVC_BASEURL"] || "http://localhost:3201";
 const AUTH_N_SVC_TOKEN_URL = AUTH_N_SVC_BASEURL + "/token"; // TODO this should not be known here, libs that use the base should add the suffix
@@ -213,32 +215,32 @@ export class Service {
 		}
 		this.loginHelper = loginHelper;
 
-		// authorization client
-		if (!authorizationClient) {
-			// create the instance of IAuthenticatedHttpRequester
-			const authRequester = new AuthenticatedHttpRequester(logger, AUTH_N_SVC_TOKEN_URL);
-			authRequester.setAppCredentials(SVC_CLIENT_ID, SVC_CLIENT_SECRET);
+		// // authorization client
+		// if (!authorizationClient) {
+		// 	// create the instance of IAuthenticatedHttpRequester
+		// 	const authRequester = new AuthenticatedHttpRequester(logger, AUTH_N_SVC_TOKEN_URL);
+		// 	authRequester.setAppCredentials(SVC_CLIENT_ID, SVC_CLIENT_SECRET);
 
-			const consumerHandlerLogger = logger.createChild("authorizationClientConsumer");
-			const messageConsumer = new MLKafkaJsonConsumer({
-				kafkaBrokerList: KAFKA_URL,
-				kafkaGroupId: `${BC_NAME}_${APP_NAME}_authz_client`
-			}, consumerHandlerLogger);
+		// 	const consumerHandlerLogger = logger.createChild("authorizationClientConsumer");
+		// 	const messageConsumer = new MLKafkaJsonConsumer({
+		// 		kafkaBrokerList: KAFKA_URL,
+		// 		kafkaGroupId: `${BC_NAME}_${APP_NAME}_authz_client`
+		// 	}, consumerHandlerLogger);
 
-			// setup privileges - bootstrap app privs and get priv/role associations
-			authorizationClient = new AuthorizationClient(
-				BC_NAME, APP_NAME, APP_VERSION,
-				AUTH_Z_SVC_BASEURL, logger.createChild("AuthorizationClient"),
-				authRequester,
-				messageConsumer
-			);
-			addPrivileges(authorizationClient as AuthorizationClient);
-			await (authorizationClient as AuthorizationClient).bootstrap(true);
-			await (authorizationClient as AuthorizationClient).fetch();
-			// init message consumer to automatically update on role changed events
-			await (authorizationClient as AuthorizationClient).init();
-		}
-		this.authorizationClient = authorizationClient;
+		// 	// setup privileges - bootstrap app privs and get priv/role associations
+		// 	authorizationClient = new AuthorizationClient(
+		// 		BC_NAME, APP_NAME, APP_VERSION,
+		// 		AUTH_Z_SVC_BASEURL, logger.createChild("AuthorizationClient"),
+		// 		authRequester,
+		// 		messageConsumer
+		// 	);
+		// 	addPrivileges(authorizationClient as AuthorizationClient);
+		// 	await (authorizationClient as AuthorizationClient).bootstrap(true);
+		// 	await (authorizationClient as AuthorizationClient).fetch();
+		// 	// init message consumer to automatically update on role changed events
+		// 	await (authorizationClient as AuthorizationClient).init();
+		// }
+		// this.authorizationClient = authorizationClient;
 
 		if (!auditClient) {
 			if (!existsSync(AUDIT_KEY_FILE_PATH)) {
@@ -370,7 +372,7 @@ export class Service {
 		// Aggregate:
 		this.aggregate = new SettlementsAggregate(
 			this.logger,
-			this.authorizationClient,
+			//this.authorizationClient,
 			this.auditClient,
 			configClient,
 			this.batchRepo,
@@ -402,65 +404,65 @@ export class Service {
 }
 
 
-function addPrivileges(authorizationClient: AuthorizationClient): void {
-	// processing of transfers must always happen, this priv is not required
-	// authorizationClient.addPrivilege(
-	// 	Privileges.CREATE_SETTLEMENT_TRANSFER,
-	// 	Privileges.CREATE_SETTLEMENT_TRANSFER,
-	// 	"Allows the creation of a settlement transfer."
-	// );
-	authorizationClient.addPrivilege(
-		Privileges.CREATE_DYNAMIC_SETTLEMENT_MATRIX,
-		Privileges.CREATE_DYNAMIC_SETTLEMENT_MATRIX,
-		"Allows the creation of a dynamic settlement matrix."
-	);
-	authorizationClient.addPrivilege(
-		Privileges.CREATE_STATIC_SETTLEMENT_MATRIX,
-		Privileges.CREATE_STATIC_SETTLEMENT_MATRIX,
-		"Allows the creation of a static settlement matrix."
-	);
+// function addPrivileges(authorizationClient: AuthorizationClient): void {
+// 	// processing of transfers must always happen, this priv is not required
+// 	// authorizationClient.addPrivilege(
+// 	// 	Privileges.CREATE_SETTLEMENT_TRANSFER,
+// 	// 	Privileges.CREATE_SETTLEMENT_TRANSFER,
+// 	// 	"Allows the creation of a settlement transfer."
+// 	// );
+// 	authorizationClient.addPrivilege(
+// 		Privileges.CREATE_DYNAMIC_SETTLEMENT_MATRIX,
+// 		Privileges.CREATE_DYNAMIC_SETTLEMENT_MATRIX,
+// 		"Allows the creation of a dynamic settlement matrix."
+// 	);
+// 	authorizationClient.addPrivilege(
+// 		Privileges.CREATE_STATIC_SETTLEMENT_MATRIX,
+// 		Privileges.CREATE_STATIC_SETTLEMENT_MATRIX,
+// 		"Allows the creation of a static settlement matrix."
+// 	);
 
-	authorizationClient.addPrivilege(
-		Privileges.GET_SETTLEMENT_MATRIX,
-		Privileges.GET_SETTLEMENT_MATRIX,
-		"Allows the retrieval of a settlement matrix."
-	);
-	authorizationClient.addPrivilege(
-		Privileges.SETTLEMENTS_CLOSE_MATRIX,
-		Privileges.SETTLEMENTS_CLOSE_MATRIX,
-		"Allows the settling of a settlement matrix."
-	);
-	authorizationClient.addPrivilege(
-		Privileges.SETTLEMENTS_SETTLE_MATRIX,
-		Privileges.SETTLEMENTS_SETTLE_MATRIX,
-		"Allows the dispute of a settlement matrix."
-	);
-	authorizationClient.addPrivilege(
-		Privileges.SETTLEMENTS_DISPUTE_MATRIX,
-		Privileges.SETTLEMENTS_DISPUTE_MATRIX,
-		"Allows the dispute of a settlement matrix."
-	);
-	authorizationClient.addPrivilege(
-		Privileges.SETTLEMENTS_LOCK_MATRIX,
-		Privileges.SETTLEMENTS_LOCK_MATRIX,
-		"Allows the locking of a settlement matrix."
-	);
-	authorizationClient.addPrivilege(
-		Privileges.SETTLEMENTS_UNLOCK_MATRIX,
-		Privileges.SETTLEMENTS_UNLOCK_MATRIX,
-		"Allows the unlocking of a settlement matrix."
-	);
-	authorizationClient.addPrivilege(
-		Privileges.GET_SETTLEMENT_MATRIX,
-		Privileges.GET_SETTLEMENT_MATRIX,
-		"Allows the retrieval of a settlement matrix request."
-	);
-	authorizationClient.addPrivilege(
-		Privileges.RETRIEVE_SETTLEMENT_BATCH,
-		Privileges.RETRIEVE_SETTLEMENT_BATCH,
-		"Allows the retrieval of a settlement batch."
-	);
-}
+// 	authorizationClient.addPrivilege(
+// 		Privileges.GET_SETTLEMENT_MATRIX,
+// 		Privileges.GET_SETTLEMENT_MATRIX,
+// 		"Allows the retrieval of a settlement matrix."
+// 	);
+// 	authorizationClient.addPrivilege(
+// 		Privileges.SETTLEMENTS_CLOSE_MATRIX,
+// 		Privileges.SETTLEMENTS_CLOSE_MATRIX,
+// 		"Allows the settling of a settlement matrix."
+// 	);
+// 	authorizationClient.addPrivilege(
+// 		Privileges.SETTLEMENTS_SETTLE_MATRIX,
+// 		Privileges.SETTLEMENTS_SETTLE_MATRIX,
+// 		"Allows the dispute of a settlement matrix."
+// 	);
+// 	authorizationClient.addPrivilege(
+// 		Privileges.SETTLEMENTS_DISPUTE_MATRIX,
+// 		Privileges.SETTLEMENTS_DISPUTE_MATRIX,
+// 		"Allows the dispute of a settlement matrix."
+// 	);
+// 	authorizationClient.addPrivilege(
+// 		Privileges.SETTLEMENTS_LOCK_MATRIX,
+// 		Privileges.SETTLEMENTS_LOCK_MATRIX,
+// 		"Allows the locking of a settlement matrix."
+// 	);
+// 	authorizationClient.addPrivilege(
+// 		Privileges.SETTLEMENTS_UNLOCK_MATRIX,
+// 		Privileges.SETTLEMENTS_UNLOCK_MATRIX,
+// 		"Allows the unlocking of a settlement matrix."
+// 	);
+// 	authorizationClient.addPrivilege(
+// 		Privileges.GET_SETTLEMENT_MATRIX,
+// 		Privileges.GET_SETTLEMENT_MATRIX,
+// 		"Allows the retrieval of a settlement matrix request."
+// 	);
+// 	authorizationClient.addPrivilege(
+// 		Privileges.RETRIEVE_SETTLEMENT_BATCH,
+// 		Privileges.RETRIEVE_SETTLEMENT_BATCH,
+// 		"Allows the retrieval of a settlement batch."
+// 	);
+// }
 
 
 /**

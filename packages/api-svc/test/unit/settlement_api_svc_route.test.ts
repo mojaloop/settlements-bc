@@ -69,6 +69,13 @@ let mockedSettlementMatrixBalancesPart: ISettlementMatrixBalanceByParticipant[];
 let mockedSettlementMatrixBalancesCurrency: ISettlementMatrixBalanceByCurrency[];
 let mockedSettlementMatrixBalancesStateAndCurrency: ISettlementMatrixBalanceByStateAndCurrency[];
 
+const securityContext: CallSecurityContext = {
+    "accessToken": 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IkxQb3JsS1JRV0trZHItb0VleGVEaXZSTG55aTgyMkFUcHdMUFRwdHdjQ3MifQ.eyJ0eXAiOiJCZWFyZXIiLCJhenAiOiJzZWN1cml0eS1iYy11aSIsInVzZXJUeXBlIjoiSFVCIiwicGxhdGZvcm1Sb2xlcyI6WyJodWJfb3BlcmF0b3IiXSwicGFydGljaXBhbnRSb2xlcyI6W10sImlhdCI6MTcwNjI2MjU3MywiZXhwIjoxNzA2ODY3MzczLCJhdWQiOiJtb2phbG9vcC52bmV4dC5kZXYuZGVmYXVsdF9hdWRpZW5jZSIsImlzcyI6Im1vamFsb29wLnZuZXh0LmRldi5kZWZhdWx0X2lzc3VlciIsInN1YiI6InVzZXI6OnVzZXIiLCJqdGkiOiI4YjZmY2M5My1iOGIzLTQ3ZWItOWNiMi04NDg0MjZkM2U1MTIifQ.TXw_WPSzFWTj0j-g2-58bI86U0PUmaZJ3twJMVVSFhmkGdZ9jU4gPkFV49Drwe-JaySGW2i1UIf4cajxaHCth6YCo7YSQ2HC7ubqx_LD7SPHBlcCvlc1t_nEZvEbJ4QkSYW88-JfoX8oG9Abo1SM8pqTTsqwy-LkWQS9mcN1wkKiWlb6ypXIs9rl7lzZVNLCAPqzo6CB2sxA_bHnohvmih9J3_HNolvt8xzwWCiUUrRWj_iGkdO6mSDerLnyV3ZeElIkFOFXWthBHs7QZRtwmZUcOq2eitQb4bOAtXU8CSpbEJOdT7sRVsXdru2Ku_t3dPlXUeNy23N4KqBtW21DXw',
+    "clientId": "null",
+    "username": 'user',
+    "platformRoleIds": ['hub_operator']
+}
+
 describe("Settlement BC api-svc route test", () => {
     beforeAll(async () => {
 
@@ -76,7 +83,8 @@ describe("Settlement BC api-svc route test", () => {
         await Service.start(
             logger,
             tokenHelper,
-            mockAuthorizationClientNoAuth,
+            mockAuthorizationClient,
+            //mockAuthorizationClientNoAuth,
             mockAuditClient,
             mockConfigRepo,
             mockBatchRepo,
@@ -129,7 +137,7 @@ describe("Settlement BC api-svc route test", () => {
         ];
 
         await mockBatchTransferRepo.storeBatchTransfer(mockedSettlementBatchTransfers[0], mockedSettlementBatchTransfers[1]);
-       
+
 
         //Prepare mocked Settlement Matrix Account
         mockedSettlementMatrixBatchAccount = [
@@ -191,7 +199,7 @@ describe("Settlement BC api-svc route test", () => {
             batches: mockedSettlementMatrixBatches,
             balancesByParticipant: mockedSettlementMatrixBalancesPart,
             balancesByStateAndCurrency: mockedSettlementMatrixBalancesStateAndCurrency,
-            balancesByCurrency : mockedSettlementMatrixBalancesCurrency,
+            balancesByCurrency: mockedSettlementMatrixBalancesCurrency,
             state: "FINALIZED",
             type: "STATIC",
             generationDurationSecs: 2
@@ -235,6 +243,9 @@ describe("Settlement BC api-svc route test", () => {
         await mockBatchRepo.storeNewBatch(mockBatches[0]);
         await mockBatchRepo.storeNewBatch(mockBatches[1]);
 
+        jest.spyOn(tokenHelper, "getCallSecurityContextFromAccessToken")
+            .mockResolvedValueOnce(securityContext);
+
         // Batch by unique identifier:
         const responseId = await request(server)
             .get(`/batches/${mockBatches[0].id}`)
@@ -246,10 +257,14 @@ describe("Settlement BC api-svc route test", () => {
 
     test("GET /batches/:id - should send a 500 error response", async () => {
 
+        //Arrange 
+        jest.spyOn(tokenHelper, "getCallSecurityContextFromAccessToken")
+            .mockResolvedValueOnce(securityContext);
+
         //Act - request with non-existing batchId
         const response = await request(server)
             .get(`/batches`)
-            .query({id:123})
+            .query({ id: 123 })
             .set('authorization', AUTH_TOKEN);
 
         //Assert
@@ -288,13 +303,19 @@ describe("Settlement BC api-svc route test", () => {
         await mockBatchRepo.storeNewBatch(mockBatches[0]);
         await mockBatchRepo.storeNewBatch(mockBatches[1]);
 
+
         // Batch by name:
+
+        jest.spyOn(tokenHelper, "getCallSecurityContextFromAccessToken")
+            .mockResolvedValueOnce(securityContext);
+
         const responseBatchName = await request(server)
             .get(`/batches`)
             .query({
                 batchName: "CBX.USD.2023.06.20.01.20"
             })
             .set('authorization', AUTH_TOKEN);
+
         expect(responseBatchName.status).toBe(200);
         expect(Array.isArray(responseBatchName.body.items)).toBe(true);
         expect(responseBatchName.body.items.length).toBe(1);
@@ -302,7 +323,13 @@ describe("Settlement BC api-svc route test", () => {
         const dateTo = (Date.now() + 5000);
         const dateFrom = (Date.now() - 5000);
 
+
+
         // Batch by settlement models:
+
+        jest.spyOn(tokenHelper, "getCallSecurityContextFromAccessToken")
+            .mockResolvedValueOnce(securityContext);
+
         const responseSettlementModels = await request(server)
             .get(`/batches`)
             .query({
@@ -316,6 +343,9 @@ describe("Settlement BC api-svc route test", () => {
         expect(responseSettlementModels.body.items.length).toBe(1);
 
         // Batch by currency:
+
+        jest.spyOn(tokenHelper, "getCallSecurityContextFromAccessToken")
+            .mockResolvedValueOnce(securityContext);
         const responseCurrency = await request(server)
             .get(`/batches`)
             .query({
@@ -324,11 +354,16 @@ describe("Settlement BC api-svc route test", () => {
                 currencyCodes: ["USD", "EUR"]
             })
             .set('authorization', AUTH_TOKEN);
+
+
         expect(responseCurrency.status).toBe(200);
         expect(Array.isArray(responseCurrency.body.items)).toBe(true);
         expect(responseCurrency.body.items.length).toBeGreaterThan(1);
 
         // Batch by currency:
+        jest.spyOn(tokenHelper, "getCallSecurityContextFromAccessToken")
+            .mockResolvedValueOnce(securityContext);
+
         const responseStatus = await request(server)
             .get(`/batches`)
             .query({
@@ -345,6 +380,9 @@ describe("Settlement BC api-svc route test", () => {
     test("GET /transfers - should fetch batchTransfers by batchId", async () => {
 
         //Arrange
+
+        jest.spyOn(tokenHelper, "getCallSecurityContextFromAccessToken")
+            .mockResolvedValueOnce(securityContext);
         //Act
         const response = await request(server)
             .get(`/transfers`)
@@ -362,7 +400,8 @@ describe("Settlement BC api-svc route test", () => {
     test("GET /transfers - should fetch batchTransfers by batchName", async () => {
 
         //Arrange
-
+        jest.spyOn(tokenHelper, "getCallSecurityContextFromAccessToken")
+            .mockResolvedValueOnce(securityContext);
         //Act
         const response = await request(server)
             .get(`/transfers`)
@@ -380,6 +419,8 @@ describe("Settlement BC api-svc route test", () => {
     test("GET /transfers - should fetch batchTransfer by transactionId", async () => {
 
         //Arrange
+        jest.spyOn(tokenHelper, "getCallSecurityContextFromAccessToken")
+            .mockResolvedValueOnce(securityContext);
 
         //Act
         const response = await request(server)
@@ -399,7 +440,8 @@ describe("Settlement BC api-svc route test", () => {
 
         //Arrange
         await mockMatrixRequestRepo.storeMatrix(mockedSettlementMatrix);
-
+        jest.spyOn(tokenHelper, "getCallSecurityContextFromAccessToken")
+            .mockResolvedValueOnce(securityContext);
         //Act
         const response = await request(server)
             .get(`/transfers`)
@@ -419,7 +461,8 @@ describe("Settlement BC api-svc route test", () => {
     test("POST /matrix - should create matrix if doesn't exist", async () => {
 
         //Arrange
-
+        jest.spyOn(tokenHelper, "getCallSecurityContextFromAccessToken")
+            .mockResolvedValueOnce(securityContext);
         //Prepare mocked Settlement Matrix Account
         const settlementMatrixBatchAccount: ISettlementMatrixBatchAccount[] = [
             {
@@ -481,14 +524,15 @@ describe("Settlement BC api-svc route test", () => {
             batches: settlementSettlementMatrixBatches,
             balancesByParticipant: mockedSettlementMatrixBalancesPart,
             balancesByStateAndCurrency: mockedSettlementMatrixBalancesStateAndCurrency,
-            balancesByCurrency : mockedSettlementMatrixBalancesCurrency,
+            balancesByCurrency: mockedSettlementMatrixBalancesCurrency,
             state: "FINALIZED",
             type: "STATIC",
             generationDurationSecs: 2
         };
 
         await mockMatrixRequestRepo.storeMatrix(newMatrix);
-
+        jest.spyOn(tokenHelper, "getCallSecurityContextFromAccessToken")
+            .mockResolvedValueOnce(securityContext);
         //Act
         const response = await request(server)
             .post(`/matrix`)
@@ -543,7 +587,7 @@ describe("Settlement BC api-svc route test", () => {
             batches: settlementSettlementMatrixBatches,
             balancesByParticipant: mockedSettlementMatrixBalancesPart,
             balancesByStateAndCurrency: mockedSettlementMatrixBalancesStateAndCurrency,
-            balancesByCurrency : mockedSettlementMatrixBalancesCurrency,
+            balancesByCurrency: mockedSettlementMatrixBalancesCurrency,
             state: "IDLE",
             type: "STATIC",
             generationDurationSecs: 2
@@ -556,6 +600,9 @@ describe("Settlement BC api-svc route test", () => {
                 settlementSettlementMatrixBatches[1].id
             ]
         }
+
+        jest.spyOn(tokenHelper, "getCallSecurityContextFromAccessToken")
+            .mockResolvedValueOnce(securityContext);
 
         //Act
         const response = await request(server)
@@ -572,6 +619,7 @@ describe("Settlement BC api-svc route test", () => {
 
     test("DELETE /matrix/:id/batches should send message RemoveBatchesFromMatrixCmd to kafka queue", async () => {
         //Arrange
+
 
         //Prepare mocked Settlement Matrix batches
         const settlementSettlementMatrixBatches: ISettlementMatrixBatch[] = [
@@ -611,7 +659,7 @@ describe("Settlement BC api-svc route test", () => {
             batches: settlementSettlementMatrixBatches,
             balancesByParticipant: [],
             balancesByStateAndCurrency: [],
-            balancesByCurrency : [],
+            balancesByCurrency: [],
             state: "IDLE",
             type: "STATIC",
             generationDurationSecs: 2
@@ -624,7 +672,8 @@ describe("Settlement BC api-svc route test", () => {
                 settlementSettlementMatrixBatches[1].id
             ]
         }
-
+        jest.spyOn(tokenHelper, "getCallSecurityContextFromAccessToken")
+            .mockResolvedValueOnce(securityContext);
         //Act
         const response = await request(server)
             .delete(`/matrix/${newMatrix.id}/batches`)
@@ -676,7 +725,7 @@ describe("Settlement BC api-svc route test", () => {
             batches: settlementSettlementMatrixBatches,
             balancesByParticipant: [],
             balancesByStateAndCurrency: [],
-            balancesByCurrency : [],
+            balancesByCurrency: [],
             state: "IDLE",
             type: "STATIC",
             generationDurationSecs: 2
@@ -691,7 +740,8 @@ describe("Settlement BC api-svc route test", () => {
                 settlementSettlementMatrixBatches[1].id
             ]
         }
-
+        jest.spyOn(tokenHelper, "getCallSecurityContextFromAccessToken")
+            .mockResolvedValueOnce(securityContext);
         //Act
         const response = await request(server)
             .post(`/matrix/TestMatrix/recalculate`)
@@ -704,7 +754,7 @@ describe("Settlement BC api-svc route test", () => {
         expect(response.body.id).toEqual("TestMatrix");
     });
 
-    
+
     test("POST /matrix/:id/close should send message CloseMatrixCmd to kafka queue", async () => {
         //Arrange
 
@@ -744,7 +794,7 @@ describe("Settlement BC api-svc route test", () => {
             batches: settlementSettlementMatrixBatches,
             balancesByParticipant: [],
             balancesByStateAndCurrency: [],
-            balancesByCurrency : [],
+            balancesByCurrency: [],
             state: "IDLE",
             type: "STATIC",
             generationDurationSecs: 2
@@ -759,7 +809,8 @@ describe("Settlement BC api-svc route test", () => {
                 settlementSettlementMatrixBatches[1].id
             ]
         }
-
+        jest.spyOn(tokenHelper, "getCallSecurityContextFromAccessToken")
+            .mockResolvedValueOnce(securityContext);
         //Act
         const response = await request(server)
             .post(`/matrix/TestMatrix1/close`)
@@ -811,7 +862,7 @@ describe("Settlement BC api-svc route test", () => {
             batches: settlementSettlementMatrixBatches,
             balancesByParticipant: [],
             balancesByStateAndCurrency: [],
-            balancesByCurrency : [],
+            balancesByCurrency: [],
             state: "IDLE",
             type: "STATIC",
             generationDurationSecs: 2
@@ -826,7 +877,8 @@ describe("Settlement BC api-svc route test", () => {
                 settlementSettlementMatrixBatches[1].id
             ]
         }
-
+        jest.spyOn(tokenHelper, "getCallSecurityContextFromAccessToken")
+            .mockResolvedValueOnce(securityContext);
         //Act
         const response = await request(server)
             .post(`/matrix/TestMatrix2/settle`)
@@ -878,7 +930,7 @@ describe("Settlement BC api-svc route test", () => {
             batches: settlementSettlementMatrixBatches,
             balancesByParticipant: [],
             balancesByStateAndCurrency: [],
-            balancesByCurrency : [],
+            balancesByCurrency: [],
             state: "IDLE",
             type: "STATIC",
             generationDurationSecs: 2
@@ -893,7 +945,8 @@ describe("Settlement BC api-svc route test", () => {
                 settlementSettlementMatrixBatches[1].id
             ]
         }
-
+        jest.spyOn(tokenHelper, "getCallSecurityContextFromAccessToken")
+            .mockResolvedValueOnce(securityContext);
         //Act
         const response = await request(server)
             .post(`/matrix/TestMatrix3/dispute`)
@@ -945,14 +998,15 @@ describe("Settlement BC api-svc route test", () => {
             batches: settlementSettlementMatrixBatches,
             balancesByParticipant: [],
             balancesByStateAndCurrency: [],
-            balancesByCurrency : [],
+            balancesByCurrency: [],
             state: "IDLE",
             type: "STATIC",
             generationDurationSecs: 2
         };
 
         await mockMatrixRequestRepo.storeMatrix(newMatrix);
-        
+        jest.spyOn(tokenHelper, "getCallSecurityContextFromAccessToken")
+            .mockResolvedValueOnce(securityContext);
         //Act
         const response = await request(server)
             .get(`/matrix/TestMatrix4`)
@@ -977,7 +1031,7 @@ describe("Settlement BC api-svc route test", () => {
             batches: [],
             balancesByParticipant: [],
             balancesByStateAndCurrency: [],
-            balancesByCurrency : [],
+            balancesByCurrency: [],
             state: "IDLE",
             type: "STATIC",
             generationDurationSecs: 2
@@ -995,7 +1049,7 @@ describe("Settlement BC api-svc route test", () => {
             batches: [],
             balancesByParticipant: [],
             balancesByStateAndCurrency: [],
-            balancesByCurrency : [],
+            balancesByCurrency: [],
             state: "IDLE",
             type: "STATIC",
             generationDurationSecs: 2
@@ -1004,7 +1058,8 @@ describe("Settlement BC api-svc route test", () => {
         await mockMatrixRequestRepo.storeMatrix(matrix1);
         await mockMatrixRequestRepo.storeMatrix(matrix2);
 
-
+        jest.spyOn(tokenHelper, "getCallSecurityContextFromAccessToken")
+            .mockResolvedValueOnce(securityContext);
         //Act
         const response = await request(server)
             .get(`/matrix`)
