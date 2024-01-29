@@ -74,7 +74,7 @@ import { IMessageProducer } from "@mojaloop/platform-shared-lib-messaging-types-
 import { IMetrics } from "@mojaloop/platform-shared-lib-observability-types-lib";
 import { PrometheusMetrics } from "@mojaloop/platform-shared-lib-observability-client-lib";
 import crypto from "crypto";
-import { Privileges } from "@mojaloop/settlements-bc-domain-lib"
+import { SettlementPrivilegesDefinition } from "@mojaloop/settlements-bc-domain-lib"
 
 
 import { IConfigurationClient } from "@mojaloop/platform-configuration-bc-public-types-lib";
@@ -106,7 +106,6 @@ const MONGO_URL = process.env["MONGO_URL"] || "mongodb://root:example@localhost:
 const KAFKA_AUDITS_TOPIC = process.env["KAFKA_AUDITS_TOPIC"] || "audits";
 const KAFKA_LOGS_TOPIC = process.env["KAFKA_LOGS_TOPIC"] || "logs";
 const AUDIT_KEY_FILE_PATH = process.env["AUDIT_KEY_FILE_PATH"] || "/app/data/audit_private_key.pem";
-
 const SVC_CLIENT_ID = process.env["SVC_CLIENT_ID"] || "settlements-bc-api-svc";
 const SVC_CLIENT_SECRET = process.env["SVC_CLIENT_SECRET"] || "superServiceSecret";
 
@@ -123,8 +122,8 @@ const SERVICE_START_TIMEOUT_MS = (process.env["SERVICE_START_TIMEOUT_MS"] && par
 const INSTANCE_NAME = `${BC_NAME}_${APP_NAME}`;
 const INSTANCE_ID = `${INSTANCE_NAME}__${crypto.randomUUID()}`;
 
-const CONFIG_BASE_URL = "http://localhost:3100";
-const CONFIGSET_VERSION = "0.0.1";
+const CONFIG_BASE_URL = process.env["CONFIG_BASE_URL"] || "http://localhost:3100";
+const CONFIGSET_VERSION = process.env["CONFIGSET_VERSION"] || "0.0.1";
 
 const kafkaProducerOptions: MLKafkaJsonProducerOptions = {
 	kafkaBrokerList: KAFKA_URL
@@ -234,8 +233,9 @@ export class Service {
 				authRequester,
 				messageConsumer
 			);
+
 			// MUST only add privileges once, the cmd handler is already doing it
-			addPrivileges(authorizationClient as AuthorizationClient);
+			authorizationClient.addPrivilegesArray(SettlementPrivilegesDefinition);
 			await (authorizationClient as AuthorizationClient).bootstrap(true);
 			await (authorizationClient as AuthorizationClient).fetch();
 			// init message consumer to automatically update on role changed events
@@ -351,22 +351,6 @@ export class Service {
 		}
 		this.metrics = metrics;
 
-		/* Aggregate cannot be used outside the command-handler
-		// Aggregate:
-		this.aggregate = new SettlementsAggregate(
-			this.logger,
-			this.authorizationClient,
-			this.auditClient,
-			this.batchRepo,
-			this.batchTransferRepo,
-			this.configRepo,
-			this.matrixRepo,
-			this.participantAccountNotifier,
-			this.accountsAndBalancesAdapter,
-			this.messageProducer,
-			this.metrics
-		);*/
-
 		await this.setupExpress();
 
 		// remove startup timeout
@@ -424,73 +408,6 @@ export class Service {
 	}
 }
 
-// TODO : To confrim adding priv
-function addPrivileges(authorizationClient: AuthorizationClient): void {
-	// processing of transfers must always happen, this priv is not required
-	// authorizationClient.addPrivilege(
-	// 	Privileges.CREATE_SETTLEMENT_TRANSFER,
-	// 	Privileges.CREATE_SETTLEMENT_TRANSFER,
-	// 	"Allows the creation of a settlement transfer."
-	// );
-
-	authorizationClient.addPrivilege(
-		Privileges.CREATE_SETTLEMENT_CONFIG,
-		Privileges.CREATE_SETTLEMENT_CONFIG,
-		"Allows the creation of settlement model."
-	);
-
-	authorizationClient.addPrivilege(
-		Privileges.CREATE_DYNAMIC_SETTLEMENT_MATRIX,
-		Privileges.CREATE_DYNAMIC_SETTLEMENT_MATRIX,
-		"Allows the creation of a dynamic settlement matrix."
-	);
-	authorizationClient.addPrivilege(
-		Privileges.CREATE_STATIC_SETTLEMENT_MATRIX,
-		Privileges.CREATE_STATIC_SETTLEMENT_MATRIX,
-		"Allows the creation of a static settlement matrix."
-	);
-
-	authorizationClient.addPrivilege(
-		Privileges.GET_SETTLEMENT_MATRIX,
-		Privileges.GET_SETTLEMENT_MATRIX,
-		"Allows the retrieval of a settlement matrix."
-	);
-	authorizationClient.addPrivilege(
-		Privileges.SETTLEMENTS_CLOSE_MATRIX,
-		Privileges.SETTLEMENTS_CLOSE_MATRIX,
-		"Allows the settling of a settlement matrix."
-	);
-	authorizationClient.addPrivilege(
-		Privileges.SETTLEMENTS_SETTLE_MATRIX,
-		Privileges.SETTLEMENTS_SETTLE_MATRIX,
-		"Allows the dispute of a settlement matrix."
-	);
-	authorizationClient.addPrivilege(
-		Privileges.SETTLEMENTS_DISPUTE_MATRIX,
-		Privileges.SETTLEMENTS_DISPUTE_MATRIX,
-		"Allows the dispute of a settlement matrix."
-	);
-	authorizationClient.addPrivilege(
-		Privileges.SETTLEMENTS_LOCK_MATRIX,
-		Privileges.SETTLEMENTS_LOCK_MATRIX,
-		"Allows the locking of a settlement matrix."
-	);
-	authorizationClient.addPrivilege(
-		Privileges.SETTLEMENTS_UNLOCK_MATRIX,
-		Privileges.SETTLEMENTS_UNLOCK_MATRIX,
-		"Allows the unlocking of a settlement matrix."
-	);
-	authorizationClient.addPrivilege(
-		Privileges.GET_SETTLEMENT_MATRIX,
-		Privileges.GET_SETTLEMENT_MATRIX,
-		"Allows the retrieval of a settlement matrix request."
-	);
-	authorizationClient.addPrivilege(
-		Privileges.RETRIEVE_SETTLEMENT_BATCH,
-		Privileges.RETRIEVE_SETTLEMENT_BATCH,
-		"Allows the retrieval of a settlement batch."
-	);
-}
 
 /**
  * process termination and cleanup

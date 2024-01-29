@@ -158,32 +158,7 @@ export class ExpressRoutes {
 		}
 
 		const bearerToken = bearer[1];
-		// let verified;
-		// try {
-		// 	verified = await this._tokenHelper.verifyToken(bearerToken);
-		// } catch (err) {
-		// 	this._logger.error(err, "unable to verify token");
-		// 	return res.sendStatus(401);
-		// }
-		// if (!verified) {
-		// 	return res.sendStatus(401);
-		// }
 
-		// const decoded = this._tokenHelper.decodeToken(bearerToken);
-		// if (!decoded.sub || decoded.sub.indexOf("::")== -1) {
-		// 	return res.sendStatus(401);
-		// }
-
-		// const subSplit = decoded.sub.split("::");
-		// const subjectType = subSplit[0];
-		// const subject = subSplit[1];
-
-		// req.securityContext = {
-		// 	accessToken: bearerToken,
-		// 	clientId: subjectType.toUpperCase().startsWith("APP") ? subject:null,
-		// 	username: subjectType.toUpperCase().startsWith("USER") ? subject:null,
-		// 	platformRoleIds: decoded.platformRoles
-		// };
 		const callSecCtx: CallSecurityContext | null = await this._tokenHelper.getCallSecurityContextFromAccessToken(bearerToken);
 
 		if (!callSecCtx) {
@@ -234,7 +209,7 @@ export class ExpressRoutes {
 
 		const name = req.query.name as string;
 		try {
-			this._enforcePrivilege(req.securityContext!, Privileges.CREATE_SETTLEMENT_CONFIG);
+			this._enforcePrivilege(req.securityContext!, Privileges.VIEW_SETTLEMENT_CONFIG);
 			let retModels: ISettlementConfig[] = [];
 			if (name) {
 				this._logger.debug(`Got getSettlementModels request for model name: ${name}`);
@@ -258,7 +233,7 @@ export class ExpressRoutes {
 
 		const modelId = req.params.id as string;
 		try {
-			this._enforcePrivilege(req.securityContext!, Privileges.CREATE_SETTLEMENT_CONFIG);
+			this._enforcePrivilege(req.securityContext!, Privileges.VIEW_SETTLEMENT_CONFIG);
 			this._logger.debug(`Got getSettlementModels request for modelId: ${modelId}`);
 			const settlementModel = await this._configRepo.getSettlementConfig(modelId);
 			if (!settlementModel) {
@@ -346,12 +321,6 @@ export class ExpressRoutes {
 
 	private async getSettlementBatches(req: express.Request, res: express.Response): Promise<void> {
 
-		try {
-			this._enforcePrivilege(req.securityContext!, Privileges.RETRIEVE_SETTLEMENT_BATCH);
-
-		} catch (error) {
-			if (this._handleUnauthorizedError((error as Error), res)) return;
-		}
 		const fromDate = req.query.fromDate as string;
 		const toDate = req.query.toDate as string;
 		const settlementModel = req.query.settlementModel as string || req.query.settlementmodel as string;
@@ -371,7 +340,7 @@ export class ExpressRoutes {
 		let batchStatuses: string[] = [];
 
 		try {
-
+			this._enforcePrivilege(req.securityContext!, Privileges.RETRIEVE_SETTLEMENT_BATCH);
 			if (currencyCodesStr && Array.isArray(currencyCodesStr)) {
 				currencyCodes = currencyCodesStr;
 			} else if (currencyCodesStr) {
@@ -386,6 +355,7 @@ export class ExpressRoutes {
 				batchStatuses = JSON.parse(batchStatusesStr);
 			}
 		} catch (err) {
+			if (this._handleUnauthorizedError((err as Error), res)) return;
 			this._logger.error(err);
 			this.sendErrorResponse(res, 500, "Invalid settlementModels, currencyCodes or batchStatuses query parameters received");
 			return;
@@ -496,6 +466,7 @@ export class ExpressRoutes {
 
 		try {
 
+			this._enforcePrivilege(req.securityContext!, Privileges.CREATE_SETTLEMENT_MATRIX)
 			const matrixId = req.body.matrixiId || randomUUID();
 			const type = req.body.type as string || null;
 
@@ -510,15 +481,13 @@ export class ExpressRoutes {
 
 			let cmd: CommandMsg;
 			if (type === "STATIC") {
-
-				this._enforcePrivilege(req.securityContext!, Privileges.CREATE_STATIC_SETTLEMENT_MATRIX)
+				
 				const cmdPayload: CreateStaticMatrixCmdPayload = {
 					matrixId: matrixId,
 					batchIds: req.body.batchIds
 				};
 				cmd = new CreateStaticMatrixCmd(cmdPayload);
 			} else if (type === "DYNAMIC") {
-				this._enforcePrivilege(req.securityContext!, Privileges.CREATE_DYNAMIC_SETTLEMENT_MATRIX)
 				const currencyCodes = req.body.currencyCodes as string[];
 				const settlementModel = req.body.settlementModel as string;
 				const batchStatuses = req.body.batchStatuses as string[];
@@ -640,6 +609,7 @@ export class ExpressRoutes {
 
 			this.sendSuccessResponse(res, 202, { id: matrixId });
 		} catch (error: any) {
+			if (this._handleUnauthorizedError((error as Error), res)) return;
 			this._logger.error(error);
 			this.sendErrorResponse(res, 500, error.message || ExpressRoutes.UNKNOWN_ERROR_MESSAGE);
 		}
@@ -648,7 +618,7 @@ export class ExpressRoutes {
 	private async postRemoveBatchFromStaticMatrix(req: express.Request, res: express.Response): Promise<void> {
 		try {
 
-			this._enforcePrivilege(req.securityContext!, Privileges.CREATE_STATIC_SETTLEMENT_MATRIX);
+			this._enforcePrivilege(req.securityContext!, Privileges.REMOVE_SETTLEMENT_MATRIX_BATCH);
 			const matrixId = req.params.id as string;
 			const removeReqPayload = req.body as RemoveBatchesFromMatrixCmdPayload;
 
