@@ -119,7 +119,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		// aggregate:
 		aggregate = new SettlementsAggregate(
 			logger,
-			//authorizationClient,
+			authorizationClient,
 			auditingClient,
 			configClient,
 			settleBatchRepo,
@@ -132,7 +132,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		);
 		aggregateNoAuth = new SettlementsAggregate(
 			logger,
-			//authorizationClientNoAuth,
+			authorizationClientNoAuth,
 			auditingClient,
 			configClient,
 			settleBatchRepo,

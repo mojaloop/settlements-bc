@@ -128,7 +128,7 @@ export class SettlementsAggregate {
 
 	constructor(
 		logger: ILogger,
-		//authorizationClient: IAuthorizationClient,
+		authorizationClient: IAuthorizationClient,
 		auditingClient: IAuditClient,
 		configClient: IConfigurationClient,
 		batchRepo: ISettlementBatchRepo,
@@ -140,7 +140,7 @@ export class SettlementsAggregate {
 		metrics: IMetrics
 	) {
 		this._logger = logger;
-		//this._authorizationClient = authorizationClient;
+		this._authorizationClient = authorizationClient;
 		this._auditingClient = auditingClient;
 		this._configClient = configClient;
 		this._batchRepo = batchRepo;
@@ -158,7 +158,12 @@ export class SettlementsAggregate {
 		this._currencyList = this._configClient.globalConfigs.getCurrencies();
 	}
 
-
+	private _enforcePrivilege(secCtx: CallSecurityContext, privName: string): void {
+		for (const roleId of secCtx.platformRoleIds) {
+			if (this._authorizationClient.roleHasPrivilege(roleId, privName)) return;
+		}
+		throw new ForbiddenError(`Required privilege "${privName}" not held by caller`);
+	}
 	private _getAuditSecurityContext(secCtx: CallSecurityContext): AuditSecurityContext {
 		if (secCtx === undefined) return {userId: 'unknown', appId: 'settlement-bc', role: ""};
 		return {
@@ -234,7 +239,8 @@ export class SettlementsAggregate {
 	}
 
 	async handleTransfer(secCtx: CallSecurityContext, transferDto: ITransferDto): Promise<string> {
-		
+		//this._enforcePrivilege(secCtx, Privileges.CREATE_SETTLEMENT_TRANSFER);
+
 		if (!transferDto.timestamp || transferDto.timestamp < 1 ) throw new InvalidTimestampError();
 		if (!transferDto.settlementModel) throw new InvalidBatchSettlementModelError();
 		if (!transferDto.currencyCode) throw new InvalidCurrencyCodeError();
@@ -351,7 +357,7 @@ export class SettlementsAggregate {
 		secCtx: CallSecurityContext,
 		cmdPayload: CreateSettlementModelCmdPayload,
 	): Promise<void> {
-
+		this._enforcePrivilege(secCtx, Privileges.CREATE_SETTLEMENT_CONFIG);
 		if (!cmdPayload) {
 			const err = new InvalidSettlementModelError("Invalid settlement model");
 			this._logger.warn(err.message);
@@ -412,6 +418,7 @@ export class SettlementsAggregate {
 		matrixId: string | null,
 		batchIds: string[]
 	): Promise<string> {
+		this._enforcePrivilege(secCtx, Privileges.CREATE_STATIC_SETTLEMENT_MATRIX);
 
 		const startTimestamp = Date.now();
 
@@ -458,6 +465,7 @@ export class SettlementsAggregate {
 		fromDate: number,
 		toDate: number
 	): Promise<string> {
+		this._enforcePrivilege(secCtx, Privileges.CREATE_DYNAMIC_SETTLEMENT_MATRIX);
 		const startTimestamp = Date.now();
 
 		const newMatrix = SettlementMatrix.CreateDynamic(
@@ -502,6 +510,7 @@ export class SettlementsAggregate {
 		matrixId: string,
 		newBatchIds: string[]
 	): Promise<void> {
+		this._enforcePrivilege(secCtx, Privileges.CREATE_STATIC_SETTLEMENT_MATRIX);
 		const startTimestamp = Date.now();
 
 		const matrixDto = await this._settlementMatrixReqRepo.getMatrixById(matrixId);
@@ -560,6 +569,7 @@ export class SettlementsAggregate {
 		matrixId: string,
 		batchIdsToRemove: string[]
 	): Promise<void> {
+		this._enforcePrivilege(secCtx, Privileges.CREATE_STATIC_SETTLEMENT_MATRIX);
 		const startTimestamp = Date.now();
 
 		const matrixDto = await this._settlementMatrixReqRepo.getMatrixById(matrixId);
@@ -613,6 +623,7 @@ export class SettlementsAggregate {
 	}
 
 	async getSettlementMatrix(secCtx: CallSecurityContext, id: string): Promise<ISettlementMatrix | null> {
+		this._enforcePrivilege(secCtx, Privileges.GET_SETTLEMENT_MATRIX);
 
 		const matrixDto = await this._settlementMatrixReqRepo.getMatrixById(id);
 		if (!matrixDto) {
@@ -636,6 +647,7 @@ export class SettlementsAggregate {
 	}
 
 	async recalculateSettlementMatrix(secCtx: CallSecurityContext, id: string): Promise<void> {
+		this._enforcePrivilege(secCtx, Privileges.GET_SETTLEMENT_MATRIX);
 		const matrixDto = await this._settlementMatrixReqRepo.getMatrixById(id);
 		if (!matrixDto) {
 			const err = new SettlementMatrixNotFoundError(`Matrix with id: ${id} not found`);
@@ -674,6 +686,7 @@ export class SettlementsAggregate {
 	}
 
 	async disputeSettlementMatrix(secCtx: CallSecurityContext, id: string): Promise<void> {
+		this._enforcePrivilege(secCtx, Privileges.SETTLEMENTS_DISPUTE_MATRIX);
 
 		const matrixDto = await this._settlementMatrixReqRepo.getMatrixById(id);
 		if (!matrixDto) {
@@ -732,7 +745,7 @@ export class SettlementsAggregate {
 	}
 
 	async lockSettlementMatrixForAwaitingSettlement(secCtx: CallSecurityContext, id: string): Promise<void> {
-
+		this._enforcePrivilege(secCtx, Privileges.SETTLEMENTS_LOCK_MATRIX);
 		const matrixDto = await this._settlementMatrixReqRepo.getMatrixById(id);
 		if (!matrixDto) {
 			const err = new SettlementMatrixNotFoundError(`Matrix with id: ${id} not found`);
@@ -791,6 +804,7 @@ export class SettlementsAggregate {
 	}
 
 	async unLockSettlementMatrixFromAwaitingSettlement(secCtx: CallSecurityContext, id: string): Promise<void> {
+		this._enforcePrivilege(secCtx, Privileges.SETTLEMENTS_UNLOCK_MATRIX);
 
 		const matrixDto = await this._settlementMatrixReqRepo.getMatrixById(id);
 		if (!matrixDto) {
@@ -848,6 +862,7 @@ export class SettlementsAggregate {
 	}
 
 	async closeSettlementMatrix(secCtx: CallSecurityContext, id: string): Promise<void> {
+		this._enforcePrivilege(secCtx, Privileges.SETTLEMENTS_CLOSE_MATRIX);
 
 		const matrixDto = await this._settlementMatrixReqRepo.getMatrixById(id);
 		if (!matrixDto) {
@@ -906,6 +921,7 @@ export class SettlementsAggregate {
 	}
 
 	async settleSettlementMatrix(secCtx: CallSecurityContext, id: string): Promise<void> {
+		this._enforcePrivilege(secCtx, Privileges.SETTLEMENTS_SETTLE_MATRIX);
 
 		const matrixDto = await this._settlementMatrixReqRepo.getMatrixById(id);
 		if (!matrixDto) {
@@ -1112,6 +1128,7 @@ export class SettlementsAggregate {
 		fromDate: number,
 		toDate: number
 	): Promise<ISettlementBatch[]> {
+		this._enforcePrivilege(secCtx, Privileges.RETRIEVE_SETTLEMENT_BATCH);
 
 		const batches = await this._batchRepo.getBatchesByCriteria(
 			fromDate,
@@ -1130,6 +1147,7 @@ export class SettlementsAggregate {
 		secCtx: CallSecurityContext,
 		batchIdentifier : string,
 	): Promise<ISettlementBatch | null> {
+		this._enforcePrivilege(secCtx, Privileges.RETRIEVE_SETTLEMENT_BATCH);
 
 		const batch = await this._batchRepo.getBatch(batchIdentifier);
 		if (!batch) return null;

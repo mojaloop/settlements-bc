@@ -60,6 +60,7 @@ import {
 	ISettlementConfigRepo,
 	ISettlementMatrixRequestRepo,
 	Privileges,
+	SettlementPrivilegesDefinition,
 	SettlementsAggregate
 } from "@mojaloop/settlements-bc-domain-lib";
 import {Express} from "express";
@@ -215,6 +216,33 @@ export class Service {
 		}
 		this.loginHelper = loginHelper;
 
+		// authorization client
+		if (!authorizationClient) {
+			// create the instance of IAuthenticatedHttpRequester
+			const authRequester = new AuthenticatedHttpRequester(logger, AUTH_N_SVC_TOKEN_URL);
+			authRequester.setAppCredentials(SVC_CLIENT_ID, SVC_CLIENT_SECRET);
+
+			const consumerHandlerLogger = logger.createChild("authorizationClientConsumer");
+			const messageConsumer = new MLKafkaJsonConsumer({
+				kafkaBrokerList: KAFKA_URL,
+				kafkaGroupId: `${BC_NAME}_${APP_NAME}_authz_client`
+			}, consumerHandlerLogger);
+
+			// setup privileges - bootstrap app privs and get priv/role associations
+			authorizationClient = new AuthorizationClient(
+				BC_NAME, APP_NAME, APP_VERSION,
+				AUTH_Z_SVC_BASEURL, logger.createChild("AuthorizationClient"),
+				authRequester,
+				messageConsumer
+			);
+			authorizationClient.addPrivilegesArray(SettlementPrivilegesDefinition);
+			await (authorizationClient as AuthorizationClient).bootstrap(true);
+			await (authorizationClient as AuthorizationClient).fetch();
+			// init message consumer to automatically update on role changed events
+			await (authorizationClient as AuthorizationClient).init();
+		}
+		this.authorizationClient = authorizationClient;
+
 		if (!auditClient) {
 			if (!existsSync(AUDIT_KEY_FILE_PATH)) {
 				if (PRODUCTION_MODE) process.exit(9);
@@ -345,7 +373,7 @@ export class Service {
 		// Aggregate:
 		this.aggregate = new SettlementsAggregate(
 			this.logger,
-			//this.authorizationClient,
+			this.authorizationClient,
 			this.auditClient,
 			configClient,
 			this.batchRepo,
@@ -377,65 +405,7 @@ export class Service {
 }
 
 
-// function addPrivileges(authorizationClient: AuthorizationClient): void {
-// 	// processing of transfers must always happen, this priv is not required
-// 	// authorizationClient.addPrivilege(
-// 	// 	Privileges.CREATE_SETTLEMENT_TRANSFER,
-// 	// 	Privileges.CREATE_SETTLEMENT_TRANSFER,
-// 	// 	"Allows the creation of a settlement transfer."
-// 	// );
-// 	authorizationClient.addPrivilege(
-// 		Privileges.CREATE_DYNAMIC_SETTLEMENT_MATRIX,
-// 		Privileges.CREATE_DYNAMIC_SETTLEMENT_MATRIX,
-// 		"Allows the creation of a dynamic settlement matrix."
-// 	);
-// 	authorizationClient.addPrivilege(
-// 		Privileges.CREATE_STATIC_SETTLEMENT_MATRIX,
-// 		Privileges.CREATE_STATIC_SETTLEMENT_MATRIX,
-// 		"Allows the creation of a static settlement matrix."
-// 	);
 
-// 	authorizationClient.addPrivilege(
-// 		Privileges.GET_SETTLEMENT_MATRIX,
-// 		Privileges.GET_SETTLEMENT_MATRIX,
-// 		"Allows the retrieval of a settlement matrix."
-// 	);
-// 	authorizationClient.addPrivilege(
-// 		Privileges.SETTLEMENTS_CLOSE_MATRIX,
-// 		Privileges.SETTLEMENTS_CLOSE_MATRIX,
-// 		"Allows the settling of a settlement matrix."
-// 	);
-// 	authorizationClient.addPrivilege(
-// 		Privileges.SETTLEMENTS_SETTLE_MATRIX,
-// 		Privileges.SETTLEMENTS_SETTLE_MATRIX,
-// 		"Allows the dispute of a settlement matrix."
-// 	);
-// 	authorizationClient.addPrivilege(
-// 		Privileges.SETTLEMENTS_DISPUTE_MATRIX,
-// 		Privileges.SETTLEMENTS_DISPUTE_MATRIX,
-// 		"Allows the dispute of a settlement matrix."
-// 	);
-// 	authorizationClient.addPrivilege(
-// 		Privileges.SETTLEMENTS_LOCK_MATRIX,
-// 		Privileges.SETTLEMENTS_LOCK_MATRIX,
-// 		"Allows the locking of a settlement matrix."
-// 	);
-// 	authorizationClient.addPrivilege(
-// 		Privileges.SETTLEMENTS_UNLOCK_MATRIX,
-// 		Privileges.SETTLEMENTS_UNLOCK_MATRIX,
-// 		"Allows the unlocking of a settlement matrix."
-// 	);
-// 	authorizationClient.addPrivilege(
-// 		Privileges.GET_SETTLEMENT_MATRIX,
-// 		Privileges.GET_SETTLEMENT_MATRIX,
-// 		"Allows the retrieval of a settlement matrix request."
-// 	);
-// 	authorizationClient.addPrivilege(
-// 		Privileges.RETRIEVE_SETTLEMENT_BATCH,
-// 		Privileges.RETRIEVE_SETTLEMENT_BATCH,
-// 		"Allows the retrieval of a settlement batch."
-// 	);
-// }
 
 
 /**
