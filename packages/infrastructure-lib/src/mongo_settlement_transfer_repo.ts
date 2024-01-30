@@ -158,10 +158,32 @@ export class MongoSettlementTransferRepo implements ISettlementBatchTransferRepo
 			throw new Error("Unable to get transfers by batchNames from repo - msg: " + error.message);
 		}
 	}
-	async getBatchTransfers(): Promise<ISettlementBatchTransfer[]> {
+	async getBatchTransfers(pageIndex?: number, pageSize?: number): Promise<BatchTransferSearchResults> {
 		try {
-			const batches = await this._collection.find({}).project({_id: 0}).toArray();
-			return batches as ISettlementBatchTransfer[];
+			const options: FindOptions<Document>  ={
+				sort:["transferTimestamp", "desc"]
+			};
+
+			if(pageSize){
+				pageIndex = Math.max(pageIndex || 0, 0);
+				pageSize = Math.min(pageSize, MAX_ENTRIES_PER_PAGE);
+				options.skip = pageIndex * pageSize;
+				options.limit= pageSize;
+			}
+
+			const batches = await this._collection.find({},options).project({_id: 0}).toArray();
+
+			const totalDoc = await this._collection.countDocuments({});
+
+			const result: BatchTransferSearchResults = {
+				pageIndex: pageIndex || 0,
+				pageSize: pageSize ?? totalDoc,
+				totalPages: pageSize ?  Math.ceil(totalDoc / pageSize) : 1,
+				items: batches as ISettlementBatchTransfer[]
+			};
+
+			return result;
+			
 		} catch (error: any) {
 			throw new Error("Unable to get transfers from repo - msg: " + error.message);
 		}

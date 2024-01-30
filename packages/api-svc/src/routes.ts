@@ -440,13 +440,7 @@ export class ExpressRoutes {
 				result = await this._batchTransferRepo.getBatchTransfersByBatchIds(batchIds);
 			} else {
 				// TODO this one also needs pagination
-				const transfers = await this._batchTransferRepo.getBatchTransfers();
-				result = {
-					pageIndex: 0,
-					pageSize: 1,
-					items: transfers,
-					totalPages: 1
-				};
+				result = await this._batchTransferRepo.getBatchTransfers(pageIndex, pageSize);
 			}
 
 			if (!result || !result.items) {
