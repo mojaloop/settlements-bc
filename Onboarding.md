@@ -30,36 +30,36 @@ If you have followed the [general onboarding guide](https://github.com/mojaloop/
 ## 2. Service Overview 
 The Settlements BC consists of the following packages;
 
-### `public-types-lib`
-Public shared types.
+`public-types-lib`
+- Public shared types.
 [README](./packages/public-types-lib/README.md)
 
-### `domain-lib`
-Domain library types.
+`domain-lib`
+- Domain library types.
 [README](./packages/domain-lib/README.md)
 
-### `infrastructure-lib`
-Infrastructure library.
+`infrastructure-lib`
+- Infrastructure library.
 [README](./packages/infrastructure-lib/README.md)
 
-### `settlements-bc-api-svc`
-HTTP service for Settlements BC.
+`settlements-bc-api-svc`
+- HTTP service for Settlements BC.
 [README](packages/api-svc/README.md)
 
-### `event-handler-svc`
-[TODO:Desc]
+`event-handler-svc`
+- Event handler service for Settlements BC.
 [README](packages/event-handler-svc/README.md)
 
-### `command-handler-svc`
-[TODO:Desc]
+`command-handler-svc`
+- Command handler service for Settlements BC.
 [README](packages/command-handler-svc/README.md)
 
-### `settlement-model-lib`
-Settlement library used to determine the settlement model for a settlement transfer.
+`settlement-model-lib`
+- Settlement library used to determine the settlement model for a settlement transfer.
 [README](./packages/settlement-model-lib/README.md)
 
-### `shared-mocks-lib`
-Mock implementation used for testing.
+`shared-mocks-lib`
+- Mock implementation used for testing.
 [README](./packages/shared-mocks-lib/README.md)
 
 
@@ -140,6 +140,7 @@ cp ./packages/api-svc/auditing_cert ~/app/data/audit_private_key.pem
 # set the AUDIT_KEY_FILE_PATH 
 export AUDIT_KEY_FILE_PATH=~/app/data/audit_private_key.pem 
 ```
+See the README.md file on each services for more Environment Variable Configuration options.
 
 ### 4.3 Run the server
 

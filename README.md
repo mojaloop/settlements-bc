@@ -18,7 +18,6 @@ The Settlements BC is integral to settling Participant transfers using either De
   - [Packages](#packages)
   - [Running Locally](#running-locally)
   - [Configuration](#configuration)
-    - [Environment variables](#environment-variables)
   - [API](#api)
   - [Logging](#logging)
   - [Tests](#tests)
@@ -31,27 +30,35 @@ The Settlements BC is integral to settling Participant transfers using either De
 ## Packages
 The Settlements BC consists of the following packages;
 
-### `public-types-lib`
+`public-types-lib`
 Public shared types.
 [README](./packages/public-types-lib/README.md)
 
-### `domain-lib`
+`domain-lib`
 Domain library types.
 [README](./packages/domain-lib/README.md)
 
-### `infrastructure-lib`
+`infrastructure-lib`
 Infrastructure library.
 [README](./packages/infrastructure-lib/README.md)
 
-### `settlements-bc-http-svc`
+`settlements-bc-api-svc`
 HTTP service for Settlements BC.
 [README](packages/api-svc/README.md)
 
-### `settlement-model-lib`
+`event-handler-svc`
+Event handler service for Settlements BC.
+[README](packages/event-handler-svc/README.md)
+
+`command-handler-svc`
+Command handler service for Settlements BC.
+[README](packages/command-handler-svc/README.md)
+
+`settlement-model-lib`
 Settlement library used to determine the settlement model for a settlement transfer.
 [README](./packages/settlement-model-lib/README.md)
 
-### `shared-mocks-lib`
+`shared-mocks-lib`
 Mock implementation used for testing.
 [README](./packages/shared-mocks-lib/README.md)
 
@@ -61,8 +68,7 @@ Please follow the instruction in [Onboarding Document](Onboarding.md) to setup a
 
 ## Configuration
 
-### Environment variables
-
+See the README.md file on each services for more Environment Variable Configuration options.
 
 ## API
 
