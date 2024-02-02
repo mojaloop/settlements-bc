@@ -76,6 +76,20 @@ For endpoint documentation, see the [API documentation](https://github.com/mojal
 
 For help preparing and executing transfers, see the [Transfer Guide](TransferGuide.md)
 
+## Documentation
+The following documentation provides insight into the Settlements Bounded Context.
+
+- **Technical Flows** - [`../docs/flows`](docs/flows/)
+- **Settlement Version 2** - [`../docs/Settlement Version 2.pptx`](docs/Settlement%20Version%202.pptx)
+- **Functional Specification** - [`../docs/func_spec`](docs/func_spec/)
+- **Settlement Operational Implementation** - https://docs.mojaloop.io/business-operations-framework-docs/guide/SettlementBC.html#core-settlement-operations
+- **Reference Architecture** - https://mojaloop.github.io/reference-architecture-doc/boundedContexts/settlements/
+- **MIRO Board** - https://miro.com/app/board/o9J_lJyA1TA=/
+- **Settlement Functionality in MJL** - https://docs.google.com/presentation/d/19uy6pO_igmQ9uZRnKyZkXD8a8uyMKQcn/edit#slide=id.p1
+- **Work Sessions** - https://docs.google.com/document/d/1Nm6B_tSR1mOM0LEzxZ9uQnGwXkruBeYB2slgYK1Kflo/edit#heading=h.6w64vxvw6er4
+- **Admin API - Settlement Models** - https://github.com/mojaloop/mojaloop-specification/blob/master/admin-api/admin-api-specification-v1.0.md#api-resource-settlementmodels
+
+
 ## Logging
 
 Logs are sent to standard output by default.
@@ -115,15 +129,3 @@ coverage/lcov-report/index.html
 ```
 
 
-## Documentation
-The following documentation provides insight into the Settlements Bounded Context.
-
-- **Technical Flows** - [`../docs/flows`](docs/flows/)
-- **Settlement Version 2** - [`../docs/Settlement Version 2.pptx`](docs/Settlement%20Version%202.pptx)
-- **Functional Specification** - [`../docs/func_spec`](docs/func_spec/)
-- **Settlement Operational Implementation** - https://docs.mojaloop.io/business-operations-framework-docs/guide/SettlementBC.html#core-settlement-operations
-- **Reference Architecture** - https://mojaloop.github.io/reference-architecture-doc/boundedContexts/settlements/
-- **MIRO Board** - https://miro.com/app/board/o9J_lJyA1TA=/
-- **Settlement Functionality in MJL** - https://docs.google.com/presentation/d/19uy6pO_igmQ9uZRnKyZkXD8a8uyMKQcn/edit#slide=id.p1
-- **Work Sessions** - https://docs.google.com/document/d/1Nm6B_tSR1mOM0LEzxZ9uQnGwXkruBeYB2slgYK1Kflo/edit#heading=h.6w64vxvw6er4
-- **Admin API - Settlement Models** - https://github.com/mojaloop/mojaloop-specification/blob/master/admin-api/admin-api-specification-v1.0.md#api-resource-settlementmodels

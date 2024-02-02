@@ -49,7 +49,7 @@ npm run test:integration
 | AUTH_N_SVC_BASEURL | Authentication service base URL  |http://localhost:3201|
 | AUTH_N_TOKEN_ISSUER_NAME    | Authentication service token issuer name           |   mojaloop.vnext.dev.default_issuer    |
 | AUTH_N_TOKEN_AUDIENCE        | Authentication service token audience    |    mojaloop.vnext.dev.default_audience   |
-| AUTH_N_SVC_JWKS_URL  | Authorization service JWKS URL    | http://authentication-svc:3201         |
+| AUTH_N_SVC_JWKS_URL  | Authentication service base URL    | http://authentication-svc:3201         |
 | AUTH_Z_SVC_BASEURL   | Authorization service base URL    | http://authorization-svc:3202           |
 | KAFKA_URL       | Kafka broker URL     | localhost:9092          |
 | MONGO_URL            | MongoDB connection URL             | mongodb://root:mongoDbPas42@localhost:27017/ |
