@@ -418,7 +418,7 @@ export class SettlementsAggregate {
 		matrixId: string | null,
 		batchIds: string[]
 	): Promise<string> {
-		this._enforcePrivilege(secCtx, Privileges.CREATE_STATIC_SETTLEMENT_MATRIX);
+		this._enforcePrivilege(secCtx, Privileges.CREATE_SETTLEMENT_MATRIX);
 
 		const startTimestamp = Date.now();
 
@@ -465,7 +465,7 @@ export class SettlementsAggregate {
 		fromDate: number,
 		toDate: number
 	): Promise<string> {
-		this._enforcePrivilege(secCtx, Privileges.CREATE_DYNAMIC_SETTLEMENT_MATRIX);
+		this._enforcePrivilege(secCtx, Privileges.CREATE_SETTLEMENT_MATRIX);
 		const startTimestamp = Date.now();
 
 		const newMatrix = SettlementMatrix.CreateDynamic(
@@ -510,7 +510,7 @@ export class SettlementsAggregate {
 		matrixId: string,
 		newBatchIds: string[]
 	): Promise<void> {
-		this._enforcePrivilege(secCtx, Privileges.CREATE_STATIC_SETTLEMENT_MATRIX);
+		this._enforcePrivilege(secCtx, Privileges.CREATE_SETTLEMENT_MATRIX);
 		const startTimestamp = Date.now();
 
 		const matrixDto = await this._settlementMatrixReqRepo.getMatrixById(matrixId);
@@ -569,7 +569,7 @@ export class SettlementsAggregate {
 		matrixId: string,
 		batchIdsToRemove: string[]
 	): Promise<void> {
-		this._enforcePrivilege(secCtx, Privileges.CREATE_STATIC_SETTLEMENT_MATRIX);
+		this._enforcePrivilege(secCtx, Privileges.REMOVE_SETTLEMENT_MATRIX_BATCH);
 		const startTimestamp = Date.now();
 
 		const matrixDto = await this._settlementMatrixReqRepo.getMatrixById(matrixId);

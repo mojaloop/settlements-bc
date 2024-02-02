@@ -594,7 +594,7 @@ export class ExpressRoutes {
 
 	private async postAddBatchToStaticMatrix(req: express.Request, res: express.Response): Promise<void> {
 		try {
-			this._enforcePrivilege(req.securityContext!, Privileges.SETTLEMENTS_SETTLE_MATRIX);
+			this._enforcePrivilege(req.securityContext!, Privileges.CREATE_SETTLEMENT_MATRIX);
 			const matrixId = req.params.id as string;
 			const addReqPayload = req.body as AddBatchesToMatrixCmdPayload;
 

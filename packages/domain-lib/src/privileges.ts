@@ -34,8 +34,6 @@ export enum Privileges {
 	// CREATE_SETTLEMENT_TRANSFER = "SETTLEMENTS_CREATE_TRANSFER",
 
 	CREATE_SETTLEMENT_MATRIX = "CREATE_SETTLEMENT_MATRIX",
-	CREATE_DYNAMIC_SETTLEMENT_MATRIX = "SETTLEMENTS_CREATE_DYNAMIC_MATRIX",
-	CREATE_STATIC_SETTLEMENT_MATRIX = "SETTLEMENTS_CREATE_STATIC_MATRIX",
 	CREATE_SETTLEMENT_CONFIG = "SETTLEMENTS_CREATE_MODEL",
 	VIEW_SETTLEMENT_CONFIG = "VIEW_SETTLEMENT_CONFIG",
 
@@ -59,18 +57,6 @@ export const SettlementPrivilegesDefinition = [
         privId: Privileges.CREATE_SETTLEMENT_MATRIX,
         labelName: "Create Settlement Matrix",
         description: "Allows the creation of a dynamic settlement matrix."
-    },
-
-	{
-        privId: Privileges.CREATE_DYNAMIC_SETTLEMENT_MATRIX,
-        labelName: "Create Dynamic Settlement Matrix",
-        description: "Allows the creation of a dynamic settlement matrix."
-    },
-
-	{
-        privId: Privileges.CREATE_STATIC_SETTLEMENT_MATRIX,
-        labelName: "Create Static Settlement Matrix",
-        description: "Allows the creation of a static settlement matrix."
     },
 
 	{
