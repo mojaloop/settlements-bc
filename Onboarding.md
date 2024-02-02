@@ -130,15 +130,12 @@ This will do the following:
 
 ```bash
 # set the MONGO_URL* environment variable (required):
-export MONGO_URL=mongodb://root:mongoDb42pass@localhost:27017/";
+export MONGO_URL=mongodb://root:mongoDbPas42@localhost:27017/";
 ```
 
 ```bash
-# create the private key 
-cp ./packages/api-svc/auditing_cert ~/app/data/audit_private_key.pem
-
 # set the AUDIT_KEY_FILE_PATH 
-export AUDIT_KEY_FILE_PATH=~/app/data/audit_private_key.pem 
+export AUDIT_KEY_FILE_PATH=./dist/auditing_cert
 ```
 See the README.md file on each services for more Environment Variable Configuration options.
 
