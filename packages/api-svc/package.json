@@ -1,6 +1,6 @@
 {
   "name": "@mojaloop/settlements-bc-settlements-api-svc",
-  "version": "0.5.2",
+  "version": "0.5.4",
   "description": "Settlements BC - HTTP Service",
   "license": "Apache-2.0",
   "homepage": "https://github.com/mojaloop/settlements-bc/tree/main/packages/http-svc",
@@ -39,7 +39,7 @@
   "devDependencies": {
     "@mojaloop/settlements-bc-shared-mocks-lib": "*",
     "@types/express": "~4.17.21",
-    "axios": "~1.6.2"
+    "axios": "~1.6.7"
   },
   "dependencies": {
     "@mojaloop/auditing-bc-client-lib": "~0.5.1",

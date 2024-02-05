@@ -117,7 +117,7 @@ export interface ISettlementBatchTransferRepo {
 	getBatchTransfersByTransferId(transferId: string): Promise<ISettlementBatchTransfer[]>;
 
 	// TODO this one also needs pagination
-	getBatchTransfers(): Promise<ISettlementBatchTransfer[]>;
+	getBatchTransfers(pageIndex?: number, pageSize?: number): Promise<BatchTransferSearchResults>;
 }
 
 export interface ISettlementMatrixRequestRepo {

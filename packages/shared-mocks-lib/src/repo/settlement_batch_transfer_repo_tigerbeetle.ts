@@ -68,7 +68,13 @@ export class SettlementBatchTransferRepoTigerBeetle implements ISettlementBatchT
 		return Promise.resolve([]);
 	}
 
-	async getBatchTransfers(): Promise<ISettlementBatchTransfer[]>{
-		return Promise.resolve([]);
+	async getBatchTransfers(pageIndex?: number, pageSize?: number): Promise<BatchTransferSearchResults>{
+		const searchResults: BatchTransferSearchResults = {
+			pageIndex: pageIndex ? pageIndex : 0,
+			pageSize: pageSize ? pageSize : 15,
+			totalPages: 0,
+			items: []
+		};
+		return Promise.resolve(searchResults);
 	}
 }
