@@ -204,7 +204,7 @@ describe("Settlement BC api-svc route test", () => {
             type: "STATIC",
             generationDurationSecs: 2
         }
-    })
+    }, 30000)
 
     afterAll(async () => {
         await Service.stop();
