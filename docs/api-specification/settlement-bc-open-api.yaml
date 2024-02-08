@@ -85,7 +85,7 @@ paths:
           description: No results.
         '500':
           description: Server error
-  /models:
+  /models/{id}:
     get:
       tags:
         - settlement-model
@@ -102,7 +102,7 @@ paths:
         - name: id
           in: path
           description: 'Settlement model unique identifier.'
-          required: false
+          required: true
           schema:
             type: string
       responses:
@@ -116,6 +116,7 @@ paths:
                   $ref: '#/components/schemas/SettlementConfig'
         '500':
           description: Server error
+  /models:
     post:
       tags:
         - settlement-model
@@ -136,7 +137,7 @@ paths:
           description: Validation error
         '500':
           description: Server error
-  /batches:
+  /batches/{id}:
     get:
       tags:
         - settlement-batch
@@ -173,13 +174,13 @@ paths:
           description: 'Settlement currency codes filter criteria.'
           required: false
           schema:
-            type: array
+            type: string
         - name: batchStatuses
           in: query
           description: 'Settlement batch statuses filter criteria.'
           required: false
           schema:
-            type: array
+            type: string
             enum:
               - OPEN
               - CLOSED
@@ -201,7 +202,7 @@ paths:
         - name: id
           in: path
           description: 'Settlement batch unique identifier.'
-          required: false
+          required: true
           schema:
             type: string
       responses:
@@ -217,7 +218,7 @@ paths:
           description: No results
         '500':
           description: Server error
-  /matrices:
+  /matrices/{id}:
     get:
       tags:
         - settlement-matrix
@@ -269,7 +270,7 @@ paths:
           description: 'Settlement currency codes filter criteria.'
           required: false
           schema:
-            type: array
+            type: string
         - name: pageIndex
           in: query
           description: 'Page index for search results to return.'
@@ -285,7 +286,7 @@ paths:
         - name: id
           in: path
           description: 'Settlement matrix unique identifier.'
-          required: false
+          required: true
           schema:
             type: string
       responses:
@@ -299,6 +300,7 @@ paths:
           description: No results
         '500':
           description: Server error
+  /matrices:
     post:
       tags:
         - settlement-matrix
@@ -319,7 +321,7 @@ paths:
           description: Validation error
         '500':
           description: Server error
-  /matrices/:id/batches:
+  /matrices/{id}/batches:
     post:
       tags:
         - settlement-matrix
@@ -358,19 +360,12 @@ paths:
           required: true
           schema:
             type: string
-      requestBody:
-        description: Settlement batch command.
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/SettlementMatrixBatch'
       responses:
         '202':
           description: Command received
         '500':
           description: Server error
-  /matrices/:id/recalculate:
+  /matrices/{id}/recalculate:
     post:
       tags:
         - settlement-matrix
@@ -391,7 +386,7 @@ paths:
           description: Matrix with id not found
         '500':
           description: Server error
-  /matrices/:id/close:
+  /matrices/{id}/close:
     post:
       tags:
         - settlement-matrix
@@ -412,7 +407,7 @@ paths:
           description: Matrix with id not found
         '500':
           description: Server error
-  /matrices/:id/settle:
+  /matrices/{id}/settle:
     post:
       tags:
         - settlement-matrix
@@ -433,7 +428,7 @@ paths:
           description: Matrix with id not found
         '500':
           description: Server error
-  /matrices/:id/dispute:
+  /matrices/{id}/dispute:
     post:
       tags:
         - settlement-matrix
@@ -454,7 +449,7 @@ paths:
           description: Matrix with id not found
         '500':
           description: Server error
-  /matrices/:id/lock:
+  /matrices/{id}/lock:
     post:
       tags:
         - settlement-matrix
@@ -475,7 +470,7 @@ paths:
           description: Matrix with id not found
         '500':
           description: Server error
-  /matrices/:id/unlock:
+  /matrices/{id}/unlock:
     post:
       tags:
         - settlement-matrix
@@ -599,7 +594,6 @@ components:
           type: number
           example: 12121221212
         notes:
-          required: false
           description: 'Optional notes regarding the activity performed.'
           type: string
           example: 'Hi there.'
@@ -644,7 +638,6 @@ components:
             - AWAITING_SETTLEMENT
             - SETTLED
         ownerMatrixId:
-          required: false
           type: string
           example: '1067059f5c-e656-41ee-a746-631931d1ac12'
           description: 'The matrix who currently has the batch locked (if locked).'
@@ -704,15 +697,15 @@ components:
           example: 12121212121212
           description: 'Timestamp to date for DYNAMIC matrix filter criteria.'
         currencyCodes:
-          type: array
+          type: string
           example: 'EUR'
           description: 'Currencies in ISO format.'
         settlementModel:
-          type: array
+          type: string
           example: 'DEFAULT'
           description: 'Settlement model associated with the matrix.'
         batchStatuses:
-          type: array
+          type: string
           example: 'DISPUTE'
           description: 'Batch statuses associated with a DYNAMIC settlement matrix.'
         batches:
@@ -764,7 +757,8 @@ components:
         items:
           type: array
           description: 'List of settlement matrices.'
-          $ref: '#/components/schemas/SettlementMatrix'
+          items:
+            $ref: '#/components/schemas/SettlementMatrix'
     SettlementMatrixBalanceByCurrency:
       type: object
       properties:
@@ -960,7 +954,8 @@ components:
         participantList:
           type: array
           description: 'The result for each of the DFSP participants.'
-          $ref: '#/components/schemas/SettlementMatrixSettledEvtPayloadParticipantItem'
+          items:
+            $ref: '#/components/schemas/SettlementMatrixSettledEvtPayloadParticipantItem'
     SettlementMatrixSettledEvtPayloadParticipantItem:
       type: object
       description: 'The settlement information relating to the DFSP participant.'
