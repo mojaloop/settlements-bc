@@ -20,12 +20,14 @@ public class TestPlanConfig extends ABaseJSONObject {
 
 	private SettlementTransfer settlementTransfer;
 	private SettlementMatrix settlementMatrix;
+	private SettlementBatch settlementBatch;
 
 	@Getter
 	@Setter
 	public static final class SettlementTransfer extends ABaseJSONObject {
 		private static final long serialVersionUID = 1L;
 		private int count;
+		private int getByParticipant;
 		private int amountMin;
 		private int amountMax;
 		private List<String> currencies;
@@ -38,6 +40,7 @@ public class TestPlanConfig extends ABaseJSONObject {
 			public static final String CURRENCIES = "currencies";
 			public static final String SETTLEMENT_MODELS = "settlement-models";
 			public static final String PARTICIPANTS = "participants";
+			public static final String GET_BY_PARTICIPANT = "get-by-participant";
 		}
 
 		public SettlementTransfer(JSONObject jsonObject) {
@@ -69,6 +72,10 @@ public class TestPlanConfig extends ABaseJSONObject {
 				JSONArray arr = jsonObject.getJSONArray(JSONMapping.PARTICIPANTS);
 				if (!arr.isEmpty()) arr.forEach(itm -> this.participants.add(itm.toString()));
 			}
+
+			if (jsonObject.has(JSONMapping.GET_BY_PARTICIPANT)) {
+				this.setGetByParticipant(jsonObject.getInt(JSONMapping.GET_BY_PARTICIPANT));
+			}
 		}
 
 		public void validate() {
@@ -95,32 +102,84 @@ public class TestPlanConfig extends ABaseJSONObject {
 	@Setter
 	public static final class SettlementMatrix extends ABaseJSONObject {
 		private static final long serialVersionUID = 1L;
-		private int closeBatchesEveryXSeconds;
-		private int settleBatchesEveryXSeconds;
+		private int createStatic;
+		private int createDynamic;
+		private int close;
+		private int lock;
+		private int settle;
 
 		public static class JSONMapping {
-			public static final String CLOSE_BATCHES_EVERY_X_SECONDS = "close-batches-every-x-seconds";
-			public static final String SETTLE_BATCHES_EVERY_X_SECONDS = "settle-batches-every-x-seconds";
+			public static final String CREATE_STATIC = "create-static";
+			public static final String CREATE_DYNAMIC = "create-dynamic";
+			public static final String CLOSE = "close";
+			public static final String LOCK = "lock";
+			public static final String SETTLE = "settle";
 		}
 
 		public SettlementMatrix(JSONObject jsonObject) {
 			super(jsonObject);
 
-			if (jsonObject.has(JSONMapping.CLOSE_BATCHES_EVERY_X_SECONDS)) {
-				this.setCloseBatchesEveryXSeconds(jsonObject.getInt(JSONMapping.CLOSE_BATCHES_EVERY_X_SECONDS));
+			if (jsonObject.has(JSONMapping.CREATE_STATIC)) {
+				this.setCreateStatic(jsonObject.getInt(JSONMapping.CREATE_STATIC));
 			}
-
-			if (jsonObject.has(JSONMapping.SETTLE_BATCHES_EVERY_X_SECONDS)) {
-				this.setSettleBatchesEveryXSeconds(jsonObject.getInt(JSONMapping.SETTLE_BATCHES_EVERY_X_SECONDS));
+			if (jsonObject.has(JSONMapping.CREATE_DYNAMIC)) {
+				this.setCreateDynamic(jsonObject.getInt(JSONMapping.CREATE_DYNAMIC));
+			}
+			if (jsonObject.has(JSONMapping.CLOSE)) {
+				this.setClose(jsonObject.getInt(JSONMapping.CLOSE));
+			}
+			if (jsonObject.has(JSONMapping.LOCK)) {
+				this.setLock(jsonObject.getInt(JSONMapping.LOCK));
+			}
+			if (jsonObject.has(JSONMapping.SETTLE)) {
+				this.setSettle(jsonObject.getInt(JSONMapping.SETTLE));
 			}
 		}
 
 		public void validate() {
-			if (this.closeBatchesEveryXSeconds < 1) {
-				throw new IllegalStateException("Closing of matrices needs to be more than 0!");
+			if (this.createStatic < 0) {
+				throw new IllegalStateException("Create static matrix should be more than -1!");
 			}
-			if (this.settleBatchesEveryXSeconds < 1) {
-				throw new IllegalStateException("Settling of matrices needs to be more than 0!");
+
+			if (this.createDynamic < 0) {
+				throw new IllegalStateException("Create dynamic matrix should be more than -1!");
+			}
+
+			if (this.close < 0) {
+				throw new IllegalStateException("Close matrix should be more than -1!");
+			}
+
+			if (this.lock < 0) {
+				throw new IllegalStateException("Lock matrix should be more than -1!");
+			}
+
+			if (this.settle < 0) {
+				throw new IllegalStateException("Settle matrix should be more than -1!");
+			}
+		}
+	}
+
+	@Getter
+	@Setter
+	public static final class SettlementBatch extends ABaseJSONObject {
+		private static final long serialVersionUID = 1L;
+		private int getByModel;
+
+		public static class JSONMapping {
+			public static final String GET_BY_MODEL = "get-by-model";
+		}
+
+		public SettlementBatch(JSONObject jsonObject) {
+			super(jsonObject);
+
+			if (jsonObject.has(JSONMapping.GET_BY_MODEL)) {
+				this.setGetByModel(jsonObject.getInt(JSONMapping.GET_BY_MODEL));
+			}
+		}
+
+		public void validate() {
+			if (this.getByModel < 0) {
+				throw new IllegalStateException("Closing of matrices needs to be more than 0!");
 			}
 		}
 	}
@@ -128,6 +187,7 @@ public class TestPlanConfig extends ABaseJSONObject {
 	public static class JSONMapping {
 		public static final String SETTLEMENT_TRANSFER = "settlement-transfer";
 		public static final String SETTLEMENT_MATRIX = "settlement-matrix";
+		public static final String BATCH = "batch";
 	}
 
 	public TestPlanConfig(JSONObject jsonObject) {
@@ -142,6 +202,10 @@ public class TestPlanConfig extends ABaseJSONObject {
 			this.setSettlementMatrix(new SettlementMatrix(
 					jsonObject.getJSONObject(JSONMapping.SETTLEMENT_MATRIX)));
 		}
+
+		if (jsonObject.has(JSONMapping.BATCH)) {
+			this.setSettlementBatch(new SettlementBatch(jsonObject.getJSONObject(JSONMapping.BATCH)));
+		}
 	}
 
 	@Override
@@ -150,6 +214,7 @@ public class TestPlanConfig extends ABaseJSONObject {
 
 		returnVal.put(JSONMapping.SETTLEMENT_TRANSFER, this.getSettlementTransfer());
 		returnVal.put(JSONMapping.SETTLEMENT_MATRIX, this.getSettlementMatrix());
+		returnVal.put(JSONMapping.BATCH, this.getSettlementBatch());
 
 		return returnVal;
 	}
@@ -157,8 +222,10 @@ public class TestPlanConfig extends ABaseJSONObject {
 	public void validate() {
 		if (this.getSettlementTransfer() == null) throw new IllegalStateException("Settlement Transfer is not set!");
 		if (this.getSettlementMatrix() == null) throw new IllegalStateException("Settlement Matrix is not set!");
+		if (this.getSettlementBatch() == null) throw new IllegalStateException("Settlement Batch is not set!");
 
 		this.getSettlementTransfer().validate();
 		this.getSettlementMatrix().validate();
+		this.getSettlementBatch().validate();
 	}
 }

@@ -86,8 +86,11 @@ import {IConfigurationClient} from "@mojaloop/platform-configuration-bc-public-t
 
 import crypto from "crypto";
 import {
+	AccountsBalancesAdapterVoid,
 	AuthorizationClientMock,
-	ConfigurationClientMock, SettlementBatchCacheRepoMock,
+	ConfigurationClientMock,
+	SettlementBatchCacheRepoMock,
+	SettlementBatchTransferRepoVoid,
 	TokenHelperMock
 } from "@mojaloop/settlements-bc-shared-mocks-lib";
 import {
@@ -307,6 +310,8 @@ export class Service {
 					this.logger,
 					this.configurationClient
 				);
+			} else if (bareboneStartup) {
+				accountsAndBalancesAdapter = new AccountsBalancesAdapterVoid();
 			} else {
 				accountsAndBalancesAdapter = new GrpcAccountsAndBalancesAdapter(ACCOUNTS_BALANCES_COA_SVC_URL, this.loginHelper as LoginHelper, this.logger);
 			}
@@ -365,14 +370,18 @@ export class Service {
 		this.matrixRepo = matrixRepo;
 
 		if (!batchTransferRepo) {
-			batchTransferRepo = new MongoSettlementTransferRepo(
-				this.logger,
-				MONGO_URL,
-				DB_NAME,
-				SETTLEMENT_TRANSFERS_COLLECTION_NAME
-			);
-			await batchTransferRepo.init();
+			if (bareboneStartup && USE_TIGERBEETLE === 'true') {
+				batchTransferRepo = new SettlementBatchTransferRepoVoid();
+			} else {
+				batchTransferRepo = new MongoSettlementTransferRepo(
+					this.logger,
+					MONGO_URL,
+					DB_NAME,
+					SETTLEMENT_TRANSFERS_COLLECTION_NAME
+				);
+			}
 		}
+		await batchTransferRepo.init();
 		this.batchTransferRepo = batchTransferRepo;
 
 		if (!messageConsumer) {

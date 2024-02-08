@@ -130,42 +130,88 @@ public class TestDataUtil {
 		List<TestDataCarrier> returnVal = new ArrayList<>();
 		// Validate before
 		tpc.validate();
-		TestPlanConfig.SettlementTransfer settlementTransfer = tpc.getSettlementTransfer();
-		for (int index = 0; index < settlementTransfer.getCount(); index++) {
+
+		TestDataUtil.genSettlementTransferAndOtherData(returnVal, tpc);
+
+		return returnVal;
+	}
+
+	private static void genSettlementTransferAndOtherData(
+			List<TestDataCarrier> carriers,
+			TestPlanConfig tpc
+	) {
+		TestPlanConfig.SettlementTransfer settleTransfer = tpc.getSettlementTransfer();
+		TestPlanConfig.SettlementMatrix matrix = tpc.getSettlementMatrix();
+		TestPlanConfig.SettlementBatch batch = tpc.getSettlementBatch();
+		int getByParticipant = settleTransfer.getGetByParticipant();
+		int cntStatic = matrix.getCreateStatic();
+		for (int index = 0; index < settleTransfer.getCount(); index++) {
 			TestDataCarrier toAdd = new TestDataCarrier(new JSONObject());
 			toAdd.setActionType(TestDataCarrier.ActionType.transfer);
 
-			int currencyIndex = randomNumberBetween(0, tpc.getSettlementTransfer().getCurrencies().size() - 1);
-			String currency = tpc.getSettlementTransfer().getCurrencies().get(currencyIndex);
+			int currencyIndex = randomNumberBetween(0, settleTransfer.getCurrencies().size() - 1);
+			String currency = settleTransfer.getCurrencies().get(currencyIndex);
 			int amount = randomNumberBetween(
-					tpc.getSettlementTransfer().getAmountMin(),
-					tpc.getSettlementTransfer().getAmountMax()
+					settleTransfer.getAmountMin(),
+					settleTransfer.getAmountMax()
 			);
 
-			int payerIndex = randomNumberBetween(0, tpc.getSettlementTransfer().getParticipants().size() - 1);
+			int payerIndex = randomNumberBetween(0, settleTransfer.getParticipants().size() - 1);
 			int payeeIndex;
 			do {
-				payeeIndex = randomNumberBetween(0, tpc.getSettlementTransfer().getParticipants().size() - 1);
+				payeeIndex = randomNumberBetween(0, settleTransfer.getParticipants().size() - 1);
 			} while (payerIndex == payeeIndex);
-			String payee = tpc.getSettlementTransfer().getParticipants().get(payeeIndex);
-			String payer = tpc.getSettlementTransfer().getParticipants().get(payerIndex);
-			String settlementModel = tpc.getSettlementTransfer().getSettlementModels().get(
-					randomNumberBetween(0, tpc.getSettlementTransfer().getSettlementModels().size() - 1)
+			String payee = settleTransfer.getParticipants().get(payeeIndex);
+			String payer = settleTransfer.getParticipants().get(payerIndex);
+			String settlementModel = settleTransfer.getSettlementModels().get(
+					randomNumberBetween(0, settleTransfer.getSettlementModels().size() - 1)
 			);
 
-			TransferReq settleTransfer = new TransferReq(new JSONObject());
-			settleTransfer.setTransferId(uuidNoDash());
-			settleTransfer.setPayerFspId(payer);
-			settleTransfer.setPayeeFspId(payee);
-			settleTransfer.setCurrencyCode(currency);
-			settleTransfer.setAmount(Integer.toString(amount));
-			settleTransfer.setTimestamp(new Date());
-			settleTransfer.setSettlementModel(settlementModel);
+			TransferReq settleTransferToAdd = new TransferReq(new JSONObject());
+			settleTransferToAdd.setTransferId(uuidNoDash());
+			settleTransferToAdd.setPayerFspId(payer);
+			settleTransferToAdd.setPayeeFspId(payee);
+			settleTransferToAdd.setCurrencyCode(currency);
+			settleTransferToAdd.setAmount(Integer.toString(amount));
+			settleTransferToAdd.setTimestamp(new Date());
+			settleTransferToAdd.setSettlementModel(settlementModel);
 
 			toAdd.setRequest(settleTransfer);
-			returnVal.add(toAdd);
+			carriers.add(toAdd);
+
+			// Transfers Get By Participant:
+			if (isApplicable(index, getByParticipant)) {
+				genTxnByParticipant(carriers, payer);
+			}
+
+			// Static:
+			if (isApplicable(index, cntStatic)) {
+
+			}
 		}
-		return returnVal;
+	}
+
+	private static void genTxnByParticipant(List<TestDataCarrier> carriers, String payer) {
+		TestDataCarrier toAdd = new TestDataCarrier(new JSONObject());
+		toAdd.setActionType(TestDataCarrier.ActionType.transfers_by_participant);
+		TransferReq settleTransferToAdd = new TransferReq(new JSONObject());
+		settleTransferToAdd.setPayerFspId(payer);
+		toAdd.setRequest(settleTransferToAdd);
+		carriers.add(toAdd);
+	}
+
+	private static void genBatchByModel(List<TestDataCarrier> carriers, String model) {
+		TestDataCarrier toAdd = new TestDataCarrier(new JSONObject());
+		toAdd.setActionType(TestDataCarrier.ActionType.get_batches_by_model);
+		TransferReq settleTransferToAdd = new TransferReq(new JSONObject());
+		settleTransferToAdd.setPayerFspId(model);
+		toAdd.setRequest(settleTransferToAdd);
+		carriers.add(toAdd);
+	}
+
+	private static boolean isApplicable(int index, int count) {
+		if (count < 1) return false;
+		return ((index % count) == 0);
 	}
 
 	private static int calculatePercentage(double amount, double fee) {

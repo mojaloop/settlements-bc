@@ -34,7 +34,7 @@ import {
 } from "@mojaloop/accounts-and-balances-bc-public-types-lib";
 
 import * as TB from "tigerbeetle-node";
-import {CreateAccountsError} from "tigerbeetle-node/src/bindings";
+import {CreateAccountsError, GetAccountTransfers} from "tigerbeetle-node/src/bindings";
 import {CreateTransfersError} from "tigerbeetle-node";
 
 import net from "net";
@@ -42,7 +42,7 @@ import dns from "dns";
 import {IAccountsBalancesAdapter} from "@mojaloop/settlements-bc-domain-lib";
 import {Currency, IConfigurationClient} from "@mojaloop/platform-configuration-bc-public-types-lib";
 
-const MAX_ENTRIES_PER_BATCH = 8000;
+const MAX_ENTRIES_PER_BATCH = 1;//8000
 
 export class TigerBeetleAccountsAndBalancesAdapter implements IAccountsBalancesAdapter {
     private readonly _logger: ILogger;
@@ -197,10 +197,16 @@ export class TigerBeetleAccountsAndBalancesAdapter implements IAccountsBalancesA
         const accIdTB = this._uuidToBigint(ledgerAccountId);
 
         // Invoke Client:
-        const transfers: TB.Transfer[] = [];
+        let transfers: TB.Transfer[] = [];
         try {
-            //TODO requires UserData lookup via (user_data)
-            //TODO transfers = await this._client.lookupTransfers(request);
+            const getAcc : GetAccountTransfers = {
+                account_id: accIdTB,
+                timestamp_min: 0n,
+                timestamp_max: 0n,
+                limit: 0,
+                flags: 0
+            }
+            transfers = await this._client.getAccountTransfers(getAcc);
         } catch (error: unknown) {
             this._logger.error(error);
             throw error;

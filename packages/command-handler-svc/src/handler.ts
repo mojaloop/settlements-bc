@@ -24,6 +24,8 @@
 
  * Crosslake
  - Pedro Sousa Barreto <pedrob@crosslaketech.com>
+ * ILF
+ - Jason Bruwer <jason@interledger.org>
 
  --------------
  ******/
@@ -64,7 +66,7 @@ import {
 import {CallSecurityContext} from "@mojaloop/security-bc-public-types-lib";
 import {ILoginHelper, UnauthorizedError} from "@mojaloop/security-bc-public-types-lib";
 
-export class SettlementsCommandHandler{
+export class SettlementsCommandHandler {
 	private _logger: ILogger;
 	private _auditClient: IAuditClient;
 	private _messageConsumer: IMessageConsumer;

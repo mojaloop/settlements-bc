@@ -18,6 +18,19 @@ public class TestDataCarrier extends ABaseJSONObject {
 
 	public enum ActionType {
 		transfer,
+		transfers_by_participant,
+		get_batches_by_model,
+		create_static_matrix,
+		create_dynamic_matrix,
+		add_batch_to_static_matrix,
+		remove_batch_from_static_matrix,
+		matrix_recalculate,
+		matrix_close,
+		matrix_dispute,
+		matrix_lock,
+		matrix_unlock,
+		matrix_settle,
+		get_matrix_by_id,
 		transfer_raw
 	}
 

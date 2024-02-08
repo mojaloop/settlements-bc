@@ -410,13 +410,13 @@ export class Service {
 			this.batchCache
 		);
 
-		await this.setupExpress(bareboneStartup);
+		await this.setupExpress();
 
 		// remove startup timeout
 		clearTimeout(this.startupTimer);
 	}
 
-	static setupExpress(barebones: boolean): Promise<void> {
+	static setupExpress(): Promise<void> {
 		return new Promise<void>((resolve) => {
 			this.app = express();
 			this.app.use(express.json()); // for parsing application/json
@@ -430,8 +430,7 @@ export class Service {
 				this.batchTransferRepo,
 				this.matrixRepo,
 				this.messageProducer,
-				this.aggregate,
-				barebones
+				this.aggregate
 			);
 
 			this.app.use("/", routes.MainRouter);
