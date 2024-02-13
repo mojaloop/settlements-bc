@@ -27,7 +27,8 @@ public class TestPlanConfig extends ABaseJSONObject {
 	public static final class SettlementTransfer extends ABaseJSONObject {
 		private static final long serialVersionUID = 1L;
 		private int count;
-		private int getByParticipant;
+		private int getByBatchId;
+		private int getByMatrixId;
 		private int amountMin;
 		private int amountMax;
 		private List<String> currencies;
@@ -40,7 +41,8 @@ public class TestPlanConfig extends ABaseJSONObject {
 			public static final String CURRENCIES = "currencies";
 			public static final String SETTLEMENT_MODELS = "settlement-models";
 			public static final String PARTICIPANTS = "participants";
-			public static final String GET_BY_PARTICIPANT = "get-by-participant";
+			public static final String GET_BY_BATCH_ID = "get-by-batch-id";
+			public static final String GET_BY_MATRIX_ID = "get-by-matrix-id";
 		}
 
 		public SettlementTransfer(JSONObject jsonObject) {
@@ -73,8 +75,12 @@ public class TestPlanConfig extends ABaseJSONObject {
 				if (!arr.isEmpty()) arr.forEach(itm -> this.participants.add(itm.toString()));
 			}
 
-			if (jsonObject.has(JSONMapping.GET_BY_PARTICIPANT)) {
-				this.setGetByParticipant(jsonObject.getInt(JSONMapping.GET_BY_PARTICIPANT));
+			if (jsonObject.has(JSONMapping.GET_BY_BATCH_ID)) {
+				this.setGetByBatchId(jsonObject.getInt(JSONMapping.GET_BY_BATCH_ID));
+			}
+
+			if (jsonObject.has(JSONMapping.GET_BY_MATRIX_ID)) {
+				this.setGetByMatrixId(jsonObject.getInt(JSONMapping.GET_BY_MATRIX_ID));
 			}
 		}
 

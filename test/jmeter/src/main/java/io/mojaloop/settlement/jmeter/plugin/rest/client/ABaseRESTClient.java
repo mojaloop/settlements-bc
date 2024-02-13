@@ -675,20 +675,21 @@ public abstract class ABaseRESTClient implements AutoCloseable {
 			 */
 			public String handleResponse(final HttpResponse responseParam) throws IOException {
 				int status = responseParam.getStatusLine().getStatusCode();
-				if (status == 404) {
-					throw new RESTClientException(
-							"Endpoint for Service not found. URL ["+
-									urlCalledParam+"].",
-							RESTClientException.ErrorCode.CONNECT_ERROR);
-				} else if (status >= 200 && status < 300) {
+				if (status >= 200 && status < 300) {
 					HttpEntity entity = responseParam.getEntity();
 					String responseJsonString = (entity == null) ? null: EntityUtils.toString(entity);
 					return responseJsonString;
 				} else if (status == 400) {
-					//Bad Request... Server Side Error meant for client...
 					HttpEntity entity = responseParam.getEntity();
 					String responseJsonString = (entity == null) ? null : EntityUtils.toString(entity);
 					return responseJsonString;
+				} else if (status == 404) {
+					HttpEntity entity = responseParam.getEntity();
+					String responseString = (entity == null) ? null : EntityUtils.toString(entity);
+					throw new RESTClientException(
+							"No data found!: " + status+". "
+									+responseParam.getStatusLine().getReasonPhrase()+". \nResponse Text ["+ responseString+"]",
+							RESTClientException.ErrorCode.NO_RESULT);
 				} else {
 					HttpEntity entity = responseParam.getEntity();
 					String responseString = (entity != null) ? EntityUtils.toString(entity) : null;

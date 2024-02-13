@@ -143,7 +143,10 @@ public class TestDataUtil {
 		TestPlanConfig.SettlementTransfer settleTransfer = tpc.getSettlementTransfer();
 		TestPlanConfig.SettlementMatrix matrix = tpc.getSettlementMatrix();
 		TestPlanConfig.SettlementBatch batch = tpc.getSettlementBatch();
-		int getByParticipant = settleTransfer.getGetByParticipant();
+
+		int getTxnBatchId = settleTransfer.getGetByBatchId();
+		int getTxnMatrixId = settleTransfer.getGetByBatchId();
+		int getBatchesByModel = batch.getGetByModel();
 		int cntStatic = matrix.getCreateStatic();
 		for (int index = 0; index < settleTransfer.getCount(); index++) {
 			TestDataCarrier toAdd = new TestDataCarrier(new JSONObject());
@@ -176,12 +179,18 @@ public class TestDataUtil {
 			settleTransferToAdd.setTimestamp(new Date());
 			settleTransferToAdd.setSettlementModel(settlementModel);
 
-			toAdd.setRequest(settleTransfer);
+			// first add the settlement transfer:
+			toAdd.setRequest(settleTransferToAdd);
 			carriers.add(toAdd);
 
-			// Transfers Get By Participant:
-			if (isApplicable(index, getByParticipant)) {
-				genTxnByParticipant(carriers, payer);
+			// Batches By Model:
+			if (isApplicable(index, getBatchesByModel)) {
+				genBatchByModel(carriers, settlementModel);
+			}
+
+			// Transfers Get By Matrix:
+			if (isApplicable(index, getTxnMatrixId)) {
+				genTxnByMatrix(carriers);
 			}
 
 			// Static:
@@ -191,11 +200,10 @@ public class TestDataUtil {
 		}
 	}
 
-	private static void genTxnByParticipant(List<TestDataCarrier> carriers, String payer) {
+	private static void genTxnByMatrix(List<TestDataCarrier> carriers) {
 		TestDataCarrier toAdd = new TestDataCarrier(new JSONObject());
-		toAdd.setActionType(TestDataCarrier.ActionType.transfers_by_participant);
+		toAdd.setActionType(TestDataCarrier.ActionType.transfers_by_matrix_id);
 		TransferReq settleTransferToAdd = new TransferReq(new JSONObject());
-		settleTransferToAdd.setPayerFspId(payer);
 		toAdd.setRequest(settleTransferToAdd);
 		carriers.add(toAdd);
 	}
@@ -204,7 +212,7 @@ public class TestDataUtil {
 		TestDataCarrier toAdd = new TestDataCarrier(new JSONObject());
 		toAdd.setActionType(TestDataCarrier.ActionType.get_batches_by_model);
 		TransferReq settleTransferToAdd = new TransferReq(new JSONObject());
-		settleTransferToAdd.setPayerFspId(model);
+		settleTransferToAdd.setSettlementModel(model);
 		toAdd.setRequest(settleTransferToAdd);
 		carriers.add(toAdd);
 	}

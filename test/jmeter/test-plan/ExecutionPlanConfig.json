@@ -5,16 +5,17 @@
     "currencies":["USD", "EUR"],
     "settlement-models":["DEFAULT"],
     "participants": ["12345", "67890", "10111", "21314", "15161", "71819"],
-    "get-by-participant": 5
+    "get-by-batch-id": 0,
+    "get-by-matrix-id": 0
   },
   "settlement-matrix" : {
-    "create-static": 5,
-    "create-dynamic": 5,
-    "close": 5,
-    "lock": 5,
-    "settle": 5
+    "create-static": 0,
+    "create-dynamic": 0,
+    "close": 0,
+    "lock": 0,
+    "settle": 0
   },
   "batch" : {
-    "get-by-model": 5
+    "get-by-model": 20
   }
 }

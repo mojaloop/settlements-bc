@@ -9,7 +9,7 @@ import org.json.JSONObject;
 import java.util.Date;
 
 /**
- * POJO used for a settlement {@code /transfer}
+ * POJO used for a settlement {@code /transfers}
  */
 @Getter
 @Setter
@@ -45,29 +45,29 @@ public class TransferReq extends ABaseJSONObject {
 	public TransferReq(JSONObject jsonObject) {
 		super(jsonObject);
 
-		if (jsonObject.has(JSONMapping.TRANSFER_ID)) {
+		if (jsonObject.has(JSONMapping.TRANSFER_ID) && !jsonObject.isNull(JSONMapping.TRANSFER_ID)) {
 			this.setTransferId(jsonObject.getString(JSONMapping.TRANSFER_ID));
 		}
-		if (jsonObject.has(JSONMapping.PAYER_FSP_ID)) {
+		if (jsonObject.has(JSONMapping.PAYER_FSP_ID) && !jsonObject.isNull(JSONMapping.PAYER_FSP_ID)) {
 			this.setPayerFspId(jsonObject.getString(JSONMapping.PAYER_FSP_ID));
 		}
-		if (jsonObject.has(JSONMapping.PAYEE_FSP_ID)) {
+		if (jsonObject.has(JSONMapping.PAYEE_FSP_ID) && !jsonObject.isNull(JSONMapping.PAYEE_FSP_ID)) {
 			this.setPayeeFspId(jsonObject.getString(JSONMapping.PAYEE_FSP_ID));
 		}
-		if (jsonObject.has(JSONMapping.CURRENCY_CODE)) {
+		if (jsonObject.has(JSONMapping.CURRENCY_CODE) && !jsonObject.isNull(JSONMapping.CURRENCY_CODE)) {
 			this.setCurrencyCode(jsonObject.getString(JSONMapping.CURRENCY_CODE));
 		}
-		if (jsonObject.has(JSONMapping.AMOUNT)) {
+		if (jsonObject.has(JSONMapping.AMOUNT) && !jsonObject.isNull(JSONMapping.AMOUNT)) {
 			this.setAmount(jsonObject.getString(JSONMapping.AMOUNT));
 		}
-		if (jsonObject.has(JSONMapping.TIMESTAMP)) {
+		if (jsonObject.has(JSONMapping.TIMESTAMP) && !jsonObject.isNull(JSONMapping.TIMESTAMP)) {
 			//this.setTimestamp(this.dateFrom(jsonObject, JSONMapping.TIMESTAMP));
 			this.setTimestamp(new Date(jsonObject.getLong(JSONMapping.TIMESTAMP)));
 		}
-		if (jsonObject.has(JSONMapping.COMPLETED_TIMESTAMP)) {
+		if (jsonObject.has(JSONMapping.COMPLETED_TIMESTAMP) && !jsonObject.isNull(JSONMapping.COMPLETED_TIMESTAMP)) {
 			this.setCompletedTimestamp(jsonObject.getLong(JSONMapping.COMPLETED_TIMESTAMP));
 		}
-		if (jsonObject.has(JSONMapping.SETTLEMENT_MODEL)) {
+		if (jsonObject.has(JSONMapping.SETTLEMENT_MODEL) && !jsonObject.isNull(JSONMapping.SETTLEMENT_MODEL)) {
 			this.setSettlementModel(jsonObject.getString(JSONMapping.SETTLEMENT_MODEL));
 		}
 	}

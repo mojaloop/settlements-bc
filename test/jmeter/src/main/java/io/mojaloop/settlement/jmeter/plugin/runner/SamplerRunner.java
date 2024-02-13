@@ -4,6 +4,8 @@ import io.mojaloop.settlement.jmeter.plugin.exception.FailedResponseCodeExceptio
 import io.mojaloop.settlement.jmeter.plugin.kafka.TxnProducer;
 import io.mojaloop.settlement.jmeter.plugin.rest.client.RESTClientException;
 import io.mojaloop.settlement.jmeter.plugin.rest.client.SettlementBCRestClient;
+import io.mojaloop.settlement.jmeter.plugin.rest.client.json.batch.BatchSearchResults;
+import io.mojaloop.settlement.jmeter.plugin.rest.client.json.batch.SettlementBatch;
 import io.mojaloop.settlement.jmeter.plugin.rest.client.json.testdata.TestDataCarrier;
 import io.mojaloop.settlement.jmeter.plugin.rest.client.json.transfer.TransferReq;
 import io.mojaloop.settlement.jmeter.plugin.rest.client.json.transfer.TransferRsp;
@@ -28,7 +30,8 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 public class SamplerRunner {
 	private static final int QUEUE_MAX = 5000000;
 
-	private static Queue<FundTransfer> validFundtransfer = new ConcurrentLinkedQueue<>();
+	private static final Queue<FundTransfer> validFundtransfer = new ConcurrentLinkedQueue<>();
+	private static final Queue<SettlementBatch> validBatches = new ConcurrentLinkedQueue<>();
 
 	private final Logger logger;
 	private final SettlementBCRestClient settleClient;
@@ -83,6 +86,24 @@ public class SamplerRunner {
 							timestamp,
 							fundTransfer.getTransferId()
 					));*/
+				break;
+				case get_batches_by_model:
+					TransferReq fundTransferByModel = (TransferReq) testData.getRequest();
+					contentToSend = fundTransferByModel.toJsonObject().toString();
+					result.setRequestHeaders(this.createHeaderVal(actionType, "/batches", testDataIndex));
+
+					result.sampleStart();
+					BatchSearchResults batchSrRsp = this.settleClient.settlementBatches(
+							fundTransferByModel.getSettlementModel(),
+							20
+					);
+					result.sampleEnd();
+					responseJSON = batchSrRsp.toJsonObject();
+
+					synchronized (validBatches) {
+						validBatches.clear();
+						validBatches.addAll(batchSrRsp.getItems());
+					}
 				break;
 				case transfer_raw:
 					result.setRequestHeaders(this.createHeaderVal(actionType, "/fundtransfer", testDataIndex));
@@ -160,5 +181,6 @@ public class SamplerRunner {
 
 	public static void clearQueues() {
 		validFundtransfer.clear();
+		validBatches.clear();
 	}
 }

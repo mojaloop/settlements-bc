@@ -18,7 +18,8 @@ public class TestDataCarrier extends ABaseJSONObject {
 
 	public enum ActionType {
 		transfer,
-		transfers_by_participant,
+		transfers_by_matrix_id,
+		transfers_by_batch_id,
 		get_batches_by_model,
 		create_static_matrix,
 		create_dynamic_matrix,
@@ -52,6 +53,7 @@ public class TestDataCarrier extends ABaseJSONObject {
 			this.setActionType(ActionType.valueOf(jsonObject.getString(JSONMapping.ACTION_TYPE)));
 			switch (this.getActionType()) {
 				case transfer:
+				case get_batches_by_model:
 					if (!jsonObject.isNull(JSONMapping.REQUEST)) {
 						this.setRequest(new TransferReq(jsonObject.getJSONObject(JSONMapping.REQUEST)));
 					}
@@ -72,6 +74,7 @@ public class TestDataCarrier extends ABaseJSONObject {
 
 		switch (this.getActionType()) {
 			case transfer:
+			case get_batches_by_model:
 				if (this.getRequest() == null) returnVal.put(JSONMapping.REQUEST, JSONObject.NULL);
 				else returnVal.put(JSONMapping.REQUEST, this.getRequest().toJsonObject());
 			break;
