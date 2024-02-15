@@ -61,7 +61,7 @@ import {
 	UnlockMatrixCmd,
 	UnlockMatrixCmdPayload,
 	CreateSettlementModelCmdPayload,
-	MarkMatrixOutOfSyncCmd, MarkMatrixOutOfSyncCmdPayload
+	MarkMatrixOutOfSyncCmd, MarkMatrixOutOfSyncCmdPayload, Privileges
 } from "@mojaloop/settlements-bc-domain-lib";
 import {CallSecurityContext} from "@mojaloop/security-bc-public-types-lib";
 import {ILoginHelper, UnauthorizedError} from "@mojaloop/security-bc-public-types-lib";
@@ -231,7 +231,11 @@ export class SettlementsCommandHandler {
 			const secCts: CallSecurityContext = {
 				clientId: 'barebone',
 				accessToken: '<none>',
-				platformRoleIds: [],
+				platformRoleIds: [
+					Privileges.CREATE_STATIC_SETTLEMENT_MATRIX,
+					Privileges.CREATE_DYNAMIC_SETTLEMENT_MATRIX,
+					Privileges.CREATE_SETTLEMENT_TRANSFER
+				],
 				username: null
 			};
 			return secCts;

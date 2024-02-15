@@ -141,7 +141,7 @@ export class ExpressRoutes {
 
 		// Get matrix by id - static get, no recalculate:
 		this._router.get("/matrices/:id", this.getSettlementMatrix.bind(this));
-		// Get matrices - static get, no recalculate:
+		// Get matrices - dynamic get, no recalculate:
 		this._router.get("/matrices", this.getSettlementMatrices.bind(this));
 	}
 

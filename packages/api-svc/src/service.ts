@@ -338,7 +338,7 @@ export class Service {
 		this.batchRepo = batchRepo;
 
 		if ((!batchTransferRepo && bareboneStartup) && USE_TIGERBEETLE === 'true') {
-			batchTransferRepo = new SettlementBatchTransferRepoTigerBeetle();
+			batchTransferRepo = new SettlementBatchTransferRepoTigerBeetle(this.batchRepo);
 		} else if (!batchTransferRepo) {
 			batchTransferRepo = new MongoSettlementTransferRepo(
 				logger,

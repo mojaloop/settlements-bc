@@ -44,28 +44,28 @@ public class SettlementBatch extends ABaseJSONObject {
 	public SettlementBatch(JSONObject jsonObject) {
 		super(jsonObject);
 
-		if (jsonObject.has(JSONMapping.BATCH_UUID_ID)) {
+		if (jsonObject.has(JSONMapping.BATCH_UUID_ID) && !jsonObject.isNull(JSONMapping.BATCH_UUID_ID)) {
 			this.setBatchUUID(jsonObject.getString(JSONMapping.BATCH_UUID_ID));
 		}
-		if (jsonObject.has(JSONMapping.ID)) {
+		if (jsonObject.has(JSONMapping.ID) && !jsonObject.isNull(JSONMapping.ID)) {
 			this.setId(jsonObject.getString(JSONMapping.ID));
 		}
-		if (jsonObject.has(JSONMapping.TIMESTAMP)) {
+		if (jsonObject.has(JSONMapping.TIMESTAMP) && !jsonObject.isNull(JSONMapping.TIMESTAMP)) {
 			this.setTimestamp(new Date(jsonObject.getLong(JSONMapping.TIMESTAMP)));
 		}
-		if (jsonObject.has(JSONMapping.SETTLEMENT_MODEL)) {
+		if (jsonObject.has(JSONMapping.SETTLEMENT_MODEL) && !jsonObject.isNull(JSONMapping.SETTLEMENT_MODEL)) {
 			this.setSettlementModel(jsonObject.getString(JSONMapping.SETTLEMENT_MODEL));
 		}
-		if (jsonObject.has(JSONMapping.CURRENCY_CODE)) {
+		if (jsonObject.has(JSONMapping.CURRENCY_CODE) && !jsonObject.isNull(JSONMapping.CURRENCY_CODE)) {
 			this.setCurrencyCode(jsonObject.getString(JSONMapping.CURRENCY_CODE));
 		}
-		if (jsonObject.has(JSONMapping.BATCH_NAME)) {
+		if (jsonObject.has(JSONMapping.BATCH_NAME) && !jsonObject.isNull(JSONMapping.BATCH_NAME)) {
 			this.setBatchName(jsonObject.getString(JSONMapping.BATCH_NAME));
 		}
-		if (jsonObject.has(JSONMapping.BATCH_SEQUENCE)) {
+		if (jsonObject.has(JSONMapping.BATCH_SEQUENCE) && !jsonObject.isNull(JSONMapping.BATCH_SEQUENCE)) {
 			this.setBatchSequence(jsonObject.getInt(JSONMapping.BATCH_SEQUENCE));
 		}
-		if (jsonObject.has(JSONMapping.STATE)) {
+		if (jsonObject.has(JSONMapping.STATE) && !jsonObject.isNull(JSONMapping.STATE)) {
 			this.setState(jsonObject.getString(JSONMapping.STATE));
 		}
 	}

@@ -1,6 +1,8 @@
 package io.mojaloop.settlement.jmeter.plugin.rest.client.json.testdata;
 
 import io.mojaloop.settlement.jmeter.plugin.rest.client.json.ABaseJSONObject;
+import io.mojaloop.settlement.jmeter.plugin.rest.client.json.batch.SettlementBatch;
+import io.mojaloop.settlement.jmeter.plugin.rest.client.json.matrix.SettlementMatrix;
 import io.mojaloop.settlement.jmeter.plugin.rest.client.json.transfer.TransferReq;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -18,11 +20,13 @@ public class TestDataCarrier extends ABaseJSONObject {
 
 	public enum ActionType {
 		transfer,
-		transfers_by_matrix_id,
-		transfers_by_batch_id,
+		transfers_by_matrix_id,//TODO need to support on settlement TB.
+		transfers_by_batch_id,//TODO need to support on settlement TB.
 		get_batches_by_model,
 		create_static_matrix,
-		create_dynamic_matrix,
+		get_static_matrix,
+		create_dynamic_matrix_model,
+		get_dynamic_matrix_model,
 		add_batch_to_static_matrix,
 		remove_batch_from_static_matrix,
 		matrix_recalculate,
@@ -31,7 +35,6 @@ public class TestDataCarrier extends ABaseJSONObject {
 		matrix_lock,
 		matrix_unlock,
 		matrix_settle,
-		get_matrix_by_id,
 		transfer_raw
 	}
 
@@ -53,14 +56,22 @@ public class TestDataCarrier extends ABaseJSONObject {
 			this.setActionType(ActionType.valueOf(jsonObject.getString(JSONMapping.ACTION_TYPE)));
 			switch (this.getActionType()) {
 				case transfer:
+					if (!jsonObject.isNull(JSONMapping.REQUEST)) this.setRequest(new TransferReq(jsonObject.getJSONObject(JSONMapping.REQUEST)));
+					if (!jsonObject.isNull(JSONMapping.RESPONSE)) this.setResponse(jsonObject.getJSONObject(JSONMapping.RESPONSE));
+				break;
 				case get_batches_by_model:
-					if (!jsonObject.isNull(JSONMapping.REQUEST)) {
-						this.setRequest(new TransferReq(jsonObject.getJSONObject(JSONMapping.REQUEST)));
-					}
-					if (!jsonObject.isNull(JSONMapping.RESPONSE)) {
-						this.setResponse(jsonObject.getJSONObject(JSONMapping.RESPONSE));
-					}
-					break;
+				case add_batch_to_static_matrix:
+				case remove_batch_from_static_matrix:
+					if (!jsonObject.isNull(JSONMapping.REQUEST)) this.setRequest(new SettlementBatch(jsonObject.getJSONObject(JSONMapping.REQUEST)));
+					if (!jsonObject.isNull(JSONMapping.RESPONSE)) this.setResponse(jsonObject.getJSONObject(JSONMapping.RESPONSE));
+				break;
+				case create_static_matrix:
+				case get_static_matrix:
+				case get_dynamic_matrix_model:
+				case create_dynamic_matrix_model:
+					if (!jsonObject.isNull(JSONMapping.REQUEST)) this.setRequest(new SettlementMatrix(jsonObject.getJSONObject(JSONMapping.REQUEST)));
+					if (!jsonObject.isNull(JSONMapping.RESPONSE)) this.setResponse(jsonObject.getJSONObject(JSONMapping.RESPONSE));
+				break;
 			}
 		}
 	}
@@ -75,6 +86,12 @@ public class TestDataCarrier extends ABaseJSONObject {
 		switch (this.getActionType()) {
 			case transfer:
 			case get_batches_by_model:
+			case create_static_matrix:
+			case get_static_matrix:
+			case create_dynamic_matrix_model:
+			case get_dynamic_matrix_model:
+			case add_batch_to_static_matrix:
+			case remove_batch_from_static_matrix:
 				if (this.getRequest() == null) returnVal.put(JSONMapping.REQUEST, JSONObject.NULL);
 				else returnVal.put(JSONMapping.REQUEST, this.getRequest().toJsonObject());
 			break;

@@ -9,8 +9,12 @@
     "get-by-matrix-id": 0
   },
   "settlement-matrix" : {
-    "create-static": 0,
-    "create-dynamic": 0,
+    "create-static": 30,
+    "add-batch-to-static": 61,
+    "remove-batch-from-static": 0,
+    "get-static": 60,
+    "create-dynamic-model": 50,
+    "get-dynamic-model": 60,
     "close": 0,
     "lock": 0,
     "settle": 0

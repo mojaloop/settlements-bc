@@ -6,6 +6,10 @@ import io.mojaloop.settlement.jmeter.plugin.rest.client.RESTClientException;
 import io.mojaloop.settlement.jmeter.plugin.rest.client.SettlementBCRestClient;
 import io.mojaloop.settlement.jmeter.plugin.rest.client.json.batch.BatchSearchResults;
 import io.mojaloop.settlement.jmeter.plugin.rest.client.json.batch.SettlementBatch;
+import io.mojaloop.settlement.jmeter.plugin.rest.client.json.matrix.AddRemoveBatchFromStaticMatrix;
+import io.mojaloop.settlement.jmeter.plugin.rest.client.json.matrix.CreateDynamicSettlementMatrix;
+import io.mojaloop.settlement.jmeter.plugin.rest.client.json.matrix.CreateStaticSettlementMatrix;
+import io.mojaloop.settlement.jmeter.plugin.rest.client.json.matrix.SettlementMatrix;
 import io.mojaloop.settlement.jmeter.plugin.rest.client.json.testdata.TestDataCarrier;
 import io.mojaloop.settlement.jmeter.plugin.rest.client.json.transfer.TransferReq;
 import io.mojaloop.settlement.jmeter.plugin.rest.client.json.transfer.TransferRsp;
@@ -18,9 +22,7 @@ import org.json.JSONObject;
 import org.slf4j.Logger;
 
 import java.net.HttpURLConnection;
-import java.util.Date;
-import java.util.Queue;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
@@ -32,10 +34,14 @@ public class SamplerRunner {
 
 	private static final Queue<FundTransfer> validFundtransfer = new ConcurrentLinkedQueue<>();
 	private static final Queue<SettlementBatch> validBatches = new ConcurrentLinkedQueue<>();
+	private static final Queue<CreateStaticSettlementMatrix> staticMatrices = new ConcurrentLinkedQueue<>();
+	private static final Queue<CreateDynamicSettlementMatrix> dynamicMatrices = new ConcurrentLinkedQueue<>();
+	private static final Queue<AddRemoveBatchFromStaticMatrix> batchesAdded = new ConcurrentLinkedQueue<>();
 
 	private final Logger logger;
 	private final SettlementBCRestClient settleClient;
 	private final TxnProducer txnProducer;
+	public static final int TIME_BACK_MIN = 20;
 
 	@RequiredArgsConstructor
 	@Getter
@@ -65,7 +71,6 @@ public class SamplerRunner {
 
 					contentToSend = fundTransfer.toJsonObject().toString();
 					result.setRequestHeaders(this.createHeaderVal(actionType, "/transfers", testDataIndex));
-					this.validateAndCorrectTransfer(fundTransfer);
 					result.sampleStart();
 
 					if (this.txnProducer == null) {
@@ -80,22 +85,16 @@ public class SamplerRunner {
 						responseJSON.put("timestamp", metadata.timestamp());
 						responseJSON.put("topic", metadata.topic());
 					}
-					/*
-					long timestamp = System.currentTimeMillis();
-					this.addValidFundTransfer(new FundTransfer(
-							timestamp,
-							fundTransfer.getTransferId()
-					));*/
 				break;
 				case get_batches_by_model:
-					TransferReq fundTransferByModel = (TransferReq) testData.getRequest();
-					contentToSend = fundTransferByModel.toJsonObject().toString();
+					SettlementBatch getBatchReq = (SettlementBatch) testData.getRequest();
+					contentToSend = getBatchReq.toJsonObject().toString();
 					result.setRequestHeaders(this.createHeaderVal(actionType, "/batches", testDataIndex));
 
 					result.sampleStart();
 					BatchSearchResults batchSrRsp = this.settleClient.settlementBatches(
-							fundTransferByModel.getSettlementModel(),
-							20
+							getBatchReq.getSettlementModel(),
+							TIME_BACK_MIN
 					);
 					result.sampleEnd();
 					responseJSON = batchSrRsp.toJsonObject();
@@ -105,8 +104,101 @@ public class SamplerRunner {
 						validBatches.addAll(batchSrRsp.getItems());
 					}
 				break;
+				case create_static_matrix:
+					CreateStaticSettlementMatrix staticMatrix = new CreateStaticSettlementMatrix(new JSONObject());
+					staticMatrix.setType(SettlementMatrix.Type.STATIC);
+					staticMatrix.setMatrixiId(UUID.randomUUID().toString());
+					contentToSend = staticMatrix.toJsonObject().toString();
+					result.setRequestHeaders(this.createHeaderVal(actionType, "/create_static_matrix", testDataIndex));
+
+					result.sampleStart();
+					CreateStaticSettlementMatrix staticCreateRsp = this.settleClient.createMatrix(staticMatrix);
+					result.sampleEnd();
+					responseJSON = staticCreateRsp.toJsonObject();
+
+					synchronized (staticMatrices) {
+						staticMatrices.add(staticMatrix);
+					}
+				break;
+				case get_static_matrix:
+					CreateStaticSettlementMatrix existingStatic = staticMatrices.poll();
+					if (existingStatic == null) throw new IllegalStateException("No static matrices available");
+
+					contentToSend = existingStatic.toJsonObject().toString();
+					result.setRequestHeaders(this.createHeaderVal(actionType, "/get_static_matrix", testDataIndex));
+
+					result.sampleStart();
+					SettlementMatrix staticByIdRsp = this.settleClient.getMatrixById(existingStatic.getMatrixiId());
+					result.sampleEnd();
+					responseJSON = staticByIdRsp.toJsonObject();
+				break;
+				case create_dynamic_matrix_model:
+					SettlementMatrix settlementMatrix = (SettlementMatrix) testData.getRequest();
+					CreateDynamicSettlementMatrix dynamicMatrix = new CreateDynamicSettlementMatrix(new JSONObject());
+					dynamicMatrix.setType(SettlementMatrix.Type.DYNAMIC);
+					dynamicMatrix.setMatrixiId(UUID.randomUUID().toString());
+					dynamicMatrix.setSettlementModel(settlementMatrix.getSettlementModel());
+					contentToSend = dynamicMatrix.toJsonObject().toString();
+					result.setRequestHeaders(this.createHeaderVal(actionType, "/create_dynamic_matrix_model", testDataIndex));
+
+					result.sampleStart();
+					CreateDynamicSettlementMatrix dynamicModelCreateRsp = this.settleClient.createMatrix(dynamicMatrix);
+					result.sampleEnd();
+					responseJSON = dynamicModelCreateRsp.toJsonObject();
+
+					synchronized (dynamicMatrices) {
+						dynamicMatrices.add(dynamicMatrix);
+					}
+				break;
+				case get_dynamic_matrix_model:
+					SettlementMatrix matrixForGetDyn = (SettlementMatrix) testData.getRequest();
+					contentToSend = matrixForGetDyn.toJsonObject().toString();
+					result.setRequestHeaders(this.createHeaderVal(actionType, "/get_dynamic_matrix_model", testDataIndex));
+
+					result.sampleStart();
+					SettlementMatrix dynamicByModelRsp = this.settleClient.getMatrixByModel(
+							matrixForGetDyn.getSettlementModel(),
+							TIME_BACK_MIN
+					);
+					result.sampleEnd();
+					responseJSON = dynamicByModelRsp.toJsonObject();
+				break;
+				case add_batch_to_static_matrix:
+					SettlementBatch existingBatch = validBatches.poll();
+					if (existingBatch == null) throw new IllegalStateException("No valid batches available to add");
+					CreateStaticSettlementMatrix existingMatrixStat = staticMatrices.poll();
+					if (existingMatrixStat == null) throw new IllegalStateException("No existing static matrix to add batch to");
+
+					contentToSend = existingBatch.toJsonObject().toString();
+					result.setRequestHeaders(this.createHeaderVal(actionType, "/add_batch_to_static_matrix", testDataIndex));
+
+					AddRemoveBatchFromStaticMatrix addBatch = new AddRemoveBatchFromStaticMatrix(new JSONObject());
+					addBatch.setMatrixiId(existingMatrixStat.getMatrixiId());
+					List<String> batchToAdd = new ArrayList<>();
+					batchToAdd.add(existingBatch.getId());
+					addBatch.setBatchIds(batchToAdd);
+					result.sampleStart();
+					AddRemoveBatchFromStaticMatrix addedRsp = this.settleClient.addBatchToStaticMatrix(addBatch);
+					result.sampleEnd();
+					responseJSON = addedRsp.toJsonObject();
+					synchronized (batchesAdded) {
+						batchesAdded.add(addBatch);
+					}
+				break;
+				case remove_batch_from_static_matrix:
+					AddRemoveBatchFromStaticMatrix addedBatch = batchesAdded.poll();
+					if (addedBatch == null) throw new IllegalStateException("No batches added to remove from matrix");
+
+					contentToSend = addedBatch.toJsonObject().toString();
+					result.setRequestHeaders(this.createHeaderVal(actionType, "/remove_batch_from_static_matrix", testDataIndex));
+
+					result.sampleStart();
+					AddRemoveBatchFromStaticMatrix removedRsp = this.settleClient.removeBatchFromStaticMatrix(addedBatch);
+					result.sampleEnd();
+					responseJSON = removedRsp.toJsonObject();
+				break;
 				case transfer_raw:
-					result.setRequestHeaders(this.createHeaderVal(actionType, "/fundtransfer", testDataIndex));
+					result.setRequestHeaders(this.createHeaderVal(actionType, "/transfers_raw", testDataIndex));
 					contentToSend = testData.getRequestRaw();
 
 					result.sampleStart();
@@ -125,7 +217,7 @@ public class SamplerRunner {
 			result.setResponseMessage(String.format("SUCCESS"));
 			testData.setResponse(responseJSON);
 
-			if (responseJSON != null) responseData = responseJSON.toString();
+			if (responseJSON != null) responseData = responseJSON.toString(2);
 			result.setResponseData(responseData, "UTF-8");
 
 			result.setSuccessful(Boolean.TRUE);
@@ -133,7 +225,7 @@ public class SamplerRunner {
 			result.setResponseCodeOK();
 		} catch (FailedResponseCodeException except) {
 			result.setSuccessful(Boolean.FALSE);
-			if (except.getJsonObject() != null) responseData = except.getJsonObject().toString();
+			if (except.getJsonObject() != null) responseData = except.getJsonObject().toString(2);
 			result.setResponseData(responseData, "UTF-8");
 			result.setResponseCode(Integer.toString(HttpURLConnection.HTTP_OK));
 			result.setResponseCodeOK();
@@ -175,12 +267,11 @@ public class SamplerRunner {
 		validFundtransfer.add(fundTransfer);
 	}
 
-	private void validateAndCorrectTransfer(TransferReq fundTransfer) {
-		//TODO need to validate here
-	}
-
 	public static void clearQueues() {
 		validFundtransfer.clear();
 		validBatches.clear();
+		staticMatrices.clear();
+		dynamicMatrices.clear();
+		batchesAdded.clear();
 	}
 }

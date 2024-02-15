@@ -27,10 +27,18 @@
 
 "use strict";
 
-import {ISettlementBatchTransferRepo} from "@mojaloop/settlements-bc-domain-lib";
-import { BatchTransferSearchResults, ISettlementBatchTransfer } from "@mojaloop/settlements-bc-public-types-lib";
+import {ISettlementBatchRepo, ISettlementBatchTransferRepo} from "@mojaloop/settlements-bc-domain-lib";
+import {
+	BatchTransferSearchResults,
+	ISettlementBatchAccount,
+	ISettlementBatchTransfer
+} from "@mojaloop/settlements-bc-public-types-lib";
 
 export class SettlementBatchTransferRepoTigerBeetle implements ISettlementBatchTransferRepo {
+	private readonly batchRepo: ISettlementBatchRepo;
+	constructor(batchRepo: ISettlementBatchRepo) {
+		this.batchRepo = batchRepo;
+	}
 
 	async init(): Promise<void> {
 		return Promise.resolve();
@@ -49,15 +57,30 @@ export class SettlementBatchTransferRepoTigerBeetle implements ISettlementBatchT
 		pageIndex: number = 0,
         pageSize: number = 100,
 	): Promise<BatchTransferSearchResults>{
-		const searchResults: BatchTransferSearchResults = {
+		const accountsForTxnLookup : ISettlementBatchAccount[] = [];
+		for (const id of batchIds) {
+			const batch = await this.batchRepo.getBatch(id);
+			if (!batch || batch.accounts) continue;
+
+			const accounts: ISettlementBatchAccount[] = batch.accounts;
+			for (const account of accounts) {
+				const accWithIdExisting = accountsForTxnLookup.filter(
+					itm => account.participantId === itm.participantId);
+				if (!accWithIdExisting) accountsForTxnLookup.push(account);
+			}
+		}
+		const searchResultsEmpty: BatchTransferSearchResults = {
 			pageIndex: pageIndex,
 			pageSize: pageSize,
 			totalPages: 0,
 			items: []
 		};
+
+		if (accountsForTxnLookup.length === 0) return Promise.resolve(searchResultsEmpty);
+
 		// TODO need to fetch the accounts and then the transfers for the accounts.
 
-		return Promise.resolve(searchResults);
+		return Promise.resolve(searchResultsEmpty);
 	}
 
 	async getBatchTransfersByBatchNames(batchNames: string[]): Promise<ISettlementBatchTransfer[]> {

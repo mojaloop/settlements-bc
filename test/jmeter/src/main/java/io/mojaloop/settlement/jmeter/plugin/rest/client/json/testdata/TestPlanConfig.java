@@ -109,17 +109,27 @@ public class TestPlanConfig extends ABaseJSONObject {
 	public static final class SettlementMatrix extends ABaseJSONObject {
 		private static final long serialVersionUID = 1L;
 		private int createStatic;
-		private int createDynamic;
+		private int addBatchToStatic;
+		private int removeBatchFromStatic;
+		private int getStatic;
+		private int createDynamicModel;
+		private int getDynamicModel;
 		private int close;
 		private int lock;
 		private int settle;
+		private int dispute;
 
 		public static class JSONMapping {
 			public static final String CREATE_STATIC = "create-static";
-			public static final String CREATE_DYNAMIC = "create-dynamic";
+			public static final String ADD_BATCH_TO_STATIC = "add-batch-to-static";
+			public static final String REMOVE_BATCH_FROM_STATIC = "remove-batch-from-static";
+			public static final String GET_STATIC = "get-static";
+			public static final String CREATE_DYNAMIC_MODEL = "create-dynamic-model";
+			public static final String GET_DYNAMIC_MODEL = "get-dynamic-model";
 			public static final String CLOSE = "close";
 			public static final String LOCK = "lock";
 			public static final String SETTLE = "settle";
+			public static final String DISPUTE = "dispute";
 		}
 
 		public SettlementMatrix(JSONObject jsonObject) {
@@ -128,8 +138,23 @@ public class TestPlanConfig extends ABaseJSONObject {
 			if (jsonObject.has(JSONMapping.CREATE_STATIC)) {
 				this.setCreateStatic(jsonObject.getInt(JSONMapping.CREATE_STATIC));
 			}
-			if (jsonObject.has(JSONMapping.CREATE_DYNAMIC)) {
-				this.setCreateDynamic(jsonObject.getInt(JSONMapping.CREATE_DYNAMIC));
+			if (jsonObject.has(JSONMapping.ADD_BATCH_TO_STATIC)) {
+				this.setAddBatchToStatic(jsonObject.getInt(JSONMapping.ADD_BATCH_TO_STATIC));
+			}
+			if (jsonObject.has(JSONMapping.REMOVE_BATCH_FROM_STATIC)) {
+				this.setRemoveBatchFromStatic(jsonObject.getInt(JSONMapping.REMOVE_BATCH_FROM_STATIC));
+			}
+			if (jsonObject.has(JSONMapping.CREATE_STATIC)) {
+				this.setCreateStatic(jsonObject.getInt(JSONMapping.CREATE_STATIC));
+			}
+			if (jsonObject.has(JSONMapping.GET_STATIC)) {
+				this.setGetStatic(jsonObject.getInt(JSONMapping.GET_STATIC));
+			}
+			if (jsonObject.has(JSONMapping.CREATE_DYNAMIC_MODEL)) {
+				this.setCreateDynamicModel(jsonObject.getInt(JSONMapping.CREATE_DYNAMIC_MODEL));
+			}
+			if (jsonObject.has(JSONMapping.GET_DYNAMIC_MODEL)) {
+				this.setGetDynamicModel(jsonObject.getInt(JSONMapping.GET_DYNAMIC_MODEL));
 			}
 			if (jsonObject.has(JSONMapping.CLOSE)) {
 				this.setClose(jsonObject.getInt(JSONMapping.CLOSE));
@@ -140,15 +165,25 @@ public class TestPlanConfig extends ABaseJSONObject {
 			if (jsonObject.has(JSONMapping.SETTLE)) {
 				this.setSettle(jsonObject.getInt(JSONMapping.SETTLE));
 			}
+			if (jsonObject.has(JSONMapping.DISPUTE)) {
+				this.setDispute(jsonObject.getInt(JSONMapping.DISPUTE));
+			}
 		}
 
 		public void validate() {
 			if (this.createStatic < 0) {
 				throw new IllegalStateException("Create static matrix should be more than -1!");
 			}
+			if (this.getStatic < 0) {
+				throw new IllegalStateException("Get static matrix should be more than -1!");
+			}
 
-			if (this.createDynamic < 0) {
-				throw new IllegalStateException("Create dynamic matrix should be more than -1!");
+			if (this.createDynamicModel < 0) {
+				throw new IllegalStateException("Create dynamic matrix model should be more than -1!");
+			}
+
+			if (this.getDynamicModel < 0) {
+				throw new IllegalStateException("Get dynamic model matrix model should be more than -1!");
 			}
 
 			if (this.close < 0) {
@@ -161,6 +196,10 @@ public class TestPlanConfig extends ABaseJSONObject {
 
 			if (this.settle < 0) {
 				throw new IllegalStateException("Settle matrix should be more than -1!");
+			}
+
+			if (this.dispute < 0) {
+				throw new IllegalStateException("Dispute matrix should be more than -1!");
 			}
 		}
 	}

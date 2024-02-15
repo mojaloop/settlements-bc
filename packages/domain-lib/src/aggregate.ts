@@ -242,7 +242,8 @@ export class SettlementsAggregate {
 	}
 
 	async handleTransfer(secCtx: CallSecurityContext, transferDto: ITransferDto): Promise<string> {
-		//this._enforcePrivilege(secCtx, Privileges.CREATE_SETTLEMENT_TRANSFER);
+		this._enforcePrivilege(secCtx, Privileges.CREATE_SETTLEMENT_TRANSFER);
+
 		const start = Date.now();
 		if (!transferDto.timestamp || transferDto.timestamp < 1 ) throw new InvalidTimestampError();
 		if (!transferDto.settlementModel) throw new InvalidBatchSettlementModelError();

@@ -1,6 +1,10 @@
 package io.mojaloop.settlement.jmeter.plugin.rest.client;
 
 import io.mojaloop.settlement.jmeter.plugin.rest.client.json.batch.BatchSearchResults;
+import io.mojaloop.settlement.jmeter.plugin.rest.client.json.matrix.AddRemoveBatchFromStaticMatrix;
+import io.mojaloop.settlement.jmeter.plugin.rest.client.json.matrix.CreateDynamicSettlementMatrix;
+import io.mojaloop.settlement.jmeter.plugin.rest.client.json.matrix.CreateStaticSettlementMatrix;
+import io.mojaloop.settlement.jmeter.plugin.rest.client.json.matrix.SettlementMatrix;
 import io.mojaloop.settlement.jmeter.plugin.rest.client.json.transfer.TransferReq;
 import io.mojaloop.settlement.jmeter.plugin.rest.client.json.transfer.TransferRsp;
 import org.apache.http.entity.ContentType;
@@ -45,7 +49,69 @@ public class SettlementBCRestClient extends ABaseRESTClient {
 				settlementModel, fromDate, toDate);
 		return new BatchSearchResults(this.getJson(url, headers));
 	}
-	
+
+	public CreateStaticSettlementMatrix createMatrix(CreateStaticSettlementMatrix matrix) {
+		List<HeaderNameValue> headers = new ArrayList<>();
+		headers.add(new HeaderNameValue("X-Correlation-ID", UUID.randomUUID().toString()));
+		headers.add(new HeaderNameValue("Authorization", "Bearer {{access_token}}"));
+		headers.add(new HeaderNameValue(CONTENT_TYPE_HEADER, ContentType.APPLICATION_JSON.getMimeType()));
+
+		return new CreateStaticSettlementMatrix(this.postJson(headers, matrix, "/matrices"));
+	}
+
+	public CreateDynamicSettlementMatrix createMatrix(CreateDynamicSettlementMatrix matrix) {
+		List<HeaderNameValue> headers = new ArrayList<>();
+		headers.add(new HeaderNameValue("X-Correlation-ID", UUID.randomUUID().toString()));
+		headers.add(new HeaderNameValue("Authorization", "Bearer {{access_token}}"));
+		headers.add(new HeaderNameValue(CONTENT_TYPE_HEADER, ContentType.APPLICATION_JSON.getMimeType()));
+
+		return new CreateDynamicSettlementMatrix(this.postJson(headers, matrix, "/matrices"));
+	}
+
+	public SettlementMatrix getMatrixById(String id) {
+		List<HeaderNameValue> headers = new ArrayList<>();
+		headers.add(new HeaderNameValue("X-Correlation-ID", UUID.randomUUID().toString()));
+		headers.add(new HeaderNameValue("Authorization", "Bearer {{access_token}}"));
+		headers.add(new HeaderNameValue(CONTENT_TYPE_HEADER, ContentType.APPLICATION_JSON.getMimeType()));
+		return new SettlementMatrix(this.getJson(String.format("/matrices/%s", id), headers));
+	}
+
+	public SettlementMatrix getMatrixByModel(
+			String settlementModel,
+			int timeBackInMinutes
+	) {
+		List<HeaderNameValue> headers = new ArrayList<>();
+		headers.add(new HeaderNameValue("X-Correlation-ID", UUID.randomUUID().toString()));
+		headers.add(new HeaderNameValue("Authorization", "Bearer {{access_token}}"));
+		headers.add(new HeaderNameValue(CONTENT_TYPE_HEADER, ContentType.APPLICATION_JSON.getMimeType()));
+
+		long endDate = System.currentTimeMillis();
+		long startDate = (endDate - TimeUnit.MINUTES.toMillis(timeBackInMinutes));
+
+		String url = String.format("/matrices?model=%s&startDate=%d&endDate=%d",
+				settlementModel, startDate, endDate);
+		return new SettlementMatrix(this.getJson(url, headers));
+	}
+
+	public AddRemoveBatchFromStaticMatrix addBatchToStaticMatrix(AddRemoveBatchFromStaticMatrix req) {
+		List<HeaderNameValue> headers = new ArrayList<>();
+		headers.add(new HeaderNameValue("X-Correlation-ID", UUID.randomUUID().toString()));
+		headers.add(new HeaderNameValue("Authorization", "Bearer {{access_token}}"));
+		headers.add(new HeaderNameValue(CONTENT_TYPE_HEADER, ContentType.APPLICATION_JSON.getMimeType()));
+
+		return new AddRemoveBatchFromStaticMatrix(this.postJson(headers, req,
+				String.format("/matrices/%s/batches", req.getMatrixiId())));
+	}
+
+	public AddRemoveBatchFromStaticMatrix removeBatchFromStaticMatrix(AddRemoveBatchFromStaticMatrix req) {
+		List<HeaderNameValue> headers = new ArrayList<>();
+		headers.add(new HeaderNameValue("X-Correlation-ID", UUID.randomUUID().toString()));
+		headers.add(new HeaderNameValue("Authorization", "Bearer {{access_token}}"));
+		headers.add(new HeaderNameValue(CONTENT_TYPE_HEADER, ContentType.APPLICATION_JSON.getMimeType()));
+
+		return new AddRemoveBatchFromStaticMatrix(this.deleteJson(req,
+				String.format("/matrices/%s/batches", req.getMatrixiId())));
+	}
 
 	public JSONObject settlementTransferRaw(String rawTxt) {
 		return this.executeString(

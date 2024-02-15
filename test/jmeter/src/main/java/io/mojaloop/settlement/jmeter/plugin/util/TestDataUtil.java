@@ -1,5 +1,7 @@
 package io.mojaloop.settlement.jmeter.plugin.util;
 
+import io.mojaloop.settlement.jmeter.plugin.rest.client.json.batch.SettlementBatch;
+import io.mojaloop.settlement.jmeter.plugin.rest.client.json.matrix.SettlementMatrix;
 import io.mojaloop.settlement.jmeter.plugin.rest.client.json.testdata.TestDataCarrier;
 import io.mojaloop.settlement.jmeter.plugin.rest.client.json.testdata.TestPlanConfig;
 import io.mojaloop.settlement.jmeter.plugin.rest.client.json.transfer.TransferReq;
@@ -8,7 +10,10 @@ import org.json.JSONObject;
 
 import java.io.*;
 import java.math.BigDecimal;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
@@ -141,13 +146,7 @@ public class TestDataUtil {
 			TestPlanConfig tpc
 	) {
 		TestPlanConfig.SettlementTransfer settleTransfer = tpc.getSettlementTransfer();
-		TestPlanConfig.SettlementMatrix matrix = tpc.getSettlementMatrix();
-		TestPlanConfig.SettlementBatch batch = tpc.getSettlementBatch();
 
-		int getTxnBatchId = settleTransfer.getGetByBatchId();
-		int getTxnMatrixId = settleTransfer.getGetByBatchId();
-		int getBatchesByModel = batch.getGetByModel();
-		int cntStatic = matrix.getCreateStatic();
 		for (int index = 0; index < settleTransfer.getCount(); index++) {
 			TestDataCarrier toAdd = new TestDataCarrier(new JSONObject());
 			toAdd.setActionType(TestDataCarrier.ActionType.transfer);
@@ -183,20 +182,68 @@ public class TestDataUtil {
 			toAdd.setRequest(settleTransferToAdd);
 			carriers.add(toAdd);
 
-			// Batches By Model:
-			if (isApplicable(index, getBatchesByModel)) {
-				genBatchByModel(carriers, settlementModel);
-			}
+			addInBetweenCalls(tpc, carriers, index, settlementModel);
+		}
+	}
 
-			// Transfers Get By Matrix:
-			if (isApplicable(index, getTxnMatrixId)) {
-				genTxnByMatrix(carriers);
-			}
+	private static void addInBetweenCalls(
+			TestPlanConfig tpc,
+			List<TestDataCarrier> carriers,
+			int index,
+			String settlementModel
+	) {
+		TestPlanConfig.SettlementTransfer settleTransfer = tpc.getSettlementTransfer();
+		TestPlanConfig.SettlementMatrix matrix = tpc.getSettlementMatrix();
+		TestPlanConfig.SettlementBatch batch = tpc.getSettlementBatch();
 
-			// Static:
-			if (isApplicable(index, cntStatic)) {
+		int getTxnBatchId = settleTransfer.getGetByBatchId();
+		int getTxnMatrixId = settleTransfer.getGetByBatchId();
+		int getBatchesByModel = batch.getGetByModel();
+		int cntStatic = matrix.getCreateStatic();
+		int cntStaticAdd = matrix.getAddBatchToStatic();
+		int cntStaticRemove = matrix.getRemoveBatchFromStatic();
+		int cntGetStatic = matrix.getGetStatic();
+		int cntDynamicModel = matrix.getCreateDynamicModel();
+		int cntGetDynamicModel = matrix.getGetDynamicModel();
+		
+		// Batches By Model:
+		if (isApplicable(index, getBatchesByModel)) {
+			genBatchByModel(carriers, settlementModel);
+		}
 
-			}
+		// Transfers Get By Matrix:
+		if (isApplicable(index, getTxnMatrixId)) {
+			genTxnByMatrix(carriers);
+		}
+
+		// Static:
+		if (isApplicable(index, cntStatic)) {
+			genCreateStaticMatrix(carriers);
+		}
+
+		// Static - Add Batch:
+		if (isApplicable(index, cntStaticAdd)) {
+			genAddBatchToStaticMatrix(carriers);
+		}
+
+		// Static - Remove Batch:
+		if (isApplicable(index, cntStaticRemove)) {
+			genRemoveBatchFromStaticMatrix(carriers);
+		}
+
+		// Static - Get:
+		if (isApplicable(index, cntGetStatic)) {
+			genGetStaticMatrix(carriers);
+		}
+
+		// Dynamic - Model:
+		if (isApplicable(index, cntDynamicModel)) {
+			genCreateDynamicMatrixModel(carriers, settlementModel);
+		}
+
+		// Dynamic - Get by Model:
+		if (isApplicable(index, cntGetDynamicModel)) {
+			genGetDynamicMatrixModel(carriers, settlementModel);
 		}
 	}
 
@@ -211,14 +258,68 @@ public class TestDataUtil {
 	private static void genBatchByModel(List<TestDataCarrier> carriers, String model) {
 		TestDataCarrier toAdd = new TestDataCarrier(new JSONObject());
 		toAdd.setActionType(TestDataCarrier.ActionType.get_batches_by_model);
-		TransferReq settleTransferToAdd = new TransferReq(new JSONObject());
-		settleTransferToAdd.setSettlementModel(model);
-		toAdd.setRequest(settleTransferToAdd);
+		SettlementBatch batchToAdd = new SettlementBatch(new JSONObject());
+		batchToAdd.setSettlementModel(model);
+		toAdd.setRequest(batchToAdd);
+		carriers.add(toAdd);
+	}
+
+	private static void genCreateStaticMatrix(List<TestDataCarrier> carriers) {
+		TestDataCarrier toAdd = new TestDataCarrier(new JSONObject());
+		toAdd.setActionType(TestDataCarrier.ActionType.create_static_matrix);
+		SettlementMatrix matrixToAdd = new SettlementMatrix(new JSONObject());
+		matrixToAdd.setType(SettlementMatrix.Type.STATIC);
+		toAdd.setRequest(matrixToAdd);
+		carriers.add(toAdd);
+	}
+
+	private static void genGetStaticMatrix(List<TestDataCarrier> carriers) {
+		TestDataCarrier toAdd = new TestDataCarrier(new JSONObject());
+		toAdd.setActionType(TestDataCarrier.ActionType.get_static_matrix);
+		SettlementMatrix matrixToAdd = new SettlementMatrix(new JSONObject());
+		toAdd.setRequest(matrixToAdd);
+		carriers.add(toAdd);
+	}
+
+	private static void genCreateDynamicMatrixModel(List<TestDataCarrier> carriers, String model) {
+		TestDataCarrier toAdd = new TestDataCarrier(new JSONObject());
+		toAdd.setActionType(TestDataCarrier.ActionType.create_dynamic_matrix_model);
+		SettlementMatrix matrixToAdd = new SettlementMatrix(new JSONObject());
+		matrixToAdd.setType(SettlementMatrix.Type.DYNAMIC);
+		matrixToAdd.setSettlementModel(model);
+		toAdd.setRequest(matrixToAdd);
+		carriers.add(toAdd);
+	}
+
+	private static void genGetDynamicMatrixModel(List<TestDataCarrier> carriers, String model) {
+		TestDataCarrier toAdd = new TestDataCarrier(new JSONObject());
+		toAdd.setActionType(TestDataCarrier.ActionType.get_dynamic_matrix_model);
+		SettlementMatrix matrixToAdd = new SettlementMatrix(new JSONObject());
+		matrixToAdd.setType(SettlementMatrix.Type.DYNAMIC);
+		matrixToAdd.setSettlementModel(model);
+		toAdd.setRequest(matrixToAdd);
+		carriers.add(toAdd);
+	}
+
+	private static void genAddBatchToStaticMatrix(List<TestDataCarrier> carriers) {
+		TestDataCarrier toAdd = new TestDataCarrier(new JSONObject());
+		toAdd.setActionType(TestDataCarrier.ActionType.add_batch_to_static_matrix);
+		SettlementBatch batchToAdd = new SettlementBatch(new JSONObject());
+		toAdd.setRequest(batchToAdd);
+		carriers.add(toAdd);
+	}
+
+	private static void genRemoveBatchFromStaticMatrix(List<TestDataCarrier> carriers) {
+		TestDataCarrier toAdd = new TestDataCarrier(new JSONObject());
+		toAdd.setActionType(TestDataCarrier.ActionType.remove_batch_from_static_matrix);
+		SettlementBatch batchToAdd = new SettlementBatch(new JSONObject());
+		toAdd.setRequest(batchToAdd);
 		carriers.add(toAdd);
 	}
 
 	private static boolean isApplicable(int index, int count) {
 		if (count < 1) return false;
+		if (index < count) return false;
 		return ((index % count) == 0);
 	}
 
