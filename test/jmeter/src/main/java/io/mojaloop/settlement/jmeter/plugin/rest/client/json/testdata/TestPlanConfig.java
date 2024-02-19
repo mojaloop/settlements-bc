@@ -117,6 +117,7 @@ public class TestPlanConfig extends ABaseJSONObject {
 		private int close;
 		private int lock;
 		private int settle;
+		private int recalculate;
 		private int dispute;
 
 		public static class JSONMapping {
@@ -130,6 +131,7 @@ public class TestPlanConfig extends ABaseJSONObject {
 			public static final String LOCK = "lock";
 			public static final String SETTLE = "settle";
 			public static final String DISPUTE = "dispute";
+			public static final String RECALCULATE = "recalculate";
 		}
 
 		public SettlementMatrix(JSONObject jsonObject) {
@@ -168,6 +170,9 @@ public class TestPlanConfig extends ABaseJSONObject {
 			if (jsonObject.has(JSONMapping.DISPUTE)) {
 				this.setDispute(jsonObject.getInt(JSONMapping.DISPUTE));
 			}
+			if (jsonObject.has(JSONMapping.RECALCULATE)) {
+				this.setRecalculate(jsonObject.getInt(JSONMapping.RECALCULATE));
+			}
 		}
 
 		public void validate() {
@@ -186,18 +191,18 @@ public class TestPlanConfig extends ABaseJSONObject {
 				throw new IllegalStateException("Get dynamic model matrix model should be more than -1!");
 			}
 
+			if (this.recalculate < 0) {
+				throw new IllegalStateException("Recalculate matrix should be more than -1!");
+			}
 			if (this.close < 0) {
 				throw new IllegalStateException("Close matrix should be more than -1!");
 			}
-
 			if (this.lock < 0) {
 				throw new IllegalStateException("Lock matrix should be more than -1!");
 			}
-
 			if (this.settle < 0) {
 				throw new IllegalStateException("Settle matrix should be more than -1!");
 			}
-
 			if (this.dispute < 0) {
 				throw new IllegalStateException("Dispute matrix should be more than -1!");
 			}

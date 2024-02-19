@@ -18,12 +18,12 @@ import java.util.List;
 public class CreateStaticSettlementMatrix extends ABaseJSONObject {
 	public static final long serialVersionUID = 1L;
 
-	private String matrixiId;
+	private String matrixId;
 	private List<String> batchIds;
 	private SettlementMatrix.Type type;
 
 	public static class JSONMapping {
-		public static final String MATRIX_ID = "matrixiId";
+		public static final String MATRIX_ID = "matrixId";
 		public static final String BATCH_IDS = "batchIds";
 		public static final String TYPE = "type";
 	}
@@ -37,7 +37,7 @@ public class CreateStaticSettlementMatrix extends ABaseJSONObject {
 		super(jsonObject);
 
 		if (jsonObject.has(JSONMapping.MATRIX_ID) && !jsonObject.isNull(JSONMapping.MATRIX_ID)) {
-			this.setMatrixiId(jsonObject.getString(JSONMapping.MATRIX_ID));
+			this.setMatrixId(jsonObject.getString(JSONMapping.MATRIX_ID));
 		}
 		if (jsonObject.has(SettlementMatrix.JSONMapping.TYPE) && !jsonObject.isNull(SettlementMatrix.JSONMapping.TYPE)) {
 			this.setType(jsonObject.getEnum(SettlementMatrix.Type.class, SettlementMatrix.JSONMapping.TYPE));
@@ -47,14 +47,17 @@ public class CreateStaticSettlementMatrix extends ABaseJSONObject {
 			JSONArray cc = jsonObject.getJSONArray(JSONMapping.BATCH_IDS);
 			for (int index = 0;index < cc.length();index++) this.getBatchIds().add(cc.getString(index));
 		}
+		if (jsonObject.has(JSONMapping.TYPE) && !jsonObject.isNull(JSONMapping.TYPE)) {
+			this.setType(jsonObject.getEnum(SettlementMatrix.Type.class, JSONMapping.TYPE));
+		}
 	}
 
 	@Override
 	public JSONObject toJsonObject() throws JSONException {
 		JSONObject returnVal = super.toJsonObject();
 
-		if (this.getMatrixiId() == null) returnVal.put(JSONMapping.MATRIX_ID, JSONObject.NULL);
-		else returnVal.put(JSONMapping.MATRIX_ID, this.getMatrixiId());
+		if (this.getMatrixId() == null) returnVal.put(JSONMapping.MATRIX_ID, JSONObject.NULL);
+		else returnVal.put(JSONMapping.MATRIX_ID, this.getMatrixId());
 
 		if (this.getType() == null) returnVal.put(SettlementMatrix.JSONMapping.TYPE, JSONObject.NULL);
 		else returnVal.put(SettlementMatrix.JSONMapping.TYPE, this.getType());
@@ -65,6 +68,9 @@ public class CreateStaticSettlementMatrix extends ABaseJSONObject {
 			this.getBatchIds().forEach(bids::put);
 			returnVal.put(JSONMapping.BATCH_IDS, bids);
 		}
+
+		if (this.getType() == null) returnVal.put(JSONMapping.TYPE, JSONObject.NULL);
+		else returnVal.put(JSONMapping.TYPE, this.getType());
 
 		return returnVal;
 	}

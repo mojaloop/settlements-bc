@@ -443,7 +443,7 @@ export class ExpressRoutes {
 		// TODO enforce privileges
 
 		try {
-			const matrixId = req.body.matrixiId || randomUUID();
+			const matrixId = req.body.matrixId || randomUUID();
 			const type = req.body.type as string || null;
 
 			const matrix = await this._matrixRepo.getMatrixById(matrixId);

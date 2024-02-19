@@ -10,3 +10,11 @@ GET http://localhost:3600/matrices?model=DEFAULT&startDate=1674140933634&endDate
 Content-Type: application/json
 X-Correlation-ID: Manual-{{$uuid}}
 Authorization: Bearer {{access_token}}
+
+### Test - [Get matrices by model]:
+POST http://localhost:3600/matrices/ea68bb07-aa4a-4607-93b5-202d1dbce3b4/batches
+Content-Type: application/json
+X-Correlation-ID: Manual-{{$uuid}}
+Authorization: Bearer {{access_token}}
+
+{"matrixId":"ea68bb07-aa4a-4607-93b5-202d1dbce3b4","batchIds":["b5edc5a7-a422-456a-b6e9-51fab52f700d"]}

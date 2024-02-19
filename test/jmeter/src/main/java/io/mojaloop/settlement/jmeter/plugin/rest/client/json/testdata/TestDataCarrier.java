@@ -69,6 +69,13 @@ public class TestDataCarrier extends ABaseJSONObject {
 				case get_static_matrix:
 				case get_dynamic_matrix_model:
 				case create_dynamic_matrix_model:
+				//matrix actions:
+				case matrix_close:
+				case matrix_dispute:
+				case matrix_lock:
+				case matrix_recalculate:
+				case matrix_settle:
+				case matrix_unlock:
 					if (!jsonObject.isNull(JSONMapping.REQUEST)) this.setRequest(new SettlementMatrix(jsonObject.getJSONObject(JSONMapping.REQUEST)));
 					if (!jsonObject.isNull(JSONMapping.RESPONSE)) this.setResponse(jsonObject.getJSONObject(JSONMapping.RESPONSE));
 				break;
@@ -92,6 +99,12 @@ public class TestDataCarrier extends ABaseJSONObject {
 			case get_dynamic_matrix_model:
 			case add_batch_to_static_matrix:
 			case remove_batch_from_static_matrix:
+			case matrix_close:
+			case matrix_dispute:
+			case matrix_lock:
+			case matrix_recalculate:
+			case matrix_settle:
+			case matrix_unlock:
 				if (this.getRequest() == null) returnVal.put(JSONMapping.REQUEST, JSONObject.NULL);
 				else returnVal.put(JSONMapping.REQUEST, this.getRequest().toJsonObject());
 			break;

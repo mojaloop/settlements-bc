@@ -5,6 +5,7 @@ import io.mojaloop.settlement.jmeter.plugin.rest.client.json.matrix.AddRemoveBat
 import io.mojaloop.settlement.jmeter.plugin.rest.client.json.matrix.CreateDynamicSettlementMatrix;
 import io.mojaloop.settlement.jmeter.plugin.rest.client.json.matrix.CreateStaticSettlementMatrix;
 import io.mojaloop.settlement.jmeter.plugin.rest.client.json.matrix.SettlementMatrix;
+import io.mojaloop.settlement.jmeter.plugin.rest.client.json.testdata.TestDataCarrier;
 import io.mojaloop.settlement.jmeter.plugin.rest.client.json.transfer.TransferReq;
 import io.mojaloop.settlement.jmeter.plugin.rest.client.json.transfer.TransferRsp;
 import org.apache.http.entity.ContentType;
@@ -100,7 +101,7 @@ public class SettlementBCRestClient extends ABaseRESTClient {
 		headers.add(new HeaderNameValue(CONTENT_TYPE_HEADER, ContentType.APPLICATION_JSON.getMimeType()));
 
 		return new AddRemoveBatchFromStaticMatrix(this.postJson(headers, req,
-				String.format("/matrices/%s/batches", req.getMatrixiId())));
+				String.format("/matrices/%s/batches", req.getMatrixId())));
 	}
 
 	public AddRemoveBatchFromStaticMatrix removeBatchFromStaticMatrix(AddRemoveBatchFromStaticMatrix req) {
@@ -109,8 +110,36 @@ public class SettlementBCRestClient extends ABaseRESTClient {
 		headers.add(new HeaderNameValue("Authorization", "Bearer {{access_token}}"));
 		headers.add(new HeaderNameValue(CONTENT_TYPE_HEADER, ContentType.APPLICATION_JSON.getMimeType()));
 
-		return new AddRemoveBatchFromStaticMatrix(this.deleteJson(req,
-				String.format("/matrices/%s/batches", req.getMatrixiId())));
+		return new AddRemoveBatchFromStaticMatrix(this.deleteJson(
+				headers, req, String.format("/matrices/%s/batches", req.getMatrixId())
+		));
+	}
+
+	public SettlementMatrix actionMatrix(String matrixId, TestDataCarrier.ActionType actType) {
+		List<HeaderNameValue> headers = new ArrayList<>();
+		headers.add(new HeaderNameValue("X-Correlation-ID", UUID.randomUUID().toString()));
+		headers.add(new HeaderNameValue("Authorization", "Bearer {{access_token}}"));
+		headers.add(new HeaderNameValue(CONTENT_TYPE_HEADER, ContentType.APPLICATION_JSON.getMimeType()));
+
+		SettlementMatrix sm = new SettlementMatrix(new JSONObject());
+		sm.setId(matrixId);
+
+		final String urlSuffix;
+		switch (actType) {
+			case matrix_recalculate: urlSuffix = "recalculate";break;
+			case matrix_close: urlSuffix = "close";break;
+			case matrix_settle: urlSuffix = "settle";break;
+			case matrix_dispute: urlSuffix = "dispute";break;
+			case matrix_lock: urlSuffix = "lock";break;
+			case matrix_unlock: urlSuffix = "unlock";break;
+			default:
+				throw new IllegalStateException("Action on matrix '"+actType+"' not supported!");
+		}
+
+		new SettlementMatrix(this.postJson(headers, sm ,
+				String.format("/matrices/%s/%s", matrixId, urlSuffix))
+		);
+		return sm;
 	}
 
 	public JSONObject settlementTransferRaw(String rawTxt) {

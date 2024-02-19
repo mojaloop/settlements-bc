@@ -37,6 +37,8 @@ public class SamplerRunner {
 	private static final Queue<CreateStaticSettlementMatrix> staticMatrices = new ConcurrentLinkedQueue<>();
 	private static final Queue<CreateDynamicSettlementMatrix> dynamicMatrices = new ConcurrentLinkedQueue<>();
 	private static final Queue<AddRemoveBatchFromStaticMatrix> batchesAdded = new ConcurrentLinkedQueue<>();
+	private static final Queue<SettlementMatrix> matrixClosed = new ConcurrentLinkedQueue<>();
+	private static final Queue<SettlementMatrix> matrixLocked = new ConcurrentLinkedQueue<>();
 
 	private final Logger logger;
 	private final SettlementBCRestClient settleClient;
@@ -107,7 +109,7 @@ public class SamplerRunner {
 				case create_static_matrix:
 					CreateStaticSettlementMatrix staticMatrix = new CreateStaticSettlementMatrix(new JSONObject());
 					staticMatrix.setType(SettlementMatrix.Type.STATIC);
-					staticMatrix.setMatrixiId(UUID.randomUUID().toString());
+					staticMatrix.setMatrixId(UUID.randomUUID().toString());
 					contentToSend = staticMatrix.toJsonObject().toString();
 					result.setRequestHeaders(this.createHeaderVal(actionType, "/create_static_matrix", testDataIndex));
 
@@ -128,7 +130,7 @@ public class SamplerRunner {
 					result.setRequestHeaders(this.createHeaderVal(actionType, "/get_static_matrix", testDataIndex));
 
 					result.sampleStart();
-					SettlementMatrix staticByIdRsp = this.settleClient.getMatrixById(existingStatic.getMatrixiId());
+					SettlementMatrix staticByIdRsp = this.settleClient.getMatrixById(existingStatic.getMatrixId());
 					result.sampleEnd();
 					responseJSON = staticByIdRsp.toJsonObject();
 				break;
@@ -136,7 +138,7 @@ public class SamplerRunner {
 					SettlementMatrix settlementMatrix = (SettlementMatrix) testData.getRequest();
 					CreateDynamicSettlementMatrix dynamicMatrix = new CreateDynamicSettlementMatrix(new JSONObject());
 					dynamicMatrix.setType(SettlementMatrix.Type.DYNAMIC);
-					dynamicMatrix.setMatrixiId(UUID.randomUUID().toString());
+					dynamicMatrix.setMatrixId(UUID.randomUUID().toString());
 					dynamicMatrix.setSettlementModel(settlementMatrix.getSettlementModel());
 					contentToSend = dynamicMatrix.toJsonObject().toString();
 					result.setRequestHeaders(this.createHeaderVal(actionType, "/create_dynamic_matrix_model", testDataIndex));
@@ -169,14 +171,16 @@ public class SamplerRunner {
 					CreateStaticSettlementMatrix existingMatrixStat = staticMatrices.poll();
 					if (existingMatrixStat == null) throw new IllegalStateException("No existing static matrix to add batch to");
 
-					contentToSend = existingBatch.toJsonObject().toString();
 					result.setRequestHeaders(this.createHeaderVal(actionType, "/add_batch_to_static_matrix", testDataIndex));
 
 					AddRemoveBatchFromStaticMatrix addBatch = new AddRemoveBatchFromStaticMatrix(new JSONObject());
-					addBatch.setMatrixiId(existingMatrixStat.getMatrixiId());
+					addBatch.setMatrixId(existingMatrixStat.getMatrixId());
 					List<String> batchToAdd = new ArrayList<>();
-					batchToAdd.add(existingBatch.getId());
+					batchToAdd.add(existingBatch.getBatchUUID());
 					addBatch.setBatchIds(batchToAdd);
+
+					contentToSend = addBatch.toJsonObject().toString();
+
 					result.sampleStart();
 					AddRemoveBatchFromStaticMatrix addedRsp = this.settleClient.addBatchToStaticMatrix(addBatch);
 					result.sampleEnd();
@@ -196,6 +200,40 @@ public class SamplerRunner {
 					AddRemoveBatchFromStaticMatrix removedRsp = this.settleClient.removeBatchFromStaticMatrix(addedBatch);
 					result.sampleEnd();
 					responseJSON = removedRsp.toJsonObject();
+				break;
+				case matrix_recalculate:
+				case matrix_close:
+				case matrix_lock:
+				case matrix_settle:
+					SettlementMatrix matrixPerReq = null;
+					if (actionType == TestDataCarrier.ActionType.matrix_lock) {
+						matrixPerReq = matrixClosed.poll();
+					} else if (actionType == TestDataCarrier.ActionType.matrix_settle) {
+						matrixPerReq = matrixLocked.poll();
+					} else {
+						CreateDynamicSettlementMatrix dynMat = dynamicMatrices.poll();
+						if (dynMat != null) {
+							matrixPerReq = new SettlementMatrix(new JSONObject());
+							matrixPerReq.setId(dynMat.getMatrixId());
+						}
+					}
+					if (matrixPerReq == null) throw new IllegalStateException("No dynamic matrix to '"+actionType+"'.");
+					contentToSend = matrixPerReq.toJsonObject().toString();
+
+					result.setRequestHeaders(this.createHeaderVal(actionType,
+							String.format("/%s_dynamic_matrix", actionType), testDataIndex));
+
+					result.sampleStart();
+					SettlementMatrix actionRsp = this.settleClient.actionMatrix(
+							matrixPerReq.getId(), actionType
+					);
+					result.sampleEnd();
+					responseJSON = actionRsp.toJsonObject();
+					if (actionType == TestDataCarrier.ActionType.matrix_lock) {
+						matrixLocked.add(actionRsp);
+					} else if (actionType == TestDataCarrier.ActionType.matrix_close) {
+						matrixClosed.add(actionRsp);
+					}
 				break;
 				case transfer_raw:
 					result.setRequestHeaders(this.createHeaderVal(actionType, "/transfers_raw", testDataIndex));
@@ -273,5 +311,7 @@ public class SamplerRunner {
 		staticMatrices.clear();
 		dynamicMatrices.clear();
 		batchesAdded.clear();
+		matrixLocked.clear();
+		matrixClosed.clear();
 	}
 }

@@ -18,11 +18,11 @@ import java.util.List;
 public class AddRemoveBatchFromStaticMatrix extends ABaseJSONObject {
 	public static final long serialVersionUID = 1L;
 
-	private String matrixiId;
+	private String matrixId;
 	private List<String> batchIds;
 
 	public static class JSONMapping {
-		public static final String MATRIX_ID = "matrixiId";
+		public static final String MATRIX_ID = "matrixId";
 		public static final String BATCH_IDS = "batchIds";
 	}
 
@@ -35,7 +35,7 @@ public class AddRemoveBatchFromStaticMatrix extends ABaseJSONObject {
 		super(jsonObject);
 
 		if (jsonObject.has(JSONMapping.MATRIX_ID) && !jsonObject.isNull(JSONMapping.MATRIX_ID)) {
-			this.setMatrixiId(jsonObject.getString(JSONMapping.MATRIX_ID));
+			this.setMatrixId(jsonObject.getString(JSONMapping.MATRIX_ID));
 		}
 		this.setBatchIds(new ArrayList<>());
 		if (jsonObject.has(JSONMapping.BATCH_IDS) && !jsonObject.isNull(JSONMapping.BATCH_IDS)) {
@@ -48,8 +48,8 @@ public class AddRemoveBatchFromStaticMatrix extends ABaseJSONObject {
 	public JSONObject toJsonObject() throws JSONException {
 		JSONObject returnVal = super.toJsonObject();
 
-		if (this.getMatrixiId() == null) returnVal.put(JSONMapping.MATRIX_ID, JSONObject.NULL);
-		else returnVal.put(JSONMapping.MATRIX_ID, this.getMatrixiId());
+		if (this.getMatrixId() == null) returnVal.put(JSONMapping.MATRIX_ID, JSONObject.NULL);
+		else returnVal.put(JSONMapping.MATRIX_ID, this.getMatrixId());
 
 		if (this.getBatchIds() == null) returnVal.put(JSONMapping.BATCH_IDS, JSONObject.NULL);
 		else {

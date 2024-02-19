@@ -84,7 +84,6 @@ import {
 	TokenHelperMock,
 	SettlementBatchTransferRepoTigerBeetle,
 	SettlementBatchCacheRepoMock,
-	AccountsBalancesAdapterMock,
 	AccountsBalancesAdapterVoid
 } from "@mojaloop/settlements-bc-shared-mocks-lib";
 import {ConfigurationClient, DefaultConfigProvider} from "@mojaloop/platform-configuration-bc-client-lib";

@@ -205,7 +205,11 @@ public class TestDataUtil {
 		int cntGetStatic = matrix.getGetStatic();
 		int cntDynamicModel = matrix.getCreateDynamicModel();
 		int cntGetDynamicModel = matrix.getGetDynamicModel();
-		
+		int cntStlClose = matrix.getClose();
+		int cntStlLock = matrix.getLock();
+		int cntStlSettle = matrix.getSettle();
+		int cntStlRecalc = matrix.getSettle();
+
 		// Batches By Model:
 		if (isApplicable(index, getBatchesByModel)) {
 			genBatchByModel(carriers, settlementModel);
@@ -244,6 +248,21 @@ public class TestDataUtil {
 		// Dynamic - Get by Model:
 		if (isApplicable(index, cntGetDynamicModel)) {
 			genGetDynamicMatrixModel(carriers, settlementModel);
+		}
+
+		// Settlement Matrix - Close:
+		if (isApplicable(index, cntStlClose)) {
+			genSettlementMatrixAction(carriers, TestDataCarrier.ActionType.matrix_close);
+		}
+
+		// Settlement Matrix - Lock:
+		if (isApplicable(index, cntStlLock)) {
+			genSettlementMatrixAction(carriers, TestDataCarrier.ActionType.matrix_lock);
+		}
+
+		// Settlement Matrix - Settle:
+		if (isApplicable(index, cntStlSettle)) {
+			genSettlementMatrixAction(carriers, TestDataCarrier.ActionType.matrix_settle);
 		}
 	}
 
@@ -297,6 +316,17 @@ public class TestDataUtil {
 		SettlementMatrix matrixToAdd = new SettlementMatrix(new JSONObject());
 		matrixToAdd.setType(SettlementMatrix.Type.DYNAMIC);
 		matrixToAdd.setSettlementModel(model);
+		toAdd.setRequest(matrixToAdd);
+		carriers.add(toAdd);
+	}
+
+	private static void genSettlementMatrixAction(
+			List<TestDataCarrier> carriers,
+			TestDataCarrier.ActionType actType
+	) {
+		TestDataCarrier toAdd = new TestDataCarrier(new JSONObject());
+		toAdd.setActionType(actType);
+		SettlementMatrix matrixToAdd = new SettlementMatrix(new JSONObject());
 		toAdd.setRequest(matrixToAdd);
 		carriers.add(toAdd);
 	}

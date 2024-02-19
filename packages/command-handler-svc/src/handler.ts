@@ -232,9 +232,17 @@ export class SettlementsCommandHandler {
 				clientId: 'barebone',
 				accessToken: '<none>',
 				platformRoleIds: [
-					Privileges.CREATE_STATIC_SETTLEMENT_MATRIX,
+					Privileges.CREATE_SETTLEMENT_TRANSFER,
 					Privileges.CREATE_DYNAMIC_SETTLEMENT_MATRIX,
-					Privileges.CREATE_SETTLEMENT_TRANSFER
+					Privileges.CREATE_STATIC_SETTLEMENT_MATRIX,
+					Privileges.CREATE_SETTLEMENT_CONFIG,
+					Privileges.SETTLEMENTS_CLOSE_MATRIX,
+					Privileges.SETTLEMENTS_SETTLE_MATRIX,
+					Privileges.SETTLEMENTS_DISPUTE_MATRIX,
+					Privileges.SETTLEMENTS_LOCK_MATRIX,
+					Privileges.SETTLEMENTS_UNLOCK_MATRIX,
+					Privileges.GET_SETTLEMENT_MATRIX,
+					Privileges.RETRIEVE_SETTLEMENT_BATCH
 				],
 				username: null
 			};

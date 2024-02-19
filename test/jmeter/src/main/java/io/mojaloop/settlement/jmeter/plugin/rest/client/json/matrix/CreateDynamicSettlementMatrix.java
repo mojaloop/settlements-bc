@@ -19,7 +19,7 @@ import java.util.List;
 public class CreateDynamicSettlementMatrix extends ABaseJSONObject {
 	public static final long serialVersionUID = 1L;
 
-	private String matrixiId;
+	private String matrixId;
 	private Date fromDate;
 	private Date toDate;
 	private List<String> currencyCodes;
@@ -28,7 +28,7 @@ public class CreateDynamicSettlementMatrix extends ABaseJSONObject {
 	private SettlementMatrix.Type type;
 
 	public static class JSONMapping {
-		public static final String MATRIX_ID = "matrixiId";
+		public static final String MATRIX_ID = "matrixId";
 		public static final String FROM_DATE = "fromDate";
 		public static final String TO_DATE = "toDate";
 		public static final String CURRENCY_CODES = "currencyCodes";
@@ -46,7 +46,7 @@ public class CreateDynamicSettlementMatrix extends ABaseJSONObject {
 		super(jsonObject);
 
 		if (jsonObject.has(JSONMapping.MATRIX_ID) && !jsonObject.isNull(JSONMapping.MATRIX_ID)) {
-			this.setMatrixiId(jsonObject.getString(JSONMapping.MATRIX_ID));
+			this.setMatrixId(jsonObject.getString(JSONMapping.MATRIX_ID));
 		}
 		if (jsonObject.has(JSONMapping.FROM_DATE) && !jsonObject.isNull(JSONMapping.FROM_DATE)) {
 			this.setFromDate(new Date(jsonObject.getLong(JSONMapping.FROM_DATE)));
@@ -76,8 +76,8 @@ public class CreateDynamicSettlementMatrix extends ABaseJSONObject {
 	public JSONObject toJsonObject() throws JSONException {
 		JSONObject returnVal = super.toJsonObject();
 
-		if (this.getMatrixiId() == null) returnVal.put(JSONMapping.MATRIX_ID, JSONObject.NULL);
-		else returnVal.put(JSONMapping.MATRIX_ID, this.getMatrixiId());
+		if (this.getMatrixId() == null) returnVal.put(JSONMapping.MATRIX_ID, JSONObject.NULL);
+		else returnVal.put(JSONMapping.MATRIX_ID, this.getMatrixId());
 
 		if (this.getFromDate() == null) returnVal.put(JSONMapping.FROM_DATE, JSONObject.NULL);
 		else returnVal.put(JSONMapping.FROM_DATE, this.getFromDate().getTime());

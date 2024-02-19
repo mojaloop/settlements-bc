@@ -347,12 +347,13 @@ public abstract class ABaseRESTClient implements AutoCloseable {
 	 * @see JSONObject
 	 */
 	protected JSONObject deleteJson(
+			List<HeaderNameValue> headers,
 			ABaseJSONObject baseDomainParam,
 			String postfixUrlParam
 	) {
 		return this.executeJson(
 				HttpMethod.DELETE,
-				null,
+				headers,
 				baseDomainParam,
 				ContentType.APPLICATION_JSON,
 				postfixUrlParam);

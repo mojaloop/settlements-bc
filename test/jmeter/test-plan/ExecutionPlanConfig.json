@@ -11,13 +11,15 @@
   "settlement-matrix" : {
     "create-static": 30,
     "add-batch-to-static": 61,
-    "remove-batch-from-static": 0,
+    "remove-batch-from-static": 190,
     "get-static": 60,
     "create-dynamic-model": 50,
     "get-dynamic-model": 60,
-    "close": 0,
-    "lock": 0,
-    "settle": 0
+    "close": 80,
+    "dispute": 0,
+    "lock": 100,
+    "unlock": 0,
+    "settle": 150
   },
   "batch" : {
     "get-by-model": 20
