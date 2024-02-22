@@ -19,7 +19,6 @@ import { ConsoleLogger, ILogger } from "@mojaloop/logging-bc-public-types-lib";
 import {
     AddBatchesToMatrixCmdPayload,
     IAccountsBalancesAdapter,
-    IParticipantAccountNotifier,
     ISettlementBatchRepo,
     ISettlementConfigRepo,
     ISettlementMatrixRequestRepo

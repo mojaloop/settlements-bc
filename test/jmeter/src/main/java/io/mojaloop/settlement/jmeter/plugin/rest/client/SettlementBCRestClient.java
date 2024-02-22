@@ -6,6 +6,7 @@ import io.mojaloop.settlement.jmeter.plugin.rest.client.json.matrix.CreateDynami
 import io.mojaloop.settlement.jmeter.plugin.rest.client.json.matrix.CreateStaticSettlementMatrix;
 import io.mojaloop.settlement.jmeter.plugin.rest.client.json.matrix.SettlementMatrix;
 import io.mojaloop.settlement.jmeter.plugin.rest.client.json.testdata.TestDataCarrier;
+import io.mojaloop.settlement.jmeter.plugin.rest.client.json.transfer.BatchTransferSearchResults;
 import io.mojaloop.settlement.jmeter.plugin.rest.client.json.transfer.TransferReq;
 import io.mojaloop.settlement.jmeter.plugin.rest.client.json.transfer.TransferRsp;
 import org.apache.http.entity.ContentType;
@@ -75,6 +76,14 @@ public class SettlementBCRestClient extends ABaseRESTClient {
 		headers.add(new HeaderNameValue("Authorization", "Bearer {{access_token}}"));
 		headers.add(new HeaderNameValue(CONTENT_TYPE_HEADER, ContentType.APPLICATION_JSON.getMimeType()));
 		return new SettlementMatrix(this.getJson(String.format("/matrices/%s", id), headers));
+	}
+
+	public BatchTransferSearchResults getTransfersByMatrixId(String id) {
+		List<HeaderNameValue> headers = new ArrayList<>();
+		headers.add(new HeaderNameValue("X-Correlation-ID", UUID.randomUUID().toString()));
+		headers.add(new HeaderNameValue("Authorization", "Bearer {{access_token}}"));
+		headers.add(new HeaderNameValue(CONTENT_TYPE_HEADER, ContentType.APPLICATION_JSON.getMimeType()));
+		return new BatchTransferSearchResults(this.getJson(String.format("/transfers?matrixId=%s", id), headers));
 	}
 
 	public SettlementMatrix getMatrixByModel(

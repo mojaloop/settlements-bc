@@ -11,6 +11,7 @@ import io.mojaloop.settlement.jmeter.plugin.rest.client.json.matrix.CreateDynami
 import io.mojaloop.settlement.jmeter.plugin.rest.client.json.matrix.CreateStaticSettlementMatrix;
 import io.mojaloop.settlement.jmeter.plugin.rest.client.json.matrix.SettlementMatrix;
 import io.mojaloop.settlement.jmeter.plugin.rest.client.json.testdata.TestDataCarrier;
+import io.mojaloop.settlement.jmeter.plugin.rest.client.json.transfer.BatchTransferSearchResults;
 import io.mojaloop.settlement.jmeter.plugin.rest.client.json.transfer.TransferReq;
 import io.mojaloop.settlement.jmeter.plugin.rest.client.json.transfer.TransferRsp;
 import lombok.Getter;
@@ -53,11 +54,7 @@ public class SamplerRunner {
 		private final String requestId;
 	}
 
-	public void execute(
-		TestDataCarrier testData,
-		SampleResult result,
-		int testDataIndex
-	) {
+	public void execute(TestDataCarrier testData, SampleResult result, int testDataIndex) {
 		String contentToSend = "{}";
 		if (testData.getRequest() != null) contentToSend = testData.getRequest().toJsonObject().toString();
 
@@ -88,6 +85,28 @@ public class SamplerRunner {
 						responseJSON.put("topic", metadata.topic());
 					}
 				break;
+				case transfers_by_matrix_id:
+					String matrixId = null;
+					CreateStaticSettlementMatrix existingStaticTxnFetch = staticMatrices.poll();
+					if (existingStaticTxnFetch != null) {
+						matrixId = existingStaticTxnFetch.getMatrixId();
+						staticMatrices.add(existingStaticTxnFetch);
+					}
+					CreateDynamicSettlementMatrix existingDynamic = dynamicMatrices.poll();
+					if (existingDynamic != null) {
+						matrixId = existingDynamic.getMatrixId();
+						dynamicMatrices.add(existingDynamic);
+					}
+					if (matrixId == null) throw new IllegalStateException("No matrix available to fetch from");
+
+					result.setRequestHeaders(this.createHeaderVal(actionType, "/transfers_by_matrix_id", testDataIndex));
+					contentToSend = matrixId;
+
+					result.sampleStart();
+					BatchTransferSearchResults txnLookupRsp = this.settleClient.getTransfersByMatrixId(matrixId);
+					result.sampleEnd();
+					responseJSON = txnLookupRsp.toJsonObject();
+				break;
 				case get_batches_by_model:
 					SettlementBatch getBatchReq = (SettlementBatch) testData.getRequest();
 					contentToSend = getBatchReq.toJsonObject().toString();
@@ -102,7 +121,6 @@ public class SamplerRunner {
 					responseJSON = batchSrRsp.toJsonObject();
 
 					synchronized (validBatches) {
-						validBatches.clear();
 						validBatches.addAll(batchSrRsp.getItems());
 					}
 				break;

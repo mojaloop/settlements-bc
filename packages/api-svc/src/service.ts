@@ -65,7 +65,8 @@ import {
 	MongoSettlementConfigRepo,
 	MongoSettlementMatrixRepo,
 	MongoSettlementTransferRepo,
-	TigerBeetleAccountsAndBalancesAdapter
+	TigerBeetleAccountsAndBalancesAdapter,
+	SettlementBatchTransferRepoTigerBeetle
 } from "@mojaloop/settlements-bc-infrastructure-lib";
 import {IAuthenticatedHttpRequester, IAuthorizationClient} from "@mojaloop/security-bc-public-types-lib";
 import {Server} from "net";
@@ -82,7 +83,6 @@ import {
 	AuthorizationClientMock,
 	ConfigurationClientMock,
 	TokenHelperMock,
-	SettlementBatchTransferRepoTigerBeetle,
 	SettlementBatchCacheRepoMock,
 	AccountsBalancesAdapterVoid
 } from "@mojaloop/settlements-bc-shared-mocks-lib";
@@ -337,7 +337,7 @@ export class Service {
 		this.batchRepo = batchRepo;
 
 		if ((!batchTransferRepo && bareboneStartup) && USE_TIGERBEETLE === 'true') {
-			batchTransferRepo = new SettlementBatchTransferRepoTigerBeetle(this.batchRepo);
+			batchTransferRepo = new SettlementBatchTransferRepoTigerBeetle(this.batchRepo, this.abAdapter);
 		} else if (!batchTransferRepo) {
 			batchTransferRepo = new MongoSettlementTransferRepo(
 				logger,

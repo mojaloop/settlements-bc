@@ -1,27 +1,27 @@
 {
   "settlement-transfer" : {
-    "count": 500,
+    "count": 200,
     "min-max-amount": [10, 1000],
     "currencies":["USD", "EUR"],
     "settlement-models":["DEFAULT"],
     "participants": ["12345", "67890", "10111", "21314", "15161", "71819"],
     "get-by-batch-id": 0,
-    "get-by-matrix-id": 100
+    "get-by-matrix-id": 0
   },
   "settlement-matrix" : {
-    "create-static": 10,
-    "add-batch-to-static": 20,
-    "remove-batch-from-static": 120,
-    "get-static": 130,
-    "create-dynamic-model": 30,
-    "get-dynamic-model": 140,
-    "close": 160,
+    "create-static": 30,
+    "add-batch-to-static": 61,
+    "remove-batch-from-static": 190,
+    "get-static": 60,
+    "create-dynamic-model": 50,
+    "get-dynamic-model": 60,
+    "close": 80,
     "dispute": 0,
-    "lock": 170,
+    "lock": 100,
     "unlock": 0,
-    "settle": 400
+    "settle": 150
   },
   "batch" : {
-    "get-by-model": 50
+    "get-by-model": 20
   }
 }

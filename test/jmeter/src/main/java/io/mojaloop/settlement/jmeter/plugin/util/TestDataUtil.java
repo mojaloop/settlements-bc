@@ -197,7 +197,7 @@ public class TestDataUtil {
 		TestPlanConfig.SettlementBatch batch = tpc.getSettlementBatch();
 
 		int getTxnBatchId = settleTransfer.getGetByBatchId();
-		int getTxnMatrixId = settleTransfer.getGetByBatchId();
+		int getTxnMatrixId = settleTransfer.getGetByMatrixId();
 		int getBatchesByModel = batch.getGetByModel();
 		int cntStatic = matrix.getCreateStatic();
 		int cntStaticAdd = matrix.getAddBatchToStatic();

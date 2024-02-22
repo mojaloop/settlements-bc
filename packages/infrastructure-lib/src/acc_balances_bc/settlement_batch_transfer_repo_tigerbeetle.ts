@@ -27,22 +27,34 @@
 
 "use strict";
 
-import {ISettlementBatchRepo, ISettlementBatchTransferRepo} from "@mojaloop/settlements-bc-domain-lib";
+import {
+	IAccountsBalancesAdapter,
+	ISettlementBatchRepo,
+	ISettlementBatchTransferRepo
+} from "@mojaloop/settlements-bc-domain-lib";
 import {
 	BatchTransferSearchResults,
 	ISettlementBatchAccount,
 	ISettlementBatchTransfer
 } from "@mojaloop/settlements-bc-public-types-lib";
+import {AccountsAndBalancesJournalEntry} from "@mojaloop/accounts-and-balances-bc-public-types-lib";
 
 export class SettlementBatchTransferRepoTigerBeetle implements ISettlementBatchTransferRepo {
-	private readonly batchRepo: ISettlementBatchRepo;
-	constructor(batchRepo: ISettlementBatchRepo) {
-		this.batchRepo = batchRepo;
+	private readonly _batchRepo: ISettlementBatchRepo;
+	private readonly _accBalAdapter: IAccountsBalancesAdapter;
+
+	constructor(
+		batchRepo: ISettlementBatchRepo,
+		accBalAdapter: IAccountsBalancesAdapter
+	) {
+		this._batchRepo = batchRepo;
+		this._accBalAdapter = accBalAdapter;
 	}
 
 	async init(): Promise<void> {
 		return Promise.resolve();
 	}
+
 	async destroy(): Promise<void>{
 		return Promise.resolve();
 	}
@@ -58,8 +70,9 @@ export class SettlementBatchTransferRepoTigerBeetle implements ISettlementBatchT
         pageSize: number = 100,
 	): Promise<BatchTransferSearchResults>{
 		const accountsForTxnLookup : ISettlementBatchAccount[] = [];
+		//TODO need a map for the participants/accounts and batches
 		for (const id of batchIds) {
-			const batch = await this.batchRepo.getBatch(id);
+			const batch = await this._batchRepo.getBatch(id);
 			if (!batch || batch.accounts) continue;
 
 			const accounts: ISettlementBatchAccount[] = batch.accounts;
@@ -78,7 +91,34 @@ export class SettlementBatchTransferRepoTigerBeetle implements ISettlementBatchT
 
 		if (accountsForTxnLookup.length === 0) return Promise.resolve(searchResultsEmpty);
 
-		// TODO need to fetch the accounts and then the transfers for the accounts.
+		for (const accForLookup of accountsForTxnLookup) {
+			const abTxns: AccountsAndBalancesJournalEntry[] = await this._accBalAdapter.getJournalEntriesByAccountId(accForLookup.participantId);
+			const returnItems: ISettlementBatchTransfer[] = [];
+			if (abTxns.length) {
+				for (const abTxn of abTxns) {
+					returnItems.push({
+						amount: abTxn.amount,
+						batchId: "",// TODO
+						batchName: "",// TODO
+						currencyCode: abTxn.currencyCode,
+						journalEntryId: abTxn.id!,
+						matrixId: "",//TODO
+						payeeFspId: abTxn.creditedAccountId,
+						payerFspId: abTxn.debitedAccountId,
+						transferId: abTxn.ownerId!,
+						transferTimestamp: abTxn.timestamp!
+					});
+				}
+			}
+
+			const searchResults: BatchTransferSearchResults = {
+				pageIndex: pageIndex,
+				pageSize: pageSize,
+				totalPages: 0,
+				items: returnItems
+			};
+			return Promise.resolve(searchResults);
+		}
 
 		return Promise.resolve(searchResultsEmpty);
 	}

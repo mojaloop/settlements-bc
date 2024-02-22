@@ -42,7 +42,7 @@ import dns from "dns";
 import {IAccountsBalancesAdapter} from "@mojaloop/settlements-bc-domain-lib";
 import {Currency, IConfigurationClient} from "@mojaloop/platform-configuration-bc-public-types-lib";
 
-const MAX_ENTRIES_PER_BATCH = 1;//8000
+const MAX_ENTRIES_PER_BATCH = 8000;//8000
 
 export class TigerBeetleAccountsAndBalancesAdapter implements IAccountsBalancesAdapter {
     private readonly _logger: ILogger;

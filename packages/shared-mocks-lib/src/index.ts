@@ -43,7 +43,6 @@ export * from "./repo/settlement_batch_repo_mock";
 export * from "./repo/settlement_batch_transfer_repo_mock";
 
 export * from "./repo/settlement_matrix_request_repo_mock";
-export * from "./repo/settlement_batch_transfer_repo_tigerbeetle";
 export * from "./repo/settlement_batch_transfer_repo_void";
 
 /** Adapter **/

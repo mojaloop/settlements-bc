@@ -30,7 +30,6 @@
 import {
 	ISettlementConfigRepo,
 	ISettlementBatchRepo,
-	IParticipantAccountNotifier,
 	ISettlementBatchTransferRepo,
 	ISettlementMatrixRequestRepo
 } from "@mojaloop/settlements-bc-domain-lib";
@@ -46,7 +45,6 @@ import {
 	SettlementConfigRepoMock,
 	SettlementBatchRepoMock,
 	//SettlementBatchAccountRepoMock,
-	ParticipantAccountNotifierMock,
 	//SettlementTransferRepoMock,
 	SettlementMatrixRequestRepoMock, TokenHelperMock, SettlementBatchTransferRepoMock
 } from "@mojaloop/settlements-bc-shared-mocks-lib";
