@@ -34,8 +34,11 @@ import {
 } from "@mojaloop/accounts-and-balances-bc-public-types-lib";
 
 import * as TB from "tigerbeetle-node";
-import {CreateAccountsError, GetAccountTransfers} from "tigerbeetle-node/src/bindings";
-import {CreateTransfersError} from "tigerbeetle-node";
+import {
+    CreateTransfersError,
+    CreateAccountsError,
+    AccountFilter
+} from "tigerbeetle-node";
 
 import net from "net";
 import dns from "dns";
@@ -199,7 +202,7 @@ export class TigerBeetleAccountsAndBalancesAdapter implements IAccountsBalancesA
         // Invoke Client:
         let transfers: TB.Transfer[] = [];
         try {
-            const getAcc : GetAccountTransfers = {
+            const getAcc : AccountFilter = {
                 account_id: accIdTB,
                 timestamp_min: 0n,
                 timestamp_max: 0n,
