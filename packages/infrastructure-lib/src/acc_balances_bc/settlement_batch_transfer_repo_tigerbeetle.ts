@@ -70,16 +70,15 @@ export class SettlementBatchTransferRepoTigerBeetle implements ISettlementBatchT
         pageSize: number = 100,
 	): Promise<BatchTransferSearchResults>{
 		const accountsForTxnLookup : ISettlementBatchAccount[] = [];
-		//TODO need a map for the participants/accounts and batches
 		for (const id of batchIds) {
 			const batch = await this._batchRepo.getBatch(id);
-			if (!batch || batch.accounts) continue;
+			if (!batch || !batch.accounts) continue;
 
 			const accounts: ISettlementBatchAccount[] = batch.accounts;
 			for (const account of accounts) {
 				const accWithIdExisting = accountsForTxnLookup.filter(
 					itm => account.participantId === itm.participantId);
-				if (!accWithIdExisting) accountsForTxnLookup.push(account);
+				if (!accWithIdExisting.length) accountsForTxnLookup.push(account);
 			}
 		}
 		const searchResultsEmpty: BatchTransferSearchResults = {
@@ -92,7 +91,7 @@ export class SettlementBatchTransferRepoTigerBeetle implements ISettlementBatchT
 		if (accountsForTxnLookup.length === 0) return Promise.resolve(searchResultsEmpty);
 
 		for (const accForLookup of accountsForTxnLookup) {
-			const abTxns: AccountsAndBalancesJournalEntry[] = await this._accBalAdapter.getJournalEntriesByAccountId(accForLookup.participantId);
+			const abTxns: AccountsAndBalancesJournalEntry[] = await this._accBalAdapter.getJournalEntriesByAccountId(accForLookup.accountExtId);
 			const returnItems: ISettlementBatchTransfer[] = [];
 			if (abTxns.length) {
 				for (const abTxn of abTxns) {

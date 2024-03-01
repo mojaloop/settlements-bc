@@ -118,6 +118,12 @@ public class SamplerRunner {
 							TIME_BACK_MIN
 					);
 					result.sampleEnd();
+
+					if (batchSrRsp.getItems().isEmpty()) {
+						throw new IllegalStateException(String.format("No batches available for model '%s'",
+								getBatchReq.getSettlementModel()));
+					}
+
 					responseJSON = batchSrRsp.toJsonObject();
 
 					synchronized (validBatches) {
@@ -189,12 +195,14 @@ public class SamplerRunner {
 					CreateStaticSettlementMatrix existingMatrixStat = staticMatrices.poll();
 					if (existingMatrixStat == null) throw new IllegalStateException("No existing static matrix to add batch to");
 
+					//Thread.sleep(400);
+
 					result.setRequestHeaders(this.createHeaderVal(actionType, "/add_batch_to_static_matrix", testDataIndex));
 
 					AddRemoveBatchFromStaticMatrix addBatch = new AddRemoveBatchFromStaticMatrix(new JSONObject());
 					addBatch.setMatrixId(existingMatrixStat.getMatrixId());
 					List<String> batchToAdd = new ArrayList<>();
-					batchToAdd.add(existingBatch.getBatchUUID());
+					batchToAdd.add(existingBatch.getId());
 					addBatch.setBatchIds(batchToAdd);
 
 					contentToSend = addBatch.toJsonObject().toString();

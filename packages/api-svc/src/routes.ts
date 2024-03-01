@@ -565,6 +565,7 @@ export class ExpressRoutes {
 		try {
 			const matrixId = req.params.id as string;
 			const addReqPayload = req.body as AddBatchesToMatrixCmdPayload;
+			addReqPayload.matrixId = matrixId;
 
 			const cmd = new AddBatchesToMatrixCmd(addReqPayload);
 			await this._messageProducer.send(cmd);
@@ -580,6 +581,7 @@ export class ExpressRoutes {
 		try {
 			const matrixId = req.params.id as string;
 			const removeReqPayload = req.body as RemoveBatchesFromMatrixCmdPayload;
+			removeReqPayload.matrixId = matrixId;
 
 			const cmd = new RemoveBatchesFromMatrixCmd(removeReqPayload);
 			await this._messageProducer.send(cmd);

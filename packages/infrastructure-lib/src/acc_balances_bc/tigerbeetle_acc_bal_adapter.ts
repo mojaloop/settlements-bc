@@ -37,7 +37,8 @@ import * as TB from "tigerbeetle-node";
 import {
     CreateTransfersError,
     CreateAccountsError,
-    AccountFilter
+    AccountFilter,
+    AccountFilterFlags
 } from "tigerbeetle-node";
 
 import net from "net";
@@ -206,8 +207,9 @@ export class TigerBeetleAccountsAndBalancesAdapter implements IAccountsBalancesA
                 account_id: accIdTB,
                 timestamp_min: 0n,
                 timestamp_max: 0n,
-                limit: 0,
-                flags: 0
+                limit: 100_000,//TODO need to make a config.
+                flags: AccountFilterFlags.credits | AccountFilterFlags.debits
+                //flags: 0//(1 << 0) | (1 << 1) // See //AccountFilterFlags.credits | AccountFilterFlags.debits
             }
             transfers = await this._client.getAccountTransfers(getAcc);
         } catch (error: unknown) {
