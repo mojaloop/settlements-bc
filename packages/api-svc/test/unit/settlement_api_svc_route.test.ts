@@ -500,7 +500,7 @@ describe("Settlement BC api-svc route test", () => {
         ];
 
         //Prepare mocked Settlement Matrix batch
-        const settlementSettlementMatrixBatches: ISettlementMatrixBatch[] = [{
+        mockedSettlementMatrixBatches = [{
             id: "DEFAULT.EUR.2023.06.19.08.30.001",
             name: "DEFAULT.EUR.2023.06.19.08.30",
             currencyCode: 'EUR',
@@ -521,7 +521,7 @@ describe("Settlement BC api-svc route test", () => {
             currencyCodes: ["EUR"],
             settlementModel: "DEFAULT",
             batchStatuses: [],
-            batches: settlementSettlementMatrixBatches,
+            batches: mockedSettlementMatrixBatches,
             balancesByParticipant: mockedSettlementMatrixBalancesPart,
             balancesByStateAndCurrency: mockedSettlementMatrixBalancesStateAndCurrency,
             balancesByCurrency: mockedSettlementMatrixBalancesCurrency,
@@ -550,7 +550,7 @@ describe("Settlement BC api-svc route test", () => {
         //Arrange
 
         //Prepare mocked Settlement Matrix batches
-        const settlementSettlementMatrixBatches: ISettlementMatrixBatch[] = [
+        mockedSettlementMatrixBatches = [
             {
                 id: "DEFAULT.EUR.2023.06.19.08.30.001",
                 name: "DEFAULT.EUR.2023.06.19.08.30",
@@ -584,7 +584,7 @@ describe("Settlement BC api-svc route test", () => {
             currencyCodes: ["EUR"],
             settlementModel: "DEFAULT",
             batchStatuses: [],
-            batches: settlementSettlementMatrixBatches,
+            batches: mockedSettlementMatrixBatches,
             balancesByParticipant: mockedSettlementMatrixBalancesPart,
             balancesByStateAndCurrency: mockedSettlementMatrixBalancesStateAndCurrency,
             balancesByCurrency: mockedSettlementMatrixBalancesCurrency,
@@ -596,8 +596,8 @@ describe("Settlement BC api-svc route test", () => {
         const payload: AddBatchesToMatrixCmdPayload = {
             matrixId: newMatrix.id,
             batchIds: [
-                settlementSettlementMatrixBatches[0].id,
-                settlementSettlementMatrixBatches[1].id
+                mockedSettlementMatrixBatches[0].id,
+                mockedSettlementMatrixBatches[1].id
             ]
         }
 
@@ -622,7 +622,7 @@ describe("Settlement BC api-svc route test", () => {
 
 
         //Prepare mocked Settlement Matrix batches
-        const settlementSettlementMatrixBatches: ISettlementMatrixBatch[] = [
+        mockedSettlementMatrixBatches = [
             {
                 id: "DEFAULT.EUR.2023.06.21.08.30.001",
                 name: "DEFAULT.EUR.2023.06.21.08.30",
@@ -656,7 +656,7 @@ describe("Settlement BC api-svc route test", () => {
             currencyCodes: ["EUR"],
             settlementModel: "DEFAULT",
             batchStatuses: [],
-            batches: settlementSettlementMatrixBatches,
+            batches: mockedSettlementMatrixBatches,
             balancesByParticipant: [],
             balancesByStateAndCurrency: [],
             balancesByCurrency: [],
@@ -668,8 +668,8 @@ describe("Settlement BC api-svc route test", () => {
         const payload: AddBatchesToMatrixCmdPayload = {
             matrixId: newMatrix.id,
             batchIds: [
-                settlementSettlementMatrixBatches[0].id,
-                settlementSettlementMatrixBatches[1].id
+                mockedSettlementMatrixBatches[0].id,
+                mockedSettlementMatrixBatches[1].id
             ]
         }
         jest.spyOn(tokenHelper, "getCallSecurityContextFromAccessToken")
@@ -690,7 +690,7 @@ describe("Settlement BC api-svc route test", () => {
         //Arrange
 
         //Prepare mocked Settlement Matrix batches
-        const settlementSettlementMatrixBatches: ISettlementMatrixBatch[] = [
+        mockedSettlementMatrixBatches = [
             {
                 id: "DEFAULT.EUR.2023.06.21.08.30.001",
                 name: "DEFAULT.EUR.2023.06.21.08.30",
@@ -722,7 +722,7 @@ describe("Settlement BC api-svc route test", () => {
             currencyCodes: ["EUR"],
             settlementModel: "DEFAULT",
             batchStatuses: [],
-            batches: settlementSettlementMatrixBatches,
+            batches: mockedSettlementMatrixBatches,
             balancesByParticipant: [],
             balancesByStateAndCurrency: [],
             balancesByCurrency: [],
@@ -736,8 +736,8 @@ describe("Settlement BC api-svc route test", () => {
         const payload: AddBatchesToMatrixCmdPayload = {
             matrixId: "TestMatrix",
             batchIds: [
-                settlementSettlementMatrixBatches[0].id,
-                settlementSettlementMatrixBatches[1].id
+                mockedSettlementMatrixBatches[0].id,
+                mockedSettlementMatrixBatches[1].id
             ]
         }
         jest.spyOn(tokenHelper, "getCallSecurityContextFromAccessToken")
@@ -759,7 +759,7 @@ describe("Settlement BC api-svc route test", () => {
         //Arrange
 
         //Prepare mocked Settlement Matrix batches
-        const settlementSettlementMatrixBatches: ISettlementMatrixBatch[] = [
+        mockedSettlementMatrixBatches = [
             {
                 id: "DEFAULT.EUR.2023.06.21.08.30.001",
                 name: "DEFAULT.EUR.2023.06.21.08.30",
@@ -791,7 +791,7 @@ describe("Settlement BC api-svc route test", () => {
             currencyCodes: ["EUR"],
             settlementModel: "DEFAULT",
             batchStatuses: [],
-            batches: settlementSettlementMatrixBatches,
+            batches: mockedSettlementMatrixBatches,
             balancesByParticipant: [],
             balancesByStateAndCurrency: [],
             balancesByCurrency: [],
@@ -805,8 +805,8 @@ describe("Settlement BC api-svc route test", () => {
         const payload: AddBatchesToMatrixCmdPayload = {
             matrixId: "TestMatrix1",
             batchIds: [
-                settlementSettlementMatrixBatches[0].id,
-                settlementSettlementMatrixBatches[1].id
+                mockedSettlementMatrixBatches[0].id,
+                mockedSettlementMatrixBatches[1].id
             ]
         }
         jest.spyOn(tokenHelper, "getCallSecurityContextFromAccessToken")
@@ -827,7 +827,7 @@ describe("Settlement BC api-svc route test", () => {
         //Arrange
 
         //Prepare mocked Settlement Matrix batches
-        const settlementSettlementMatrixBatches: ISettlementMatrixBatch[] = [
+        mockedSettlementMatrixBatches = [
             {
                 id: "DEFAULT.EUR.2023.06.21.08.30.001",
                 name: "DEFAULT.EUR.2023.06.21.08.30",
@@ -859,7 +859,7 @@ describe("Settlement BC api-svc route test", () => {
             currencyCodes: ["EUR"],
             settlementModel: "DEFAULT",
             batchStatuses: [],
-            batches: settlementSettlementMatrixBatches,
+            batches: mockedSettlementMatrixBatches,
             balancesByParticipant: [],
             balancesByStateAndCurrency: [],
             balancesByCurrency: [],
@@ -873,8 +873,8 @@ describe("Settlement BC api-svc route test", () => {
         const payload: AddBatchesToMatrixCmdPayload = {
             matrixId: "TestMatrix2",
             batchIds: [
-                settlementSettlementMatrixBatches[0].id,
-                settlementSettlementMatrixBatches[1].id
+                mockedSettlementMatrixBatches[0].id,
+                mockedSettlementMatrixBatches[1].id
             ]
         }
         jest.spyOn(tokenHelper, "getCallSecurityContextFromAccessToken")
@@ -895,7 +895,7 @@ describe("Settlement BC api-svc route test", () => {
         //Arrange
 
         //Prepare mocked Settlement Matrix batches
-        const settlementSettlementMatrixBatches: ISettlementMatrixBatch[] = [
+        mockedSettlementMatrixBatches = [
             {
                 id: "DEFAULT.EUR.2023.06.21.08.30.001",
                 name: "DEFAULT.EUR.2023.06.21.08.30",
@@ -927,7 +927,7 @@ describe("Settlement BC api-svc route test", () => {
             currencyCodes: ["EUR"],
             settlementModel: "DEFAULT",
             batchStatuses: [],
-            batches: settlementSettlementMatrixBatches,
+            batches: mockedSettlementMatrixBatches,
             balancesByParticipant: [],
             balancesByStateAndCurrency: [],
             balancesByCurrency: [],
@@ -941,8 +941,8 @@ describe("Settlement BC api-svc route test", () => {
         const payload: AddBatchesToMatrixCmdPayload = {
             matrixId: "TestMatrix3",
             batchIds: [
-                settlementSettlementMatrixBatches[0].id,
-                settlementSettlementMatrixBatches[1].id
+                mockedSettlementMatrixBatches[0].id,
+                mockedSettlementMatrixBatches[1].id
             ]
         }
         jest.spyOn(tokenHelper, "getCallSecurityContextFromAccessToken")
@@ -963,7 +963,7 @@ describe("Settlement BC api-svc route test", () => {
         //Arrange
 
         //Prepare mocked Settlement Matrix batches
-        const settlementSettlementMatrixBatches: ISettlementMatrixBatch[] = [
+        mockedSettlementMatrixBatches = [
             {
                 id: "DEFAULT.EUR.2023.06.21.08.30.001",
                 name: "DEFAULT.EUR.2023.06.21.08.30",
@@ -995,7 +995,7 @@ describe("Settlement BC api-svc route test", () => {
             currencyCodes: ["EUR"],
             settlementModel: "DEFAULT",
             batchStatuses: [],
-            batches: settlementSettlementMatrixBatches,
+            batches: mockedSettlementMatrixBatches,
             balancesByParticipant: [],
             balancesByStateAndCurrency: [],
             balancesByCurrency: [],
