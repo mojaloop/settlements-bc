@@ -27,38 +27,35 @@
 
 "use strict";
 
-import {IAuthorizationClient} from "@mojaloop/security-bc-public-types-lib";
-import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
+import {Service} from "../service";
+import {
+ AuditClientMock,
+ AuthorizationClientMock,
+ ConfigurationClientMock,
+ TokenHelperMock
+} from "@mojaloop/settlements-bc-shared-mocks-lib";
+import process from "process";
 
-export class AuthorizationClientMock implements IAuthorizationClient {
-	// Properties received through the constructor.
-	private readonly hasPrivilege: boolean;
+const tokenHelper = new TokenHelperMock();
+const authorizationClient = new AuthorizationClientMock(true);
+const configClient = new ConfigurationClientMock();
+const auditClient = new AuditClientMock();
 
-	constructor(hasPrivilege : boolean) {
-		this.hasPrivilege = hasPrivilege;
-	}
+// JMeter TigerBeetle environment properties:
+process.env.USE_TIGERBEETLE = "true";
+process.env.MONGO_URL= "mongodb://root:mongoDbPas42@localhost:27017/";
+process.env.NODE_ENV= "dev-jmeter";
 
-	async init(): Promise<void> {
-		return;
-	}
-
-	async destroy(): Promise<void> {
-		return;
-	}
-
-	roleHasPrivilege(roleId: string, privilegeId: string): boolean {
-		return this.hasPrivilege;
-	}
-
-	rolesHavePrivilege(roleIds: string[], privilegeId: string): boolean {
-		return this.hasPrivilege;
-	}
-
-	addPrivilege(privId: string, labelName: string, description: string): void {
-		// mock
-	}
-
-	addPrivilegesArray(privsArray: { privId: string; labelName: string; description: string }[]): void {
-		// mock
-	}
-}
+Service.start(
+    undefined,
+    tokenHelper,
+    authorizationClient,
+    auditClient,
+    configClient,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+).then(() => {
+  console.log("JMeter-TigerBeetle 📈🪲 Service start complete!");
+});

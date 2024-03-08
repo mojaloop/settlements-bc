@@ -31,7 +31,7 @@
  ******/
 
 "use strict";
-import {IAuditClient} from "@mojaloop/auditing-bc-public-types-lib";
+
 import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import {IMessage,IMessageConsumer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import {SettlementsBCTopics} from "@mojaloop/platform-shared-lib-public-messages-lib";
@@ -68,26 +68,20 @@ import {ILoginHelper, UnauthorizedError} from "@mojaloop/security-bc-public-type
 
 export class SettlementsCommandHandler {
 	private _logger: ILogger;
-	private _auditClient: IAuditClient;
 	private _messageConsumer: IMessageConsumer;
 	private _settlementsAgg: SettlementsAggregate;
 	private _loginHelper: ILoginHelper;
-	private _barebone: boolean;
 
     constructor(
 		logger: ILogger,
-		auditClient: IAuditClient,
 		messageConsumer: IMessageConsumer,
 		agg: SettlementsAggregate,
-		loginHelper: ILoginHelper,
-		barebone: boolean
+		loginHelper: ILoginHelper
 	) {
 		this._logger = logger.createChild(this.constructor.name);
-		this._auditClient = auditClient;
 		this._messageConsumer = messageConsumer;
 		this._settlementsAgg = agg;
 		this._loginHelper = loginHelper;
-		this._barebone = barebone;
 	}
 
 	async start():Promise<void>{
@@ -102,26 +96,20 @@ export class SettlementsCommandHandler {
 		return await new Promise<void>(async (resolve) => {
 			this._logger.debug(`Got message in SettlementsCommandHandler with name: ${message.msgName}`);
 			try {
-				const sectCtx = await this._getServiceSecContext();
-
 				switch (message.msgName) {
 					case ProcessTransferCmd.name:
-						await this._settlementsAgg.processTransferCmd(sectCtx, message as ProcessTransferCmd);
+						await this._settlementsAgg.processTransferCmd(message as ProcessTransferCmd);
 						break;
 					case CreateSettlementModelCmd.name:
 						// eslint-disable-next-line no-case-declarations
 						const createSettlementConfig = message.payload as CreateSettlementModelCmdPayload;
 						
-						await this._settlementsAgg.createSettlementConfig(
-							sectCtx,
-							createSettlementConfig
-						);
+						await this._settlementsAgg.createSettlementConfig(createSettlementConfig);
 						break;
 					case CreateDynamicMatrixCmd.name:
 						// eslint-disable-next-line no-case-declarations
 						const createPayload = message.payload as CreateDynamicMatrixCmdPayload;
 						await this._settlementsAgg.createDynamicSettlementMatrix(
-							sectCtx,
 							createPayload.matrixId,
 							createPayload.settlementModel,
 							createPayload.currencyCodes,
@@ -134,7 +122,6 @@ export class SettlementsCommandHandler {
 						// eslint-disable-next-line no-case-declarations
 						const staticMatrix = message.payload as CreateStaticMatrixCmdPayload;
 						await this._settlementsAgg.createStaticSettlementMatrix(
-							sectCtx,
 							staticMatrix.matrixId,
 							staticMatrix.batchIds
 						);
@@ -142,48 +129,32 @@ export class SettlementsCommandHandler {
 					case RecalculateMatrixCmd.name:
 						// eslint-disable-next-line no-case-declarations
 						const recalcPayload = message.payload as RecalculateMatrixCmdPayload;
-						await this._settlementsAgg.recalculateSettlementMatrix(
-							sectCtx,
-							recalcPayload.matrixId
-						);
+						await this._settlementsAgg.recalculateSettlementMatrix(recalcPayload.matrixId);
 						break;
 					case CloseMatrixCmd.name:
 						// eslint-disable-next-line no-case-declarations
 						const closePayload = message.payload as CloseMatrixCmdPayload;
-						await this._settlementsAgg.closeSettlementMatrix(
-							sectCtx,
-							closePayload.matrixId
-						);
+						await this._settlementsAgg.closeSettlementMatrix(closePayload.matrixId);
 						break;
 					case SettleMatrixCmd.name:
 						// eslint-disable-next-line no-case-declarations
 						const settlePayload = message.payload as SettleMatrixCmdPayload;
-						await this._settlementsAgg.settleSettlementMatrix(
-							sectCtx,
-							settlePayload.matrixId
-						);
+						await this._settlementsAgg.settleSettlementMatrix(settlePayload.matrixId);
 						break;
 					case DisputeMatrixCmd.name:
 						// eslint-disable-next-line no-case-declarations
 						const disputePayload = message.payload as DisputeMatrixCmdPayload;
-						await this._settlementsAgg.disputeSettlementMatrix(
-							sectCtx,
-							disputePayload.matrixId
-						);
+						await this._settlementsAgg.disputeSettlementMatrix(disputePayload.matrixId);
 						break;
 					case LockMatrixCmd.name:
 						// eslint-disable-next-line no-case-declarations
 						const lockAwaitPayload = message.payload as LockMatrixCmdPayload;
-						await this._settlementsAgg.lockSettlementMatrixForAwaitingSettlement(
-							sectCtx,
-							lockAwaitPayload.matrixId
-						);
+						await this._settlementsAgg.lockSettlementMatrixForAwaitingSettlement(lockAwaitPayload.matrixId);
 						break;
 					case UnlockMatrixCmd.name:
 						// eslint-disable-next-line no-case-declarations
 						const unlockAwaitPayload = message.payload as UnlockMatrixCmdPayload;
 						await this._settlementsAgg.unLockSettlementMatrixFromAwaitingSettlement(
-							sectCtx,
 							unlockAwaitPayload.matrixId
 						);
 						break;
@@ -191,7 +162,6 @@ export class SettlementsCommandHandler {
 						// eslint-disable-next-line no-case-declarations
 						const addPayload = message.payload as AddBatchesToMatrixCmdPayload;
 						await this._settlementsAgg.addBatchesToStaticSettlementMatrix(
-							sectCtx,
 							addPayload.matrixId,
 							addPayload.batchIds
 						);
@@ -200,7 +170,6 @@ export class SettlementsCommandHandler {
 						// eslint-disable-next-line no-case-declarations
 						const removePayload = message.payload as RemoveBatchesFromMatrixCmdPayload;
 						await this._settlementsAgg.removeBatchesFromStaticSettlementMatrix(
-							sectCtx,
 							removePayload.matrixId,
 							removePayload.batchIds
 						);
@@ -226,48 +195,7 @@ export class SettlementsCommandHandler {
 		});
 	}
 
-	private async _getServiceSecContext():Promise<CallSecurityContext>{
-		if (this._barebone) {
-			const secCts: CallSecurityContext = {
-				clientId: 'barebone',
-				accessToken: '<none>',
-				platformRoleIds: [
-					Privileges.CREATE_SETTLEMENT_TRANSFER,
-					Privileges.CREATE_DYNAMIC_SETTLEMENT_MATRIX,
-					Privileges.CREATE_STATIC_SETTLEMENT_MATRIX,
-					Privileges.CREATE_SETTLEMENT_CONFIG,
-					Privileges.SETTLEMENTS_CLOSE_MATRIX,
-					Privileges.SETTLEMENTS_SETTLE_MATRIX,
-					Privileges.SETTLEMENTS_DISPUTE_MATRIX,
-					Privileges.SETTLEMENTS_LOCK_MATRIX,
-					Privileges.SETTLEMENTS_UNLOCK_MATRIX,
-					Privileges.GET_SETTLEMENT_MATRIX,
-					Privileges.RETRIEVE_SETTLEMENT_BATCH
-				],
-				username: null
-			};
-			return secCts;
-		}
-
-		// this will only fetch a new token when the current one is expired or null
-		const token = await this._loginHelper.getToken();
-		if(!token){
-			throw new UnauthorizedError("Could not get a token for SettlementsCommandHandler");
-		}
-
-		// TODO producing a CallSecurityContext from a token should be from the security client lib, not here
-		const secCts: CallSecurityContext = {
-			clientId: token.payload.azp,
-			accessToken: token.accessToken,
-			platformRoleIds:token.payload.platformRoles,
-			username: null
-		};
-		return secCts;
-	}
-
-
 	async stop():Promise<void>{
 		await this._messageConsumer.stop();
 	}
-
 }

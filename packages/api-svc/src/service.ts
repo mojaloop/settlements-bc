@@ -45,12 +45,11 @@ import {
 	TokenHelper
 } from "@mojaloop/security-bc-client-lib";
 import {
-	IAccountsBalancesAdapter, ISettlementBatchCacheRepo,
+	IAccountsBalancesAdapter,
 	ISettlementBatchRepo,
-	ISettlementBatchTransferRepo, ISettlementConfigCacheRepo,
+	ISettlementBatchTransferRepo,
 	ISettlementConfigRepo,
-	ISettlementMatrixRequestRepo,
-	SettlementsAggregate
+	ISettlementMatrixRequestRepo
 } from "@mojaloop/settlements-bc-domain-lib";
 import process from "process";
 import {existsSync} from "fs";
@@ -75,21 +74,9 @@ import {ExpressRoutes} from "./routes";
 import {ITokenHelper} from "@mojaloop/security-bc-public-types-lib/";
 
 import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
-import {IMetrics} from "@mojaloop/platform-shared-lib-observability-types-lib";
-import {PrometheusMetrics} from "@mojaloop/platform-shared-lib-observability-client-lib";
 import crypto from "crypto";
 import {IConfigurationClient} from "@mojaloop/platform-configuration-bc-public-types-lib";
-import {
-	AuthorizationClientMock,
-	ConfigurationClientMock,
-	TokenHelperMock,
-	SettlementBatchCacheRepoMock,
-	AccountsBalancesAdapterVoid
-} from "@mojaloop/settlements-bc-shared-mocks-lib";
 import {ConfigurationClient, DefaultConfigProvider} from "@mojaloop/platform-configuration-bc-client-lib";
-import {
-	SettlementConfigCacheRepoMock
-} from "@mojaloop/settlements-bc-shared-mocks-lib/dist/repo/cache/settlement_config_cache_repo_mock";
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const packageJSON = require("../package.json");
@@ -142,19 +129,10 @@ const kafkaProducerOptions: MLKafkaJsonProducerOptions = {
 
 let globalLogger: ILogger;
 
-// tiger_beetle:
+// TigerBeetle:
 const USE_TIGERBEETLE = process.env["USE_TIGERBEETLE"] || false;
 const TIGERBEETLE_CLUSTER_ID = process.env["TIGERBEETLE_CLUSTER_ID"] || 0;
 const TIGERBEETLE_CLUSTER_REPLICA_ADDRESSES = process.env["TIGERBEETLE_CLUSTER_REPLICA_ADDRESSES"] || "localhost:9001";
-
-const USE_MONGO_ADAPTER = process.env["USE_MONGO_ADAPTER"] || false;
-
-// environment:
-/*
-	- dev		: default properties
-	- jmeter	: barebone_jmeter_perf
- */
-const ENV_NAME = process.env["ENV_NAME"] || "dev";
 
 export class Service {
 	static logger: ILogger;
@@ -168,13 +146,9 @@ export class Service {
 	static batchRepo: ISettlementBatchRepo;
 	static batchTransferRepo: ISettlementBatchTransferRepo;
 	static matrixRepo: ISettlementMatrixRequestRepo;
-	static metrics: IMetrics;
 	static messageProducer: IMessageProducer;
 	static startupTimer: NodeJS.Timeout;
 	static abAdapter: IAccountsBalancesAdapter;
-	static configCache: ISettlementConfigCacheRepo;
-	static batchCache: ISettlementBatchCacheRepo;
-	static aggregate: SettlementsAggregate;
 
 	static async start(
 		logger?:ILogger,
@@ -187,18 +161,14 @@ export class Service {
 		batchTransferRepo?: ISettlementBatchTransferRepo,
 		matrixRepo?: ISettlementMatrixRequestRepo,
 		messageProducer?: IMessageProducer,
-		metrics?: IMetrics,
-		accountsAndBalancesAdapter?: IAccountsBalancesAdapter,
-		configCache?: ISettlementConfigCacheRepo,
-		batchCache?: ISettlementBatchCacheRepo
-	):Promise<void>{
+		accountsAndBalancesAdapter?: IAccountsBalancesAdapter
+	) : Promise<void> {
 		console.log(`Service starting with PID: ${process.pid}`);
 
 		this.startupTimer = setTimeout(()=>{
 			throw new Error("Service start timed-out");
 		}, SERVICE_START_TIMEOUT_MS);
 
-		const bareboneStartup = this.isEnvBarebone();
 		if (!logger) {
 			logger = new KafkaLogger(
 				BC_NAME,
@@ -212,9 +182,7 @@ export class Service {
 		}
 		globalLogger = this.logger = logger;
 
-		if (!tokenHelper && bareboneStartup) {
-			tokenHelper = new TokenHelperMock();
-		} else if (!tokenHelper) {
+		if (!tokenHelper) {
 			tokenHelper = new TokenHelper(
 				AUTH_N_SVC_JWKS_URL, logger, AUTH_N_TOKEN_ISSUER_NAME,AUTH_N_TOKEN_AUDIENCE,
 				new MLKafkaJsonConsumer({kafkaBrokerList: KAFKA_URL, autoOffsetReset: "earliest", kafkaGroupId: INSTANCE_ID}, logger) // for jwt list - no groupId
@@ -225,9 +193,7 @@ export class Service {
 
 		// authorization client
 		let authRequester: IAuthenticatedHttpRequester|null = null;
-		if (!authorizationClient && bareboneStartup) {
-			authorizationClient = new AuthorizationClientMock(logger, true);
-		} else if (!authorizationClient) {
+		if (!authorizationClient) {
 			// create the instance of IAuthenticatedHttpRequester
 			authRequester = new AuthenticatedHttpRequester(logger, AUTH_N_SVC_TOKEN_URL);
 			authRequester.setAppCredentials(SVC_CLIENT_ID, SVC_CLIENT_SECRET);
@@ -246,7 +212,7 @@ export class Service {
 				messageConsumer
 			);
 			// MUST only add privileges once, the cmd handler is already doing it
-			//addPrivileges(authorizationClient as AuthorizationClient);
+			// addPrivileges(authorizationClient as AuthorizationClient);
 			await (authorizationClient as AuthorizationClient).bootstrap(true);
 			await (authorizationClient as AuthorizationClient).fetch();
 			// init message consumer to automatically update on role changed events
@@ -283,9 +249,7 @@ export class Service {
 		}
 		this.auditClient = auditClient;
 
-		if (!configClient && bareboneStartup) {
-			configClient = new ConfigurationClientMock(this.logger);
-		} else if (!configClient) {
+		if (!configClient) {
 			const defaultConfigProvider: DefaultConfigProvider = new DefaultConfigProvider(
 				logger,
 				authRequester!,
@@ -296,15 +260,13 @@ export class Service {
 		}
 		this.configClient = configClient;
 
-		if ((!accountsAndBalancesAdapter && bareboneStartup) && USE_TIGERBEETLE === 'true') {
+		if (!accountsAndBalancesAdapter && USE_TIGERBEETLE === 'true') {
 			accountsAndBalancesAdapter = new TigerBeetleAccountsAndBalancesAdapter(
 				Number(TIGERBEETLE_CLUSTER_ID),
 				[TIGERBEETLE_CLUSTER_REPLICA_ADDRESSES],
 				this.logger,
 				this.configClient
 			);
-		} else if (!accountsAndBalancesAdapter && USE_MONGO_ADAPTER === 'true') {
-			accountsAndBalancesAdapter = new AccountsBalancesAdapterVoid()
 		} else if (!accountsAndBalancesAdapter) {
 			const loginHelper = new LoginHelper(AUTH_N_SVC_TOKEN_URL, logger);
 			loginHelper.setAppCredentials(SVC_CLIENT_ID, SVC_CLIENT_SECRET);
@@ -336,7 +298,7 @@ export class Service {
 		}
 		this.batchRepo = batchRepo;
 
-		if ((!batchTransferRepo && bareboneStartup) && USE_TIGERBEETLE === 'true') {
+		if (!batchTransferRepo && USE_TIGERBEETLE === 'true') {
 			batchTransferRepo = new SettlementBatchTransferRepoTigerBeetle(this.batchRepo, this.abAdapter);
 		} else if (!batchTransferRepo) {
 			batchTransferRepo = new MongoSettlementTransferRepo(
@@ -368,47 +330,6 @@ export class Service {
 		}
 		this.messageProducer = messageProducer;
 
-		// metrics client
-		if (!metrics) {
-			const labels: Map<string, string> = new Map<string, string>();
-			labels.set("bc", BC_NAME);
-			labels.set("app", APP_NAME);
-			labels.set("version", APP_VERSION);
-			PrometheusMetrics.Setup({prefix:"", defaultLabels: labels}, this.logger);
-			metrics = PrometheusMetrics.getInstance();
-		}
-		this.metrics = metrics;
-
-		if (!configCache) {
-			configCache = new SettlementConfigCacheRepoMock();
-		}
-		configCache.init();
-		this.configCache = configCache;
-
-		if (!batchCache) {
-			batchCache = new SettlementBatchCacheRepoMock();
-		}
-		batchCache.init();
-		this.batchCache = batchCache;
-
-		// Aggregate cannot be used outside the command-handler
-		// Aggregate:
-		this.aggregate = new SettlementsAggregate(
-			this.logger,
-			this.authorizationClient,
-			this.auditClient,
-			this.configClient,
-			this.batchRepo,
-			this.batchTransferRepo,
-			this.configRepo,
-			this.matrixRepo,
-			this.abAdapter,
-			this.messageProducer,
-			this.metrics,
-			this.configCache,
-			this.batchCache
-		);
-
 		await this.setupExpress();
 
 		// remove startup timeout
@@ -428,8 +349,7 @@ export class Service {
 				this.batchRepo,
 				this.batchTransferRepo,
 				this.matrixRepo,
-				this.messageProducer,
-				this.aggregate
+				this.messageProducer
 			);
 
 			this.app.use("/", routes.MainRouter);
@@ -459,10 +379,6 @@ export class Service {
 		if (this.batchTransferRepo) await this.batchTransferRepo.destroy();
 		if (this.matrixRepo) await this.matrixRepo.destroy();
 		if (this.logger instanceof KafkaLogger) await this.logger.destroy();
-	}
-
-	static isEnvBarebone(): boolean {
-		return ENV_NAME.startsWith("barebone_");
 	}
 }
 

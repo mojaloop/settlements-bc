@@ -70,7 +70,6 @@ const MAX_ENTRIES_PER_PAGE = 100;
 export class ExpressRoutes {
 	private readonly _logger: ILogger;
 	private readonly _tokenHelper: ITokenHelper;
-	private readonly _aggregate: SettlementsAggregate;
 	private readonly _configRepo: ISettlementConfigRepo;
 	private readonly _batchRepo: ISettlementBatchRepo;
 	private readonly _batchTransferRepo: ISettlementBatchTransferRepo;
@@ -86,8 +85,7 @@ export class ExpressRoutes {
 		batchRepo: ISettlementBatchRepo,
 		batchTransferRepo: ISettlementBatchTransferRepo,
 		matrixRepo: ISettlementMatrixRequestRepo,
-		messageProducer: IMessageProducer,
-		aggregate: SettlementsAggregate
+		messageProducer: IMessageProducer
 	) {
 		this._logger = logger.createChild(this.constructor.name);
 		this._tokenHelper = tokenHelper;
@@ -96,7 +94,6 @@ export class ExpressRoutes {
 		this._batchTransferRepo = batchTransferRepo;
 		this._matrixRepo = matrixRepo;
 		this._messageProducer = messageProducer;
-		this._aggregate = aggregate;
 
 		this._router = express.Router();
 
@@ -105,11 +102,7 @@ export class ExpressRoutes {
 		// Inject authentication - all requests require a valid token.
 		this._router.use(this._authenticationMiddleware.bind(this)); // All requests require authentication.
 		
-		// Transfer inject
-		/*if (barebones) {
-			// this is for tests only, normal path is though events (event/command handler):
-			this._router.post("/transfers", this.postHandleTransfer.bind(this));
-		}*/
+		// Transfers:
 		this._router.get("/transfers", this.getSettlementBatchTransfers.bind(this));
 
 		// Models:
@@ -121,7 +114,7 @@ export class ExpressRoutes {
 		this._router.get("/batches/:id", this.getSettlementBatch.bind(this));
 		this._router.get("/batches", this.getSettlementBatches.bind(this));
 
-		// Settlement Matrix:
+		// Settlement Matrices:
 		this._router.post("/matrices", this.postCreateMatrix.bind(this));
 		this._router.post("/matrices/:id/batches", this.postAddBatchToStaticMatrix.bind(this));
 		this._router.delete("/matrices/:id/batches", this.postRemoveBatchFromStaticMatrix.bind(this));
@@ -188,25 +181,6 @@ export class ExpressRoutes {
 
 	get MainRouter(): express.Router {
 		return this._router;
-	}
-
-	// this is for tests only, normal path is though events (event/command handler)
-	private async postHandleTransfer(req: express.Request, res: express.Response): Promise<void> {
-		try {
-			this._logger.debug(`Settlement postHandleTransfer - Transfer Req Body: ${JSON.stringify(req.body)}`);
-			const batchId = await this._aggregate.handleTransfer(req.securityContext!, req.body);
-			this.sendSuccessResponse(res, 200, {
-				"batchId": batchId
-			});
-			return;
-		} catch (error: any) {
-			this._logger.error(error);
-			if (error instanceof UnauthorizedError) {
-				this.sendErrorResponse(res, 403, "unauthorized");
-			} else {
-				this.sendErrorResponse(res, 500, error.message || ExpressRoutes.UNKNOWN_ERROR_MESSAGE);
-			}
-		}
 	}
 
 	private async getSettlementModels(req: express.Request, res: express.Response): Promise<void>{

@@ -19,46 +19,54 @@
  their names indented and be marked with a '-'. Email address can be added
  optionally within square brackets <email>.
 
- * Coil
- * - Jason Bruwer <jason.bruwer@coil.com>
+ * Gates Foundation
+ - Name Surname <name.surname@gatesfoundation.com>
+
+ * ILF
+ - Jason Bruwer <jason.bruwer@interledger.org>
 
  --------------
  ******/
 
 "use strict";
 
-import {IAuthorizationClient} from "@mojaloop/security-bc-public-types-lib";
-import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
+import {Service} from "../service";
 
-export class AuthorizationClientMock implements IAuthorizationClient {
-	// Properties received through the constructor.
-	private readonly hasPrivilege: boolean;
+import {
+ AuditClientMock,
+ AuthorizationClientMock,
+ ConfigurationClientMock,
+ TokenHelperMock
+} from "@mojaloop/settlements-bc-shared-mocks-lib";
+import process from "process";
 
-	constructor(hasPrivilege : boolean) {
-		this.hasPrivilege = hasPrivilege;
-	}
+const tokenHelper = new TokenHelperMock();
+const authorizationClient = new AuthorizationClientMock(true);
+const auditClient = new AuditClientMock();
+const configClient = new ConfigurationClientMock();
 
-	async init(): Promise<void> {
-		return;
-	}
+// JMeter TigerBeetle environment properties:
+process.env.USE_TIGERBEETLE = "true";
+process.env.MONGO_URL= "mongodb://root:mongoDbPas42@localhost:27017/";
+process.env.NODE_ENV= "dev-jmeter";
 
-	async destroy(): Promise<void> {
-		return;
-	}
-
-	roleHasPrivilege(roleId: string, privilegeId: string): boolean {
-		return this.hasPrivilege;
-	}
-
-	rolesHavePrivilege(roleIds: string[], privilegeId: string): boolean {
-		return this.hasPrivilege;
-	}
-
-	addPrivilege(privId: string, labelName: string, description: string): void {
-		// mock
-	}
-
-	addPrivilegesArray(privsArray: { privId: string; labelName: string; description: string }[]): void {
-		// mock
-	}
-}
+Service.start(
+    undefined,
+    tokenHelper,
+    undefined,
+    authorizationClient,
+    auditClient,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    configClient
+).then(() => {
+    console.log("JMeter-TigerBeetle 📈🪲 Service start complete");
+});

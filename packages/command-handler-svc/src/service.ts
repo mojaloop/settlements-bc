@@ -63,7 +63,12 @@ import {
 	SettlementsAggregate
 } from "@mojaloop/settlements-bc-domain-lib";
 import {Express} from "express";
-import {IAuthorizationClient, ITokenHelper, ILoginHelper} from "@mojaloop/security-bc-public-types-lib";
+import {
+	IAuthorizationClient,
+	ITokenHelper,
+	ILoginHelper,
+	IAuthenticatedHttpRequester
+} from "@mojaloop/security-bc-public-types-lib";
 
 import {AuthorizationClient, TokenHelper} from "@mojaloop/security-bc-client-lib";
 import {IMessageConsumer, IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
@@ -86,16 +91,13 @@ import {IConfigurationClient} from "@mojaloop/platform-configuration-bc-public-t
 
 import crypto from "crypto";
 import {
-	AccountsBalancesAdapterVoid,
-	AuthorizationClientMock,
-	ConfigurationClientMock,
 	SettlementBatchCacheRepoMock,
-	SettlementBatchTransferRepoVoid,
-	TokenHelperMock
+	SettlementBatchTransferRepoVoid
 } from "@mojaloop/settlements-bc-shared-mocks-lib";
 import {
 	SettlementConfigCacheRepoMock
 } from "@mojaloop/settlements-bc-shared-mocks-lib/dist/repo/cache/settlement_config_cache_repo_mock";
+import {ConfigurationClient, DefaultConfigProvider} from "@mojaloop/platform-configuration-bc-client-lib";
 
 const BC_NAME = configClient.boundedContextName;
 const APP_NAME = configClient.applicationName;
@@ -144,13 +146,6 @@ const kafkaProducerOptions: MLKafkaJsonProducerOptions = {
 	kafkaBrokerList: KAFKA_URL
 };
 
-// Environment:
-/*
-	- dev		: default properties
-	- jmeter	: barebone_jmeter_perf
- */
-const ENV_NAME = process.env["ENV_NAME"] || "dev";
-
 // TigerBeetle:
 const USE_TIGERBEETLE = process.env["USE_TIGERBEETLE"] || false;
 const TIGERBEETLE_CLUSTER_ID = process.env["TIGERBEETLE_CLUSTER_ID"] || 0;
@@ -195,7 +190,8 @@ export class Service {
 		messageProducer?: IMessageProducer,
 		metrics?: IMetrics,
 		configCache?: ISettlementConfigCacheRepo,
-		batchCache?: ISettlementBatchCacheRepo
+		batchCache?: ISettlementBatchCacheRepo,
+		confClient?: IConfigurationClient
 	): Promise<void> {
 		console.log(`Service starting with PID: ${process.pid}`);
 
@@ -218,18 +214,7 @@ export class Service {
 		}
 		globalLogger = this.logger = logger;
 
-		const bareboneStartup = this.isEnvBarebone();
-		if (bareboneStartup) {
-			this.configurationClient = new ConfigurationClientMock(logger);
-		} else this.configurationClient = configClient;
-
-		await this.configurationClient.init();
-		await this.configurationClient.bootstrap(true);
-		await this.configurationClient.fetch();
-
-		if (bareboneStartup) {
-			tokenHelper = new TokenHelperMock();
-		} else if (!tokenHelper) {
+		if (!tokenHelper) {
 			tokenHelper = new TokenHelper(
 				AUTH_N_SVC_JWKS_URL, logger, AUTH_N_TOKEN_ISSUER_NAME, AUTH_N_TOKEN_AUDIENCE,
 				new MLKafkaJsonConsumer({kafkaBrokerList: KAFKA_URL, autoOffsetReset: "earliest", kafkaGroupId: INSTANCE_ID}, logger) // for jwt list - no groupId
@@ -244,12 +229,15 @@ export class Service {
 		}
 		this.loginHelper = loginHelper;
 
+		// config client:
+		if (!confClient) confClient = configClient;
+		this.configurationClient = confClient;
+
 		// authorization client
-		if (bareboneStartup) {
-			authorizationClient = new AuthorizationClientMock(logger, true);
-		} else if (!authorizationClient) {
+		let authRequester: IAuthenticatedHttpRequester|null = null;
+		if (!authorizationClient) {
 			// create the instance of IAuthenticatedHttpRequester
-			const authRequester = new AuthenticatedHttpRequester(logger, AUTH_N_SVC_TOKEN_URL);
+			authRequester = new AuthenticatedHttpRequester(logger, AUTH_N_SVC_TOKEN_URL);
 			authRequester.setAppCredentials(SVC_CLIENT_ID, SVC_CLIENT_SECRET);
 
 			const consumerHandlerLogger = logger.createChild("authorizationClientConsumer");
@@ -272,6 +260,10 @@ export class Service {
 			await (authorizationClient as AuthorizationClient).init();
 		}
 		this.authorizationClient = authorizationClient;
+
+		await this.configurationClient.init();
+		await this.configurationClient.bootstrap(true);
+		await this.configurationClient.fetch();
 
 		if (!auditClient) {
 			if (!existsSync(AUDIT_KEY_FILE_PATH)) {
@@ -310,8 +302,6 @@ export class Service {
 					this.logger,
 					this.configurationClient
 				);
-			} else if (bareboneStartup) {
-				accountsAndBalancesAdapter = new AccountsBalancesAdapterVoid();
 			} else {
 				accountsAndBalancesAdapter = new GrpcAccountsAndBalancesAdapter(ACCOUNTS_BALANCES_COA_SVC_URL, this.loginHelper as LoginHelper, this.logger);
 			}
@@ -370,7 +360,7 @@ export class Service {
 		this.matrixRepo = matrixRepo;
 
 		if (!batchTransferRepo) {
-			if (bareboneStartup && USE_TIGERBEETLE === 'true') {
+			if (USE_TIGERBEETLE === 'true') {
 				batchTransferRepo = new SettlementBatchTransferRepoVoid();
 			} else {
 				batchTransferRepo = new MongoSettlementTransferRepo(
@@ -409,19 +399,18 @@ export class Service {
 		if (!configCache) {
 			configCache = new SettlementConfigCacheRepoMock();
 		}
-		configCache.init();
+		await configCache.init();
 		this.configCache = configCache;
 
 		if (!batchCache) {
 			batchCache = new SettlementBatchCacheRepoMock();
 		}
-		batchCache.init();
+		await batchCache.init();
 		this.batchCache = batchCache;
 
 		// Aggregate:
 		this.aggregate = new SettlementsAggregate(
 			this.logger,
-			this.authorizationClient,
 			this.auditClient,
 			this.configurationClient,
 			this.batchRepo,
@@ -435,20 +424,18 @@ export class Service {
 			this.batchCache
 		);
 
-		// create handler and start it
+		// Create handler and start it:
 		this.handler = new SettlementsCommandHandler(
 			this.logger,
-			this.auditClient,
 			this.messageConsumer,
 			this.aggregate,
-			this.loginHelper,
-			bareboneStartup
+			this.loginHelper
 		);
 		await this.handler.start();
 
 		this.logger.info(`Settlements Command Handler Service started, version: ${configClient.applicationVersion}`);
 
-		// remove startup timeout
+		// Remove startup timeout
 		clearTimeout(this.startupTimer);
 	}
 
@@ -459,20 +446,11 @@ export class Service {
 		if (this.auditClient) await this.auditClient.destroy();
 		if (this.logger && this.logger instanceof KafkaLogger) await this.logger.destroy();
 	}
-
-	static isEnvBarebone(): boolean {
-		return ENV_NAME.startsWith("barebone_");
-	}
 }
 
 
 function addPrivileges(authorizationClient: AuthorizationClient): void {
 	// processing of transfers must always happen, this priv is not required
-	// authorizationClient.addPrivilege(
-	// 	Privileges.CREATE_SETTLEMENT_TRANSFER,
-	// 	Privileges.CREATE_SETTLEMENT_TRANSFER,
-	// 	"Allows the creation of a settlement transfer."
-	// );
 	authorizationClient.addPrivilege(
 		Privileges.CREATE_DYNAMIC_SETTLEMENT_MATRIX,
 		Privileges.CREATE_DYNAMIC_SETTLEMENT_MATRIX,

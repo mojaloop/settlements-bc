@@ -30,14 +30,8 @@
 import {AuditEntryLabel, AuditSecurityContext, IAuditClient} from "@mojaloop/auditing-bc-public-types-lib";
 import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 
-// TODO: should anything by logged?
 export class AuditClientMock implements IAuditClient {
 	// Properties received through the constructor.
-	private readonly logger: ILogger;
-
-	constructor(logger: ILogger) {
-		this.logger = logger;
-	}
 
 	async init(): Promise<void> {
 		return;
