@@ -275,7 +275,7 @@ describe("Settlement BC api-svc route test", () => {
 
         //Arrange
 
-        const mockBatches: ISettlementBatch[] = [
+        const mockBatchesNonID: ISettlementBatch[] = [
             {
                 id: "DEFAULT.USD.2023.06.19.08.30.001",
                 timestamp: Date.now(),
@@ -300,8 +300,8 @@ describe("Settlement BC api-svc route test", () => {
             }
         ];
 
-        await mockBatchRepo.storeNewBatch(mockBatches[0]);
-        await mockBatchRepo.storeNewBatch(mockBatches[1]);
+        await mockBatchRepo.storeNewBatch(mockBatchesNonID[0]);
+        await mockBatchRepo.storeNewBatch(mockBatchesNonID[1]);
 
 
         // Batch by name:
