@@ -49,11 +49,9 @@ import {
 import {ConsoleLogger, ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import {IAuditClient} from "@mojaloop/auditing-bc-public-types-lib";
 import {randomUUID} from "crypto";
-import {CallSecurityContext, IAuthorizationClient} from "@mojaloop/security-bc-public-types-lib";
 import {
 	AccountsBalancesAdapterMock,
 	AuditClientMock,
-	AuthorizationClientMock,
 	MessageCache,
 	MessageProducerMock, SettlementBatchCacheRepoMock,
 	SettlementBatchRepoMock,
