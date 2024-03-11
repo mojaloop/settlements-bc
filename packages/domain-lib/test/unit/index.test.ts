@@ -67,8 +67,6 @@ import {IMetrics, MetricsMock} from "@mojaloop/platform-shared-lib-observability
 import {IConfigurationClient} from "@mojaloop/platform-configuration-bc-public-types-lib";
 import {ConfigurationClientMock} from "@mojaloop/settlements-bc-shared-mocks-lib/dist/config_client_mock";
 
-let authorizationClient: IAuthorizationClient;
-let authorizationClientNoAuth: IAuthorizationClient;
 let configRepo: ISettlementConfigRepo;
 let settleBatchRepo: ISettlementBatchRepo;
 let settleTransferRepo: ISettlementBatchTransferRepo;
@@ -81,23 +79,12 @@ let msgProducer: IMessageProducer;
 
 describe("Settlements BC [Domain] - Unit Tests", () => {
 	let aggregate : SettlementsAggregate;
-	let aggregateNoAuth : SettlementsAggregate;
-	let securityContext : CallSecurityContext;
 
 	beforeAll(async () => {
 		// cross Cutting:
 		const logger: ILogger = new ConsoleLogger();
-		authorizationClient = new AuthorizationClientMock(true);
-		authorizationClientNoAuth = new AuthorizationClientMock(false);
 		const auditingClient: IAuditClient = new AuditClientMock();
 		const configClient: IConfigurationClient = new ConfigurationClientMock();
-
-		securityContext = {
-			username: 'unit-test',
-			clientId: 'client-id',
-			platformRoleIds: ['settlement-role'],
-			accessToken: 'bear-token'
-		};
 
 		// mock Repos:
 		configRepo = new SettlementConfigRepoMock();
@@ -119,20 +106,6 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 
 		// aggregate:
 		aggregate = new SettlementsAggregate(
-			logger,
-			auditingClient,
-			configClient,
-			settleBatchRepo,
-			settleTransferRepo,
-			configRepo,
-			settleMatrixReqRepo,
-			abAdapter,
-			msgProducer,
-			metricsMock,
-			confCacheRepo,
-			batchCacheRepo
-		);
-		aggregateNoAuth = new SettlementsAggregate(
 			logger,
 			auditingClient,
 			configClient,

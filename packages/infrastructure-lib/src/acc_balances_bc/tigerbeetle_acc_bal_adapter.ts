@@ -229,10 +229,10 @@ export class TigerBeetleAccountsAndBalancesAdapter implements IAccountsBalancesA
             this._logger.error(error);
             throw error;
         } finally {
-            TigerBeetleAccountsAndBalancesAdapter.startupBatchTimer = setTimeout(()=>{
+            TigerBeetleAccountsAndBalancesAdapter.startupBatchTimer = setTimeout(() => {
                 try {
                     this._sendLocalCachedTimeout();
-                }  catch (error: unknown) {
+                } catch (error: unknown) {
                     this._logger.error(error);
                     throw error;
                 }
