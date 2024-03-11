@@ -744,7 +744,7 @@ describe("Settlement BC api-svc route test", () => {
 
         await mockMatrixRequestRepo.storeMatrix(newMatrix1);
 
-        const payload: AddBatchesToMatrixCmdPayload = {
+        const matrix1payload: AddBatchesToMatrixCmdPayload = {
             matrixId: "TestMatrix1",
             batchIds: [
                 mockedSettlementMatrixBatchesEUR[0].id,
@@ -756,7 +756,7 @@ describe("Settlement BC api-svc route test", () => {
         //Act
         const response = await request(server)
             .post(`/matrix/TestMatrix1/close`)
-            .send(payload)
+            .send(matrix1payload)
             .set('authorization', AUTH_TOKEN);
 
         //Assert
@@ -790,7 +790,7 @@ describe("Settlement BC api-svc route test", () => {
 
         await mockMatrixRequestRepo.storeMatrix(newMatrix2);
 
-        const payload: AddBatchesToMatrixCmdPayload = {
+        const matrix2payload: AddBatchesToMatrixCmdPayload = {
             matrixId: "TestMatrix2",
             batchIds: [
                 mockedSettlementMatrixBatchesEUR[0].id,
@@ -802,7 +802,7 @@ describe("Settlement BC api-svc route test", () => {
         //Act
         const response = await request(server)
             .post(`/matrix/TestMatrix2/settle`)
-            .send(payload)
+            .send(matrix2payload)
             .set('authorization', AUTH_TOKEN);
 
         //Assert
@@ -836,7 +836,7 @@ describe("Settlement BC api-svc route test", () => {
 
         await mockMatrixRequestRepo.storeMatrix(newMatrix3);
 
-        const payload: AddBatchesToMatrixCmdPayload = {
+        const matrix3payload: AddBatchesToMatrixCmdPayload = {
             matrixId: "TestMatrix3",
             batchIds: [
                 mockedSettlementMatrixBatchesEUR[0].id,
@@ -848,7 +848,7 @@ describe("Settlement BC api-svc route test", () => {
         //Act
         const response = await request(server)
             .post(`/matrix/TestMatrix3/dispute`)
-            .send(payload)
+            .send(matrix3payload)
             .set('authorization', AUTH_TOKEN);
 
         //Assert
