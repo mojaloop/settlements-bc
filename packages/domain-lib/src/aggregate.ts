@@ -67,7 +67,6 @@ import {
 } from "@mojaloop/settlements-bc-public-types-lib";
 import {IAuditClient} from "@mojaloop/auditing-bc-public-types-lib";
 
-import {IAuthorizationClient} from "@mojaloop/security-bc-public-types-lib";
 import {bigintToString, stringToBigint} from "./converters";
 import {SettlementConfig} from "./types/settlement_config";
 import {
@@ -303,7 +302,6 @@ export class SettlementsAggregate {
 		];
 		const journalResult = await this._abAdapter.createJournalEntries(journalEntries);
 		for (const entry of journalResult) {
-			//TODO send event that there were storage failures:
 			if (entry.errorCode > 0) {
 				throw new InvalidJournalEntryError(
 					`Unable to create journal entries. Error [${entry.errorCode}] for request [${entry.id}].`

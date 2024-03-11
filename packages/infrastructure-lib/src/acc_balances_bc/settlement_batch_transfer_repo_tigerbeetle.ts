@@ -97,11 +97,11 @@ export class SettlementBatchTransferRepoTigerBeetle implements ISettlementBatchT
 				for (const abTxn of abTxns) {
 					returnItems.push({
 						amount: abTxn.amount,
-						batchId: "",// TODO
-						batchName: "",// TODO
+						batchId: "",// TODO do later.
+						batchName: "",// TODO do later.
 						currencyCode: abTxn.currencyCode,
 						journalEntryId: abTxn.id!,
-						matrixId: "",//TODO
+						matrixId: "",//TODO do later.
 						payeeFspId: abTxn.creditedAccountId,
 						payerFspId: abTxn.debitedAccountId,
 						transferId: abTxn.ownerId!,

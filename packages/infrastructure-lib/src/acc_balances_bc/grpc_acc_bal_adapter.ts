@@ -33,7 +33,7 @@
 import {GrpcCreateJournalEntryArray} from "@mojaloop/accounts-and-balances-bc-grpc-client-lib";
 import {AccountsAndBalancesAccountType} from "@mojaloop/accounts-and-balances-bc-public-types-lib";
 import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
-import {IAccountsBalancesAdapter, stringToBigint} from "@mojaloop/settlements-bc-domain-lib";
+import {IAccountsBalancesAdapter} from "@mojaloop/settlements-bc-domain-lib";
 
 import {
         AccountsAndBalancesAccount,

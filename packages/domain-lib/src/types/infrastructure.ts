@@ -40,8 +40,6 @@ import {
 import {
 	AccountsAndBalancesAccount, AccountsAndBalancesAccountType,AccountsAndBalancesJournalEntry
 } from "@mojaloop/accounts-and-balances-bc-public-types-lib";
-import {SettlementBatch} from "./batch";
-
 
 export interface IAccountsBalancesAdapter {
 	init(): Promise<void>;

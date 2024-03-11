@@ -27,7 +27,6 @@
 
 "use strict";
 
-import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import {
     IBoundedContextConfigurationClient,
     IConfigurationClient, IGlobalConfigurationClient

@@ -30,9 +30,9 @@
 import {IAccountsBalancesAdapter} from "@mojaloop/settlements-bc-domain-lib";
 import {
 	AccountsAndBalancesAccount,
-	AccountsAndBalancesAccountType
+	AccountsAndBalancesAccountType,
+	AccountsAndBalancesJournalEntry
 } from "@mojaloop/accounts-and-balances-bc-public-types-lib";
-import {AccountsAndBalancesJournalEntry} from "@mojaloop/accounts-and-balances-bc-public-types-lib";
 
 export class AccountsBalancesAdapterVoid implements IAccountsBalancesAdapter {
 

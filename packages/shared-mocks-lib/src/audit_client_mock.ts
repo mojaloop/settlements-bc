@@ -28,7 +28,6 @@
 "use strict";
 
 import {AuditEntryLabel, AuditSecurityContext, IAuditClient} from "@mojaloop/auditing-bc-public-types-lib";
-import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 
 export class AuditClientMock implements IAuditClient {
 	// Properties received through the constructor.
