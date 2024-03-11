@@ -44,8 +44,9 @@ import {
 	AddBatchesToMatrixCmd,
 	RemoveBatchesFromMatrixCmdPayload,
 	RemoveBatchesFromMatrixCmd,
-	CreateSettlementModelCmd, LockMatrixCmd, UnlockMatrixCmd,
-	SettlementsAggregate, UnauthorizedError
+	CreateSettlementModelCmd,
+	LockMatrixCmd,
+	UnlockMatrixCmd
 } from "@mojaloop/settlements-bc-domain-lib";
 import {CallSecurityContext} from "@mojaloop/security-bc-public-types-lib";
 import {

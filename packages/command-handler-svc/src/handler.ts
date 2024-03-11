@@ -61,27 +61,22 @@ import {
 	UnlockMatrixCmd,
 	UnlockMatrixCmdPayload,
 	CreateSettlementModelCmdPayload,
-	MarkMatrixOutOfSyncCmd, MarkMatrixOutOfSyncCmdPayload, Privileges
+	MarkMatrixOutOfSyncCmd, MarkMatrixOutOfSyncCmdPayload
 } from "@mojaloop/settlements-bc-domain-lib";
-import {CallSecurityContext} from "@mojaloop/security-bc-public-types-lib";
-import {ILoginHelper, UnauthorizedError} from "@mojaloop/security-bc-public-types-lib";
 
 export class SettlementsCommandHandler {
 	private _logger: ILogger;
 	private _messageConsumer: IMessageConsumer;
 	private _settlementsAgg: SettlementsAggregate;
-	private _loginHelper: ILoginHelper;
 
     constructor(
 		logger: ILogger,
 		messageConsumer: IMessageConsumer,
-		agg: SettlementsAggregate,
-		loginHelper: ILoginHelper
+		agg: SettlementsAggregate
 	) {
 		this._logger = logger.createChild(this.constructor.name);
 		this._messageConsumer = messageConsumer;
 		this._settlementsAgg = agg;
-		this._loginHelper = loginHelper;
 	}
 
 	async start():Promise<void>{

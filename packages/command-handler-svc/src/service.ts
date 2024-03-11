@@ -436,8 +436,7 @@ export class Service {
 		this.handler = new SettlementsCommandHandler(
 			this.logger,
 			this.messageConsumer,
-			this.aggregate,
-			this.loginHelper
+			this.aggregate
 		);
 		await this.handler.start();
 

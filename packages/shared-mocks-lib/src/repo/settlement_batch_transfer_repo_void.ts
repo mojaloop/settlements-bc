@@ -69,7 +69,7 @@ export class SettlementBatchTransferRepoVoid implements ISettlementBatchTransfer
 
 	async getBatchTransfers(
 		pageIndex: number = 0,
-        pageSize: number = MAX_ENTRIES_PER_PAGE,
+		pageSize: number = MAX_ENTRIES_PER_PAGE
 	): Promise<BatchTransferSearchResults> {
 		const searchResults: BatchTransferSearchResults = {
 			pageIndex: pageIndex,

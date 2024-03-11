@@ -51,11 +51,7 @@ Service.start(
     tokenHelper,
     authorizationClient,
     auditClient,
-    configClient,
-    undefined,
-    undefined,
-    undefined,
-    undefined,
+    configClient
 ).then(() => {
   console.log("JMeter-TigerBeetle 📈🪲 Service start complete!");
 });
