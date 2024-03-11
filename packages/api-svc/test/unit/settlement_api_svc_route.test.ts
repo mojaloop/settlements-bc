@@ -60,10 +60,14 @@ const mockParticipantAccountNotifier: IParticipantAccountNotifier = new Particip
 const server = (process.env["SETTLEMENT_SVC_URL"] || "http://localhost:3600");
 const AUTH_TOKEN = "bearer: FAKETOKEN";
 
+
+
 let mockedSettlementBatch: ISettlementBatch;
 let mockedSettlementBatchTransfers: ISettlementBatchTransfer[];
 let mockedSettlementMatrix: ISettlementMatrix;
 let mockedSettlementMatrixBatches: ISettlementMatrixBatch[];
+let mockedSettlementMatrixBatchesEUR: ISettlementMatrixBatch[];
+let mockedSettlementMatrixBatchesUSD: ISettlementMatrixBatch[];
 let mockedSettlementMatrixBatchAccount: ISettlementMatrixBatchAccount[];
 let mockedSettlementMatrixBalancesPart: ISettlementMatrixBalanceByParticipant[];
 let mockedSettlementMatrixBalancesCurrency: ISettlementMatrixBalanceByCurrency[];
@@ -185,6 +189,49 @@ describe("Settlement BC api-svc route test", () => {
             state: "OPEN",
             batchAccounts: mockedSettlementMatrixBatchAccount
         }]
+
+        mockedSettlementMatrixBatchesEUR = [
+            {
+                id: "DEFAULT.EUR.2023.06.21.08.30.001",
+                name: "DEFAULT.EUR.2023.06.21.08.30",
+                currencyCode: "EUR",
+                batchDebitBalance: "15",
+                batchCreditBalance: "15",
+                state: "OPEN",
+                batchAccounts: []
+            },
+            {
+                id: "DEFAULT.USD.2023.06.21.08.22.001",
+                name: "DEFAULT.EUR.2023.06.21.08.22",
+                currencyCode: "EUR",
+                batchDebitBalance: "15",
+                batchCreditBalance: "15",
+                state: "OPEN",
+                batchAccounts: []
+            },
+        ];
+
+        mockedSettlementMatrixBatchesUSD = [
+                {
+                    id: "DEFAULT.EUR.2023.06.19.08.30.001",
+                    name: "DEFAULT.EUR.2023.06.19.08.30",
+                    currencyCode: "USD",
+                    batchDebitBalance: "5",
+                    batchCreditBalance: "5",
+                    state: "OPEN",
+                    batchAccounts: []
+                },
+                {
+                    id: "DEFAULT.USD.2023.06.23.08.22.001",
+                    name: "DEFAULT.USD.2023.06.23.08.22",
+                    currencyCode: "USD",
+                    batchDebitBalance: "5",
+                    batchCreditBalance: "5",
+                    state: "OPEN",
+                    batchAccounts: []
+                },
+        ];
+    
 
         //Prepare mocked Matrix
         mockedSettlementMatrix = {
@@ -482,22 +529,6 @@ describe("Settlement BC api-svc route test", () => {
         ];
 
         //Prepare mocked Settlement Matrix Participant Balances
-        const settlementMatrixParticipantBalances: ISettlementMatrixBalanceByParticipant[] = [
-            {
-                participantId: "FSP-A",
-                currencyCode: "EUR",
-                state: "OPEN",
-                debitBalance: "5",
-                creditBalance: "0"
-            },
-            {
-                participantId: "FSP-B",
-                currencyCode: "EUR",
-                state: "OPEN",
-                debitBalance: "0",
-                creditBalance: "5"
-            }
-        ];
 
         //Prepare mocked Settlement Matrix batch
         mockedSettlementMatrixBatches = [{
@@ -549,28 +580,6 @@ describe("Settlement BC api-svc route test", () => {
 
         //Arrange
 
-        //Prepare mocked Settlement Matrix batches
-        mockedSettlementMatrixBatches = [
-            {
-                id: "DEFAULT.EUR.2023.06.19.08.30.001",
-                name: "DEFAULT.EUR.2023.06.19.08.30",
-                currencyCode: "USD",
-                batchDebitBalance: "5",
-                batchCreditBalance: "5",
-                state: "OPEN",
-                batchAccounts: []
-            },
-            {
-                id: "DEFAULT.USD.2023.06.23.08.22.001",
-                name: "DEFAULT.USD.2023.06.23.08.22",
-                currencyCode: "USD",
-                batchDebitBalance: "5",
-                batchCreditBalance: "5",
-                state: "OPEN",
-                batchAccounts: []
-            },
-        ];
-
         //Prepare mocked Matrix
 
         const newMatrixId = randomUUID();
@@ -584,7 +593,7 @@ describe("Settlement BC api-svc route test", () => {
             currencyCodes: ["EUR"],
             settlementModel: "DEFAULT",
             batchStatuses: [],
-            batches: mockedSettlementMatrixBatches,
+            batches: mockedSettlementMatrixBatchesUSD,
             balancesByParticipant: mockedSettlementMatrixBalancesPart,
             balancesByStateAndCurrency: mockedSettlementMatrixBalancesStateAndCurrency,
             balancesByCurrency: mockedSettlementMatrixBalancesCurrency,
@@ -596,8 +605,8 @@ describe("Settlement BC api-svc route test", () => {
         const payload: AddBatchesToMatrixCmdPayload = {
             matrixId: newMatrix.id,
             batchIds: [
-                mockedSettlementMatrixBatches[0].id,
-                mockedSettlementMatrixBatches[1].id
+                mockedSettlementMatrixBatchesUSD[0].id,
+                mockedSettlementMatrixBatchesUSD[1].id
             ]
         }
 
@@ -620,29 +629,6 @@ describe("Settlement BC api-svc route test", () => {
     test("DELETE /matrix/:id/batches should send message RemoveBatchesFromMatrixCmd to kafka queue", async () => {
         //Arrange
 
-
-        //Prepare mocked Settlement Matrix batches
-        mockedSettlementMatrixBatches = [
-            {
-                id: "DEFAULT.EUR.2023.06.21.08.30.001",
-                name: "DEFAULT.EUR.2023.06.21.08.30",
-                currencyCode: "EUR",
-                batchDebitBalance: "15",
-                batchCreditBalance: "15",
-                state: "OPEN",
-                batchAccounts: []
-            },
-            {
-                id: "DEFAULT.USD.2023.06.21.08.22.001",
-                name: "DEFAULT.EUR.2023.06.21.08.22",
-                currencyCode: "EUR",
-                batchDebitBalance: "15",
-                batchCreditBalance: "15",
-                state: "OPEN",
-                batchAccounts: []
-            },
-        ];
-
         //Prepare mocked Matrix
 
         const newMatrixId = randomUUID();
@@ -656,7 +642,7 @@ describe("Settlement BC api-svc route test", () => {
             currencyCodes: ["EUR"],
             settlementModel: "DEFAULT",
             batchStatuses: [],
-            batches: mockedSettlementMatrixBatches,
+            batches: mockedSettlementMatrixBatchesEUR,
             balancesByParticipant: [],
             balancesByStateAndCurrency: [],
             balancesByCurrency: [],
@@ -668,8 +654,8 @@ describe("Settlement BC api-svc route test", () => {
         const payload: AddBatchesToMatrixCmdPayload = {
             matrixId: newMatrix.id,
             batchIds: [
-                mockedSettlementMatrixBatches[0].id,
-                mockedSettlementMatrixBatches[1].id
+                mockedSettlementMatrixBatchesEUR[0].id,
+                mockedSettlementMatrixBatchesEUR[1].id
             ]
         }
         jest.spyOn(tokenHelper, "getCallSecurityContextFromAccessToken")
@@ -689,28 +675,6 @@ describe("Settlement BC api-svc route test", () => {
     test("POST /matrix/:id/recalculate should send message RecalculateMatrixCmd to kafka queue", async () => {
         //Arrange
 
-        //Prepare mocked Settlement Matrix batches
-        mockedSettlementMatrixBatches = [
-            {
-                id: "DEFAULT.EUR.2023.06.21.08.30.001",
-                name: "DEFAULT.EUR.2023.06.21.08.30",
-                currencyCode: "EUR",
-                batchDebitBalance: "15",
-                batchCreditBalance: "15",
-                state: "OPEN",
-                batchAccounts: []
-            },
-            {
-                id: "DEFAULT.USD.2023.06.21.08.22.001",
-                name: "DEFAULT.EUR.2023.06.21.08.22",
-                currencyCode: "EUR",
-                batchDebitBalance: "15",
-                batchCreditBalance: "15",
-                state: "OPEN",
-                batchAccounts: []
-            },
-        ];
-
         //Prepare mocked Matrix
 
         const newMatrix: ISettlementMatrix = {
@@ -722,7 +686,7 @@ describe("Settlement BC api-svc route test", () => {
             currencyCodes: ["EUR"],
             settlementModel: "DEFAULT",
             batchStatuses: [],
-            batches: mockedSettlementMatrixBatches,
+            batches: mockedSettlementMatrixBatchesEUR,
             balancesByParticipant: [],
             balancesByStateAndCurrency: [],
             balancesByCurrency: [],
@@ -736,8 +700,8 @@ describe("Settlement BC api-svc route test", () => {
         const payload: AddBatchesToMatrixCmdPayload = {
             matrixId: "TestMatrix",
             batchIds: [
-                mockedSettlementMatrixBatches[0].id,
-                mockedSettlementMatrixBatches[1].id
+                mockedSettlementMatrixBatchesEUR[0].id,
+                mockedSettlementMatrixBatchesEUR[1].id
             ]
         }
         jest.spyOn(tokenHelper, "getCallSecurityContextFromAccessToken")
@@ -758,28 +722,6 @@ describe("Settlement BC api-svc route test", () => {
     test("POST /matrix/:id/close should send message CloseMatrixCmd to kafka queue", async () => {
         //Arrange
 
-        //Prepare mocked Settlement Matrix batches
-        mockedSettlementMatrixBatches = [
-            {
-                id: "DEFAULT.EUR.2023.06.21.08.30.001",
-                name: "DEFAULT.EUR.2023.06.21.08.30",
-                currencyCode: "EUR",
-                batchDebitBalance: "15",
-                batchCreditBalance: "15",
-                state: "OPEN",
-                batchAccounts: []
-            },
-            {
-                id: "DEFAULT.USD.2023.06.21.08.22.001",
-                name: "DEFAULT.EUR.2023.06.21.08.22",
-                currencyCode: "EUR",
-                batchDebitBalance: "15",
-                batchCreditBalance: "15",
-                state: "OPEN",
-                batchAccounts: []
-            },
-        ];
-
         //Prepare mocked Matrix
 
         const newMatrix: ISettlementMatrix = {
@@ -791,7 +733,7 @@ describe("Settlement BC api-svc route test", () => {
             currencyCodes: ["EUR"],
             settlementModel: "DEFAULT",
             batchStatuses: [],
-            batches: mockedSettlementMatrixBatches,
+            batches: mockedSettlementMatrixBatchesEUR,
             balancesByParticipant: [],
             balancesByStateAndCurrency: [],
             balancesByCurrency: [],
@@ -805,8 +747,8 @@ describe("Settlement BC api-svc route test", () => {
         const payload: AddBatchesToMatrixCmdPayload = {
             matrixId: "TestMatrix1",
             batchIds: [
-                mockedSettlementMatrixBatches[0].id,
-                mockedSettlementMatrixBatches[1].id
+                mockedSettlementMatrixBatchesEUR[0].id,
+                mockedSettlementMatrixBatchesEUR[1].id
             ]
         }
         jest.spyOn(tokenHelper, "getCallSecurityContextFromAccessToken")
@@ -826,28 +768,6 @@ describe("Settlement BC api-svc route test", () => {
     test("POST /matrix/:id/settle should send message SettleMatrixCmd to kafka queue", async () => {
         //Arrange
 
-        //Prepare mocked Settlement Matrix batches
-        mockedSettlementMatrixBatches = [
-            {
-                id: "DEFAULT.EUR.2023.06.21.08.30.001",
-                name: "DEFAULT.EUR.2023.06.21.08.30",
-                currencyCode: "EUR",
-                batchDebitBalance: "15",
-                batchCreditBalance: "15",
-                state: "OPEN",
-                batchAccounts: []
-            },
-            {
-                id: "DEFAULT.USD.2023.06.21.08.22.001",
-                name: "DEFAULT.EUR.2023.06.21.08.22",
-                currencyCode: "EUR",
-                batchDebitBalance: "15",
-                batchCreditBalance: "15",
-                state: "OPEN",
-                batchAccounts: []
-            },
-        ];
-
         //Prepare mocked Matrix
 
         const newMatrix: ISettlementMatrix = {
@@ -859,7 +779,7 @@ describe("Settlement BC api-svc route test", () => {
             currencyCodes: ["EUR"],
             settlementModel: "DEFAULT",
             batchStatuses: [],
-            batches: mockedSettlementMatrixBatches,
+            batches: mockedSettlementMatrixBatchesEUR,
             balancesByParticipant: [],
             balancesByStateAndCurrency: [],
             balancesByCurrency: [],
@@ -873,8 +793,8 @@ describe("Settlement BC api-svc route test", () => {
         const payload: AddBatchesToMatrixCmdPayload = {
             matrixId: "TestMatrix2",
             batchIds: [
-                mockedSettlementMatrixBatches[0].id,
-                mockedSettlementMatrixBatches[1].id
+                mockedSettlementMatrixBatchesEUR[0].id,
+                mockedSettlementMatrixBatchesEUR[1].id
             ]
         }
         jest.spyOn(tokenHelper, "getCallSecurityContextFromAccessToken")
@@ -894,28 +814,6 @@ describe("Settlement BC api-svc route test", () => {
     test("POST /matrix/:id/dispute should send message DisputeMatrixCmd to kafka queue", async () => {
         //Arrange
 
-        //Prepare mocked Settlement Matrix batches
-        mockedSettlementMatrixBatches = [
-            {
-                id: "DEFAULT.EUR.2023.06.21.08.30.001",
-                name: "DEFAULT.EUR.2023.06.21.08.30",
-                currencyCode: "EUR",
-                batchDebitBalance: "15",
-                batchCreditBalance: "15",
-                state: "OPEN",
-                batchAccounts: []
-            },
-            {
-                id: "DEFAULT.USD.2023.06.21.08.22.001",
-                name: "DEFAULT.EUR.2023.06.21.08.22",
-                currencyCode: "EUR",
-                batchDebitBalance: "15",
-                batchCreditBalance: "15",
-                state: "OPEN",
-                batchAccounts: []
-            },
-        ];
-
         //Prepare mocked Matrix
 
         const newMatrix: ISettlementMatrix = {
@@ -927,7 +825,7 @@ describe("Settlement BC api-svc route test", () => {
             currencyCodes: ["EUR"],
             settlementModel: "DEFAULT",
             batchStatuses: [],
-            batches: mockedSettlementMatrixBatches,
+            batches: mockedSettlementMatrixBatchesEUR,
             balancesByParticipant: [],
             balancesByStateAndCurrency: [],
             balancesByCurrency: [],
@@ -941,8 +839,8 @@ describe("Settlement BC api-svc route test", () => {
         const payload: AddBatchesToMatrixCmdPayload = {
             matrixId: "TestMatrix3",
             batchIds: [
-                mockedSettlementMatrixBatches[0].id,
-                mockedSettlementMatrixBatches[1].id
+                mockedSettlementMatrixBatchesEUR[0].id,
+                mockedSettlementMatrixBatchesEUR[1].id
             ]
         }
         jest.spyOn(tokenHelper, "getCallSecurityContextFromAccessToken")
@@ -962,28 +860,6 @@ describe("Settlement BC api-svc route test", () => {
     test("GET /matrix/:id should get SettlementMatrix by Id", async () => {
         //Arrange
 
-        //Prepare mocked Settlement Matrix batches
-        mockedSettlementMatrixBatches = [
-            {
-                id: "DEFAULT.EUR.2023.06.21.08.30.001",
-                name: "DEFAULT.EUR.2023.06.21.08.30",
-                currencyCode: "EUR",
-                batchDebitBalance: "15",
-                batchCreditBalance: "15",
-                state: "OPEN",
-                batchAccounts: []
-            },
-            {
-                id: "DEFAULT.USD.2023.06.21.08.22.001",
-                name: "DEFAULT.EUR.2023.06.21.08.22",
-                currencyCode: "EUR",
-                batchDebitBalance: "15",
-                batchCreditBalance: "15",
-                state: "OPEN",
-                batchAccounts: []
-            },
-        ];
-
         //Prepare mocked Matrix
 
         const newMatrix: ISettlementMatrix = {
@@ -995,7 +871,7 @@ describe("Settlement BC api-svc route test", () => {
             currencyCodes: ["EUR"],
             settlementModel: "DEFAULT",
             batchStatuses: [],
-            batches: mockedSettlementMatrixBatches,
+            batches: mockedSettlementMatrixBatchesEUR,
             balancesByParticipant: [],
             balancesByStateAndCurrency: [],
             balancesByCurrency: [],
