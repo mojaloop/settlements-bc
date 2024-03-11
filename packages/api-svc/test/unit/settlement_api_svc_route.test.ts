@@ -724,7 +724,7 @@ describe("Settlement BC api-svc route test", () => {
 
         //Prepare mocked Matrix
 
-        const newMatrix: ISettlementMatrix = {
+        const newMatrix1: ISettlementMatrix = {
             id: "TestMatrix1",
             createdAt: new Date().getTime() / 1000,
             updatedAt: 0,
@@ -742,7 +742,7 @@ describe("Settlement BC api-svc route test", () => {
             generationDurationSecs: 2
         };
 
-        await mockMatrixRequestRepo.storeMatrix(newMatrix);
+        await mockMatrixRequestRepo.storeMatrix(newMatrix1);
 
         const payload: AddBatchesToMatrixCmdPayload = {
             matrixId: "TestMatrix1",
@@ -770,7 +770,7 @@ describe("Settlement BC api-svc route test", () => {
 
         //Prepare mocked Matrix
 
-        const newMatrix: ISettlementMatrix = {
+        const newMatrix2: ISettlementMatrix = {
             id: "TestMatrix2",
             createdAt: new Date().getTime() / 1000,
             updatedAt: 0,
@@ -788,7 +788,7 @@ describe("Settlement BC api-svc route test", () => {
             generationDurationSecs: 2
         };
 
-        await mockMatrixRequestRepo.storeMatrix(newMatrix);
+        await mockMatrixRequestRepo.storeMatrix(newMatrix2);
 
         const payload: AddBatchesToMatrixCmdPayload = {
             matrixId: "TestMatrix2",
@@ -816,7 +816,7 @@ describe("Settlement BC api-svc route test", () => {
 
         //Prepare mocked Matrix
 
-        const newMatrix: ISettlementMatrix = {
+        const newMatrix3: ISettlementMatrix = {
             id: "TestMatrix3",
             createdAt: new Date().getTime() / 1000,
             updatedAt: 0,
@@ -834,7 +834,7 @@ describe("Settlement BC api-svc route test", () => {
             generationDurationSecs: 2
         };
 
-        await mockMatrixRequestRepo.storeMatrix(newMatrix);
+        await mockMatrixRequestRepo.storeMatrix(newMatrix3);
 
         const payload: AddBatchesToMatrixCmdPayload = {
             matrixId: "TestMatrix3",
@@ -862,7 +862,7 @@ describe("Settlement BC api-svc route test", () => {
 
         //Prepare mocked Matrix
 
-        const newMatrix: ISettlementMatrix = {
+        const newMatrix4: ISettlementMatrix = {
             id: "TestMatrix4",
             createdAt: new Date().getTime() / 1000,
             updatedAt: 0,
@@ -880,7 +880,7 @@ describe("Settlement BC api-svc route test", () => {
             generationDurationSecs: 2
         };
 
-        await mockMatrixRequestRepo.storeMatrix(newMatrix);
+        await mockMatrixRequestRepo.storeMatrix(newMatrix4);
         jest.spyOn(tokenHelper, "getCallSecurityContextFromAccessToken")
             .mockResolvedValueOnce(securityContext);
         //Act
@@ -890,7 +890,7 @@ describe("Settlement BC api-svc route test", () => {
 
         //Assert
         expect(response.status).toBe(200);
-        expect(response.body).toEqual(newMatrix);
+        expect(response.body).toEqual(newMatrix4);
     });
 
     test("GET /matrix should get list of Matrices", async () => {
