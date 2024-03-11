@@ -97,7 +97,9 @@ import {
 import {
 	SettlementConfigCacheRepoMock
 } from "@mojaloop/settlements-bc-shared-mocks-lib/dist/repo/cache/settlement_config_cache_repo_mock";
-import {ConfigurationClient, DefaultConfigProvider} from "@mojaloop/platform-configuration-bc-client-lib";
+import {
+	SettlementBatchCacheRepoRedis
+} from "@mojaloop/settlements-bc-infrastructure-lib/dist/cache/settlement_batch_cache_repo_redis";
 
 const BC_NAME = configClient.boundedContextName;
 const APP_NAME = configClient.applicationName;
@@ -150,6 +152,10 @@ const kafkaProducerOptions: MLKafkaJsonProducerOptions = {
 const USE_TIGERBEETLE = process.env["USE_TIGERBEETLE"] || false;
 const TIGERBEETLE_CLUSTER_ID = process.env["TIGERBEETLE_CLUSTER_ID"] || 0;
 const TIGERBEETLE_CLUSTER_REPLICA_ADDRESSES = process.env["TIGERBEETLE_CLUSTER_REPLICA_ADDRESSES"] || "localhost:9001";
+
+// Redis:
+const REDIS_HOST = process.env["REDIS_HOST"] || "localhost";
+const REDIS_PORT = (process.env["REDIS_PORT"] && parseInt(process.env["REDIS_PORT"])) || 6379;
 
 let globalLogger: ILogger;
 
@@ -396,14 +402,16 @@ export class Service {
 		}
 		this.metrics = metrics;
 
-		if (!configCache) {
-			configCache = new SettlementConfigCacheRepoMock();
-		}
+		if (!configCache) configCache = new SettlementConfigCacheRepoMock();
 		await configCache.init();
 		this.configCache = configCache;
 
 		if (!batchCache) {
-			batchCache = new SettlementBatchCacheRepoMock();
+			if (MONGO_URL !== undefined && MONGO_URL.trim().length > 0) {
+				batchCache = new SettlementBatchCacheRepoRedis(this.logger, REDIS_HOST, REDIS_PORT);
+			} else {
+				batchCache = new SettlementBatchCacheRepoMock();
+			}
 		}
 		await batchCache.init();
 		this.batchCache = batchCache;

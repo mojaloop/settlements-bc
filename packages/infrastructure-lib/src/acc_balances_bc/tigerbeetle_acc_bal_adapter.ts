@@ -46,7 +46,7 @@ import dns from "dns";
 import {IAccountsBalancesAdapter} from "@mojaloop/settlements-bc-domain-lib";
 import {Currency, IConfigurationClient} from "@mojaloop/platform-configuration-bc-public-types-lib";
 
-const MAX_ENTRIES_PER_BATCH = 8000;//8000
+const MAX_ENTRIES_PER_BATCH = 8000;
 
 export class TigerBeetleAccountsAndBalancesAdapter implements IAccountsBalancesAdapter {
     private readonly _logger: ILogger;
@@ -56,6 +56,8 @@ export class TigerBeetleAccountsAndBalancesAdapter implements IAccountsBalancesA
     private _client: TB.Client;
     private _currencyList: Currency[];
     private _pendingBatch: TB.Transfer[];
+    static startupBatchTimer: NodeJS.Timeout;
+    static lastSend: number;
 
     constructor(
         clusterId: number,
@@ -69,7 +71,20 @@ export class TigerBeetleAccountsAndBalancesAdapter implements IAccountsBalancesA
         this._logger = logger.createChild(this.constructor.name);
         this._currencyList = configClient.globalConfigs.getCurrencies();
         this._batchingEnabled = batchingEnabled;
-        if (this._batchingEnabled) this._pendingBatch = [];
+        if (this._batchingEnabled) {
+            this._pendingBatch = [];
+            TigerBeetleAccountsAndBalancesAdapter.lastSend = Date.now();
+            if (!TigerBeetleAccountsAndBalancesAdapter.startupBatchTimer) {
+                TigerBeetleAccountsAndBalancesAdapter.startupBatchTimer = setTimeout(()=>{
+                    try {
+                        this._sendLocalCachedTimeout();
+                    }  catch (error: unknown) {
+                        this._logger.error(error);
+                        throw error;
+                    }
+                }, 1_000);
+            }
+        }
     }
 
     async init(): Promise<void> {
@@ -182,10 +197,13 @@ export class TigerBeetleAccountsAndBalancesAdapter implements IAccountsBalancesA
         return Promise.resolve(returnVal);
     }
 
-    private async _processJournalEntriesToStore(entries: TB.Transfer[]): Promise<TB.Transfer[]> {
+    private async _processJournalEntriesToStore(
+        entries: TB.Transfer[],
+        forceFlush: boolean = false
+    ): Promise<TB.Transfer[]> {
         if (!this._batchingEnabled) return entries;
 
-        if (this._pendingBatch.length >= MAX_ENTRIES_PER_BATCH) {
+        if (forceFlush || (this._pendingBatch.length >= MAX_ENTRIES_PER_BATCH)) {
             const returnVal = this._pendingBatch.splice(0);
             this._logger.debug(`Sending at total of ${returnVal.length} transfers to TB.`);
             this._pendingBatch = [];
@@ -194,6 +212,32 @@ export class TigerBeetleAccountsAndBalancesAdapter implements IAccountsBalancesA
         entries.forEach(itm => this._pendingBatch.push(itm));
 
         return [];
+    }
+
+    private async _sendLocalCachedTimeout() {
+        const toStore = await this._processJournalEntriesToStore([], true);
+        try {
+            if (toStore.length) {
+                // Create request for TigerBeetle:
+                const errors: CreateTransfersError[] = await this._client.createTransfers(toStore);
+                if (errors.length) {
+                    const first = errors[0];
+                    throw new Error(`Timer!!! Unable to store transfers: [${first.index}:${first.result}]`);
+                }
+            }
+        } catch (error: unknown) {
+            this._logger.error(error);
+            throw error;
+        } finally {
+            TigerBeetleAccountsAndBalancesAdapter.startupBatchTimer = setTimeout(()=>{
+                try {
+                    this._sendLocalCachedTimeout();
+                }  catch (error: unknown) {
+                    this._logger.error(error);
+                    throw error;
+                }
+            }, 1_000);
+        }
     }
 
     async getJournalEntriesByAccountId(ledgerAccountId: string): Promise<AccountsAndBalancesJournalEntry[]> {

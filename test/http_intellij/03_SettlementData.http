@@ -21,7 +21,7 @@ Authorization: Bearer {{access_token}}
 
 ### Test - [Get transfers by matrix-id]:
 #GET http://localhost:3600/transfers?c0dc6cb5-4c35-4d4c-a9a1-5dbfdf378d0e&model=DEFAULT&startDate=1674140933634&endDate={{$timestamp}}000
-GET http://localhost:3600/transfers?matrixId=c0dc6cb5-4c35-4d4c-a9a1-5dbfdf378d0e
+GET http://localhost:3600/transfers?matrixId=917c63b0-c0a6-43e8-8e19-fd6b5033833c
 Content-Type: application/json
 X-Correlation-ID: Manual-{{$uuid}}
 Authorization: Bearer {{access_token}}

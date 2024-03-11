@@ -186,8 +186,6 @@ export interface ISettlementMatrixBatchAccount {
 }
 
 /* ISettlementModelClient for settlement-model-lib */
-
-
 export interface ISettlementModelClient {
 	init(): Promise<void>;
 

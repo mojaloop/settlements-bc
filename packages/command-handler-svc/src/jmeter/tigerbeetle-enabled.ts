@@ -68,5 +68,5 @@ Service.start(
     undefined,
     configClient
 ).then(() => {
-    console.log("JMeter-TigerBeetle 📈🪲 Service start complete");
+    console.log("JMeter-TigerBeetle 📈🪲 Service start complete!");
 });
