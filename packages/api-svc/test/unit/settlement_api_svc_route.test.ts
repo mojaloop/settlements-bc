@@ -51,11 +51,11 @@ const mockMatrixRequestRepo: ISettlementMatrixRequestRepo = new SettlementMatrix
 
 const mockMessageProducer: IMessageProducer = new MessageProducerMock(logger, msgCache);
 
-const mockAuthorizationClient: IAuthorizationClient = new AuthorizationClientMock(logger, true);
-const mockAuthorizationClientNoAuth: IAuthorizationClient = new AuthorizationClientMock(logger, false);
+const mockAuthorizationClient: IAuthorizationClient = new AuthorizationClientMock(true);
+const mockAuthorizationClientNoAuth: IAuthorizationClient = new AuthorizationClientMock(false);
 
-const mockAuditClient: IAuditClient = new AuditClientMock(logger);
-const configClient: IConfigurationClient = new ConfigurationClientMock(logger);
+const mockAuditClient: IAuditClient = new AuditClientMock();
+const configClient: IConfigurationClient = new ConfigurationClientMock();
 const metrics: IMetrics = new MetricsMock();
 
 const accBalAdapter: IAccountsBalancesAdapter = new AccountsBalancesAdapterMock();
@@ -87,7 +87,6 @@ describe("Settlement BC api-svc route test", () => {
             mockBatchTransferRepo,
             mockMatrixRequestRepo,
             mockMessageProducer,
-            metrics,
             accBalAdapter
         );
 

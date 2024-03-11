@@ -87,10 +87,10 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 	beforeAll(async () => {
 		// cross Cutting:
 		const logger: ILogger = new ConsoleLogger();
-		authorizationClient = new AuthorizationClientMock(logger, true);
-		authorizationClientNoAuth = new AuthorizationClientMock(logger, false);
-		const auditingClient: IAuditClient = new AuditClientMock(logger);
-		const configClient: IConfigurationClient = new ConfigurationClientMock(logger);
+		authorizationClient = new AuthorizationClientMock(true);
+		authorizationClientNoAuth = new AuthorizationClientMock(false);
+		const auditingClient: IAuditClient = new AuditClientMock();
+		const configClient: IConfigurationClient = new ConfigurationClientMock();
 
 		securityContext = {
 			username: 'unit-test',
@@ -120,7 +120,6 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		// aggregate:
 		aggregate = new SettlementsAggregate(
 			logger,
-			authorizationClient,
 			auditingClient,
 			configClient,
 			settleBatchRepo,
@@ -135,7 +134,6 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		);
 		aggregateNoAuth = new SettlementsAggregate(
 			logger,
-			authorizationClientNoAuth,
 			auditingClient,
 			configClient,
 			settleBatchRepo,
@@ -165,7 +163,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 			timestamp: Date.now(),
 			settlementModel: 'DEFAULT'
 		};
-		const batchId: string = await aggregate.handleTransfer(securityContext, reqTransferDto);
+		const batchId: string = await aggregate.handleTransfer(reqTransferDto);
 		expect(batchId).toBeDefined();
 
 		// transfer:
@@ -260,7 +258,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		const debPartAccId = randomUUID();
 		const credPartAccId = randomUUID();
 
-		const txn1RspBatch1 = await aggregate.handleTransfer(securityContext, {
+		const txn1RspBatch1 = await aggregate.handleTransfer({
 			id: null,
 			transferId: randomUUID(),
 			payerFspId: debPartAccId,
@@ -270,7 +268,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 			timestamp: Date.now(),
 			settlementModel: 'DEF'
 		});
-		const txn2RspBatch1 = await aggregate.handleTransfer(securityContext, {
+		const txn2RspBatch1 = await aggregate.handleTransfer({
 			id: null,
 			transferId: randomUUID(),
 			payerFspId: debPartAccId,
@@ -280,7 +278,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 			timestamp: Date.now(),
 			settlementModel: 'DEF'
 		});
-		const txn3RspBatch1 = await aggregate.handleTransfer(securityContext, {
+		const txn3RspBatch1 = await aggregate.handleTransfer({
 			id: null,
 			transferId: randomUUID(),
 			payerFspId: debPartAccId,
@@ -292,7 +290,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		});
 
 		// now we have a new settlement model:
-		const txn4RspBatch2 = await aggregate.handleTransfer(securityContext, {
+		const txn4RspBatch2 = await aggregate.handleTransfer({
 			id: null,
 			transferId: randomUUID(),
 			payerFspId: debPartAccId,
@@ -361,7 +359,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 	test("test exceptions/errors responses for create transfer (validations)", async () => {
 		// Timestamp:
 		try {
-			await aggregate.handleTransfer(securityContext, {
+			await aggregate.handleTransfer({
 				id: null,
 				transferId: randomUUID(),
 				payerFspId: randomUUID(),
@@ -379,7 +377,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 
 		// Settlement Model:
 		try {
-			await aggregate.handleTransfer(securityContext, {
+			await aggregate.handleTransfer({
 				id: null,
 				transferId: randomUUID(),
 				payerFspId: randomUUID(),
@@ -397,7 +395,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 
 		// Currency Code:
 		try {
-			await aggregate.handleTransfer(securityContext, {
+			await aggregate.handleTransfer({
 				id: null,
 				transferId: randomUUID(),
 				payerFspId: randomUUID(),
@@ -415,7 +413,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 
 		// Amount:
 		try {
-			await aggregate.handleTransfer(securityContext, {
+			await aggregate.handleTransfer({
 				id: null,
 				transferId: randomUUID(),
 				payerFspId: randomUUID(),
@@ -433,7 +431,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 
 		// Transfer ID:
 		try {
-			await aggregate.handleTransfer(securityContext, {
+			await aggregate.handleTransfer({
 				id: null,
 				transferId: '',
 				payerFspId: randomUUID(),
@@ -451,7 +449,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 
 		// Debit Account ID:
 		try {
-			await aggregate.handleTransfer(securityContext, {
+			await aggregate.handleTransfer({
 				id: null,
 				transferId: randomUUID(),
 				payerFspId: '',
@@ -470,7 +468,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 
 		// Credit Account ID:
 		try {
-			await aggregate.handleTransfer(securityContext, {
+			await aggregate.handleTransfer({
 				id: null,
 				transferId: randomUUID(),
 				payerFspId: randomUUID(),
@@ -489,7 +487,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 
 		// Invalid Currency ID (not mapped):
 		try {
-			await aggregate.handleTransfer(securityContext, {
+			await aggregate.handleTransfer({
 				id: null,
 				transferId: randomUUID(),
 				payerFspId: randomUUID(),
@@ -507,7 +505,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 
 		// Invalid Amount (non decimal):
 		try {
-			await aggregate.handleTransfer(securityContext, {
+			await aggregate.handleTransfer({
 				id: null,
 				transferId: randomUUID(),
 				payerFspId: randomUUID(),
@@ -525,7 +523,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 
 		// Invalid Amount (0):
 		try {
-			await aggregate.handleTransfer(securityContext, {
+			await aggregate.handleTransfer({
 					id: null,
 					transferId: randomUUID(),
 					payerFspId: randomUUID(),
@@ -553,13 +551,12 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 			timestamp: Date.now(),
 			settlementModel: 'FX'
 		};
-		const batchId: string = await aggregate.handleTransfer(securityContext, reqTransferDto);
+		const batchId: string = await aggregate.handleTransfer(reqTransferDto);
 		expect(batchId).toBeDefined();
 
 		const dateTo = Date.now();
 		const dateFrom = dateTo - 5000;
 		const matrixId = await aggregate.createDynamicSettlementMatrix(
-			securityContext,
 			null, // matrix-id
 			reqTransferDto.settlementModel,
 			[reqTransferDto.currencyCode],
@@ -572,7 +569,6 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		// not allowed to create matrix using the same id.
 		try {
 			await aggregate.createDynamicSettlementMatrix(
-				securityContext,
 				matrixId,
 				reqTransferDto.settlementModel,
 				[reqTransferDto.currencyCode],
@@ -610,16 +606,16 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		expect(matrix!.generationDurationSecs).toBeGreaterThan(-1);
 
 		// close the matrix:
-		await aggregate.closeSettlementMatrix(securityContext, matrixId);
+		await aggregate.closeSettlementMatrix(matrixId);
 		const matrixClosed = await settleMatrixReqRepo.getMatrixById(matrixId);
 		expect(matrixClosed).toBeDefined();
 		expect(matrixClosed!.id).toEqual(matrixId);
 		expect(matrixClosed!.state).toEqual('IDLE');
 
 		// lock the matrix:
-		await aggregate.lockSettlementMatrixForAwaitingSettlement(securityContext, matrixId);
+		await aggregate.lockSettlementMatrixForAwaitingSettlement(matrixId);
 		// settle the matrix:
-		await aggregate.settleSettlementMatrix(securityContext, matrixId);
+		await aggregate.settleSettlementMatrix(matrixId);
 		const matrixSettled = await settleMatrixReqRepo.getMatrixById(matrixId);
 		expect(matrixSettled).toBeDefined();
 		expect(matrixSettled!.id).toEqual(matrixId);
@@ -637,11 +633,10 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 			timestamp: Date.now(),
 			settlementModel: 'REMITTANCE'
 		};
-		await aggregate.handleTransfer(securityContext, reqTransferDto);
+		await aggregate.handleTransfer(reqTransferDto);
 
 		// request a Settlement Matrix, which will be used to execute the matrix on.
 		const matrixId = await aggregate.createDynamicSettlementMatrix(
-			securityContext,
 			null, // matrix-id
 			reqTransferDto.settlementModel,
 			[reqTransferDto.currencyCode],
@@ -657,9 +652,9 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		expect(matrix!.state).toEqual('IDLE');
 
 		// lock the matrix:
-		await aggregate.lockSettlementMatrixForAwaitingSettlement(securityContext, matrixId);
+		await aggregate.lockSettlementMatrixForAwaitingSettlement(matrixId);
 		// execute the matrix:
-		await aggregate.settleSettlementMatrix(securityContext, matrixId);
+		await aggregate.settleSettlementMatrix(matrixId);
 		const matrixClosed = await settleMatrixReqRepo.getMatrixById(matrixId);
 		expect(matrixClosed).toBeDefined();
 		expect(matrixClosed!.id).toEqual(matrixId);
@@ -667,7 +662,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 
 		// ensure the 2nd execute generates an error (SettlementMatrixRequestClosedError):
 		try {
-			await aggregate.settleSettlementMatrix(securityContext, matrixId);
+			await aggregate.settleSettlementMatrix(matrixId);
 			fail('Expected to throw error!');
 		} catch (err :any) {
 			expect(err).toBeDefined();
@@ -678,7 +673,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		// ensure an invalid id generates an error (SettlementMatrixRequestClosedError):
 		const invalidMatrixId = randomUUID();
 		try {
-			await aggregate.settleSettlementMatrix(securityContext, invalidMatrixId);
+			await aggregate.settleSettlementMatrix(invalidMatrixId);
 			fail('Expected to throw error!');
 		} catch (err :any) {
 			expect(err).toBeDefined();
@@ -698,12 +693,11 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 			timestamp: Date.now(),
 			settlementModel: 'SEQ_TEST'
 		};
-		const batchId = await aggregate.handleTransfer(securityContext, reqTransferDto);
+		const batchId = await aggregate.handleTransfer(reqTransferDto);
 		expect(batchId).toBeDefined();
 
 		// Request a Settlement Matrix, which will be used to execute the matrix on.
 		const matrixId = await aggregate.createDynamicSettlementMatrix(
-			securityContext,
 			null, //matrix-id
 			reqTransferDto.settlementModel,
 			[reqTransferDto.currencyCode],
@@ -719,14 +713,14 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		expect(matrix!.state).toEqual('IDLE');
 
 		// lock the matrix for settlement:
-		await aggregate.lockSettlementMatrixForAwaitingSettlement(securityContext, matrixId);
+		await aggregate.lockSettlementMatrixForAwaitingSettlement(matrixId);
 		const matrixLocked = await settleMatrixReqRepo.getMatrixById(matrixId);
 		expect(matrixLocked).toBeDefined();
 		expect(matrixLocked!.id).toEqual(matrixId);
 		expect(matrixLocked!.state).toEqual('LOCKED');
 
 		// execute the matrix:
-		await aggregate.settleSettlementMatrix(securityContext, matrixId);
+		await aggregate.settleSettlementMatrix(matrixId);
 		// ensure the batch has been closed:
 		const matrixClosed = await settleMatrixReqRepo.getMatrixById(matrixId);
 		expect(matrixClosed).toBeDefined();
@@ -734,7 +728,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		expect(matrixClosed!.state).toEqual('FINALIZED');
 
 		// create another Transfer:
-		const newBatchId = await aggregate.handleTransfer(securityContext, reqTransferDto);
+		const newBatchId = await aggregate.handleTransfer(reqTransferDto);
 		expect(newBatchId).toBeDefined();
 		expect(newBatchId === batchId).toEqual(false);
 
@@ -758,7 +752,6 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 			expect(batch.batchSequence).toEqual(2);
 		}
 
-		//const batchesByName = await aggregate.getSettlementBatchesByName(securityContext, batches[0].batchName);
 		const batchesByName = await settleBatchRepo.getBatchesByName(batches.items[0].batchName)
 		expect(batchesByName).toBeDefined();
 		expect(batches.items.length).toEqual(2);
@@ -770,7 +763,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		const currency = 'ZAR';
 		const payer = 'deb-acc';
 		const payee = 'cred-acc';
-		const batchId = await aggregate.handleTransfer(securityContext, {
+		const batchId = await aggregate.handleTransfer({
 			id: null,
 			transferId: randomUUID(),
 			payerFspId: payer,
@@ -783,7 +776,6 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		expect(batchId).toBeDefined();
 
 		const matrixId = await aggregate.createDynamicSettlementMatrix(
-			securityContext,
 			null, //matrix-id
 			settleModel,
 			[currency],
@@ -794,12 +786,12 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		expect(matrixId).toBeDefined();
 
 		// lock:
-		await aggregate.lockSettlementMatrixForAwaitingSettlement(securityContext, matrixId);
+		await aggregate.lockSettlementMatrixForAwaitingSettlement(matrixId);
 		// settle:
-		await aggregate.settleSettlementMatrix(securityContext, matrixId);
+		await aggregate.settleSettlementMatrix(matrixId);
 
 		// New Transfer under a new batch but same participants:
-		const batchId2 = await aggregate.handleTransfer(securityContext, {
+		const batchId2 = await aggregate.handleTransfer({
 			id: null,
 			transferId: randomUUID(),
 			payerFspId: payer,
@@ -859,7 +851,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 			msgOffset: null,
 			msgName: ""
 		};
-		const batchId = await aggregate.processTransferCmd(securityContext, reqTransferCmd);
+		const batchId = await aggregate.processTransferCmd(reqTransferCmd);
 		expect(batchId).toBeDefined();
 
 		const results = await settleTransferRepo.getBatchTransfersByBatchIds([batchId]);
@@ -881,7 +873,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 	test("matrix re-calculate logic", async () => {
 		const settleModel = 'RE-CALC';
 		const currency = 'ZAR';
-		const batchId = await aggregate.handleTransfer(securityContext, {
+		const batchId = await aggregate.handleTransfer({
 			id: null,
 			transferId: randomUUID(),
 			payerFspId: randomUUID(),
@@ -894,7 +886,6 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		expect(batchId).toBeDefined();
 
 		const matrixId = await aggregate.createDynamicSettlementMatrix(
-			securityContext,
 			null, //matrix-id
 			settleModel,
 			[currency],
@@ -904,7 +895,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		);
 		expect(matrixId).toBeDefined();
 
-		await aggregate.recalculateSettlementMatrix(securityContext, matrixId);
+		await aggregate.recalculateSettlementMatrix(matrixId);
 		const matrixIdle = await settleMatrixReqRepo.getMatrixById(matrixId);
 		expect(matrixIdle).toBeDefined();
 		expect(matrixIdle!.id).toEqual(matrixId);
@@ -912,7 +903,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		expect(matrixIdle!.balancesByParticipant.length).toEqual(2);
 
 		// 2nd transfer with new participants:
-		await aggregate.handleTransfer(securityContext, {
+		await aggregate.handleTransfer({
 			id: null,
 			transferId: randomUUID(),
 			payerFspId: randomUUID(),
@@ -922,7 +913,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 			timestamp: Date.now(),
 			settlementModel: settleModel
 		});
-		await aggregate.recalculateSettlementMatrix(securityContext, matrixId);
+		await aggregate.recalculateSettlementMatrix(matrixId);
 		const matrixIdleUpdated = await settleMatrixReqRepo.getMatrixById(matrixId);
 		expect(matrixIdleUpdated).toBeDefined();
 		expect(matrixIdleUpdated!.id).toEqual(matrixId);
@@ -946,12 +937,11 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 			timestamp: Date.now(),
 			settlementModel: 'DISPUTE-ME'
 		};
-		const batchId: string = await aggregate.handleTransfer(securityContext, reqTransferDto);
+		const batchId: string = await aggregate.handleTransfer(reqTransferDto);
 		expect(batchId).toBeDefined();
 
 		// dispute the one and only batch:
 		const matrixIdDisp = await aggregate.createStaticSettlementMatrix(
-			securityContext,
 			null, // matrix-id
 			[batchId]
 		);
@@ -959,7 +949,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 
 		// not allowed to create a duplicate static matrix:
 		try {
-			await aggregate.createStaticSettlementMatrix(securityContext, matrixIdDisp, [batchId]);
+			await aggregate.createStaticSettlementMatrix(matrixIdDisp, [batchId]);
 			fail('Expected to throw error!');
 		} catch (err: any) {
 			expect(err).toBeDefined();
@@ -968,7 +958,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		}
 
 		// dispute the static matrix:
-		await aggregate.disputeSettlementMatrix(securityContext, matrixIdDisp);
+		await aggregate.disputeSettlementMatrix(matrixIdDisp);
 
 		let matrixDisp = await settleMatrixReqRepo.getMatrixById(matrixIdDisp);
 		expect(matrixDisp).toBeDefined();
@@ -996,7 +986,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		expect(matrixDisp!.balancesByParticipant[1].currencyCode).toEqual("EUR");
 		expect(matrixDisp!.balancesByParticipant[1].state).toEqual("OPEN");
 
-		await aggregate.recalculateSettlementMatrix(securityContext, matrixIdDisp);
+		await aggregate.recalculateSettlementMatrix(matrixIdDisp);
 		matrixDisp = await settleMatrixReqRepo.getMatrixById(matrixIdDisp);
 		expect(matrixDisp).toBeDefined();
 		expect(matrixDisp!.id).toEqual(matrixIdDisp);
@@ -1024,7 +1014,6 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 
 		// now let's create a matrix with the disputed batch:
 		const matrixId = await aggregate.createDynamicSettlementMatrix(
-			securityContext,
 			null, //matrix-id
 			reqTransferDto.settlementModel,
 			[reqTransferDto.currencyCode],
@@ -1041,11 +1030,10 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 
 		// remove the batch from dispute and re-calculate the matrix:
 		const matrixIdUnDispute = await aggregate.createStaticSettlementMatrix(
-			securityContext,
 			null, //matrix-id
 			[batchId]
 		);
-		await aggregate.closeSettlementMatrix(securityContext, matrixIdUnDispute);
+		await aggregate.closeSettlementMatrix(matrixIdUnDispute);
 
 		expect(matrixIdUnDispute).toBeDefined();
 		const matrixUnDispute = await settleMatrixReqRepo.getMatrixById(matrixIdUnDispute);
@@ -1062,7 +1050,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 
 		// not allowed to create a duplicate close specific matrix:
 		try {
-			await aggregate.createStaticSettlementMatrix(securityContext, matrixIdUnDispute, [batchId]);
+			await aggregate.createStaticSettlementMatrix(matrixIdUnDispute, [batchId]);
 			fail('Expected to throw error!');
 		} catch (err: any) {
 			expect(err).toBeDefined();
@@ -1082,17 +1070,16 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 			timestamp: Date.now(),
 			settlementModel: 'ADD-REMOVE-BATCHES-ME'
 		};
-		const batchId01: string = await aggregate.handleTransfer(securityContext, reqTransferDto);
+		const batchId01: string = await aggregate.handleTransfer(reqTransferDto);
 		expect(batchId01).toBeDefined();
 		reqTransferDto.transferId = randomUUID()
 		reqTransferDto.timestamp += 1_000_000_0
-		const batchId02: string = await aggregate.handleTransfer(securityContext, reqTransferDto);
+		const batchId02: string = await aggregate.handleTransfer(reqTransferDto);
 		expect(batchId02).toBeDefined();
 		expect(batchId01 === batchId02).toEqual(false);
 
 		// Dispute the one and only batch:
 		const matrixId = await aggregate.createStaticSettlementMatrix(
-			securityContext,
 			null, // matrix-id
 			[batchId01]
 		);
@@ -1104,7 +1091,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		expect(matrix01!.batches.length).toEqual(1);
 
 		// Add the 2nd batch:
-		await aggregate.addBatchesToStaticSettlementMatrix(securityContext, matrixId, [batchId02]);
+		await aggregate.addBatchesToStaticSettlementMatrix(matrixId, [batchId02]);
 
 		matrix01 = await settleMatrixReqRepo.getMatrixById(matrixId);
 		expect(matrix01).toBeDefined();
@@ -1112,7 +1099,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		expect(matrix01!.batches.length).toEqual(2);
 
 		// Remove the 2nd batch:
-		await aggregate.removeBatchesFromStaticSettlementMatrix(securityContext, matrixId, [batchId02]);
+		await aggregate.removeBatchesFromStaticSettlementMatrix(matrixId, [batchId02]);
 		matrix01 = await settleMatrixReqRepo.getMatrixById(matrixId);
 		expect(matrix01).toBeDefined();
 		expect(matrix01!.id).toEqual(matrixId);
@@ -1130,7 +1117,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 			timestamp: Date.now(),
 			settlementModel: 'DISPUTE-ME'
 		};
-		const batchId: string = await aggregate.handleTransfer(securityContext, reqTransferDto);
+		const batchId: string = await aggregate.handleTransfer(reqTransferDto);
 		expect(batchId).toBeDefined();
 
 		const reqTransferDto2: ITransferDto = {
@@ -1143,12 +1130,11 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 			timestamp: Date.now(),
 			settlementModel: 'NO-DISPUTE'
 		};
-		const batchId2: string = await aggregate.handleTransfer(securityContext, reqTransferDto2);
+		const batchId2: string = await aggregate.handleTransfer(reqTransferDto2);
 		expect(batchId2).toBeDefined();
 
 		// Create a settlement matrix with batches:
 		const matrixIdDisp = await aggregate.createStaticSettlementMatrix(
-			securityContext,
 			null, // matrix-id
 			[batchId, batchId2]
 		);
@@ -1183,7 +1169,6 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 
 		// Create another settlement matrix with first batch:
 		const matrixIdDisp2 = await aggregate.createStaticSettlementMatrix(
-			securityContext,
 			null, // matrix-id
 			[batchId]
 		);
@@ -1218,7 +1203,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		expect(matrixDisp2!.balancesByParticipant[1].state).toEqual("OPEN");
 
 		// Dispute the matrix:
-		await aggregate.disputeSettlementMatrix(securityContext, matrixIdDisp2);
+		await aggregate.disputeSettlementMatrix(matrixIdDisp2);
 
 		// Verify disputed batch:
 		const batchDisp = await settleBatchRepo.getBatch(batchId);
@@ -1255,7 +1240,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		expect(matrixDisp2!.balancesByParticipant[1].currencyCode).toEqual("EUR");
 		expect(matrixDisp2!.balancesByParticipant[1].state).toEqual("OPEN");
 		
-		await aggregate.recalculateSettlementMatrix(securityContext, matrixIdDisp2);
+		await aggregate.recalculateSettlementMatrix(matrixIdDisp2);
 
 		// Verify matrix2 after re-calculate:
 		matrixDisp2 = await settleMatrixReqRepo.getMatrixById(matrixIdDisp2);
@@ -1266,7 +1251,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		expect(matrixDisp2!.balancesByParticipant.length).toEqual(2);
 
 		// Verify matrix1 again:
-		await aggregate.recalculateSettlementMatrix(securityContext, matrixIdDisp);
+		await aggregate.recalculateSettlementMatrix(matrixIdDisp);
 
 		matrixDisp = await settleMatrixReqRepo.getMatrixById(matrixIdDisp);
 		// Verify before settlement:
@@ -1277,8 +1262,8 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		expect(matrixDisp!.balancesByParticipant.length).toEqual(4);
 		
 		// Settle matrix1:
-		await aggregate.lockSettlementMatrixForAwaitingSettlement(securityContext, matrixIdDisp);
-		await aggregate.settleSettlementMatrix(securityContext, matrixIdDisp);
+		await aggregate.lockSettlementMatrixForAwaitingSettlement(matrixIdDisp);
+		await aggregate.settleSettlementMatrix(matrixIdDisp);
 
 		matrixDisp = await settleMatrixReqRepo.getMatrixById(matrixIdDisp);
 		//check the settled matrix1 again
@@ -1329,7 +1314,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 			timestamp: Date.now(),
 			settlementModel: 'BAL-TEST'
 		};
-		const batchId: string = await aggregate.handleTransfer(securityContext, reqTransferDto);
+		const batchId: string = await aggregate.handleTransfer(reqTransferDto);
 		expect(batchId).toBeDefined();
 
 		const payerTxn2and3 = randomUUID();
@@ -1344,7 +1329,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 			timestamp: Date.now(),
 			settlementModel: 'BAL-TEST'
 		};
-		const batchId2: string = await aggregate.handleTransfer(securityContext, reqTransferDto2);
+		const batchId2: string = await aggregate.handleTransfer(reqTransferDto2);
 		expect(batchId2).toBeDefined();
 		expect(batchId).toEqual(batchId2);
 
@@ -1358,13 +1343,12 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 			timestamp: Date.now(),
 			settlementModel: 'BAL-TEST'
 		};
-		const batchId3: string = await aggregate.handleTransfer(securityContext, reqTransferDto3);
+		const batchId3: string = await aggregate.handleTransfer(reqTransferDto3);
 		expect(batchId3).toBeDefined();
 		expect(batchId2).toEqual(batchId3);
 
 		// Create a settlement matrix with batches:
 		const matrixIdDisp = await aggregate.createStaticSettlementMatrix(
-			securityContext,
 			null, // matrix-id
 			[batchId]
 		);
@@ -1434,28 +1418,27 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 			timestamp: Date.now(),
 			settlementModel: 'AWAIT-ME'
 		};
-		const batchId: string = await aggregate.handleTransfer(securityContext, reqTransferDto);
+		const batchId: string = await aggregate.handleTransfer(reqTransferDto);
 		expect(batchId).toBeDefined();
 
 		// create a settlement matrix with batches:
 		const matrixIdLock = await aggregate.createStaticSettlementMatrix(
-			securityContext,
+
 			null, // matrix-id
 			[batchId]
 		);
 		expect(matrixIdLock).toBeDefined();
 		// lock the matrix:
-		await aggregate.lockSettlementMatrixForAwaitingSettlement(securityContext, matrixIdLock);
+		await aggregate.lockSettlementMatrixForAwaitingSettlement(matrixIdLock);
 
 		const matrixIdNoLock = await aggregate.createStaticSettlementMatrix(
-			securityContext,
 			null, // matrix-id
 			[batchId]
 		);
 		expect(matrixIdNoLock).toBeDefined();
 
 		// attempt to lock the batch for matrix [matrixIdNoLock, which is already locked by matrixIdLock]:
-		await aggregate.lockSettlementMatrixForAwaitingSettlement(securityContext, matrixIdNoLock);
+		await aggregate.lockSettlementMatrixForAwaitingSettlement(matrixIdNoLock);
 
 		// ensure matrix [matrixIdLock] has the lock:
 		let awaitSettleByBatch = await settleBatchRepo.getBatch(batchId);
@@ -1465,7 +1448,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		expect(awaitSettleByBatch!.state).toEqual('AWAITING_SETTLEMENT');
 
 		// release the lock from the wrong matrix id [matrixIdNoLock]:
-		await aggregate.unLockSettlementMatrixFromAwaitingSettlement(securityContext, matrixIdNoLock);
+		await aggregate.unLockSettlementMatrixFromAwaitingSettlement(matrixIdNoLock);
 		// ensure the lock is still on the initial batch:
 		awaitSettleByBatch = await settleBatchRepo.getBatch(batchId);
 		expect(awaitSettleByBatch).toBeDefined();
@@ -1482,12 +1465,12 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		expect(matrixLocked!.batches.length).toEqual(1);
 
 		// release the lock from the correct matrix:
-		await aggregate.unLockSettlementMatrixFromAwaitingSettlement(securityContext, matrixIdLock);
+		await aggregate.unLockSettlementMatrixFromAwaitingSettlement(matrixIdLock);
 		// lock should now be released:
 		awaitSettleByBatch = await settleBatchRepo.getBatch(batchId);
 		expect(awaitSettleByBatch!.ownerMatrixId).toBeNull();
 		// lock by matrix [matrixIdNoLock]
-		await aggregate.lockSettlementMatrixForAwaitingSettlement(securityContext, matrixIdNoLock);
+		await aggregate.lockSettlementMatrixForAwaitingSettlement(matrixIdNoLock);
 		awaitSettleByBatch = await settleBatchRepo.getBatch(batchId);
 		expect(awaitSettleByBatch).toBeDefined();
 		expect(awaitSettleByBatch!.ownerMatrixId).toEqual(matrixIdNoLock);
@@ -1503,7 +1486,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		expect(matrixNoLock!.balancesByParticipant.length).toEqual(2);
 		expect(matrixNoLock!.batches.length).toEqual(1);
 
-		await aggregate.settleSettlementMatrix(securityContext, matrixIdNoLock);
+		await aggregate.settleSettlementMatrix(matrixIdNoLock);
 		matrixNoLock = await settleMatrixReqRepo.getMatrixById(matrixIdNoLock);
 		expect(matrixNoLock).toBeDefined();
 		expect(matrixNoLock!.id).toEqual(matrixIdNoLock);
@@ -1526,7 +1509,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 			timestamp: Date.now(),
 			settlementModel: 'STATE_MACHINE'
 		};
-		const batchId: string = await aggregate.handleTransfer(securityContext, reqTransferDto);
+		const batchId: string = await aggregate.handleTransfer(reqTransferDto);
 		expect(batchId).toBeDefined();
 
 		// initial state for a batch is [OPEN]:
@@ -1537,7 +1520,6 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 
 		// create a settlement matrix with batches:
 		let matrixId = await aggregate.createStaticSettlementMatrix(
-			securityContext,
 			null, // matrix-id
 			[batchId]
 		);
@@ -1550,7 +1532,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		// At this point, more transactions may be added to the batch, because the batch status is OPEN.
 
 		// close:
-		await aggregate.closeSettlementMatrix(securityContext, matrixId);
+		await aggregate.closeSettlementMatrix(matrixId);
 		// At this point, no more transactions will be allocated to the closed batch.
 		// A new batch will be created to allocate "late" transfers to.
 		batch = await settleBatchRepo.getBatch(batchId);
@@ -1559,28 +1541,28 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		expect(batch!.state).toEqual('CLOSED');
 
 		// dispute:
-		await aggregate.disputeSettlementMatrix(securityContext, matrixId);
+		await aggregate.disputeSettlementMatrix(matrixId);
 		batch = await settleBatchRepo.getBatch(batchId);
 		expect(batch).toBeDefined();
 		expect(batch!.id).toEqual(batchId);
 		expect(batch!.state).toEqual('DISPUTED');
 
 		// close again:
-		await aggregate.closeSettlementMatrix(securityContext, matrixId);
+		await aggregate.closeSettlementMatrix(matrixId);
 		batch = await settleBatchRepo.getBatch(batchId);
 		expect(batch).toBeDefined();
 		expect(batch!.id).toEqual(batchId);
 		expect(batch!.state).toEqual('CLOSED');
 
 		// lock settlement:
-		await aggregate.lockSettlementMatrixForAwaitingSettlement(securityContext, matrixId);
+		await aggregate.lockSettlementMatrixForAwaitingSettlement(matrixId);
 		batch = await settleBatchRepo.getBatch(batchId);
 		expect(batch).toBeDefined();
 		expect(batch!.id).toEqual(batchId);
 		expect(batch!.state).toEqual('AWAITING_SETTLEMENT');
 
 		// unlock settlement:
-		await aggregate.unLockSettlementMatrixFromAwaitingSettlement(securityContext, matrixId);
+		await aggregate.unLockSettlementMatrixFromAwaitingSettlement(matrixId);
 		batch = await settleBatchRepo.getBatch(batchId);
 		expect(batch).toBeDefined();
 		expect(batch!.id).toEqual(batchId);
@@ -1588,7 +1570,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 
 		// settle settlement, but it won't be settled since it is not yet locked:
 		try {
-			await aggregate.settleSettlementMatrix(securityContext, matrixId);
+			await aggregate.settleSettlementMatrix(matrixId);
 			fail('Expected to throw error!');
 		} catch (err: any) {
 			expect(err).toBeDefined();
@@ -1602,13 +1584,12 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		expect(batch!.state).toEqual('CLOSED');
 		// now we lock the batches via the matrix in order to settle the matrix, but we need a new matrix:
 		matrixId = await aggregate.createStaticSettlementMatrix(
-			securityContext,
 			null, // matrix-id
 			[batchId]
 		);
 		expect(matrixId).toBeDefined();
-		await aggregate.lockSettlementMatrixForAwaitingSettlement(securityContext, matrixId);
-		await aggregate.settleSettlementMatrix(securityContext, matrixId);
+		await aggregate.lockSettlementMatrixForAwaitingSettlement(matrixId);
+		await aggregate.settleSettlementMatrix(matrixId);
 		batch = await settleBatchRepo.getBatch(batchId);
 		expect(batch).toBeDefined();
 		expect(batch!.id).toEqual(batchId);
@@ -1631,7 +1612,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 			timestamp: Date.now(),
 			settlementModel: 'STATE_MACHINE_SETTLE'
 		};
-		const batchId: string = await aggregate.handleTransfer(securityContext, reqTransferDto);
+		const batchId: string = await aggregate.handleTransfer(reqTransferDto);
 		expect(batchId).toBeDefined();
 
 		// initial state for a batch is [OPEN]:
@@ -1642,7 +1623,6 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 
 		// create a settlement matrix with batches:
 		let matrixId = await aggregate.createStaticSettlementMatrix(
-			securityContext,
 			null, // matrix-id
 			[batchId]
 		);
@@ -1650,7 +1630,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 
 		// settle an open batch, which should fail:
 		try {
-			await aggregate.settleSettlementMatrix(securityContext, matrixId);
+			await aggregate.settleSettlementMatrix(matrixId);
 			fail('Expected to throw error!');
 		} catch (err: any) {
 			expect(err).toBeDefined();
@@ -1669,19 +1649,18 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 
 		// close and try to settle, the batch should be moved to closed:
 		matrixId = await aggregate.createStaticSettlementMatrix(
-			securityContext,
 			null, // matrix-id
 			[batchId]
 		);
 		expect(matrixId).toBeDefined();
-		await aggregate.closeSettlementMatrix(securityContext, matrixId);
+		await aggregate.closeSettlementMatrix(matrixId);
 		batch = await settleBatchRepo.getBatch(batchId);
 		expect(batch).toBeDefined();
 		expect(batch!.id).toEqual(batchId);
 		expect(batch!.state).toEqual('CLOSED');
 
 		// dispute the batch and try to settle:
-		await aggregate.disputeSettlementMatrix(securityContext, matrixId);
+		await aggregate.disputeSettlementMatrix(matrixId);
 		batch = await settleBatchRepo.getBatch(batchId);
 		expect(batch).toBeDefined();
 		expect(batch!.id).toEqual(batchId);
@@ -1699,7 +1678,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 			timestamp: Date.now(),
 			settlementModel: 'STATE_MACHINE_LOCKED'
 		};
-		const batchId: string = await aggregate.handleTransfer(securityContext, reqTransferDto);
+		const batchId: string = await aggregate.handleTransfer(reqTransferDto);
 		expect(batchId).toBeDefined();
 
 		// Initial state for a batch is [OPEN]:
@@ -1710,14 +1689,13 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 
 		// Create a settlement matrix with batches:
 		const matrixId = await aggregate.createStaticSettlementMatrix(
-			securityContext,
 			null, // matrix-id
 			[batchId]
 		);
 		expect(matrixId).toBeDefined();
 
 		// lock the batch for the matrix:
-		await aggregate.lockSettlementMatrixForAwaitingSettlement(securityContext, matrixId);
+		await aggregate.lockSettlementMatrixForAwaitingSettlement(matrixId);
 		batch = await settleBatchRepo.getBatch(batchId);
 		expect(batch).toBeDefined();
 		expect(batch!.id).toEqual(batchId);
@@ -1726,14 +1704,13 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 
 		// create another matrix and try to lock the batch:
 		const otherMatrixId = await aggregate.createStaticSettlementMatrix(
-			securityContext,
 			null, // matrix-id
 			[batchId]
 		);
 		expect(otherMatrixId).toBeDefined();
 
 		// attempt to lock the matrix with the new matrix-id:
-		await aggregate.lockSettlementMatrixForAwaitingSettlement(securityContext, otherMatrixId);
+		await aggregate.lockSettlementMatrixForAwaitingSettlement(otherMatrixId);
 		batch = await settleBatchRepo.getBatch(batchId);
 		expect(batch).toBeDefined();
 		expect(batch!.id).toEqual(batchId);
@@ -1742,7 +1719,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 
 
 		// settle using the original matrix-id:
-		await aggregate.settleSettlementMatrix(securityContext, matrixId);
+		await aggregate.settleSettlementMatrix(matrixId);
 		batch = await settleBatchRepo.getBatch(batchId);
 		expect(batch).toBeDefined();
 		expect(batch!.id).toEqual(batchId);
@@ -1760,7 +1737,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 			timestamp: Date.now(),
 			settlementModel: 'OUT_OF_SYNC_TEST'
 		};
-		const batchId: string = await aggregate.handleTransfer(securityContext, reqTransferDto);
+		const batchId: string = await aggregate.handleTransfer(reqTransferDto);
 		expect(batchId).toBeDefined();
 
 		// Initial state for a batch is [OPEN]:
@@ -1771,7 +1748,6 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 
 		// Create a settlement matrix with batch:
 		const matrixId1 = await aggregate.createStaticSettlementMatrix(
-			securityContext,
 			null, // matrix-id
 			[batchId]
 		);
@@ -1789,7 +1765,6 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 
 		// Create another settlement matrix with batch:
 		const matrixId2 = await aggregate.createStaticSettlementMatrix(
-			securityContext,
 			null, // matrix-id
 			[batchId]
 		);
@@ -1820,7 +1795,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 			timestamp: Date.now(),
 			settlementModel: 'MULTI_CURRENCY'
 		};
-		const batchId_1: string = await aggregate.handleTransfer(securityContext, reqTransferDto_1);
+		const batchId_1: string = await aggregate.handleTransfer(reqTransferDto_1);
 		expect(batchId_1).toBeDefined();
 
 		// Initial state for a batch is [OPEN]:
@@ -1832,7 +1807,6 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		const dateTo = (Date.now() + 5000);
 		const dateFrom = (Date.now() - 5000);
 		const matrixId_1 = await aggregate.createDynamicSettlementMatrix(
-			securityContext,
 			null, // matrix-id
 			reqTransferDto_1.settlementModel,
 			['USD', 'EUR'],
@@ -1843,7 +1817,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		expect(matrixId_1).toBeDefined();
 
 		// Close the matrix:
-		await aggregate.closeSettlementMatrix(securityContext, matrixId_1);
+		await aggregate.closeSettlementMatrix(matrixId_1);
 		let matrix = await settleMatrixReqRepo.getMatrixById(matrixId_1);
 		expect(matrix).toBeDefined();
 		expect(matrix!.id).toEqual(matrixId_1);
@@ -1860,13 +1834,13 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 			timestamp: Date.now(),
 			settlementModel: 'MULTI_CURRENCY'
 		};
-		const batchId_2: string = await aggregate.handleTransfer(securityContext, reqTransferDto_2);
+		const batchId_2: string = await aggregate.handleTransfer(reqTransferDto_2);
 		expect(batchId_2).toBeDefined();
 		// Ensure the batch is allocated to another batch.
 		expect(batchId_2 !== batchId_1).toBe(true);
 
 		// Recalculate the matrix to fetch the new batch:
-		await aggregate.recalculateSettlementMatrix(securityContext, matrixId_1);
+		await aggregate.recalculateSettlementMatrix(matrixId_1);
 		matrix = await settleMatrixReqRepo.getMatrixById(matrixId_1);
 		expect(matrix).toBeDefined();
 		expect(matrix!.id).toEqual(matrixId_1);
@@ -1875,7 +1849,6 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 
 		// Create a dynamic matrix with no settlement model:
 		const matrixId_2 = await aggregate.createDynamicSettlementMatrix(
-			securityContext,
 			null, // matrix-id
 			reqTransferDto_2.settlementModel,
 			['USD', 'EUR'],
@@ -1915,7 +1888,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 			timestamp: Date.now(),
 			settlementModel: 'MULTI_MATRIX'
 		};
-		const batchId_1: string = await aggregate.handleTransfer(securityContext, reqTransferDto_1);
+		const batchId_1: string = await aggregate.handleTransfer(reqTransferDto_1);
 		expect(batchId_1).toBeDefined();
 
 		// Initial state for a batch is [OPEN]:
@@ -1925,26 +1898,24 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		expect(batch_1!.state).toEqual('OPEN');
 
 		const matrixId_1 = await aggregate.createStaticSettlementMatrix(
-			securityContext,
 			null, // matrix-id
 			[batchId_1]
 		);
 		expect(matrixId_1).toBeDefined();
 
 		// close the matrix with batch [batchId_1]:
-		await aggregate.closeSettlementMatrix(securityContext, matrixId_1);
+		await aggregate.closeSettlementMatrix(matrixId_1);
 		let matrix1 = await settleMatrixReqRepo.getMatrixById(matrixId_1);
 		expect(matrix1).toBeDefined();
 		expect(matrix1!.id).toEqual(matrixId_1);
 		expect(matrix1!.state).toEqual('IDLE');
 
-		const batchId_2: string = await aggregate.handleTransfer(securityContext, reqTransferDto_2);
+		const batchId_2: string = await aggregate.handleTransfer(reqTransferDto_2);
 		expect(batchId_2).toBeDefined();
 		expect(batchId_1).toBeDefined();
 		expect(batchId_2 === batchId_1).toEqual(false);
 
 		const matrixId_2 = await aggregate.createStaticSettlementMatrix(
-			securityContext,
 			null, // matrix-id
 			[batchId_1, batchId_2]
 		);
@@ -1956,8 +1927,8 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		expect(matrix2!.batches.length).toEqual(2);
 
 		// Settle matrix1:
-		await aggregate.lockSettlementMatrixForAwaitingSettlement(securityContext, matrixId_1);
-		await aggregate.settleSettlementMatrix(securityContext, matrixId_1);
+		await aggregate.lockSettlementMatrixForAwaitingSettlement(matrixId_1);
+		await aggregate.settleSettlementMatrix(matrixId_1);
 
 		// Ensure it has been settled:
 		batch_1 = await settleBatchRepo.getBatch(batchId_1);
@@ -1966,7 +1937,7 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		expect(batch_1!.state).toBe('SETTLED');
 
 		// Confirm status of Matrix 2:
-		await aggregate.recalculateSettlementMatrix(securityContext, matrixId_2);
+		await aggregate.recalculateSettlementMatrix(matrixId_2);
 		matrix2 = await settleMatrixReqRepo.getMatrixById(matrixId_2);
 		expect(matrix2).toBeDefined();
 		expect(matrix2!.id).toEqual(matrixId_2);
