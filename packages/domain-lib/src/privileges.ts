@@ -33,9 +33,9 @@ export enum Privileges {
 	// CREATE_SETTLEMENT_BATCH = "SETTLEMENTS_CREATE_BATCH",
 	// CREATE_SETTLEMENT_TRANSFER = "SETTLEMENTS_CREATE_TRANSFER",
 
-	CREATE_DYNAMIC_SETTLEMENT_MATRIX = "SETTLEMENTS_CREATE_DYNAMIC_MATRIX",
-	CREATE_STATIC_SETTLEMENT_MATRIX = "SETTLEMENTS_CREATE_STATIC_MATRIX",
+	CREATE_SETTLEMENT_MATRIX = "CREATE_SETTLEMENT_MATRIX",
 	CREATE_SETTLEMENT_CONFIG = "SETTLEMENTS_CREATE_MODEL",
+	VIEW_SETTLEMENT_CONFIG = "VIEW_SETTLEMENT_CONFIG",
 
 	SETTLEMENTS_CLOSE_MATRIX = "SETTLEMENTS_CLOSE_MATRIX",
 	SETTLEMENTS_SETTLE_MATRIX = "SETTLEMENTS_SETTLE_MATRIX",
@@ -46,6 +46,78 @@ export enum Privileges {
 	// TODO: separate the create matrix from recalculate
 	GET_SETTLEMENT_MATRIX = "SETTLEMENTS_GET_MATRIX",
 	RETRIEVE_SETTLEMENT_BATCH = "SETTLEMENTS_RETRIEVE_BATCH",
+	REMOVE_SETTLEMENT_MATRIX_BATCH = "REMOVE_SETTLEMENT_MATRIX_BATCH"
 	// RETRIEVE_SETTLEMENT_BATCH_ACCOUNTS = "SETTLEMENTS_RETRIEVE_BATCH_ACCOUNTS",
 	// RETRIEVE_SETTLEMENT_TRANSFERS = "SETTLEMENTS_RETRIEVE_TRANSFERS"
 }
+
+
+export const SettlementPrivilegesDefinition = [
+    {
+        privId: Privileges.CREATE_SETTLEMENT_MATRIX,
+        labelName: "Create Settlement Matrix",
+        description: "Allows the creation of a dynamic settlement matrix."
+    },
+
+	{
+        privId: Privileges.CREATE_SETTLEMENT_CONFIG,
+        labelName: "Create Settlement Model",
+        description: "Allows the creation of settlement model."
+    },
+
+	{
+        privId: Privileges.VIEW_SETTLEMENT_CONFIG,
+        labelName: "View Settlement Model",
+        description: "Allows the retrievel of settlement model."
+    },
+
+	{
+        privId: Privileges.SETTLEMENTS_CLOSE_MATRIX,
+        labelName: "Close Settlement Matrix",
+        description: "Allows the closing of a settlement matrix."
+    },
+
+	{
+        privId: Privileges.SETTLEMENTS_DISPUTE_MATRIX,
+        labelName: "Close Settlement Matrix",
+        description: "Allows the dispute of a settlement matrix."
+    },
+
+	{
+        privId: Privileges.SETTLEMENTS_SETTLE_MATRIX,
+        labelName: "Settle Matrix",
+        description: "Allows the settling of a settlement matrix."
+    },
+
+	{
+        privId: Privileges.SETTLEMENTS_LOCK_MATRIX,
+        labelName: "Lock Matrix",
+        description: "Allows the locking of a settlement matrix."
+    },
+
+	{
+        privId: Privileges.SETTLEMENTS_UNLOCK_MATRIX,
+        labelName: "Unlock Matrix",
+        description: "Allows the unlocking of a settlement matrix."
+    },
+
+	{
+        privId: Privileges.GET_SETTLEMENT_MATRIX,
+        labelName: "Get Matrix",
+        description: "Allows the retrieval of a settlement matrix request."
+    },
+
+	{
+        privId: Privileges.RETRIEVE_SETTLEMENT_BATCH,
+        labelName: "Get settlemetn batch",
+        description: "Allows the retrieval of a settlement batch."
+    },
+
+	{
+        privId: Privileges.REMOVE_SETTLEMENT_MATRIX_BATCH,
+        labelName: "Remove settlement matrix from batch",
+        description: "Allows the retrieval of a settlement batch."
+    },
+
+]
+

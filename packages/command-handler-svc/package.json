@@ -50,7 +50,7 @@
     "@mojaloop/auditing-bc-client-lib": "~0.0.15",
     "@mojaloop/platform-shared-lib-observability-types-lib": "~0.1.9",
     "@mojaloop/platform-shared-lib-observability-client-lib": "~0.1.10",
-    "express": "^4.18.2"
+    "express": "^4.18.3"
   },
   "devDependencies": {
     "@mojaloop/settlements-bc-shared-mocks-lib": "*",

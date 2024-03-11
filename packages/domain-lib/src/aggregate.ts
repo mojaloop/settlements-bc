@@ -164,7 +164,6 @@ export class SettlementsAggregate {
 		}
 		throw new ForbiddenError(`Required privilege "${privName}" not held by caller`);
 	}
-
 	private _getAuditSecurityContext(secCtx: CallSecurityContext): AuditSecurityContext {
 		if (secCtx === undefined) return {userId: 'unknown', appId: 'settlement-bc', role: ""};
 		return {
@@ -359,7 +358,6 @@ export class SettlementsAggregate {
 		cmdPayload: CreateSettlementModelCmdPayload,
 	): Promise<void> {
 		this._enforcePrivilege(secCtx, Privileges.CREATE_SETTLEMENT_CONFIG);
-
 		if (!cmdPayload) {
 			const err = new InvalidSettlementModelError("Invalid settlement model");
 			this._logger.warn(err.message);
@@ -420,7 +418,7 @@ export class SettlementsAggregate {
 		matrixId: string | null,
 		batchIds: string[]
 	): Promise<string> {
-		this._enforcePrivilege(secCtx, Privileges.CREATE_STATIC_SETTLEMENT_MATRIX);
+		this._enforcePrivilege(secCtx, Privileges.CREATE_SETTLEMENT_MATRIX);
 
 		const startTimestamp = Date.now();
 
@@ -467,7 +465,7 @@ export class SettlementsAggregate {
 		fromDate: number,
 		toDate: number
 	): Promise<string> {
-		this._enforcePrivilege(secCtx, Privileges.CREATE_DYNAMIC_SETTLEMENT_MATRIX);
+		this._enforcePrivilege(secCtx, Privileges.CREATE_SETTLEMENT_MATRIX);
 		const startTimestamp = Date.now();
 
 		const newMatrix = SettlementMatrix.CreateDynamic(
@@ -512,7 +510,7 @@ export class SettlementsAggregate {
 		matrixId: string,
 		newBatchIds: string[]
 	): Promise<void> {
-		this._enforcePrivilege(secCtx, Privileges.CREATE_STATIC_SETTLEMENT_MATRIX);
+		this._enforcePrivilege(secCtx, Privileges.CREATE_SETTLEMENT_MATRIX);
 		const startTimestamp = Date.now();
 
 		const matrixDto = await this._settlementMatrixReqRepo.getMatrixById(matrixId);
@@ -571,7 +569,7 @@ export class SettlementsAggregate {
 		matrixId: string,
 		batchIdsToRemove: string[]
 	): Promise<void> {
-		this._enforcePrivilege(secCtx, Privileges.CREATE_STATIC_SETTLEMENT_MATRIX);
+		this._enforcePrivilege(secCtx, Privileges.REMOVE_SETTLEMENT_MATRIX_BATCH);
 		const startTimestamp = Date.now();
 
 		const matrixDto = await this._settlementMatrixReqRepo.getMatrixById(matrixId);
@@ -650,7 +648,6 @@ export class SettlementsAggregate {
 
 	async recalculateSettlementMatrix(secCtx: CallSecurityContext, id: string): Promise<void> {
 		this._enforcePrivilege(secCtx, Privileges.GET_SETTLEMENT_MATRIX);
-
 		const matrixDto = await this._settlementMatrixReqRepo.getMatrixById(id);
 		if (!matrixDto) {
 			const err = new SettlementMatrixNotFoundError(`Matrix with id: ${id} not found`);
@@ -749,7 +746,6 @@ export class SettlementsAggregate {
 
 	async lockSettlementMatrixForAwaitingSettlement(secCtx: CallSecurityContext, id: string): Promise<void> {
 		this._enforcePrivilege(secCtx, Privileges.SETTLEMENTS_LOCK_MATRIX);
-
 		const matrixDto = await this._settlementMatrixReqRepo.getMatrixById(id);
 		if (!matrixDto) {
 			const err = new SettlementMatrixNotFoundError(`Matrix with id: ${id} not found`);

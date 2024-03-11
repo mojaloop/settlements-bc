@@ -59,7 +59,7 @@ const SVC_CLIENT_ID = process.env["SVC_CLIENT_ID"] || "interop-api-bc-fspiop-api
 const SVC_CLIENT_SECRET = process.env["SVC_CLIENT_SECRET"] || "superServiceSecret";
 const AUTH_N_SVC_BASEURL = process.env["AUTH_N_SVC_BASEURL"] || "http://localhost:3201";
 const AUTH_N_SVC_TOKEN_URL = AUTH_N_SVC_BASEURL + "/token"; // TODO this should not be known here, libs that use the base should add the suffix
-
+const CONFIG_BASE_URL = process.env["CONFIG_BASE_URL"] || "http://localhost:3100";
 const logger: ILogger = new ConsoleLogger();
 
 // use default url from PLATFORM_CONFIG_CENTRAL_URL env var
@@ -70,7 +70,7 @@ const messageConsumer = new MLKafkaJsonConsumer({
  kafkaBrokerList: KAFKA_URL,
  kafkaGroupId: `${APP_NAME}_${Date.now()}` // unique consumer group - use instance id when possible
 }, logger.createChild("configClient.consumer"));
-const defaultConfigProvider: DefaultConfigProvider = new DefaultConfigProvider(logger, authRequester, messageConsumer);
+const defaultConfigProvider: DefaultConfigProvider = new DefaultConfigProvider(logger, authRequester, messageConsumer,CONFIG_BASE_URL);
 
 const configClient = new ConfigurationClient(BC_NAME, APP_NAME, APP_VERSION, CONFIGSET_VERSION, defaultConfigProvider);
 export = configClient;
