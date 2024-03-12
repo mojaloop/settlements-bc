@@ -32,4 +32,6 @@ export * from "./mongo_settlement_batch_repo";
 export * from "./mongo_settlement_transfer_repo";
 export * from "./mongo_settlement_matrix_repo";
 export * from "./acc_balances_bc/grpc_acc_bal_adapter";
+export * from "./acc_balances_bc/settlement_batch_transfer_repo_tigerbeetle";
 export * from "./acc_balances_bc/tigerbeetle_acc_bal_adapter";
+export * from "./cache/settlement_batch_cache_repo_redis";

@@ -41,7 +41,6 @@ import {
 	AccountsAndBalancesAccount, AccountsAndBalancesAccountType,AccountsAndBalancesJournalEntry
 } from "@mojaloop/accounts-and-balances-bc-public-types-lib";
 
-
 export interface IAccountsBalancesAdapter {
 	init(): Promise<void>;
 	destroy(): Promise<void>;
@@ -55,16 +54,7 @@ export interface IAccountsBalancesAdapter {
 	getAccounts(accountIds: string[]): Promise<AccountsAndBalancesAccount[]>;
 	getParticipantAccounts(participantId: string): Promise<AccountsAndBalancesAccount[]>;
 
-	createJournalEntry(
-		requestedId: string,
-		ownerId: string,
-		currencyCode: string,
-		amount: string,
-		pending: boolean,
-		debitedAccountId: string,
-		creditedAccountId: string
-	): Promise<string>;
-
+	createJournalEntries(entries: AccountsAndBalancesJournalEntry[]): Promise<{id: string, errorCode: number}[]>;
 	getJournalEntriesByAccountId(accountId: string): Promise<AccountsAndBalancesJournalEntry[]>;
 }
 
@@ -128,12 +118,6 @@ export interface ISettlementBatchTransferRepo {
 	getBatchTransfers(pageIndex?: number, pageSize?: number): Promise<BatchTransferSearchResults>;
 }
 
-export interface IParticipantAccountNotifier {
-	init(): Promise<void>;
-	destroy(): Promise<void>;
-	publishSettlementMatrixExecuteEvent(matrix: ISettlementMatrix): Promise<void>;
-}
-
 export interface ISettlementMatrixRequestRepo {
 	init(): Promise<void>;
 	destroy(): Promise<void>;
@@ -152,4 +136,20 @@ export interface ISettlementMatrixRequestRepo {
 	): Promise<MatrixSearchResults>;
 
 	getIdleMatricesWithBatchId(batchId: string): Promise<ISettlementMatrix[]>;
+}
+
+export interface ISettlementConfigCacheRepo {
+	init(): Promise<void>;
+	destroy(): Promise<void>;
+	invalidate(settlementModel: string): Promise<void>;
+	set(config: ISettlementConfig): Promise<void>;
+	get(settlementModel: string): Promise<ISettlementConfig | null | undefined>;
+}
+
+export interface ISettlementBatchCacheRepo {
+	init(): Promise<void>;
+	destroy(): Promise<void>;
+	invalidate(batchName: string): Promise<void>;
+	set(batchName: string, batchResult: BatchSearchResults): Promise<void>;
+	get(batchName: string): Promise<BatchSearchResults | null | undefined>;
 }

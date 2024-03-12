@@ -1,0 +1,985 @@
+openapi: 3.0.3
+info:
+  title: Mojaloop Settlement BC
+  description: |-
+    The Mojaloop Settlement BC is a REST API.
+    All resource and collection resource representations use JSON and the media-type `application/json`.
+    Access to resources and permission to execute the methods exposed by the API is determined by the grants given to the client represented by an access token used in API requests.
+
+  termsOfService: https://mojaloop.io/terms-of-use/
+  contact:
+    email: jason@interledger.org
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  version: '1.0'
+externalDocs:
+  description: Find out more about Mojaloop
+  url: https://mojaloop.io/
+servers:
+  - url: https://mojaloop.io/
+tags:
+  - name: settlement-transfer
+    description: Settlement-transfer related operations
+  - name: settlement-model
+    description: Settlement model related operations
+  - name: settlement-batch
+    description: Settlement batch related operations
+  - name: settlement-matrix
+    description: Settlement matrix related operations
+paths:
+  /transfers:
+    get:
+      tags:
+        - settlement-transfer
+      summary: Retrieve settlement transfers.
+      description: Retrieve an existing Mojaloop settlement transfer.
+      operationId: retrieveTransfer
+      parameters:
+        - name: batchId
+          in: query
+          description: 'Batch unique identifier.'
+          required: false
+          schema:
+            type: string
+        - name: batchName
+          in: query
+          description: 'Batch name.'
+          required: false
+          schema:
+            type: string
+        - name: transferId
+          in: query
+          description: 'Settlement transfer unique identifier.'
+          required: false
+          schema:
+            type: string
+        - name: matrixid
+          in: query
+          description: 'Settlement matrix unique identifier.'
+          required: false
+          schema:
+            type: string
+        - name: pageIndex
+          in: query
+          description: 'The page index for the search result.'
+          required: false
+          schema:
+            type: number
+        - name: pageSize
+          in: query
+          description: 'The number of max results to return for the lookup.'
+          required: false
+          schema:
+            type: number
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/BatchTransferSearchResults'
+        '404':
+          description: No results.
+        '500':
+          description: Server error
+  /models/{id}:
+    get:
+      tags:
+        - settlement-model
+      summary: Retrieve settlement models.
+      description: Retrieve an existing Mojaloop settlement model.
+      operationId: retrieveModel
+      parameters:
+        - name: name
+          in: query
+          description: 'Settlement model name.'
+          required: false
+          schema:
+            type: string
+        - name: id
+          in: path
+          description: 'Settlement model unique identifier.'
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SettlementConfig'
+        '500':
+          description: Server error
+  /models:
+    post:
+      tags:
+        - settlement-model
+      summary: Create settlement model.
+      description: Create a new Mojaloop settlement model.
+      operationId: createModel
+      requestBody:
+        description: Settlement model configuration.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SettlementConfig'
+      responses:
+        '202':
+          description: Command received
+        '400':
+          description: Validation error
+        '500':
+          description: Server error
+  /batches/{id}:
+    get:
+      tags:
+        - settlement-batch
+      summary: Retrieve settlement batches.
+      description: Retrieve existing Mojaloop settlement batches based on filter criteria.
+      operationId: retrieveBatches
+      parameters:
+        - name: fromDate
+          in: query
+          description: 'Settlement batch retrieval from date.'
+          required: false
+          schema:
+            type: string
+        - name: toDate
+          in: query
+          description: 'Settlement batch retrieval to date.'
+          required: false
+          schema:
+            type: string
+        - name: settlementModel
+          in: query
+          description: 'Settlement model filter criteria.'
+          required: false
+          schema:
+            type: string
+        - name: batchName
+          in: query
+          description: 'Settlement batch name filter criteria.'
+          required: false
+          schema:
+            type: string
+        - name: currencyCodes
+          in: query
+          description: 'Settlement currency codes filter criteria.'
+          required: false
+          schema:
+            type: string
+        - name: batchStatuses
+          in: query
+          description: 'Settlement batch statuses filter criteria.'
+          required: false
+          schema:
+            type: string
+            enum:
+              - OPEN
+              - CLOSED
+              - DISPUTED
+              - AWAITING_SETTLEMENT
+              - SETTLED
+        - name: pageIndex
+          in: query
+          description: 'Page index for search results to return.'
+          required: false
+          schema:
+            type: number
+        - name: pageSize
+          in: query
+          description: 'Max number of search results to return for page index.'
+          required: false
+          schema:
+            type: number
+        - name: id
+          in: path
+          description: 'Settlement batch unique identifier.'
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SettlementMatrixBatch'
+        '404':
+          description: No results
+        '500':
+          description: Server error
+  /matrices/{id}:
+    get:
+      tags:
+        - settlement-matrix
+      summary: Retrieve settlement matrices.
+      description: Retrieve an existing Mojaloop settlement matrix.
+      operationId: retrieveMatrix
+      parameters:
+        - name: startDate
+          in: query
+          description: 'Settlement matrix from date.'
+          required: false
+          schema:
+            type: string
+        - name: endDate
+          in: query
+          description: 'Settlement matrix to date.'
+          required: false
+          schema:
+            type: string
+        - name: matrixId
+          in: query
+          description: 'Settlement matrix unique identifier.'
+          required: false
+          schema:
+            type: string
+        - name: type
+          in: query
+          description: 'Settlement matrix type filter criteria.'
+          required: false
+          schema:
+            type: string
+            enum:
+              - DYNAMIC
+              - STATIC
+        - name: state
+          in: query
+          description: 'Settlement matrix state filter criteria.'
+          required: false
+          schema:
+            type: string
+            enum:
+              - IDLE
+              - BUSY
+              - OUT_OF_SYNC
+              - LOCKED
+              - FINALIZED
+        - name: currencyCodes
+          in: query
+          description: 'Settlement currency codes filter criteria.'
+          required: false
+          schema:
+            type: string
+        - name: pageIndex
+          in: query
+          description: 'Page index for search results to return.'
+          required: false
+          schema:
+            type: number
+        - name: pageSize
+          in: query
+          description: 'Max number of search results to return for page index.'
+          required: false
+          schema:
+            type: number
+        - name: id
+          in: path
+          description: 'Settlement matrix unique identifier.'
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MatrixSearchResults'
+        '404':
+          description: No results
+        '500':
+          description: Server error
+  /matrices:
+    post:
+      tags:
+        - settlement-matrix
+      summary: Create settlement matrix.
+      description: Create a new Mojaloop settlement matrix.
+      operationId: createMatrix
+      requestBody:
+        description: Settlement matrix.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SettlementMatrix'
+      responses:
+        '202':
+          description: Command received
+        '400':
+          description: Validation error
+        '500':
+          description: Server error
+  /matrices/{id}/batches:
+    post:
+      tags:
+        - settlement-matrix
+      summary: Add a batch to a STATIC settlement matrix.
+      description: Add a batch to a STATIC matrix.
+      operationId: addBatchToMatrix
+      parameters:
+        - name: id
+          in: path
+          description: 'Settlement matrix to add batch to.'
+          required: true
+          schema:
+            type: string
+      requestBody:
+        description: Settlement batch command.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SettlementMatrixBatch'
+      responses:
+        '202':
+          description: Command received
+        '500':
+          description: Server error
+    delete:
+      tags:
+        - settlement-matrix
+      summary: Remove a batch from a STATIC settlement matrix.
+      description: Remove a batch from a STATIC matrix.
+      operationId: removeBatchFromMatrix
+      parameters:
+        - name: id
+          in: path
+          description: 'Settlement matrix to remove from batch.'
+          required: true
+          schema:
+            type: string
+      responses:
+        '202':
+          description: Command received
+        '500':
+          description: Server error
+  /matrices/{id}/recalculate:
+    post:
+      tags:
+        - settlement-matrix
+      summary: Recalculate a settlement matrix.
+      description: Recalculate a settlement matrix.
+      operationId: recalculateMatrix
+      parameters:
+        - name: id
+          in: path
+          description: 'Settlement matrix to recalculate.'
+          required: true
+          schema:
+            type: string
+      responses:
+        '202':
+          description: Command received
+        '404':
+          description: Matrix with id not found
+        '500':
+          description: Server error
+  /matrices/{id}/close:
+    post:
+      tags:
+        - settlement-matrix
+      summary: Close a settlement matrix.
+      description: Close a settlement matrix.
+      operationId: closeMatrix
+      parameters:
+        - name: id
+          in: path
+          description: 'Settlement matrix to close.'
+          required: true
+          schema:
+            type: string
+      responses:
+        '202':
+          description: Command received
+        '404':
+          description: Matrix with id not found
+        '500':
+          description: Server error
+  /matrices/{id}/settle:
+    post:
+      tags:
+        - settlement-matrix
+      summary: Settle a settlement matrix.
+      description: Settle a settlement matrix.
+      operationId: settleMatrix
+      parameters:
+        - name: id
+          in: path
+          description: 'Settlement matrix to settle.'
+          required: true
+          schema:
+            type: string
+      responses:
+        '202':
+          description: Command received
+        '404':
+          description: Matrix with id not found
+        '500':
+          description: Server error
+  /matrices/{id}/dispute:
+    post:
+      tags:
+        - settlement-matrix
+      summary: Dispute a settlement matrix.
+      description: Dispute a settlement matrix.
+      operationId: disputeMatrix
+      parameters:
+        - name: id
+          in: path
+          description: 'Settlement matrix to dispute.'
+          required: true
+          schema:
+            type: string
+      responses:
+        '202':
+          description: Command received
+        '404':
+          description: Matrix with id not found
+        '500':
+          description: Server error
+  /matrices/{id}/lock:
+    post:
+      tags:
+        - settlement-matrix
+      summary: Lock a settlement matrix for settlement.
+      description: Lock a settlement matrix.
+      operationId: lockMatrix
+      parameters:
+        - name: id
+          in: path
+          description: 'Settlement matrix to lock.'
+          required: true
+          schema:
+            type: string
+      responses:
+        '202':
+          description: Command received
+        '404':
+          description: Matrix with id not found
+        '500':
+          description: Server error
+  /matrices/{id}/unlock:
+    post:
+      tags:
+        - settlement-matrix
+      summary: Unlock a settlement matrix to release a settlement lock.
+      description: Unlock a settlement matrix.
+      operationId: unlockMatrix
+      parameters:
+        - name: id
+          in: path
+          description: 'Settlement matrix to unlock.'
+          required: true
+          schema:
+            type: string
+      responses:
+        '202':
+          description: Command received
+        '404':
+          description: Matrix with id not found
+        '500':
+          description: Server error
+components:
+  schemas:
+    BatchTransferSearchResults:
+      type: object
+      properties:
+        transferId:
+          type: string
+          example: '1067059f5c-e656-41ee-a746-631931d1ac12'
+          description: 'Unique transfer id.'
+        transferTimestamp:
+          type: number
+          example: 12121212121212
+          description: 'Timestamp in numeric format.'
+        payerFspId:
+          type: string
+          example: '1067059f5c-e656-41ee-a746-631931d1ac12'
+          description: 'DFSP id for the debtor.'
+        payeeFspId:
+          type: string
+          example: '1067059f5c-e656-41ee-a746-631931d1ac12'
+          description: 'DFSP id for the creditor.'
+        currencyCode:
+          type: string
+          example: 'EUR'
+          description: 'Currency in ISO format.'
+        amount:
+          type: string
+          example: '1000'
+          description: 'Transfer amount.'
+        batchId:
+          type: string
+          example: '1067059f5c-e656-41ee-a746-631931d1ac12'
+          description: 'Unique batch identifier.'
+        batchName:
+          type: string
+          example: 'DEFAULT.USD.2023.03.03.14.05'
+          description: 'Batch name.'
+        journalEntryId:
+          type: string
+          example: '1067059f5c-e656-41ee-a746-631931d1ac12'
+          description: 'Journal unique identifier.'
+        matrixId:
+          type: string
+          example: '1067059f5c-e656-41ee-a746-631931d1ac12'
+          description: 'Matrix unique identifier.'
+    SettlementConfig:
+      type: object
+      properties:
+        id:
+          type: string
+          example: '1067059f5c-e656-41ee-a746-631931d1ac12'
+          description: 'Unique settlement model configuration id.'
+        settlementModel:
+          type: string
+          example: 'DEFAULT'
+          description: 'Settlement model.'
+        batchCreateInterval:
+          type: number
+          example: 500
+          description: 'Lifespan duration for a batch in seconds.'
+        isActive:
+          type: boolean
+          example: true
+          description: 'Is the settlement model configuration active.'
+        createdBy:
+          type: string
+          example: 'John'
+          description: 'Person or entity that created the settlement model config.'
+        createdDate:
+          type: number
+          example: 12121221212
+          description: 'Timestamp for when the configuration was created.'
+        changeLog:
+          type: array
+          items:
+            $ref: '#/components/schemas/SettlementModelActivityLogEntry'
+          description: 'Array of activities performed against the settlement model.'
+    SettlementModelActivityLogEntry:
+      required:
+        - changeType
+        - user
+        - timestamp
+      type: object
+      properties:
+        changeType:
+          description: 'The type of change performed on the model.'
+          type: string
+          enum:
+            - CREATE
+            - APPROVE
+            - ACTIVATE
+            - DEACTIVATE
+            - UPDATE
+          example: 'CREATE'
+        user:
+          description: 'User who performed the action.'
+          type: string
+          example: 'John'
+        timestamp:
+          description: 'Numeric timestamp of when the activity was performed.'
+          type: number
+          example: 12121221212
+        notes:
+          description: 'Optional notes regarding the activity performed.'
+          type: string
+          example: 'Hi there.'
+    SettlementMatrixBatch:
+      type: object
+      properties:
+        batchUUID:
+          type: string
+          example: '1067059f5c-e656-41ee-a746-631931d1ac12'
+          description: 'Unique settlement batch id.'
+        id:
+          type: string
+          example: 'FX.XOF:RWF.2021.08.23.00.00.001'
+          description: 'Batch unique identifier.'
+        timestamp:
+          type: number
+          example: 12121221212
+          description: 'Timestamp for when the batch was created.'
+        settlementModel:
+          type: string
+          example: 'DEFAULT'
+          description: 'Settlement model.'
+        currencyCode:
+          type: string
+          example: 'USD'
+          description: 'Currency code associated with the batch.'
+        batchName:
+          type: string
+          example: 'FX.XOF:RWF.2021.08.23.00.00'
+          description: 'Batch unique identifier without the sequence.'
+        batchSequence:
+          type: number
+          example: 1
+          description: 'Sequence of the batch.'
+        state:
+          type: string
+          example: 'OPEN'
+          enum:
+            - OPEN
+            - CLOSED
+            - DISPUTED
+            - AWAITING_SETTLEMENT
+            - SETTLED
+        ownerMatrixId:
+          type: string
+          example: '1067059f5c-e656-41ee-a746-631931d1ac12'
+          description: 'The matrix who currently has the batch locked (if locked).'
+        accounts:
+          type: array
+          items:
+            $ref: '#/components/schemas/SettlementMatrixBatchAccount'
+          description: 'Array of accounts associated with the settlement batch.'
+    SettlementMatrixBatchAccount:
+      required:
+        - accountExtId
+        - user
+        - timestamp
+      type: object
+      properties:
+        accountExtId:
+          description: 'Batch account external identifier.'
+          type: string
+          example: '1067059f5c-e656-41ee-a746-631931d1ac12'
+        participantId:
+          description: 'DFSP participant identifier.'
+          type: string
+          example: '1067059f5c-e656-41ee-a746-631931d1ac12'
+        currencyCode:
+          description: 'Currency code.'
+          type: string
+          example: 'EUR'
+        creditBalance:
+          description: 'Settlement batch account credit balance as string.'
+          type: string
+          example: '100'
+        debitBalance:
+          description: 'Settlement batch account credit balance as string.'
+          type: string
+          example: '100'
+    SettlementMatrix:
+      type: object
+      properties:
+        id:
+          type: string
+          example: '1067059f5c-e656-41ee-a746-631931d1ac12'
+          description: 'Unique transfer id.'
+        createdAt:
+          type: number
+          example: 12121212121212
+          description: 'Timestamp in numeric format when the matrix was created.'
+        updatedAt:
+          type: number
+          example: 12121212121212
+          description: 'Timestamp in numeric format when the matrix was last updated.'
+        dateFrom:
+          type: number
+          example: 12121212121212
+          description: 'Timestamp from date for DYNAMIC matrix filter criteria.'
+        dateTo:
+          type: number
+          example: 12121212121212
+          description: 'Timestamp to date for DYNAMIC matrix filter criteria.'
+        currencyCodes:
+          type: string
+          example: 'EUR'
+          description: 'Currencies in ISO format.'
+        settlementModel:
+          type: string
+          example: 'DEFAULT'
+          description: 'Settlement model associated with the matrix.'
+        batchStatuses:
+          type: string
+          example: 'DISPUTE'
+          description: 'Batch statuses associated with a DYNAMIC settlement matrix.'
+        batches:
+          type: array
+          items:
+            $ref: '#/components/schemas/SettlementMatrixBatch'
+          description: 'Array of batches associated with the settlement matrix.'
+        state:
+          type: string
+          example: 'IDLE'
+          description: 'State of the settlement matrix.'
+          enum:
+            - IDLE
+            - BUSY
+            - FINALIZED
+            - OUT_OF_SYNC
+            - LOCKED
+        type:
+          type: string
+          example: 'STATIC'
+          description: 'State of the settlement matrix.'
+          enum:
+            - STATIC
+            - DYNAMIC
+        generationDurationSecs:
+          type: number
+          example: 5
+          description: 'Duration for generating the settlement matrix.'
+        balancesByCurrency:
+          type: array
+          items:
+            $ref: '#/components/schemas/SettlementMatrixBalanceByCurrency'
+          description: 'Array of balances by currency for the matrix.'
+        balancesByStateAndCurrency:
+          type: array
+          items:
+            $ref: '#/components/schemas/SettlementMatrixBalanceByStateAndCurrency'
+          description: 'Array of balances by state and currency for the matrix.'
+        balancesByParticipant:
+          type: array
+          items:
+            $ref: '#/components/schemas/SettlementMatrixBalanceByParticipant'
+          description: 'Array of balances by participants for the matrix.'
+    MatrixSearchResults:
+      type: object
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          description: 'List of settlement matrices.'
+          items:
+            $ref: '#/components/schemas/SettlementMatrix'
+    SettlementMatrixBalanceByCurrency:
+      type: object
+      properties:
+        currencyCode:
+          type: string
+          example: 'USD'
+          description: 'Matrix balance currency.'
+        debitBalance:
+          type: string
+          example: '100'
+          description: 'Debit balance in string format.'
+        creditBalance:
+          type: string
+          example: '100'
+          description: 'Debit balance in string format.'
+    SettlementMatrixBalanceByStateAndCurrency:
+      type: object
+      properties:
+        currencyCode:
+          type: string
+          example: 'USD'
+          description: 'Matrix balance currency.'
+        state:
+          type: string
+          example: 'SETTLED'
+          description: 'Matrix state.'
+        debitBalance:
+          type: string
+          example: '100'
+          description: 'Debit balance in string format.'
+        creditBalance:
+          type: string
+          example: '100'
+          description: 'Debit balance in string format.'
+    SettlementMatrixBalanceByParticipant:
+      type: object
+      properties:
+        participantId:
+          type: string
+          example: '1067059f5c-e656-41ee-a746-631931d1ac12'
+          description: 'DFSP participant identifier.'
+        currencyCode:
+          type: string
+          example: 'USD'
+          description: 'Matrix balance currency.'
+        state:
+          type: string
+          example: 'SETTLED'
+          description: 'Matrix state.'
+        debitBalance:
+          type: string
+          example: '100'
+          description: 'Debit balance in string format.'
+        creditBalance:
+          type: string
+          example: '100'
+          description: 'Debit balance in string format.'
+    TransferFulfiledEvt:
+      type: object
+      description: 'Event captured in Settlement-BC once a two-phase transfer has been fulfilled.'
+      properties:
+        msgType:
+          type: string
+          example: 'COMMAND'
+          enum:
+            - STATE_EVENT
+            - STATE_SNAPSHOT
+            - DOMAIN_EVENT
+            - COMMAND
+            - DOMAIN_ERROR_EVENT
+          description: 'The type of message.'
+        boundedContextName:
+          type: string
+          example: 'TransfersBc'
+          description: 'The bounded context name.'
+        aggregateId:
+          type: string
+          example: '1067059f5c-e656-41ee-a746-631931d1ac12'
+          description: 'The aggregate. Typically set to the transferId.'
+        aggregateName:
+          type: string
+          example: 'Transfers'
+          description: 'The aggregate name.'
+        msgKey:
+          type: string
+          example: '1067059f5c-e656-41ee-a746-631931d1ac12'
+          description: 'The unique message identifier. Typically set to the transferId.'
+        msgTopic:
+          type: string
+          example: 'TransfersBcEvents'
+          description: 'The unique message identifier. Typically set to the transferId.'
+        payload:
+          type: object
+          description: 'The transfer fulfilled payload.'
+          $ref: '#/components/schemas/TransferFulfiledEvtPayload'
+    TransferFulfiledEvtPayload:
+      type: object
+      description: 'The two-phase transfer fulfillment payload.'
+      properties:
+        transferId:
+          type: string
+          example: '1067059f5c-e656-41ee-a746-631931d1ac12'
+          description: 'The unique transfer id.'
+        fulfilment:
+          type: string
+          example: 'AABBCC'
+          description: 'The two-phase transfer fulfilment.'
+        completedTimestamp:
+          type: number
+          example: 12121212121212
+          description: 'The timestamp of when the two-phase transfer was completed.'
+        extensionList:
+          type: object
+          description: 'The list of transfer extensions.'
+        payeeFspId:
+          type: string
+          example: '1067059f5c-e656-41ee-a746-631931d1ac12'
+          description: 'DFSP payee/creditor identifier.'
+        payerFspId:
+          type: string
+          example: '1067059f5c-e656-41ee-a746-631931d1ac12'
+          description: 'DFSP payer/debtor identifier.'
+        amount:
+          type: string
+          example: '100'
+          description: 'Transfer amount as a string.'
+        currencyCode:
+          type: string
+          example: 'USD'
+          description: 'Matrix balance currency.'
+        settlementModel:
+          type: string
+          example: 'DEFAULT'
+          description: 'Settlement model.'
+        notifyPayee:
+          type: boolean
+          example: false
+          description: 'Should the payee be notified.'
+        fulfiledAt:
+          type: number
+          example: 12121212121212
+          description: 'The timestamp of when the fulfillment was created.'
+    SettlementMatrixSettledEvt:
+      type: object
+      description: 'Event published when a matrix has been settled.'
+      properties:
+        msgType:
+          type: string
+          example: 'COMMAND'
+          enum:
+            - STATE_EVENT
+            - STATE_SNAPSHOT
+            - DOMAIN_EVENT
+            - COMMAND
+            - DOMAIN_ERROR_EVENT
+          description: 'The type of message.'
+        boundedContextName:
+          type: string
+          example: 'SettlementsBc'
+          description: 'The bounded context name.'
+        aggregateId:
+          type: string
+          example: '1067059f5c-e656-41ee-a746-631931d1ac12'
+          description: 'The aggregate. Typically set to the matrix id.'
+        aggregateName:
+          type: string
+          example: 'Settlements'
+          description: 'The aggregate name.'
+        msgKey:
+          type: string
+          example: '1067059f5c-e656-41ee-a746-631931d1ac12'
+          description: 'The unique message identifier. Typically set to the matrix id.'
+        msgTopic:
+          type: string
+          example: 'TransfersBcEvents'
+          description: 'The unique message identifier. Typically set to the transferId.'
+        payload:
+          type: object
+          description: 'The transfer fulfilled payload.'
+          $ref: '#/components/schemas/SettlementMatrixSettledEvtPayload'
+    SettlementMatrixSettledEvtPayload:
+      type: object
+      description: 'The two-phase transfer fulfillment payload.'
+      properties:
+        settlementMatrixId:
+          type: string
+          example: '1067059f5c-e656-41ee-a746-631931d1ac12'
+          description: 'The matrix unique identifier.'
+        settledTimestamp:
+          type: number
+          example: 12121212121212
+          description: 'The timestamp of when the matrix was settled.'
+        participantList:
+          type: array
+          description: 'The result for each of the DFSP participants.'
+          items:
+            $ref: '#/components/schemas/SettlementMatrixSettledEvtPayloadParticipantItem'
+    SettlementMatrixSettledEvtPayloadParticipantItem:
+      type: object
+      description: 'The settlement information relating to the DFSP participant.'
+      properties:
+        participantId:
+          description: 'DFSP participant identifier.'
+          type: string
+          example: '1067059f5c-e656-41ee-a746-631931d1ac12'
+        currencyCode:
+          type: string
+          example: 'USD'
+          description: 'Matrix balance currency.'
+        settledDebitBalance:
+          type: string
+          example: 'USD'
+          description: 'Debit balance in string format as a result of the settlement action.'
+        settledCreditBalance:
+          type: string
+          example: 'USD'
+          description: 'Credit balance in string format as a result of the settlement action.'
+  requestBodies:
+    SettlementConfig:
+      description: Request for a settlement configuration.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/SettlementConfig'

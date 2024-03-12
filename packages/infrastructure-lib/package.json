@@ -39,9 +39,10 @@
 	"@mojaloop/accounts-and-balances-bc-public-types-lib": "~0.5.1",
 	"@mojaloop/security-bc-client-lib": "~0.5.7",
 	"@mojaloop/security-bc-public-types-lib": "~0.5.5",
-	"tigerbeetle-node": "0.14.179",
+	"tigerbeetle-node": "0.14.184",
 	"tslib": "~2.6.2",
-	"mongodb": "~6.3.0"
+	"mongodb": "~6.3.0",
+  	"ioredis": "~5.3.2"
   },
   "engines": {
 	"node": ">=20.10.0"

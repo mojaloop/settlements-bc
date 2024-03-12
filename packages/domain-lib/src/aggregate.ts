@@ -40,7 +40,7 @@ import {
 	InvalidAmountError,
 	InvalidBatchSettlementModelError,
 	InvalidCurrencyCodeError,
-	InvalidIdError,
+	InvalidIdError, InvalidJournalEntryError,
 	InvalidSettlementModelError,
 	InvalidTimestampError,
 	InvalidTransferIdError,
@@ -49,33 +49,30 @@ import {
 	SettlementMatrixAlreadyExistsError,
 	SettlementMatrixIsClosedError,
 	SettlementMatrixNotFoundError,
-	SettlementModelAlreadyExistError,
-
+	SettlementModelAlreadyExistError
 } from "./types/errors";
 import {
-	IAccountsBalancesAdapter,
-	IParticipantAccountNotifier,
+	IAccountsBalancesAdapter, ISettlementBatchCacheRepo,
 	ISettlementBatchRepo,
-	ISettlementBatchTransferRepo,
+	ISettlementBatchTransferRepo, ISettlementConfigCacheRepo,
 	ISettlementConfigRepo,
 	ISettlementMatrixRequestRepo
 } from "./types/infrastructure";
 import {SettlementBatch} from "./types/batch";
 
 import {
-	ISettlementBatch,
+	ISettlementBatch, ISettlementConfig,
 	ISettlementMatrix,
-	ITransferDto,
+	ITransferDto
 } from "@mojaloop/settlements-bc-public-types-lib";
-import {AuditSecurityContext, IAuditClient} from "@mojaloop/auditing-bc-public-types-lib";
+import {IAuditClient} from "@mojaloop/auditing-bc-public-types-lib";
 
-import {CallSecurityContext, ForbiddenError, IAuthorizationClient} from "@mojaloop/security-bc-public-types-lib";
-import {Privileges} from "./privileges";
-import {join} from "path";
-import {readFileSync} from "fs";
 import {bigintToString, stringToBigint} from "./converters";
 import {SettlementConfig} from "./types/settlement_config";
-import {AccountsAndBalancesAccountType} from "@mojaloop/accounts-and-balances-bc-public-types-lib";
+import {
+	AccountsAndBalancesAccountType,
+	AccountsAndBalancesJournalEntry
+} from "@mojaloop/accounts-and-balances-bc-public-types-lib";
 import {SettlementBatchTransfer} from "./types/transfer";
 import {SettlementMatrix} from "./types/matrix";
 import {MarkMatrixOutOfSyncCmd, CreateSettlementModelCmdPayload, ProcessTransferCmd} from "./commands";
@@ -88,21 +85,17 @@ import {
 import {ICounter, IHistogram, IMetrics} from "@mojaloop/platform-shared-lib-observability-types-lib";
 import {Currency, IConfigurationClient} from "@mojaloop/platform-configuration-bc-public-types-lib";
 
-const CURRENCIES_FILE_NAME: string = "currencies.json";
 const SEQUENCE_STR_LENGTH = 3;
 const BATCH_ACCOUNT_TYPE_IN_ACCOUNTS_AND_BALANCES: AccountsAndBalancesAccountType = "SETTLEMENT";
 
 enum AuditingActions {
 	SETTLEMENT_BATCH_CREATED = "SETTLEMENT_BATCH_CREATED",
-	SETTLEMENT_BATCH_ACCOUNT_CREATED = "SETTLEMENT_BATCH_ACCOUNT_CREATED",
-//	SETTLEMENT_TRANSFER_CREATED = "SETTLEMENT_TRANSFER_CREATED",
 	SETTLEMENT_MATRIX_CLOSED = "SETTLEMENT_MATRIX_CLOSED",
 	SETTLEMENT_MATRIX_SETTLED = "SETTLEMENT_MATRIX_SETTLED",
 	SETTLEMENT_MATRIX_DISPUTED = "SETTLEMENT_MATRIX_DISPUTED",
 	SETTLEMENT_MATRIX_REQUEST_FETCH = "SETTLEMENT_MATRIX_REQUEST_FETCH",
 	SETTLEMENT_MATRIX_ADD_BATCHES = "SETTLEMENT_MATRIX_ADD_BATCHES",
 	SETTLEMENT_MATRIX_REMOVE_BATCHES = "SETTLEMENT_MATRIX_REMOVE_BATCHES",
-	BATCH_SPECIFIC_SETTLEMENT_MATRIX_REQUEST_FETCH = "BATCH_SPECIFIC_SETTLEMENT_MATRIX_REQUEST_FETCH",
 	SETTLEMENT_MATRIX_REQUEST_CREATED = "SETTLEMENT_MATRIX_REQUEST_CREATED",
 	STATIC_SETTLEMENT_MATRIX_REQUEST_CREATED = "STATIC_SETTLEMENT_MATRIX_REQUEST_CREATED",
 	SETTLEMENT_MATRIX_LOCK = "SETTLEMENT_MATRIX_LOCK",
@@ -111,9 +104,8 @@ enum AuditingActions {
 }
 
 export class SettlementsAggregate {
-	// Properties received through the constructor.
+	// properties received through the constructor:
 	private readonly _logger: ILogger;
-	private readonly _authorizationClient: IAuthorizationClient;
 	private readonly _auditingClient: IAuditClient;
 	private readonly _configClient: IConfigurationClient;
 	private readonly _batchRepo: ISettlementBatchRepo;
@@ -125,10 +117,12 @@ export class SettlementsAggregate {
 	private readonly  _currencyList: Currency[];
 	private _histo: IHistogram;
 	private _commandsCounter:ICounter;
+	private readonly _settleConfigCache: ISettlementConfigCacheRepo;
+	private readonly _settleBatchCache: ISettlementBatchCacheRepo;
+
 
 	constructor(
 		logger: ILogger,
-		authorizationClient: IAuthorizationClient,
 		auditingClient: IAuditClient,
 		configClient: IConfigurationClient,
 		batchRepo: ISettlementBatchRepo,
@@ -137,10 +131,11 @@ export class SettlementsAggregate {
 		settlementMatrixReqRepo: ISettlementMatrixRequestRepo,
 		abAdapter: IAccountsBalancesAdapter,
 		msgProducer: IMessageProducer,
-		metrics: IMetrics
+		metrics: IMetrics,
+		configCache: ISettlementConfigCacheRepo,
+		batchCache: ISettlementBatchCacheRepo
 	) {
 		this._logger = logger;
-		this._authorizationClient = authorizationClient;
 		this._auditingClient = auditingClient;
 		this._configClient = configClient;
 		this._batchRepo = batchRepo;
@@ -149,29 +144,15 @@ export class SettlementsAggregate {
 		this._settlementMatrixReqRepo = settlementMatrixReqRepo;
 		this._abAdapter = abAdapter;
 		this._msgProducer = msgProducer;
+		this._settleConfigCache = configCache;
+		this._settleBatchCache = batchCache;
 
-		// Metrics:
+		// metrics:
 		this._histo = metrics.getHistogram("SettlementsAggregate", "SettlementsAggregate calls", ["callName", "success"]);
 		this._commandsCounter = metrics.getCounter("SettlementsAggregate_CommandsProcessed", "Commands processed by the Settlements Aggregate", ["commandName"]);
 
-		// Configs:
+		// configs:
 		this._currencyList = this._configClient.globalConfigs.getCurrencies();
-	}
-
-	private _enforcePrivilege(secCtx: CallSecurityContext, privName: string): void {
-		for (const roleId of secCtx.platformRoleIds) {
-			if (this._authorizationClient.roleHasPrivilege(roleId, privName)) return;
-		}
-		throw new ForbiddenError(`Required privilege "${privName}" not held by caller`);
-	}
-
-	private _getAuditSecurityContext(secCtx: CallSecurityContext): AuditSecurityContext {
-		if (secCtx === undefined) return {userId: 'unknown', appId: 'settlement-bc', role: ""};
-		return {
-			userId: secCtx.username,
-			appId: secCtx.clientId,
-			role: secCtx.platformRoleIds[0] // TODO: get role.
-		};
 	}
 
 	private _getCurrencyOrThrow(currencyCode: string): Currency {
@@ -218,7 +199,7 @@ export class SettlementsAggregate {
 		await this._msgProducer.send(cmd);
 	}
 
-	async processTransferCmd(secCtx: CallSecurityContext, cmd: ProcessTransferCmd): Promise<string> {
+	async processTransferCmd(cmd: ProcessTransferCmd): Promise<string> {
 		const transferDto: ITransferDto = {
 			id: null,
 			transferId: cmd.payload.transferId,
@@ -234,14 +215,13 @@ export class SettlementsAggregate {
 		this._commandsCounter.inc({commandName: cmd.msgName}, 1);
 
 		const execStarts_timerEndFn = this._histo.startTimer({ callName: "aggregate_handleTransfer"});
-		const returnVal = this.handleTransfer(secCtx, transferDto);
+		const returnVal = await this.handleTransfer(transferDto);
 		execStarts_timerEndFn({success:"true"});
 		return returnVal;
 	}
 
-	async handleTransfer(secCtx: CallSecurityContext, transferDto: ITransferDto): Promise<string> {
-		//this._enforcePrivilege(secCtx, Privileges.CREATE_SETTLEMENT_TRANSFER);
-
+	async handleTransfer(transferDto: ITransferDto): Promise<string> {
+		const start = Date.now();
 		if (!transferDto.timestamp || transferDto.timestamp < 1 ) throw new InvalidTimestampError();
 		if (!transferDto.settlementModel) throw new InvalidBatchSettlementModelError();
 		if (!transferDto.currencyCode) throw new InvalidCurrencyCodeError();
@@ -249,25 +229,28 @@ export class SettlementsAggregate {
 		if (!transferDto.transferId) throw new InvalidTransferIdError();
 		if (!transferDto.payerFspId) throw new InvalidIdError("Invalid payerFspId in transfer");
 		if (!transferDto.payeeFspId) throw new InvalidIdError("Invalid payeeFspId in transfer");
+		const tookValidate = (Date.now() - start);
 
 		// verify the currency code (and get the corresponding currency decimals).
+		let tookInd = Date.now();
 		const currency = this._getCurrencyOrThrow(transferDto.currencyCode);
 		this._getAmountOrThrow(transferDto.amount, currency);
 
-		// TODO implement cache and cache invalidation
-		const configDto = await this._configRepo.getSettlementConfigByModelName(transferDto.settlementModel);
-		if (!configDto) {
-			throw new NoSettlementConfig(`No settlement config for model '${transferDto.settlementModel}'.`);
-		}
-		const config = SettlementConfig.fromDto(configDto);
+		const tookCurrency = (Date.now() - tookInd);
+		tookInd = Date.now();
 
-		const batchStartDate: number = config.calculateBatchStartTimestamp(transferDto.timestamp);
-
+		const configDto = await this._getSettlementConfig(transferDto.settlementModel);
 		// get or create a batch
+		const config = SettlementConfig.fromDto(configDto);
+		const batchStartDate: number = config.calculateBatchStartTimestamp(transferDto.timestamp);
 		const resp = await this._getOrCreateBatch(transferDto.settlementModel, currency.code, new Date(batchStartDate));
 		const batch = resp.batch;
 
+		const tookBatch = (Date.now() - tookInd);
+		tookInd = Date.now();
+
 		// find payer batch account (debit):
+		let accountAdded = false;
 		let debitedAccountExtId;
 		const debitedAccount = batch.getAccount(transferDto.payerFspId, currency.code);
 		if (debitedAccount) {
@@ -281,6 +264,7 @@ export class SettlementsAggregate {
 				currency.code
 			);
 			batch.addAccount(debitedAccountExtId, transferDto.payerFspId, currency.code);
+			accountAdded = true;
 		}
 
 		// find payee batch account (credit):
@@ -297,18 +281,36 @@ export class SettlementsAggregate {
 				currency.code
 			);
 			batch.addAccount(creditedAccountExtId, transferDto.payeeFspId, currency.code);
+			accountAdded = true;
 		}
 
-		// create the journal entry
-		const journalEntryId = await this._abAdapter.createJournalEntry(
-			randomUUID(),
-			batch.id, // allows us to segment transfers for batches easily.
-			currency.code,
-			transferDto.amount,
-			false, // not a 2-phase transfer.
-			debitedAccountExtId,
-			creditedAccountExtId
-		);
+		const tookAccounts = (Date.now() - tookInd);
+		tookInd = Date.now();
+
+		// create the journal entry:
+		const journalEntries: AccountsAndBalancesJournalEntry[] = [
+			{
+				id: transferDto.transferId,
+				ownerId: batch.batchUUID, // allows us to segment transfers for batches easily.
+				amount: transferDto.amount,
+				debitedAccountId: debitedAccountExtId,
+				creditedAccountId: creditedAccountExtId,
+				currencyCode: currency.code,
+				pending: false, // not a 2-phase transfer.
+				timestamp: start
+			}
+		];
+		const journalResult = await this._abAdapter.createJournalEntries(journalEntries);
+		for (const entry of journalResult) {
+			if (entry.errorCode > 0) {
+				throw new InvalidJournalEntryError(
+					`Unable to create journal entries. Error [${entry.errorCode}] for request [${entry.id}].`
+				);
+			}
+		}
+
+		const tookTransfer = (Date.now() - tookInd);
+		tookInd = Date.now();
 
 		// add the transfer record to the batch and persist the batch changes
 		const batchTransfer = new SettlementBatchTransfer(
@@ -320,46 +322,45 @@ export class SettlementsAggregate {
 			transferDto.amount,
 			batch.id,
 			batch.batchName,
-			journalEntryId
+			journalResult.length > 0 ? journalResult[0].id : transferDto.transferId
 		);
 		await this._batchTransferRepo.storeBatchTransfer(batchTransfer);
 
-		// persist the batch changes
+		const tookTransferOther = (Date.now() - tookInd);
+		tookInd = Date.now();
+
+		// persist the batch changes:
 		if (resp.created) {
 			await this._batchRepo.storeNewBatch(batch);
-		} else {
+			await this._settleBatchCache.invalidate(batch.batchName);
+		} else if (accountAdded) {
 			await this._batchRepo.updateBatch(batch);
+			await this._settleBatchCache.invalidate(batch.batchName);
 		}
 
-		if (resp.created) {
+		const tookBatchCreateUpdate = (Date.now() - tookInd);
+
+		if (resp.created && this._auditingClient) {
 			// We perform an async audit:
 			// @esli
 			await this._auditingClient.audit(
 				AuditingActions.SETTLEMENT_BATCH_CREATED,
 				true,
-				this._getAuditSecurityContext(secCtx),
+				undefined,
 				[
 					{key: "settlementBatchIdIdentifier", value: batch.id}
 				]
 			);
 		}
 
-		// this should not be audited - we only audit operator actions or odd things
-		/*this._auditingClient.audit(
-			AuditingActions.SETTLEMENT_TRANSFER_CREATED,
-			true,
-			this._getAuditSecurityContext(secCtx), [{key: "settlementTransferId", value: transferDto.transferId}]
-		);*/
-
+		const tookAll = (Date.now() - start);
+		if (tookAll > 400) {
+			this._logger.warn(`handleTransfer took too long: ${tookAll} - Validate[${tookValidate}], Currency[${tookCurrency}], Batch[${tookBatch}], Account[${tookAccounts}], Transfer[${tookTransfer}], TransferOther[${tookTransferOther}], BatchCreateUpdate[${tookBatchCreateUpdate}]`);
+		}
 		return batch.id;
 	}
 
-	async createSettlementConfig(
-		secCtx: CallSecurityContext,
-		cmdPayload: CreateSettlementModelCmdPayload,
-	): Promise<void> {
-		this._enforcePrivilege(secCtx, Privileges.CREATE_SETTLEMENT_CONFIG);
-
+	async createSettlementConfig(cmdPayload: CreateSettlementModelCmdPayload): Promise<void> {
 		if (!cmdPayload) {
 			const err = new InvalidSettlementModelError("Invalid settlement model");
 			this._logger.warn(err.message);
@@ -401,7 +402,6 @@ export class SettlementsAggregate {
 				notes: null
 			}]
 		);
-
 		await this._configRepo.storeConfig(config);
 
 		// We perform an async audit:
@@ -409,19 +409,13 @@ export class SettlementsAggregate {
 		await this._auditingClient.audit(
 			AuditingActions.SETTLEMENT_MODEL_CREATED,
 			true,
-			this._getAuditSecurityContext(secCtx), [
+			undefined, [
 				{key: "settlementModelName", value: cmdPayload.settlementModel}
 			]
 		);
 	}
 
-	async createStaticSettlementMatrix(
-		secCtx: CallSecurityContext,
-		matrixId: string | null,
-		batchIds: string[]
-	): Promise<string> {
-		this._enforcePrivilege(secCtx, Privileges.CREATE_STATIC_SETTLEMENT_MATRIX);
-
+	async createStaticSettlementMatrix(matrixId: string | null, batchIds: string[]): Promise<string> {
 		const startTimestamp = Date.now();
 
 		// Need the batches first to get the currency
@@ -450,7 +444,7 @@ export class SettlementsAggregate {
 		this._auditingClient.audit(
 			AuditingActions.STATIC_SETTLEMENT_MATRIX_REQUEST_CREATED,
 			true,
-			this._getAuditSecurityContext(secCtx), [
+			undefined, [
 				{key: "settlementMatrixRequestId", value: newMatrix.id},
 				{key: "matrixType", value: newMatrix.type}
 			]
@@ -459,7 +453,6 @@ export class SettlementsAggregate {
 	}
 
 	async createDynamicSettlementMatrix(
-		secCtx: CallSecurityContext,
 		matrixId: string | null,
 		settlementModel: string,
 		currencyCodes: string[],
@@ -467,7 +460,6 @@ export class SettlementsAggregate {
 		fromDate: number,
 		toDate: number
 	): Promise<string> {
-		this._enforcePrivilege(secCtx, Privileges.CREATE_DYNAMIC_SETTLEMENT_MATRIX);
 		const startTimestamp = Date.now();
 
 		const newMatrix = SettlementMatrix.CreateDynamic(
@@ -498,21 +490,15 @@ export class SettlementsAggregate {
 		this._auditingClient.audit(
 			AuditingActions.SETTLEMENT_MATRIX_REQUEST_CREATED,
 			true,
-			this._getAuditSecurityContext(secCtx), [
+			undefined, [
 				{key: "settlementMatrixRequestId", value: newMatrix.id},
 				{key: "matrixType", value: newMatrix.type}
 			]
 		);
-
 		return newMatrix.id;
 	}
 
-	async addBatchesToStaticSettlementMatrix(
-		secCtx: CallSecurityContext,
-		matrixId: string,
-		newBatchIds: string[]
-	): Promise<void> {
-		this._enforcePrivilege(secCtx, Privileges.CREATE_STATIC_SETTLEMENT_MATRIX);
+	async addBatchesToStaticSettlementMatrix(matrixId: string, newBatchIds: string[]): Promise<void> {
 		const startTimestamp = Date.now();
 
 		const matrixDto = await this._settlementMatrixReqRepo.getMatrixById(matrixId);
@@ -542,12 +528,7 @@ export class SettlementsAggregate {
 		const newBatches = await this._batchRepo.getBatchesByIds(newBatchIds);
 		for (const newBatch of newBatches) {
 			const existing = matrix.batches.find(value => value.id === newBatch.id);
-
-			// TODO control that we cannot ever add a settled batch to a matrix, if it is should throw
-
-			if(!existing){
-				matrix.addBatch(newBatch, "0", "0");
-			}
+			if (!existing) matrix.addBatch(newBatch, "0", "0");
 		}
 		await this._recalculateMatrix(matrix);
 
@@ -558,7 +539,7 @@ export class SettlementsAggregate {
 		this._auditingClient.audit(
 			AuditingActions.SETTLEMENT_MATRIX_ADD_BATCHES,
 			true,
-			this._getAuditSecurityContext(secCtx), [
+			undefined, [
 				{key: "settlementModels", value: matrix.settlementModel ?? ""},
 				{key: "settlementMatrixReqId", value: matrix.id}
 			]
@@ -566,12 +547,7 @@ export class SettlementsAggregate {
 		return;
 	}
 
-	async removeBatchesFromStaticSettlementMatrix(
-		secCtx: CallSecurityContext,
-		matrixId: string,
-		batchIdsToRemove: string[]
-	): Promise<void> {
-		this._enforcePrivilege(secCtx, Privileges.CREATE_STATIC_SETTLEMENT_MATRIX);
+	async removeBatchesFromStaticSettlementMatrix(matrixId: string, batchIdsToRemove: string[]): Promise<void> {
 		const startTimestamp = Date.now();
 
 		const matrixDto = await this._settlementMatrixReqRepo.getMatrixById(matrixId);
@@ -601,12 +577,7 @@ export class SettlementsAggregate {
 		const toRemove = await this._batchRepo.getBatchesByIds(batchIdsToRemove);
 		for (const toRem of toRemove) {
 			const existing = matrix.batches.find(value => value.id===toRem.id);
-
-			// TODO control that we cannot ever remove a settled batch from a matrix, if it is should throw
-
-			if (existing) {
-				matrix.removeBatch(toRem);
-			}
+			if (existing) matrix.removeBatch(toRem);
 		}
 		await this._recalculateMatrix(matrix);
 
@@ -617,40 +588,14 @@ export class SettlementsAggregate {
 		this._auditingClient.audit(
 			AuditingActions.SETTLEMENT_MATRIX_REMOVE_BATCHES,
 			true,
-			this._getAuditSecurityContext(secCtx), [
+			undefined, [
 				{key: "settlementModels", value: matrix.settlementModel ?? ""},
 				{key: "settlementMatrixReqId", value: matrix.id}
 			]
 		);
 	}
 
-	async getSettlementMatrix(secCtx: CallSecurityContext, id: string): Promise<ISettlementMatrix | null> {
-		this._enforcePrivilege(secCtx, Privileges.GET_SETTLEMENT_MATRIX);
-
-		const matrixDto = await this._settlementMatrixReqRepo.getMatrixById(id);
-		if (!matrixDto) {
-			const err = new SettlementMatrixNotFoundError(`Matrix with id: ${id} not found`);
-			this._logger.warn(err.message);
-			throw err; // not found
-		}
-
-		// We perform an async audit:
-		// @esli
-		this._auditingClient.audit(
-			AuditingActions.SETTLEMENT_MATRIX_REQUEST_FETCH,
-			true,
-			this._getAuditSecurityContext(secCtx), [
-				{key: "settlementModels", value: matrixDto.settlementModel ?? ""},
-				{key: "settlementMatrixReqId", value: id}
-			]
-		);
-
-		return matrixDto;
-	}
-
-	async recalculateSettlementMatrix(secCtx: CallSecurityContext, id: string): Promise<void> {
-		this._enforcePrivilege(secCtx, Privileges.GET_SETTLEMENT_MATRIX);
-
+	async recalculateSettlementMatrix(id: string): Promise<void> {
 		const matrixDto = await this._settlementMatrixReqRepo.getMatrixById(id);
 		if (!matrixDto) {
 			const err = new SettlementMatrixNotFoundError(`Matrix with id: ${id} not found`);
@@ -680,7 +625,7 @@ export class SettlementsAggregate {
 		this._auditingClient.audit(
 			AuditingActions.SETTLEMENT_MATRIX_REQUEST_FETCH,
 			true,
-			this._getAuditSecurityContext(secCtx), [
+			undefined, [
 				{key: "settlementModels", value: matrix.settlementModel ?? ""},
 				{key: "settlementMatrixReqId", value: id}
 			]
@@ -688,9 +633,7 @@ export class SettlementsAggregate {
 		return;
 	}
 
-	async disputeSettlementMatrix(secCtx: CallSecurityContext, id: string): Promise<void> {
-		this._enforcePrivilege(secCtx, Privileges.SETTLEMENTS_DISPUTE_MATRIX);
-
+	async disputeSettlementMatrix(id: string): Promise<void> {
 		const matrixDto = await this._settlementMatrixReqRepo.getMatrixById(id);
 		if (!matrixDto) {
 			const err = new SettlementMatrixNotFoundError(`Matrix with id: ${id} not found`);
@@ -739,7 +682,7 @@ export class SettlementsAggregate {
 		this._auditingClient.audit(
 			AuditingActions.SETTLEMENT_MATRIX_DISPUTED,
 			true,
-			this._getAuditSecurityContext(secCtx), [
+			undefined, [
 				{key: "settlementModels", value: matrix.settlementModel ?? ""},
 				{key: "settlementMatrixReqId", value: id}
 			]
@@ -747,9 +690,7 @@ export class SettlementsAggregate {
 		return;
 	}
 
-	async lockSettlementMatrixForAwaitingSettlement(secCtx: CallSecurityContext, id: string): Promise<void> {
-		this._enforcePrivilege(secCtx, Privileges.SETTLEMENTS_LOCK_MATRIX);
-
+	async lockSettlementMatrixForAwaitingSettlement(id: string): Promise<void> {
 		const matrixDto = await this._settlementMatrixReqRepo.getMatrixById(id);
 		if (!matrixDto) {
 			const err = new SettlementMatrixNotFoundError(`Matrix with id: ${id} not found`);
@@ -799,7 +740,7 @@ export class SettlementsAggregate {
 		this._auditingClient.audit(
 			AuditingActions.SETTLEMENT_MATRIX_LOCK,
 			true,
-			this._getAuditSecurityContext(secCtx), [
+			undefined, [
 				{key: "settlementModels", value: matrix.settlementModel ?? ""},
 				{key: "settlementMatrixReqId", value: id}
 			]
@@ -807,9 +748,7 @@ export class SettlementsAggregate {
 		return;
 	}
 
-	async unLockSettlementMatrixFromAwaitingSettlement(secCtx: CallSecurityContext, id: string): Promise<void> {
-		this._enforcePrivilege(secCtx, Privileges.SETTLEMENTS_UNLOCK_MATRIX);
-
+	async unLockSettlementMatrixFromAwaitingSettlement(id: string): Promise<void> {
 		const matrixDto = await this._settlementMatrixReqRepo.getMatrixById(id);
 		if (!matrixDto) {
 			const err = new SettlementMatrixNotFoundError(`Matrix with id: ${id} not found`);
@@ -855,9 +794,9 @@ export class SettlementsAggregate {
 		// we perform an async audit:
 		// @esli
 		this._auditingClient.audit(
-			AuditingActions.SETTLEMENT_MATRIX_DISPUTED,
+			AuditingActions.SETTLEMENT_MATRIX_UNLOCK,
 			true,
-			this._getAuditSecurityContext(secCtx), [
+			undefined, [
 				{key: "settlementModels", value: matrix.settlementModel ?? ""},
 				{key: "settlementMatrixReqId", value: id}
 			]
@@ -865,9 +804,7 @@ export class SettlementsAggregate {
 		return;
 	}
 
-	async closeSettlementMatrix(secCtx: CallSecurityContext, id: string): Promise<void> {
-		this._enforcePrivilege(secCtx, Privileges.SETTLEMENTS_CLOSE_MATRIX);
-
+	async closeSettlementMatrix(id: string): Promise<void> {
 		const matrixDto = await this._settlementMatrixReqRepo.getMatrixById(id);
 		if (!matrixDto) {
 			const err = new SettlementMatrixNotFoundError(`Matrix with id: ${id} not found`);
@@ -916,7 +853,7 @@ export class SettlementsAggregate {
 		this._auditingClient.audit(
 			AuditingActions.SETTLEMENT_MATRIX_CLOSED,
 			true,
-			this._getAuditSecurityContext(secCtx), [
+			undefined, [
 				{key: "settlementModels", value: matrix.settlementModel ?? ""},
 				{key: "settlementMatrixReqId", value: id}
 			]
@@ -924,9 +861,7 @@ export class SettlementsAggregate {
 		return;
 	}
 
-	async settleSettlementMatrix(secCtx: CallSecurityContext, id: string): Promise<void> {
-		this._enforcePrivilege(secCtx, Privileges.SETTLEMENTS_SETTLE_MATRIX);
-
+	async settleSettlementMatrix(id: string): Promise<void> {
 		const matrixDto = await this._settlementMatrixReqRepo.getMatrixById(id);
 		if (!matrixDto) {
 			const err = new SettlementMatrixNotFoundError(`Matrix with id: ${id} not found`);
@@ -999,7 +934,7 @@ export class SettlementsAggregate {
 		this._auditingClient.audit(
 			AuditingActions.SETTLEMENT_MATRIX_SETTLED,
 			true,
-			this._getAuditSecurityContext(secCtx), [
+			undefined, [
 				{key: "settlementModels", value: matrix.settlementModel ?? ""},
 				{key: "settlementMatrixReqId", value: id}
 			]
@@ -1007,14 +942,7 @@ export class SettlementsAggregate {
 		return;
 	}
 
-	async markMatrixOutOfSyncWhereBatch(
-		secCtx: CallSecurityContext,
-		originMatrixId: string,
-		batchIds: string[]
-	): Promise<void> {
-		// This privilege doesn't make sense, it is an internal process
-		//this._enforcePrivilege(secCtx, Privileges.MARK_SETTLEMENT_MATRIX_OUT_OF_SYNC);
-
+	async markMatrixOutOfSyncWhereBatch(originMatrixId: string, batchIds: string[]): Promise<void> {
 		if (!batchIds || batchIds.length < 1) return Promise.resolve();
 
 		//TODO (optimisation opportunity) getMatricesInSyncWhereBatch should take an array of batchIds
@@ -1034,10 +962,7 @@ export class SettlementsAggregate {
 		}
 	}
 
-	private async _recalculateMatrix(
-		matrix : SettlementMatrix,
-		settlingMatrix: boolean = false
-	): Promise<void> {
+	private async _recalculateMatrix(matrix : SettlementMatrix, settlingMatrix: boolean = false): Promise<void> {
 		// start by cleaning the batches
 		let batches :ISettlementBatch[];
 		if (matrix.type === "STATIC") {
@@ -1123,86 +1048,11 @@ export class SettlementsAggregate {
 		}
 	}
 
-	// TODO: if this method is only for tests, remove it
-	async getSettlementBatchesByCriteria(
-		secCtx: CallSecurityContext,
-		currencyCodes: string[],
-		settlementModel: string,
-		batchStatuses: string[],
-		fromDate: number,
-		toDate: number
-	): Promise<ISettlementBatch[]> {
-		this._enforcePrivilege(secCtx, Privileges.RETRIEVE_SETTLEMENT_BATCH);
-
-		const batches = await this._batchRepo.getBatchesByCriteria(
-			fromDate,
-			toDate,
-			settlementModel,
-			currencyCodes,
-			batchStatuses
-		);
-		if(!batches || !batches.items || batches.items.length <=0 ) return [];
-
-		await this._updateBatchAccountBalances(batches.items);
-		return batches.items;
-	}
-
-	async getSettlementBatch(
-		secCtx: CallSecurityContext,
-		batchIdentifier : string,
-	): Promise<ISettlementBatch | null> {
-		this._enforcePrivilege(secCtx, Privileges.RETRIEVE_SETTLEMENT_BATCH);
-
-		const batch = await this._batchRepo.getBatch(batchIdentifier);
-		if (!batch) return null;
-
-		await this._updateBatchAccountBalances([batch]);
-		return batch;
-	}
-
-	// TODO: if this method is only for tests, remove it, also, why the RETRIEVE_SETTLEMENT_BATCH_ACCOUNTS privilege?
-	/*async getSettlementBatchesByName(secCtx: CallSecurityContext, batchName: string): Promise<ISettlementBatch[]> {
-		this._enforcePrivilege(secCtx, Privileges.RETRIEVE_SETTLEMENT_BATCH_ACCOUNTS);
-
-		const batches = await this._batchRepo.getBatchesByName(batchName);
-		if(!batches || !batches.items || batches.items.length <=0 ) return [];
-
-		await this._updateBatchAccountBalances(batches.items);
-		return batches.items;
-	}*/
-
-	// TODO: if this method is only for tests, remove it, also, why the RETRIEVE_SETTLEMENT_TRANSFERS privilege?
-	/*async getSettlementBatchTransfersByBatchId(secCtx: CallSecurityContext, batchId : string): Promise<ISettlementBatchTransfer[]> {
-		this._enforcePrivilege(secCtx, Privileges.RETRIEVE_SETTLEMENT_TRANSFERS);
-
-		const batch = await this._batchRepo.getBatch(batchId);
-		if (batch === null) {
-			throw new SettlementBatchNotFoundError(`Unable to locate Settlement Batch with 'Batch Id"" '${batchId}'.`);
-		}
-
-		const result = await this._batchTransferRepo.getBatchTransfersByBatchIds([batchId]);
-		return result.items;
-	}*/
-
-	/* Not used? Commenting it out.
-	async getSettlementBatchTransfersByBatchName(secCtx: CallSecurityContext, batchName: string): Promise<ISettlementBatchTransfer[]> {
-		this._enforcePrivilege(secCtx, Privileges.RETRIEVE_SETTLEMENT_TRANSFERS);
-
-		const batches = await this._batchRepo.getBatchesByName(batchName);
-		if (!batches || !batches.items || batches.items.length <= 0) return [];
-
-		const batchIds = batches.items.map(value => value.id);
-		const result = await this._batchTransferRepo.getBatchTransfersByBatchIds(batchIds);
-		return result.items;
-	}*/
-
 	private _generateBatchName(
 		model: string,
 		currencyCode: string,
 		toDate: Date,
 	): string {
-		//TODO add assertion here:
-		//FX.XOF:RWF.2021.08.23.00.00
 		const month = (toDate.getUTCMonth() + 1).toString().padStart(2,"0");
 		const day = (toDate.getUTCDate()).toString().padStart(2, "0");
 		const hours = (toDate.getUTCHours()).toString().padStart(2, "0");
@@ -1219,18 +1069,37 @@ export class SettlementsAggregate {
 		return `${batchName}.${batchSeq.toString().padStart(SEQUENCE_STR_LENGTH, "0")}`;
 	}
 
+	private async _getSettlementConfig(model: string): Promise<ISettlementConfig> {
+		let configDto = await this._settleConfigCache.get(model);
+		if (configDto) return configDto;
+
+		configDto = await this._configRepo.getSettlementConfigByModelName(model);
+		if (!configDto) {
+			throw new NoSettlementConfig(`No settlement config for model '${model}'.`);
+		}
+		await this._settleConfigCache.set(configDto);
+		return configDto;
+	}
+
 	private async _getOrCreateBatch(
 		model: string,
 		currencyCode: string,
 		toDate: Date
-	):Promise<{batch: SettlementBatch, created:boolean}>{
+	) : Promise<{batch: SettlementBatch, created: boolean}> {
 		const batchName = this._generateBatchName(model, currencyCode, toDate);
-		const existingBatches = await this._batchRepo.getBatchesByName(batchName);
+
+		// Cache first then repo:
+		let existingBatches = await this._settleBatchCache.get(batchName);
+		if (!existingBatches) {
+			existingBatches = await this._batchRepo.getBatchesByName(batchName);
+			if (existingBatches) await this._settleBatchCache.set(batchName, existingBatches);
+		}
 
 		if (!existingBatches || !existingBatches.items || existingBatches.items.length <= 0) {
 			// no batch exists with that name, let's create a new with seq number 1
 			const newBatchId = this._generateBatchIdentifier(batchName, 1);
 			const newBatch  = new SettlementBatch(
+				randomUUID(),
 				newBatchId,
 				Date.now(),
 				model,
@@ -1239,16 +1108,18 @@ export class SettlementsAggregate {
 				batchName,
 				"OPEN"
 			);
-			return Promise.resolve({batch:newBatch, created: true});
+			await this._settleBatchCache.invalidate(batchName);
+			return Promise.resolve({batch: newBatch, created: true});
 		}
 
 		// let's find the highest seq open batch
-		// sort in decreasing order
+		// sort in decreasing order:
 		const sortedBatches = existingBatches.items.sort((a, b) => b.batchSequence - a.batchSequence);
 		if (sortedBatches[0].state === "OPEN") {
 			// highest seq is open, return it
 			const batchDto = sortedBatches[0];
 			const batch = new SettlementBatch(
+				batchDto.batchUUID,
 				batchDto.id,
 				batchDto.timestamp,
 				batchDto.settlementModel,
@@ -1261,10 +1132,11 @@ export class SettlementsAggregate {
 			return Promise.resolve({batch: batch, created: false});
 		}
 
-		// if we got here, there is no open batch, let's open a new one
+		// if we got here, there is no open batch, let's open a new one:
 		const nextSeq = sortedBatches[0].batchSequence + 1;
 		const newBatchId = this._generateBatchIdentifier(batchName, nextSeq);
 		const newBatch = new SettlementBatch(
+			randomUUID(),
 			newBatchId,
 			Date.now(),
 			model,
@@ -1273,6 +1145,7 @@ export class SettlementsAggregate {
 			batchName,
 			"OPEN"
 		);
+		await this._settleBatchCache.invalidate(batchName);
 		return Promise.resolve({batch: newBatch, created: true});
 	}
 }

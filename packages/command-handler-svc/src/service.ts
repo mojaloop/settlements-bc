@@ -54,16 +54,21 @@ import {
 } from "@mojaloop/security-bc-client-lib";
 
 import {
-	IAccountsBalancesAdapter, IParticipantAccountNotifier,
+	IAccountsBalancesAdapter, ISettlementBatchCacheRepo,
 	ISettlementBatchRepo,
-	ISettlementBatchTransferRepo,
+	ISettlementBatchTransferRepo, ISettlementConfigCacheRepo,
 	ISettlementConfigRepo,
 	ISettlementMatrixRequestRepo,
 	Privileges,
 	SettlementsAggregate
 } from "@mojaloop/settlements-bc-domain-lib";
 import {Express} from "express";
-import {IAuthorizationClient, ITokenHelper, ILoginHelper} from "@mojaloop/security-bc-public-types-lib";
+import {
+	IAuthorizationClient,
+	ITokenHelper,
+	ILoginHelper,
+	IAuthenticatedHttpRequester
+} from "@mojaloop/security-bc-public-types-lib";
 
 import {AuthorizationClient, TokenHelper} from "@mojaloop/security-bc-client-lib";
 import {IMessageConsumer, IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
@@ -83,14 +88,24 @@ import {PrometheusMetrics} from "@mojaloop/platform-shared-lib-observability-cli
 import configClient from "./config";
 import {DEFAULT_SETTLEMENT_MODEL_ID, DEFAULT_SETTLEMENT_MODEL_NAME} from "@mojaloop/settlements-bc-public-types-lib";
 import {IConfigurationClient} from "@mojaloop/platform-configuration-bc-public-types-lib";
-import { ConfigurationClient,IConfigProvider } from "@mojaloop/platform-configuration-bc-client-lib";
+
 import crypto from "crypto";
+import {
+	SettlementBatchCacheRepoMock,
+	SettlementBatchTransferRepoVoid
+} from "@mojaloop/settlements-bc-shared-mocks-lib";
+import {
+	SettlementConfigCacheRepoMock
+} from "@mojaloop/settlements-bc-shared-mocks-lib/dist/repo/cache/settlement_config_cache_repo_mock";
+import {
+	SettlementBatchCacheRepoRedis
+} from "@mojaloop/settlements-bc-infrastructure-lib/dist/cache/settlement_batch_cache_repo_redis";
 
 const BC_NAME = configClient.boundedContextName;
 const APP_NAME = configClient.applicationName;
 const APP_VERSION = configClient.applicationVersion;
 const PRODUCTION_MODE = process.env["PRODUCTION_MODE"] || false;
-const LOG_LEVEL: LogLevel = process.env["LOG_LEVEL"] as LogLevel || LogLevel.DEBUG;
+const LOG_LEVEL: LogLevel = process.env["LOG_LEVEL"] as LogLevel || LogLevel.INFO;
 
 const KAFKA_URL = process.env["KAFKA_URL"] || "localhost:9092";
 const MONGO_URL = process.env["MONGO_URL"] || "mongodb://root:example@localhost:27017/";
@@ -113,10 +128,6 @@ const ACCOUNTS_BALANCES_COA_SVC_URL = process.env["ACCOUNTS_BALANCES_COA_SVC_URL
 const SVC_CLIENT_ID = process.env["SVC_CLIENT_ID"] || "settlements-bc-command-handler-svc";
 const SVC_CLIENT_SECRET = process.env["SVC_CLIENT_SECRET"] || "superServiceSecret";
 
-const USE_TIGERBEETLE = process.env["USE_TIGERBEETLE"] || false;
-const TIGERBEETLE_CLUSTER_ID = process.env["TIGERBEETLE_CLUSTER_ID"] || 1;
-const TIGERBEETLE_CLUSTER_REPLICA_ADDRESSES = process.env["TIGERBEETLE_CLUSTER_REPLICA_ADDRESSES"] || "default_CHANGEME";
-
 const DB_NAME: string = "settlements";
 const SETTLEMENT_CONFIGS_COLLECTION_NAME: string = "configs";
 const SETTLEMENT_BATCHES_COLLECTION_NAME: string = "batches";
@@ -137,6 +148,15 @@ const kafkaProducerOptions: MLKafkaJsonProducerOptions = {
 	kafkaBrokerList: KAFKA_URL
 };
 
+// TigerBeetle:
+const USE_TIGERBEETLE = process.env["USE_TIGERBEETLE"] || false;
+const TIGERBEETLE_CLUSTER_ID = process.env["TIGERBEETLE_CLUSTER_ID"] || 0;
+const TIGERBEETLE_CLUSTER_REPLICA_ADDRESSES = process.env["TIGERBEETLE_CLUSTER_REPLICA_ADDRESSES"] || "localhost:9001";
+
+// Redis:
+const REDIS_HOST = process.env["REDIS_HOST"] || "localhost";
+const REDIS_PORT = (process.env["REDIS_PORT"] && parseInt(process.env["REDIS_PORT"])) || 6379;
+
 let globalLogger: ILogger;
 
 export class Service {
@@ -153,9 +173,12 @@ export class Service {
 	static matrixRepo: ISettlementMatrixRequestRepo;
 	static messageConsumer: IMessageConsumer;
 	static messageProducer: IMessageProducer;
+	static configCache: ISettlementConfigCacheRepo;
+	static batchCache: ISettlementBatchCacheRepo;
 	static aggregate: SettlementsAggregate;
 	static handler: SettlementsCommandHandler;
 	static metrics: IMetrics;
+	static configurationClient: IConfigurationClient;
 	static startupTimer: NodeJS.Timeout;
 
 	static async start(
@@ -172,6 +195,9 @@ export class Service {
 		messageConsumer?: IMessageConsumer,
 		messageProducer?: IMessageProducer,
 		metrics?: IMetrics,
+		configCache?: ISettlementConfigCacheRepo,
+		batchCache?: ISettlementBatchCacheRepo,
+		confClient?: IConfigurationClient
 	): Promise<void> {
 		console.log(`Service starting with PID: ${process.pid}`);
 
@@ -194,10 +220,6 @@ export class Service {
 		}
 		globalLogger = this.logger = logger;
 
-		await configClient.init();
-		await configClient.bootstrap(true);
-		await configClient.fetch();
-
 		if (!tokenHelper) {
 			tokenHelper = new TokenHelper(
 				AUTH_N_SVC_JWKS_URL, logger, AUTH_N_TOKEN_ISSUER_NAME, AUTH_N_TOKEN_AUDIENCE,
@@ -207,16 +229,21 @@ export class Service {
 		}
 		this.tokenHelper = tokenHelper;
 
-		if(!loginHelper){
+		if (!loginHelper){
 			loginHelper = new LoginHelper(AUTH_N_SVC_TOKEN_URL, this.logger);
 			(loginHelper as LoginHelper).setAppCredentials(SVC_CLIENT_ID, SVC_CLIENT_SECRET);
 		}
 		this.loginHelper = loginHelper;
 
+		// config client:
+		if (!confClient) confClient = configClient;
+		this.configurationClient = confClient;
+
 		// authorization client
+		let authRequester: IAuthenticatedHttpRequester|null = null;
 		if (!authorizationClient) {
 			// create the instance of IAuthenticatedHttpRequester
-			const authRequester = new AuthenticatedHttpRequester(logger, AUTH_N_SVC_TOKEN_URL);
+			authRequester = new AuthenticatedHttpRequester(logger, AUTH_N_SVC_TOKEN_URL);
 			authRequester.setAppCredentials(SVC_CLIENT_ID, SVC_CLIENT_SECRET);
 
 			const consumerHandlerLogger = logger.createChild("authorizationClientConsumer");
@@ -239,6 +266,10 @@ export class Service {
 			await (authorizationClient as AuthorizationClient).init();
 		}
 		this.authorizationClient = authorizationClient;
+
+		await this.configurationClient.init();
+		await this.configurationClient.bootstrap(true);
+		await this.configurationClient.fetch();
 
 		if (!auditClient) {
 			if (!existsSync(AUDIT_KEY_FILE_PATH)) {
@@ -270,18 +301,18 @@ export class Service {
 		this.auditClient = auditClient;
 
 		if (!accountsAndBalancesAdapter) {
-			if (USE_TIGERBEETLE) {
+			if (USE_TIGERBEETLE === 'true') {
 				accountsAndBalancesAdapter = new TigerBeetleAccountsAndBalancesAdapter(
 					Number(TIGERBEETLE_CLUSTER_ID),
 					[TIGERBEETLE_CLUSTER_REPLICA_ADDRESSES],
-					this.logger
+					this.logger,
+					this.configurationClient
 				);
-				await accountsAndBalancesAdapter.init();
 			} else {
 				accountsAndBalancesAdapter = new GrpcAccountsAndBalancesAdapter(ACCOUNTS_BALANCES_COA_SVC_URL, this.loginHelper as LoginHelper, this.logger);
-				await accountsAndBalancesAdapter.init();
 			}
 		}
+		await accountsAndBalancesAdapter.init();
 		this.accountsAndBalancesAdapter = accountsAndBalancesAdapter;
 
 		// repositories
@@ -335,14 +366,18 @@ export class Service {
 		this.matrixRepo = matrixRepo;
 
 		if (!batchTransferRepo) {
-			batchTransferRepo = new MongoSettlementTransferRepo(
-				this.logger,
-				MONGO_URL,
-				DB_NAME,
-				SETTLEMENT_TRANSFERS_COLLECTION_NAME
-			);
-			await batchTransferRepo.init();
+			if (USE_TIGERBEETLE === 'true') {
+				batchTransferRepo = new SettlementBatchTransferRepoVoid();
+			} else {
+				batchTransferRepo = new MongoSettlementTransferRepo(
+					this.logger,
+					MONGO_URL,
+					DB_NAME,
+					SETTLEMENT_TRANSFERS_COLLECTION_NAME
+				);
+			}
 		}
+		await batchTransferRepo.init();
 		this.batchTransferRepo = batchTransferRepo;
 
 		if (!messageConsumer) {
@@ -367,28 +402,47 @@ export class Service {
 		}
 		this.metrics = metrics;
 
+		if (!configCache) configCache = new SettlementConfigCacheRepoMock();
+		await configCache.init();
+		this.configCache = configCache;
+
+		if (!batchCache) {
+			if (MONGO_URL !== undefined && MONGO_URL.trim().length > 0) {
+				batchCache = new SettlementBatchCacheRepoRedis(this.logger, REDIS_HOST, REDIS_PORT);
+			} else {
+				batchCache = new SettlementBatchCacheRepoMock();
+			}
+		}
+		await batchCache.init();
+		this.batchCache = batchCache;
+
 		// Aggregate:
 		this.aggregate = new SettlementsAggregate(
 			this.logger,
-			this.authorizationClient,
 			this.auditClient,
-			configClient,
+			this.configurationClient,
 			this.batchRepo,
 			this.batchTransferRepo,
 			this.configRepo,
 			this.matrixRepo,
 			this.accountsAndBalancesAdapter,
 			this.messageProducer,
-			this.metrics
+			this.metrics,
+			this.configCache,
+			this.batchCache
 		);
 
-		// create handler and start it
-		this.handler = new SettlementsCommandHandler(this.logger, this.auditClient, this.messageConsumer, this.aggregate, this.loginHelper);
+		// Create handler and start it:
+		this.handler = new SettlementsCommandHandler(
+			this.logger,
+			this.messageConsumer,
+			this.aggregate
+		);
 		await this.handler.start();
 
 		this.logger.info(`Settlements Command Handler Service started, version: ${configClient.applicationVersion}`);
 
-		// remove startup timeout
+		// Remove startup timeout
 		clearTimeout(this.startupTimer);
 	}
 
@@ -404,11 +458,6 @@ export class Service {
 
 function addPrivileges(authorizationClient: AuthorizationClient): void {
 	// processing of transfers must always happen, this priv is not required
-	// authorizationClient.addPrivilege(
-	// 	Privileges.CREATE_SETTLEMENT_TRANSFER,
-	// 	Privileges.CREATE_SETTLEMENT_TRANSFER,
-	// 	"Allows the creation of a settlement transfer."
-	// );
 	authorizationClient.addPrivilege(
 		Privileges.CREATE_DYNAMIC_SETTLEMENT_MATRIX,
 		Privileges.CREATE_DYNAMIC_SETTLEMENT_MATRIX,

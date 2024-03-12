@@ -44,7 +44,9 @@ import {
 	AddBatchesToMatrixCmd,
 	RemoveBatchesFromMatrixCmdPayload,
 	RemoveBatchesFromMatrixCmd,
-	CreateSettlementModelCmd, LockMatrixCmd, UnlockMatrixCmd
+	CreateSettlementModelCmd,
+	LockMatrixCmd,
+	UnlockMatrixCmd
 } from "@mojaloop/settlements-bc-domain-lib";
 import {CallSecurityContext} from "@mojaloop/security-bc-public-types-lib";
 import {
@@ -69,7 +71,6 @@ const MAX_ENTRIES_PER_PAGE = 100;
 export class ExpressRoutes {
 	private readonly _logger: ILogger;
 	private readonly _tokenHelper: ITokenHelper;
-	// private readonly _aggregate: SettlementsAggregate;
 	private readonly _configRepo: ISettlementConfigRepo;
 	private readonly _batchRepo: ISettlementBatchRepo;
 	private readonly _batchTransferRepo: ISettlementBatchTransferRepo;
@@ -102,51 +103,46 @@ export class ExpressRoutes {
 		// Inject authentication - all requests require a valid token.
 		this._router.use(this._authenticationMiddleware.bind(this)); // All requests require authentication.
 		
-		// transfer inject
-		// this is for tests only, normal path is though events (event/command handler)
-		// this._router.post("/transfer", this.postHandleTransfer.bind(this));
+		// Transfers:
+		this._router.get("/transfers", this.getSettlementBatchTransfers.bind(this));
 
-		// models
+		// Models:
 		this._router.get("/models", this.getSettlementModels.bind(this));
 		this._router.get("/models/:id", this.getSettlementModelById.bind(this));
 		this._router.post("/models", this.postCreateSettlementModel.bind(this));
 
-		// Batches
+		// Batches:
 		this._router.get("/batches/:id", this.getSettlementBatch.bind(this));
 		this._router.get("/batches", this.getSettlementBatches.bind(this));
-		// this._router.get("/settlement_accounts", this.getSettlementBatchAccounts.bind(this)); // TODO is this necessary? batches already have the accounts
-		this._router.get("/transfers", this.getSettlementBatchTransfers.bind(this));
 
-		// Settlement Matrix:
-		this._router.post("/matrix", this.postCreateMatrix.bind(this));
-		this._router.post("/matrix/:id/batches", this.postAddBatchToStaticMatrix.bind(this));
-		this._router.delete("/matrix/:id/batches", this.postRemoveBatchFromStaticMatrix.bind(this));
+		// Settlement Matrices:
+		this._router.post("/matrices", this.postCreateMatrix.bind(this));
+		this._router.post("/matrices/:id/batches", this.postAddBatchToStaticMatrix.bind(this));
+		this._router.delete("/matrices/:id/batches", this.postRemoveBatchFromStaticMatrix.bind(this));
 
-		// request recalculation of matrix
-		this._router.post("/matrix/:id/recalculate", this.postRecalculateMatrix.bind(this));
-		// request closure of a matrix
-		this._router.post("/matrix/:id/close", this.postCloseSettlementMatrix.bind(this));
-		// request settlement of a matrix
-		this._router.post("/matrix/:id/settle", this.postSettleSettlementMatrix.bind(this));
-		// request dispute of a matrix
-		this._router.post("/matrix/:id/dispute", this.postDisputeSettlementMatrix.bind(this));
-		// get matrix by id - static get, no recalculate
-		this._router.get("/matrix/:id", this.getSettlementMatrix.bind(this));
-		// get matrices - static get, no recalculate
-		this._router.get("/matrix", this.getSettlementMatrices.bind(this));
+		// Request recalculation of matrix:
+		this._router.post("/matrices/:id/recalculate", this.postRecalculateMatrix.bind(this));
+		// Request closure of a matrix:
+		this._router.post("/matrices/:id/close", this.postCloseSettlementMatrix.bind(this));
+		// Request settlement of a matrix:
+		this._router.post("/matrices/:id/settle", this.postSettleSettlementMatrix.bind(this));
+		// Request dispute of a matrix:
+		this._router.post("/matrices/:id/dispute", this.postDisputeSettlementMatrix.bind(this));
+		// Request lock of a matrix:
+		this._router.post("/matrices/:id/lock", this.postLockSettlementMatrix.bind(this));
+		// Request un-lock of a matrix
+		this._router.post("/matrices/:id/unlock", this.postUnlockSettlementMatrix.bind(this));
 
-		// request lock of a matrix
-		this._router.post("/matrix/:id/lock", this.postLockSettlementMatrix.bind(this));
-		// request un-lock of a matrix
-		this._router.post("/matrix/:id/unlock", this.postUnlockSettlementMatrix.bind(this));
+		// Get matrix by id - static get, no recalculate:
+		this._router.get("/matrices/:id", this.getSettlementMatrix.bind(this));
+		// Get matrices - dynamic get, no recalculate:
+		this._router.get("/matrices", this.getSettlementMatrices.bind(this));
 	}
-
 
 	private async _authenticationMiddleware(req: express.Request, res: express.Response, next: express.NextFunction) {
 		const authorizationHeader = req.headers["authorization"];
 
-		if (!authorizationHeader)
-			return res.sendStatus(401);
+		if (!authorizationHeader) return res.sendStatus(401);
 
 		const bearer = authorizationHeader.trim().split(" ");
 		if (bearer.length!=2 || !bearer[1]) {
@@ -194,11 +190,11 @@ export class ExpressRoutes {
 		const name = req.query.name as string;
 		try {
 			let retModels: ISettlementConfig[] = [];
-			if(name){
+			if (name) {
 				this._logger.debug(`Got getSettlementModels request for model name: ${name}`);
 				const found = await this._configRepo.getSettlementConfigByModelName(name);
 				if(found) retModels.push(found);
-			}else{
+			} else {
 				this._logger.debug("Got getSettlementModels request");
 				retModels = await this._configRepo.getAllSettlementConfigs();
 			}
@@ -230,7 +226,6 @@ export class ExpressRoutes {
 
 	private async postCreateSettlementModel(req: express.Request, res: express.Response): Promise<void>{
 		// TODO enforce privileges
-
 		let id = req.body.id;
 		const name = req.body.settlementModel;
 		const batchCreateInterval = req.body.batchCreateInterval;
@@ -243,20 +238,19 @@ export class ExpressRoutes {
 			}
 
 			const existingModelName = await this._configRepo.getSettlementConfigByModelName(name);
-			if(existingModelName){
+			if (existingModelName) {
 				this._logger.warn("Duplicate Model Name on Settlement Model creation");
 				return this.sendErrorResponse(res, 400, "Duplicate Model Name on Settlement Model creation");
 			}
 
-			if(!id) id = name.toUpperCase();
+			if (!id) id = name.toUpperCase();
 			const existingModelId = await this._configRepo.getSettlementConfig(id);
-			if(existingModelId){
+			if (existingModelId) {
 				this._logger.warn("Duplicate Model ID on Settlement Model creation");
 				return this.sendErrorResponse(res, 400, "Duplicate Model ID on Settlement Model creation");
 			}
 
 			this._logger.debug(`Got postCreateSettlementModel request for model name: ${name}`);
-
 
 			const cmd = new CreateSettlementModelCmd({
 				id: id,
@@ -264,7 +258,6 @@ export class ExpressRoutes {
 				batchCreateInterval: batchCreateInterval,
 				createdBy: createdBy,
 			});
-
 
 			await this._messageProducer.send(cmd);
 
@@ -425,7 +418,7 @@ export class ExpressRoutes {
 		// TODO enforce privileges
 
 		try {
-			const matrixId = req.body.matrixiId || randomUUID();
+			const matrixId = req.body.matrixId || randomUUID();
 			const type = req.body.type as string || null;
 
 			const matrix = await this._matrixRepo.getMatrixById(matrixId);
@@ -547,6 +540,7 @@ export class ExpressRoutes {
 		try {
 			const matrixId = req.params.id as string;
 			const addReqPayload = req.body as AddBatchesToMatrixCmdPayload;
+			addReqPayload.matrixId = matrixId;
 
 			const cmd = new AddBatchesToMatrixCmd(addReqPayload);
 			await this._messageProducer.send(cmd);
@@ -562,6 +556,7 @@ export class ExpressRoutes {
 		try {
 			const matrixId = req.params.id as string;
 			const removeReqPayload = req.body as RemoveBatchesFromMatrixCmdPayload;
+			removeReqPayload.matrixId = matrixId;
 
 			const cmd = new RemoveBatchesFromMatrixCmd(removeReqPayload);
 			await this._messageProducer.send(cmd);

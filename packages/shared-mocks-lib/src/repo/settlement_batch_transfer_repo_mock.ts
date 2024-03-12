@@ -86,7 +86,7 @@ export class SettlementBatchTransferRepoMock implements ISettlementBatchTransfer
 	async getBatchTransfers(
 		pageIndex: number = 0,
         pageSize: number = MAX_ENTRIES_PER_PAGE,
-	): Promise<BatchTransferSearchResults>{
+	): Promise<BatchTransferSearchResults> {
 
 		pageIndex = Math.max(pageIndex, 0);
 		pageSize = Math.min(pageSize, MAX_ENTRIES_PER_PAGE);

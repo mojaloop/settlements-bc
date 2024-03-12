@@ -33,6 +33,7 @@ import {
 } from "@mojaloop/settlements-bc-public-types-lib";
 
 export class SettlementBatch implements ISettlementBatch {
+	batchUUID: string;
 	id: string; // FX.XOF:RWF.2021.08.23.00.00.001
 	timestamp: number;
 	settlementModel: string;
@@ -49,6 +50,7 @@ export class SettlementBatch implements ISettlementBatch {
 	accounts: ISettlementBatchAccount[];
 
 	constructor(
+		batchUUID: string,
 		id: string,
 		timestamp: number,
 		settlementModel: string,
@@ -58,6 +60,7 @@ export class SettlementBatch implements ISettlementBatch {
 		state: "OPEN" | "DISPUTED" | "SETTLED",
 		accounts?: ISettlementBatchAccount[],
 	) {
+		this.batchUUID = batchUUID;
 		this.id = id;
 		this.timestamp = timestamp;
 		this.settlementModel = settlementModel;

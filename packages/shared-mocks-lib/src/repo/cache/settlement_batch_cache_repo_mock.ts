@@ -27,20 +27,33 @@
 
 "use strict";
 
-import {IParticipantAccountNotifier} from "@mojaloop/settlements-bc-domain-lib";
-import {ISettlementMatrix} from "@mojaloop/settlements-bc-public-types-lib";
+import {ISettlementBatchCacheRepo} from "@mojaloop/settlements-bc-domain-lib";
+import {BatchSearchResults} from "@mojaloop/settlements-bc-public-types-lib";
 
-export class ParticipantAccountNotifierMock implements IParticipantAccountNotifier {
+export class SettlementBatchCacheRepoMock implements ISettlementBatchCacheRepo {
+	private _batchesCache: Map<string, BatchSearchResults> = new Map<string, BatchSearchResults>();
 
 	async init(): Promise<void> {
 		return Promise.resolve();
 	}
+
 	async destroy(): Promise<void>{
 		return Promise.resolve();
 	}
 
-	async publishSettlementMatrixExecuteEvent(matrix: ISettlementMatrix): Promise<void> {
-		//TODO publish to the external system:
+	async invalidate(batchName: string): Promise<void> {
+		this._batchesCache.delete(batchName);
 		return Promise.resolve();
+	}
+
+	async set(batchName: string, batchResult: BatchSearchResults): Promise<void> {
+		if (batchName === undefined || batchResult == undefined) return Promise.resolve();
+
+		this._batchesCache.set(batchName, batchResult);
+		return Promise.resolve();
+	}
+
+	async get(batchName: string): Promise<BatchSearchResults | null | undefined> {
+		return Promise.resolve(this._batchesCache.get(batchName));
 	}
 }

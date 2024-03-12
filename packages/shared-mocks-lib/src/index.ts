@@ -38,10 +38,17 @@ export * from "./message_mock";
 export * from "./authorization_client_mock";
 
 export * from "./repo/config_repo_mock";
-export * from "./repo/participant_account_notifier_mock";
 
 export * from "./repo/settlement_batch_repo_mock";
 export * from "./repo/settlement_batch_transfer_repo_mock";
 
 export * from "./repo/settlement_matrix_request_repo_mock";
+export * from "./repo/settlement_batch_transfer_repo_void";
+
+/** Adapter **/
 export * from "./adapter/accounts_balances_adapter_mock";
+export * from "./adapter/accounts_balances_adapter_void";
+
+/** Cache **/
+export * from "./repo/cache/settlement_batch_cache_repo_mock";
+export * from "./repo/cache/settlement_config_cache_repo_mock";
