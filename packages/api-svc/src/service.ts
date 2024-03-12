@@ -260,19 +260,21 @@ export class Service {
 		}
 		this.configClient = configClient;
 
-		if (!accountsAndBalancesAdapter && USE_TIGERBEETLE === 'true') {
-			accountsAndBalancesAdapter = new TigerBeetleAccountsAndBalancesAdapter(
-				Number(TIGERBEETLE_CLUSTER_ID),
-				[TIGERBEETLE_CLUSTER_REPLICA_ADDRESSES],
-				this.logger,
-				this.configClient
-			);
-		} else if (!accountsAndBalancesAdapter) {
-			const loginHelper = new LoginHelper(AUTH_N_SVC_TOKEN_URL, logger);
-			loginHelper.setAppCredentials(SVC_CLIENT_ID, SVC_CLIENT_SECRET);
-			accountsAndBalancesAdapter = new GrpcAccountsAndBalancesAdapter(ACCOUNTS_BALANCES_COA_SVC_URL, loginHelper, this.logger);
+		if (!accountsAndBalancesAdapter) {
+			if (USE_TIGERBEETLE === "true") {
+				accountsAndBalancesAdapter = new TigerBeetleAccountsAndBalancesAdapter(
+					Number(TIGERBEETLE_CLUSTER_ID),
+					[TIGERBEETLE_CLUSTER_REPLICA_ADDRESSES],
+					this.logger,
+					this.configClient
+				);
+			} else {
+				const loginHelper = new LoginHelper(AUTH_N_SVC_TOKEN_URL, logger);
+				loginHelper.setAppCredentials(SVC_CLIENT_ID, SVC_CLIENT_SECRET);
+				accountsAndBalancesAdapter = new GrpcAccountsAndBalancesAdapter(ACCOUNTS_BALANCES_COA_SVC_URL, loginHelper, this.logger);
+			}
+			await accountsAndBalancesAdapter.init();
 		}
-		await accountsAndBalancesAdapter.init();
 		this.abAdapter = accountsAndBalancesAdapter;
 
 		// repositories:
@@ -298,17 +300,19 @@ export class Service {
 		}
 		this.batchRepo = batchRepo;
 
-		if (!batchTransferRepo && USE_TIGERBEETLE === 'true') {
-			batchTransferRepo = new SettlementBatchTransferRepoTigerBeetle(this.batchRepo, this.abAdapter);
-		} else if (!batchTransferRepo) {
-			batchTransferRepo = new MongoSettlementTransferRepo(
-				logger,
-				MONGO_URL,
-				DB_NAME,
-				SETTLEMENT_TRANSFERS_COLLECTION_NAME
-			);
+		if (!batchTransferRepo) {
+			if (USE_TIGERBEETLE === "true") {
+				batchTransferRepo = new MongoSettlementTransferRepo(
+					logger,
+					MONGO_URL,
+					DB_NAME,
+					SETTLEMENT_TRANSFERS_COLLECTION_NAME
+				);
+			} else {
+				batchTransferRepo = new SettlementBatchTransferRepoTigerBeetle(this.batchRepo, this.abAdapter);
+			}
+			await batchTransferRepo.init();
 		}
-		await batchTransferRepo.init();
 		this.batchTransferRepo = batchTransferRepo;
 
 		if (!matrixRepo) {

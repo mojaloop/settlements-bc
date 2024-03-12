@@ -19,19 +19,15 @@
  their names indented and be marked with a '-'. Email address can be added
  optionally within square brackets <email>.
 
- * Gates Foundation
- - Name Surname <name.surname@gatesfoundation.com>
-
- * ILF
- - Jason Bruwer <jason.bruwer@interledger.org>
+ * Coil
+ * - Jason Bruwer <jason.bruwer@coil.com>
 
  --------------
  ******/
 
 "use strict";
 
-import {Service} from "../service";
-
+import {Service} from "../../packages/api-svc/dist/service";
 import {
  AuditClientMock,
  AuthorizationClientMock,
@@ -42,8 +38,8 @@ import process from "process";
 
 const tokenHelper = new TokenHelperMock();
 const authorizationClient = new AuthorizationClientMock(true);
-const auditClient = new AuditClientMock();
 const configClient = new ConfigurationClientMock();
+const auditClient = new AuditClientMock();
 
 // JMeter TigerBeetle environment properties:
 process.env.USE_TIGERBEETLE = "true";
@@ -53,20 +49,9 @@ process.env.NODE_ENV= "dev-jmeter";
 Service.start(
     undefined,
     tokenHelper,
-    undefined,
     authorizationClient,
     auditClient,
-    undefined,
-    undefined,
-    undefined,
-    undefined,
-    undefined,
-    undefined,
-    undefined,
-    undefined,
-    undefined,
-    undefined,
     configClient
 ).then(() => {
-    console.log("JMeter-TigerBeetle 📈🪲 Service start complete!");
+  console.log("JMeter-TigerBeetle 📈🪲 Service start complete!");
 });
