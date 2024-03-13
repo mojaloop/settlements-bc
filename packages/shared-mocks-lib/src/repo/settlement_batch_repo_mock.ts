@@ -64,10 +64,10 @@ export class SettlementBatchRepoMock implements ISettlementBatchRepo {
 		return Promise.resolve(returnVal || null);
 	}
 
-	async getOpenBatchByName(batchName: string): Promise<ISettlementBatch | null> {
+/*	async getOpenBatchByName(batchName: string): Promise<ISettlementBatch | null> {
 		const returnVal = this.batches.find(value => value.id === batchName || value.state === 'OPEN');
 		return Promise.resolve(returnVal || null);
-	}
+	}*/
 
 	async getBatchesByName(
 		batchName: string,

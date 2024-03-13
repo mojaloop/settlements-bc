@@ -130,9 +130,13 @@ const kafkaProducerOptions: MLKafkaJsonProducerOptions = {
 let globalLogger: ILogger;
 
 // TigerBeetle:
-const USE_TIGERBEETLE = process.env["USE_TIGERBEETLE"] || false;
+const USE_TIGERBEETLE= process.env["USE_TIGERBEETLE"] && process.env["USE_TIGERBEETLE"].toUpperCase()==="TRUE" || false;
 const TIGERBEETLE_CLUSTER_ID = process.env["TIGERBEETLE_CLUSTER_ID"] || 0;
 const TIGERBEETLE_CLUSTER_REPLICA_ADDRESSES = process.env["TIGERBEETLE_CLUSTER_REPLICA_ADDRESSES"] || "localhost:9001";
+
+// Redis:
+const REDIS_HOST = process.env["REDIS_HOST"] || "localhost";
+const REDIS_PORT = (process.env["REDIS_PORT"] && parseInt(process.env["REDIS_PORT"])) || 6379;
 
 export class Service {
 	static logger: ILogger;
@@ -148,7 +152,7 @@ export class Service {
 	static matrixRepo: ISettlementMatrixRequestRepo;
 	static messageProducer: IMessageProducer;
 	static startupTimer: NodeJS.Timeout;
-	static abAdapter: IAccountsBalancesAdapter;
+	// static abAdapter: IAccountsBalancesAdapter;
 
 	static async start(
 		logger?:ILogger,
@@ -161,7 +165,7 @@ export class Service {
 		batchTransferRepo?: ISettlementBatchTransferRepo,
 		matrixRepo?: ISettlementMatrixRequestRepo,
 		messageProducer?: IMessageProducer,
-		accountsAndBalancesAdapter?: IAccountsBalancesAdapter
+		// accountsAndBalancesAdapter?: IAccountsBalancesAdapter
 	) : Promise<void> {
 		console.log(`Service starting with PID: ${process.pid}`);
 
@@ -260,22 +264,22 @@ export class Service {
 		}
 		this.configClient = configClient;
 
-		if (!accountsAndBalancesAdapter) {
-			if (USE_TIGERBEETLE === "true") {
-				accountsAndBalancesAdapter = new TigerBeetleAccountsAndBalancesAdapter(
-					Number(TIGERBEETLE_CLUSTER_ID),
-					[TIGERBEETLE_CLUSTER_REPLICA_ADDRESSES],
-					this.logger,
-					this.configClient
-				);
-			} else {
-				const loginHelper = new LoginHelper(AUTH_N_SVC_TOKEN_URL, logger);
-				loginHelper.setAppCredentials(SVC_CLIENT_ID, SVC_CLIENT_SECRET);
-				accountsAndBalancesAdapter = new GrpcAccountsAndBalancesAdapter(ACCOUNTS_BALANCES_COA_SVC_URL, loginHelper, this.logger);
-			}
-			await accountsAndBalancesAdapter.init();
-		}
-		this.abAdapter = accountsAndBalancesAdapter;
+		// if (!accountsAndBalancesAdapter) {
+		// 	if (USE_TIGERBEETLE) {
+		// 		accountsAndBalancesAdapter = new TigerBeetleAccountsAndBalancesAdapter(
+		// 			Number(TIGERBEETLE_CLUSTER_ID),
+		// 			[TIGERBEETLE_CLUSTER_REPLICA_ADDRESSES],
+		// 			this.logger,
+		// 			this.configClient
+		// 		);
+		// 	} else {
+		// 		const loginHelper = new LoginHelper(AUTH_N_SVC_TOKEN_URL, logger);
+		// 		loginHelper.setAppCredentials(SVC_CLIENT_ID, SVC_CLIENT_SECRET);
+		// 		accountsAndBalancesAdapter = new GrpcAccountsAndBalancesAdapter(ACCOUNTS_BALANCES_COA_SVC_URL, loginHelper, this.logger);
+		// 	}
+		// 	await accountsAndBalancesAdapter.init();
+		// }
+		// this.abAdapter = accountsAndBalancesAdapter;
 
 		// repositories:
 		if (!configRepo) {
@@ -283,7 +287,9 @@ export class Service {
 				logger,
 				MONGO_URL,
 				DB_NAME,
-				SETTLEMENT_CONFIGS_COLLECTION_NAME
+				SETTLEMENT_CONFIGS_COLLECTION_NAME,
+				REDIS_HOST,
+				REDIS_PORT
 			);
 			await configRepo.init();
 		}
@@ -294,23 +300,25 @@ export class Service {
 				logger,
 				MONGO_URL,
 				DB_NAME,
-				SETTLEMENT_BATCHES_COLLECTION_NAME
+				SETTLEMENT_BATCHES_COLLECTION_NAME,
+				REDIS_HOST,
+				REDIS_PORT
 			);
 			await batchRepo.init();
 		}
 		this.batchRepo = batchRepo;
 
 		if (!batchTransferRepo) {
-			if (USE_TIGERBEETLE === "true") {
+			// if (USE_TIGERBEETLE) {
 				batchTransferRepo = new MongoSettlementTransferRepo(
 					logger,
 					MONGO_URL,
 					DB_NAME,
 					SETTLEMENT_TRANSFERS_COLLECTION_NAME
 				);
-			} else {
-				batchTransferRepo = new SettlementBatchTransferRepoTigerBeetle(this.batchRepo, this.abAdapter);
-			}
+			// } else {
+			// 	batchTransferRepo = new SettlementBatchTransferRepoTigerBeetle(this.batchRepo, this.abAdapter);
+			// }
 			await batchTransferRepo.init();
 		}
 		this.batchTransferRepo = batchTransferRepo;

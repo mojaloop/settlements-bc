@@ -54,9 +54,9 @@ import {
 } from "@mojaloop/security-bc-client-lib";
 
 import {
-	IAccountsBalancesAdapter, ISettlementBatchCacheRepo,
+	IAccountsBalancesAdapter, 
 	ISettlementBatchRepo,
-	ISettlementBatchTransferRepo, ISettlementConfigCacheRepo,
+	ISettlementBatchTransferRepo,
 	ISettlementConfigRepo,
 	ISettlementMatrixRequestRepo,
 	Privileges,
@@ -90,16 +90,6 @@ import {DEFAULT_SETTLEMENT_MODEL_ID, DEFAULT_SETTLEMENT_MODEL_NAME} from "@mojal
 import {IConfigurationClient} from "@mojaloop/platform-configuration-bc-public-types-lib";
 
 import crypto from "crypto";
-import {
-	SettlementBatchCacheRepoMock,
-	SettlementBatchTransferRepoVoid
-} from "@mojaloop/settlements-bc-shared-mocks-lib";
-import {
-	SettlementConfigCacheRepoMock
-} from "@mojaloop/settlements-bc-shared-mocks-lib/dist/repo/cache/settlement_config_cache_repo_mock";
-import {
-	SettlementBatchCacheRepoRedis
-} from "@mojaloop/settlements-bc-infrastructure-lib/dist/cache/settlement_batch_cache_repo_redis";
 
 const BC_NAME = configClient.boundedContextName;
 const APP_NAME = configClient.applicationName;
@@ -149,7 +139,7 @@ const kafkaProducerOptions: MLKafkaJsonProducerOptions = {
 };
 
 // TigerBeetle:
-const USE_TIGERBEETLE = process.env["USE_TIGERBEETLE"] || false;
+const USE_TIGERBEETLE= process.env["USE_TIGERBEETLE"] && process.env["USE_TIGERBEETLE"].toUpperCase()==="TRUE" || false;
 const TIGERBEETLE_CLUSTER_ID = process.env["TIGERBEETLE_CLUSTER_ID"] || 0;
 const TIGERBEETLE_CLUSTER_REPLICA_ADDRESSES = process.env["TIGERBEETLE_CLUSTER_REPLICA_ADDRESSES"] || "localhost:9001";
 
@@ -173,8 +163,6 @@ export class Service {
 	static matrixRepo: ISettlementMatrixRequestRepo;
 	static messageConsumer: IMessageConsumer;
 	static messageProducer: IMessageProducer;
-	static configCache: ISettlementConfigCacheRepo;
-	static batchCache: ISettlementBatchCacheRepo;
 	static aggregate: SettlementsAggregate;
 	static handler: SettlementsCommandHandler;
 	static metrics: IMetrics;
@@ -195,8 +183,6 @@ export class Service {
 		messageConsumer?: IMessageConsumer,
 		messageProducer?: IMessageProducer,
 		metrics?: IMetrics,
-		configCache?: ISettlementConfigCacheRepo,
-		batchCache?: ISettlementBatchCacheRepo,
 		confClient?: IConfigurationClient
 	): Promise<void> {
 		console.log(`Service starting with PID: ${process.pid}`);
@@ -301,7 +287,7 @@ export class Service {
 		this.auditClient = auditClient;
 
 		if (!accountsAndBalancesAdapter) {
-			if (USE_TIGERBEETLE === 'true') {
+			if (USE_TIGERBEETLE) {
 				accountsAndBalancesAdapter = new TigerBeetleAccountsAndBalancesAdapter(
 					Number(TIGERBEETLE_CLUSTER_ID),
 					[TIGERBEETLE_CLUSTER_REPLICA_ADDRESSES],
@@ -321,7 +307,9 @@ export class Service {
 				this.logger,
 				MONGO_URL,
 				DB_NAME,
-				SETTLEMENT_CONFIGS_COLLECTION_NAME
+				SETTLEMENT_CONFIGS_COLLECTION_NAME,
+				REDIS_HOST, 
+				REDIS_PORT
 			);
 			await configRepo.init();
 
@@ -348,7 +336,9 @@ export class Service {
 				this.logger,
 				MONGO_URL,
 				DB_NAME,
-				SETTLEMENT_BATCHES_COLLECTION_NAME
+				SETTLEMENT_BATCHES_COLLECTION_NAME,
+				REDIS_HOST, 
+				REDIS_PORT
 			);
 			await batchRepo.init();
 		}
@@ -366,18 +356,18 @@ export class Service {
 		this.matrixRepo = matrixRepo;
 
 		if (!batchTransferRepo) {
-			if (USE_TIGERBEETLE === 'true') {
-				batchTransferRepo = new SettlementBatchTransferRepoVoid();
-			} else {
+			// if (USE_TIGERBEETLE) {
+			// 	batchTransferRepo = new SettlementBatchTransferRepoVoid();
+			// } else {
 				batchTransferRepo = new MongoSettlementTransferRepo(
 					this.logger,
 					MONGO_URL,
 					DB_NAME,
 					SETTLEMENT_TRANSFERS_COLLECTION_NAME
 				);
-			}
+			// }
+			await batchTransferRepo.init();
 		}
-		await batchTransferRepo.init();
 		this.batchTransferRepo = batchTransferRepo;
 
 		if (!messageConsumer) {
@@ -402,20 +392,6 @@ export class Service {
 		}
 		this.metrics = metrics;
 
-		if (!configCache) configCache = new SettlementConfigCacheRepoMock();
-		await configCache.init();
-		this.configCache = configCache;
-
-		if (!batchCache) {
-			if (MONGO_URL !== undefined && MONGO_URL.trim().length > 0) {
-				batchCache = new SettlementBatchCacheRepoRedis(this.logger, REDIS_HOST, REDIS_PORT);
-			} else {
-				batchCache = new SettlementBatchCacheRepoMock();
-			}
-		}
-		await batchCache.init();
-		this.batchCache = batchCache;
-
 		// Aggregate:
 		this.aggregate = new SettlementsAggregate(
 			this.logger,
@@ -427,9 +403,7 @@ export class Service {
 			this.matrixRepo,
 			this.accountsAndBalancesAdapter,
 			this.messageProducer,
-			this.metrics,
-			this.configCache,
-			this.batchCache
+			this.metrics
 		);
 
 		// Create handler and start it:

@@ -83,7 +83,7 @@ export interface ISettlementBatchRepo {
 	getBatch(id: string): Promise<ISettlementBatch | null>;
 
 	// there can be only one open with the same name (excludes sequence number)
-	getOpenBatchByName(batchName: string): Promise<ISettlementBatch | null>;
+	//getOpenBatchByName(batchName: string): Promise<ISettlementBatch | null>;
 
 	// there can be multiple batches with the same name (excludes sequence number)
 	getBatchesByName(batchName: string, pageIndex?: number, pageSize?: number): Promise<BatchSearchResults>;

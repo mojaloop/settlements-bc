@@ -117,8 +117,7 @@ export class SettlementsAggregate {
 	private readonly  _currencyList: Currency[];
 	private _histo: IHistogram;
 	private _commandsCounter:ICounter;
-	private readonly _settleConfigCache: ISettlementConfigCacheRepo;
-	private readonly _settleBatchCache: ISettlementBatchCacheRepo;
+	// private readonly _settleBatchCache: ISettlementBatchCacheRepo;
 
 
 	constructor(
@@ -132,8 +131,8 @@ export class SettlementsAggregate {
 		abAdapter: IAccountsBalancesAdapter,
 		msgProducer: IMessageProducer,
 		metrics: IMetrics,
-		configCache: ISettlementConfigCacheRepo,
-		batchCache: ISettlementBatchCacheRepo
+		//configCache: ISettlementConfigCacheRepo,
+		//batchCache: ISettlementBatchCacheRepo
 	) {
 		this._logger = logger;
 		this._auditingClient = auditingClient;
@@ -144,8 +143,7 @@ export class SettlementsAggregate {
 		this._settlementMatrixReqRepo = settlementMatrixReqRepo;
 		this._abAdapter = abAdapter;
 		this._msgProducer = msgProducer;
-		this._settleConfigCache = configCache;
-		this._settleBatchCache = batchCache;
+		// this._settleBatchCache = batchCache;
 
 		// metrics:
 		this._histo = metrics.getHistogram("SettlementsAggregate", "SettlementsAggregate calls", ["callName", "success"]);
@@ -332,10 +330,8 @@ export class SettlementsAggregate {
 		// persist the batch changes:
 		if (resp.created) {
 			await this._batchRepo.storeNewBatch(batch);
-			await this._settleBatchCache.invalidate(batch.batchName);
 		} else if (accountAdded) {
 			await this._batchRepo.updateBatch(batch);
-			await this._settleBatchCache.invalidate(batch.batchName);
 		}
 
 		const tookBatchCreateUpdate = (Date.now() - tookInd);
@@ -1070,14 +1066,10 @@ export class SettlementsAggregate {
 	}
 
 	private async _getSettlementConfig(model: string): Promise<ISettlementConfig> {
-		let configDto = await this._settleConfigCache.get(model);
-		if (configDto) return configDto;
-
-		configDto = await this._configRepo.getSettlementConfigByModelName(model);
+		const configDto = await this._configRepo.getSettlementConfigByModelName(model);
 		if (!configDto) {
 			throw new NoSettlementConfig(`No settlement config for model '${model}'.`);
 		}
-		await this._settleConfigCache.set(configDto);
 		return configDto;
 	}
 
@@ -1088,12 +1080,7 @@ export class SettlementsAggregate {
 	) : Promise<{batch: SettlementBatch, created: boolean}> {
 		const batchName = this._generateBatchName(model, currencyCode, toDate);
 
-		// Cache first then repo:
-		let existingBatches = await this._settleBatchCache.get(batchName);
-		if (!existingBatches) {
-			existingBatches = await this._batchRepo.getBatchesByName(batchName);
-			if (existingBatches) await this._settleBatchCache.set(batchName, existingBatches);
-		}
+		const existingBatches = await this._batchRepo.getBatchesByName(batchName);
 
 		if (!existingBatches || !existingBatches.items || existingBatches.items.length <= 0) {
 			// no batch exists with that name, let's create a new with seq number 1
@@ -1108,7 +1095,6 @@ export class SettlementsAggregate {
 				batchName,
 				"OPEN"
 			);
-			await this._settleBatchCache.invalidate(batchName);
 			return Promise.resolve({batch: newBatch, created: true});
 		}
 
@@ -1145,7 +1131,6 @@ export class SettlementsAggregate {
 			batchName,
 			"OPEN"
 		);
-		await this._settleBatchCache.invalidate(batchName);
 		return Promise.resolve({batch: newBatch, created: true});
 	}
 }

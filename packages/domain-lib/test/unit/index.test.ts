@@ -69,8 +69,8 @@ let configRepo: ISettlementConfigRepo;
 let settleBatchRepo: ISettlementBatchRepo;
 let settleTransferRepo: ISettlementBatchTransferRepo;
 let settleMatrixReqRepo: ISettlementMatrixRequestRepo;
-let confCacheRepo: ISettlementConfigCacheRepo;
-let batchCacheRepo: ISettlementBatchCacheRepo;
+// let confCacheRepo: ISettlementConfigCacheRepo;
+// let batchCacheRepo: ISettlementBatchCacheRepo;
 let abAdapter: IAccountsBalancesAdapter;
 let msgCache: MessageCache;
 let msgProducer: IMessageProducer;
@@ -89,8 +89,8 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		settleBatchRepo = new SettlementBatchRepoMock();
 		settleTransferRepo = new SettlementBatchTransferRepoMock();
 		settleMatrixReqRepo = new SettlementMatrixRequestRepoMock();
-		confCacheRepo = new SettlementConfigCacheRepoMock();
-		batchCacheRepo = new SettlementBatchCacheRepoMock();
+		// confCacheRepo = new SettlementConfigCacheRepoMock();
+		// batchCacheRepo = new SettlementBatchCacheRepoMock();
 
 		// adapters:
 		abAdapter = new AccountsBalancesAdapterMock();
@@ -114,8 +114,8 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 			abAdapter,
 			msgProducer,
 			metricsMock,
-			confCacheRepo,
-			batchCacheRepo
+			//confCacheRepo,
+			//batchCacheRepo
 		);
 	});
 
