@@ -58,7 +58,7 @@ const mockAuditClient: IAuditClient = new AuditClientMock();
 const configClient: IConfigurationClient = new ConfigurationClientMock();
 const metrics: IMetrics = new MetricsMock();
 
-const accBalAdapter: IAccountsBalancesAdapter = new AccountsBalancesAdapterMock();
+//const accBalAdapter: IAccountsBalancesAdapter = new AccountsBalancesAdapterMock();
 const mockConfigRepo: ISettlementConfigRepo = new SettlementConfigRepoMock();
 
 const server = (process.env["SETTLEMENT_SVC_URL"] || "http://localhost:3600");
@@ -87,7 +87,7 @@ describe("Settlement BC api-svc route test", () => {
             mockBatchTransferRepo,
             mockMatrixRequestRepo,
             mockMessageProducer,
-            accBalAdapter
+            //accBalAdapter
         );
 
         //Prepare mocked batch data
