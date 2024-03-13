@@ -204,9 +204,7 @@ export class ExpressRoutes {
 	}
 
 	private async getSettlementModels(req: express.Request, res: express.Response): Promise<void> {
-		// TODO enforce privileges
-
-
+	
 		const name = req.query.name as string;
 		try {
 			this._enforcePrivilege(req.securityContext!, Privileges.VIEW_SETTLEMENT_CONFIG);
@@ -229,8 +227,7 @@ export class ExpressRoutes {
 	}
 
 	private async getSettlementModelById(req: express.Request, res: express.Response): Promise<void> {
-		// TODO enforce privileges
-
+		
 		const modelId = req.params.id as string;
 		try {
 			this._enforcePrivilege(req.securityContext!, Privileges.VIEW_SETTLEMENT_CONFIG);
@@ -249,7 +246,6 @@ export class ExpressRoutes {
 	}
 
 	private async postCreateSettlementModel(req: express.Request, res: express.Response): Promise<void> {
-		// TODO enforce privileges
 
 		let id = req.body.id;
 		const name = req.body.settlementModel;
@@ -300,7 +296,6 @@ export class ExpressRoutes {
 	}
 
 	private async getSettlementBatch(req: express.Request, res: express.Response): Promise<void> {
-		// TODO enforce privileges
 
 		const batchId = req.params.id as string;
 		try {
@@ -361,7 +356,6 @@ export class ExpressRoutes {
 			return;
 		}
 
-		// TODO enforce privileges
 		try {
 
 
@@ -395,7 +389,7 @@ export class ExpressRoutes {
 	}
 
 	private async getSettlementBatchTransfers(req: express.Request, res: express.Response): Promise<void> {
-		// TODO enforce privileges
+
 		const batchId = req.query.batchId as string || req.query.batchid as string;
 		const batchName = req.query.batchName as string || req.query.batchname as string;
 		const transferId = req.query.transferId as string || req.query.transferid as string;
@@ -456,7 +450,6 @@ export class ExpressRoutes {
 	}
 
 	private async postCreateMatrix(req: express.Request, res: express.Response): Promise<void> {
-		// TODO enforce privileges
 
 		try {
 
@@ -628,7 +621,6 @@ export class ExpressRoutes {
 	}
 
 	private async getSettlementMatrix(req: express.Request, res: express.Response): Promise<void> {
-		// TODO enforce privileges
 
 		try {
 
@@ -648,8 +640,6 @@ export class ExpressRoutes {
 	}
 
 	private async getSettlementMatrices(req: express.Request, res: express.Response): Promise<void> {
-		// TODO enforce privileges
-
 
 		try {
 

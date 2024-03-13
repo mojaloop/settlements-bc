@@ -56,7 +56,7 @@ export const SettlementPrivilegesDefinition = [
     {
         privId: Privileges.CREATE_SETTLEMENT_MATRIX,
         labelName: "Create Settlement Matrix",
-        description: "Allows the creation of a dynamic settlement matrix."
+        description: "Allows the creation of a settlement matrix."
     },
 
 	{
