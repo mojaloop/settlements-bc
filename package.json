@@ -40,8 +40,8 @@
 	"start:api-svc": "npm -w @mojaloop/settlements-bc-settlements-api-svc run start",
 	"start:command-handler-svc": "npm -w packages/command-handler-svc run start",
 	"start:event-handler-svc": "npm -w packages/event-handler-svc run start",
-  	"start:api-svc-jmeter-tigerbeetle-enabled": "npm -w @mojaloop/settlements-bc-settlements-api-svc run start-jmeter-tigerbeetle-enabled",
-  	"start:command-handler-svc-jmeter-tigerbeetle-enabled": "npm -w packages/command-handler-svc run start-jmeter-tigerbeetle-enabled"
+  	"start:api-svc-jmeter-tigerbeetle-enabled": "NODE_ENV='dev-jmeter' MONGO_URL='mongodb://root:mongoDbPas42@localhost:27017/' USE_TIGERBEETLE=true npx ts-node ./scripts/jmeter/api-svc-tigerbeetle-enabled.ts",
+  	"start:command-handler-svc-jmeter-tigerbeetle-enabled": "NODE_ENV='dev-jmeter' MONGO_URL='mongodb://root:mongoDbPas42@localhost:27017/' USE_TIGERBEETLE=true npx ts-node ./scripts/jmeter/cmd-handler-tigerbeetle-enabled.ts"
   },
   "devDependencies": {
 	"@types/jest": "~29.5.12",
