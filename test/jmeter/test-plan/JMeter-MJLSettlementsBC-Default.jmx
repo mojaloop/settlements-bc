@@ -14,21 +14,21 @@
       <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="01 - Primary - Thread Group">
         <stringProp name="TestPlan.comments">Primary MJL Settlements-BC Thread Group.</stringProp>
         <intProp name="ThreadGroup.num_threads">1</intProp>
-        <intProp name="ThreadGroup.ramp_time">30</intProp>
+        <intProp name="ThreadGroup.ramp_time">5</intProp>
         <boolProp name="ThreadGroup.same_user_on_next_iteration">false</boolProp>
         <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
         <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller">
-          <stringProp name="LoopController.loops">500</stringProp>
+          <intProp name="LoopController.loops">500</intProp>
           <boolProp name="LoopController.continue_forever">false</boolProp>
         </elementProp>
       </ThreadGroup>
       <hashTree>
-        <JavaSampler guiclass="JavaTestSamplerGui" testclass="JavaSampler" testname="Configure - MJL Settlements-BC - JSON API" enabled="true">
+        <JavaSampler guiclass="JavaTestSamplerGui" testclass="JavaSampler" testname="Configure - MJL Settlements-BC - JSON API">
           <elementProp name="arguments" elementType="Arguments" guiclass="ArgumentsPanel" testclass="Arguments">
             <collectionProp name="Arguments.arguments">
               <elementProp name="inputFile" elementType="Argument">
                 <stringProp name="Argument.name">inputFile</stringProp>
-                <stringProp name="Argument.value">/Users/jasonbruwer/WorkspacePlayground/Mojaloop/settlements-bc/test/jmeter/test-plan/SampleSettlementBC.json</stringProp>
+                <stringProp name="Argument.value">/home/ec2-user/mjl_settlement_performance/settlements-bc/test/jmeter/test-plan/SampleSettlementBC.json</stringProp>
                 <stringProp name="Argument.metadata">=</stringProp>
               </elementProp>
               <elementProp name="url" elementType="Argument">
@@ -52,7 +52,7 @@
           <stringProp name="classname">io.mojaloop.settlement.jmeter.plugin.StressTestMappingSampler</stringProp>
         </JavaSampler>
         <hashTree/>
-        <ResultCollector guiclass="SummaryReport" testclass="ResultCollector" testname="Summary Report">
+        <ResultCollector guiclass="SummaryReport" testclass="ResultCollector" testname="Summary Report" enabled="true">
           <boolProp name="ResultCollector.error_logging">false</boolProp>
           <objProp>
             <name>saveConfig</name>

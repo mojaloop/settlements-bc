@@ -40,9 +40,9 @@
 	"start:api-svc": "npm -w @mojaloop/settlements-bc-settlements-api-svc run start",
 	"start:command-handler-svc": "npm -w packages/command-handler-svc run start",
 	"start:event-handler-svc": "npm -w packages/event-handler-svc run start",
-  	"start:api-svc-jmeter-tigerbeetle-enabled": "NODE_ENV='dev-jmeter' MONGO_URL='mongodb://root:mongoDbPas42@localhost:27017/' USE_TIGERBEETLE=true npx ts-node ./scripts/jmeter/api-svc-tigerbeetle-enabled.ts",
-  	"start:command-handler-svc-jmeter-tigerbeetle-enabled": "NODE_ENV='dev-jmeter' MONGO_URL='mongodb://root:mongoDbPas42@localhost:27017/' USE_TIGERBEETLE=true LOG_LEVEL=debug npx ts-node ./scripts/jmeter/cmd-handler-tigerbeetle-enabled.ts",
-  	"start:event-handler-svc-jmeter-tigerbeetle-enabled": "NODE_ENV='dev-jmeter' MONGO_URL='mongodb://root:mongoDbPas42@localhost:27017/' USE_TIGERBEETLE=true LOG_LEVEL=debug PLATFORM_CONFIG_BASE_SVC_URL='http://localhost:3100' npx ts-node ./scripts/jmeter/event-handler-tigerbeetle-enabled.ts"
+  	"start:api-svc-jmeter-tigerbeetle-enabled": "NODE_ENV='dev-jmeter' MONGO_URL='mongodb://root:mongoDbPas42@localhost:27017/' USE_TIGERBEETLE=true LOG_LEVEL=info npx ts-node ./scripts/jmeter/api-svc-tigerbeetle-enabled.ts",
+  	"start:command-handler-svc-jmeter-tigerbeetle-enabled": "NODE_ENV='dev-jmeter' MONGO_URL='mongodb://root:mongoDbPas42@localhost:27017/' USE_TIGERBEETLE=true LOG_LEVEL=info npx ts-node ./scripts/jmeter/cmd-handler-tigerbeetle-enabled.ts",
+  	"start:event-handler-svc-jmeter-tigerbeetle-enabled": "NODE_ENV='dev-jmeter' MONGO_URL='mongodb://root:mongoDbPas42@localhost:27017/' USE_TIGERBEETLE=true LOG_LEVEL=info PLATFORM_CONFIG_BASE_SVC_URL='http://localhost:3100' npx ts-node ./scripts/jmeter/event-handler-tigerbeetle-enabled.ts"
   },
   "devDependencies": {
 	"@types/jest": "~29.5.12",
