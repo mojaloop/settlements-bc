@@ -12,7 +12,7 @@
     "create-static": 10,
     "add-batch-to-static": 20,
     "remove-batch-from-static": 0,
-    "get-static": 130,
+    "get-static": 0,
     "create-dynamic-model": 30,
     "get-dynamic-model": 140,
     "close": 160,
