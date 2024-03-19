@@ -33,11 +33,12 @@
 import {Service} from "../../packages/event-handler-svc/dist/service";
 
 import {
- AuditClientMock
+ AuditClientMock, ConfigurationClientMock
 } from "@mojaloop/settlements-bc-shared-mocks-lib";
 import process from "process";
 
 const auditClient = new AuditClientMock();
+const configClient = new ConfigurationClientMock();
 
 // JMeter TigerBeetle environment properties:
 process.env.USE_TIGERBEETLE = "true";
@@ -46,6 +47,7 @@ process.env.NODE_ENV= "dev-jmeter";
 
 Service.start(
     undefined,
+    configClient,
     auditClient,
     undefined,
     undefined

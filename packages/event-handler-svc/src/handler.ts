@@ -41,13 +41,15 @@ import {ProcessTransferCmd, ProcessTransferCmdPayload} from "@mojaloop/settlemen
 
 export class SettlementsEventHandler{
 	private _logger: ILogger;
-	private _auditClient: IAuditClient;
 	private _messageConsumer: IMessageConsumer;
 	private _messageProducer: IMessageProducer;
 
-	constructor(logger: ILogger, auditClient:IAuditClient, messageConsumer: IMessageConsumer, messageProducer: IMessageProducer) {
+	constructor(
+		logger: ILogger,
+		messageConsumer: IMessageConsumer,
+		messageProducer: IMessageProducer
+	) {
 		this._logger = logger.createChild(this.constructor.name);
-		this._auditClient = auditClient;
 		this._messageConsumer = messageConsumer;
 		this._messageProducer = messageProducer;
 	}
