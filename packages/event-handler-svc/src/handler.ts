@@ -29,7 +29,6 @@
  ******/
 
 "use strict";
-import {IAuditClient} from "@mojaloop/auditing-bc-public-types-lib";
 import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import {IMessage,IMessageConsumer, IMessageProducer, CommandMsg} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import {
@@ -41,13 +40,15 @@ import {ProcessTransferCmd, ProcessTransferCmdPayload} from "@mojaloop/settlemen
 
 export class SettlementsEventHandler{
 	private _logger: ILogger;
-	private _auditClient: IAuditClient;
 	private _messageConsumer: IMessageConsumer;
 	private _messageProducer: IMessageProducer;
 
-	constructor(logger: ILogger, auditClient:IAuditClient, messageConsumer: IMessageConsumer, messageProducer: IMessageProducer) {
+	constructor(
+		logger: ILogger,
+		messageConsumer: IMessageConsumer,
+		messageProducer: IMessageProducer
+	) {
 		this._logger = logger.createChild(this.constructor.name);
-		this._auditClient = auditClient;
 		this._messageConsumer = messageConsumer;
 		this._messageProducer = messageProducer;
 	}

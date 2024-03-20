@@ -23,8 +23,6 @@
     "start": "npm run service",
     "start:dev": "npm run build && AUDIT_KEY_FILE_PATH=./dist/tmp_audit_key_file npm run service",
     "service": "node dist/index.js",
-    "service-jmeter-tigerbeetle-enabled": "NODE_ENV='dev-jmeter' MONGO_URL='mongodb://root:mongoDbPas42@localhost:27017/' USE_TIGERBEETLE=true node dist/jmeter/tigerbeetle-enabled.js",
-    "start-jmeter-tigerbeetle-enabled": "npm run service-jmeter-tigerbeetle-enabled",
     "build": "tsc",
     "watch": "tsc -w",
     "clean": "npm run clean:npm; npm run clean:dist",

@@ -19,16 +19,21 @@
  their names indented and be marked with a '-'. Email address can be added
  optionally within square brackets <email>.
 
- * Coil
- * - Jason Bruwer <jason.bruwer@coil.com>
+ * Gates Foundation
+ - Name Surname <name.surname@gatesfoundation.com>
+
+ * ILF
+ - Jason Bruwer <jason.bruwer@interledger.org>
 
  --------------
  ******/
 
 "use strict";
 
-import {Service} from "../../packages/api-svc/dist/service";
+import {Service} from "../../packages/command-handler-svc/dist/service";
+
 import {
+ AccountsBalancesAdapterMock,
  AuditClientMock,
  AuthorizationClientMock,
  ConfigurationClientMock,
@@ -38,20 +43,32 @@ import process from "process";
 
 const tokenHelper = new TokenHelperMock();
 const authorizationClient = new AuthorizationClientMock(true);
-const configClient = new ConfigurationClientMock();
 const auditClient = new AuditClientMock();
+const configClient = new ConfigurationClientMock();
+const abAdapterMock = new AccountsBalancesAdapterMock();
 
 // JMeter TigerBeetle environment properties:
-process.env.USE_TIGERBEETLE = "true";
+process.env.USE_TIGERBEETLE = "false";
 process.env.MONGO_URL= "mongodb://root:mongoDbPas42@localhost:27017/";
 process.env.NODE_ENV= "dev-jmeter";
 
 Service.start(
     undefined,
     tokenHelper,
+    undefined,
     authorizationClient,
     auditClient,
+    abAdapterMock,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
     configClient
 ).then(() => {
-  console.log("JMeter-TigerBeetle 📈🪲 Service start complete!");
+    console.log("Cmd-Handler: JMeter-MongoDB 📈👽 Service start complete!");
 });

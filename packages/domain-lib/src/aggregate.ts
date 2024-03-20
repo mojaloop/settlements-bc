@@ -221,6 +221,8 @@ export class SettlementsAggregate {
 	}
 
 	async handleTransfer(transferDto: ITransferDto): Promise<string> {
+		this._logger.debug(`Handling transfer ${transferDto}`);
+
 		const start = Date.now();
 		if (!transferDto.timestamp || transferDto.timestamp < 1 ) throw new InvalidTimestampError();
 		if (!transferDto.settlementModel) throw new InvalidBatchSettlementModelError();

@@ -46,6 +46,8 @@ public class Main {
                 TxnProducer prod = new TxnProducer();
                 //http://localhost:3600
                 //localhost:9092
+                //prod.init("35.178.99.107:9092", "SettlementsBcCommands");
+                //prod.init("ec2-35-178-99-107.eu-west-2.compute.amazonaws.com:9092", "SettlementsBcCommands");
                 prod.init("localhost:9092", "SettlementsBcCommands");
                 try {
                     prod.send(testReq());

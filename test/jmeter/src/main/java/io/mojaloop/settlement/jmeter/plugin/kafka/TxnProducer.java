@@ -2,10 +2,13 @@ package io.mojaloop.settlement.jmeter.plugin.kafka;
 
 import io.mojaloop.settlement.jmeter.plugin.rest.client.json.transfer.ProcessTransferCmd;
 import io.mojaloop.settlement.jmeter.plugin.rest.client.json.transfer.TransferReq;
+import org.apache.kafka.clients.ClientDnsLookup;
 import org.apache.kafka.clients.producer.*;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.json.JSONObject;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.Date;
 import java.util.Properties;
 import java.util.concurrent.ExecutionException;
@@ -16,10 +19,17 @@ public class TxnProducer {
 
     public void init(String url, String topic) {
         Properties props = new Properties();
-        props.put(ProducerConfig.CLIENT_ID_CONFIG, "go-go-client");
+        try {
+            props.put(ProducerConfig.CLIENT_ID_CONFIG, String.format("mjl-stress-test-%s", InetAddress.getLocalHost().getHostName()));
+        } catch (UnknownHostException eParam) {
+            throw new IllegalStateException(eParam);
+        }
         props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, url);//"localhost:9092"
         props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
         props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+        props.put("acks", "all");
+        //props.put(ProducerConfig.CLIENT_DNS_LOOKUP_CONFIG, ClientDnsLookup.RESOLVE_CANONICAL_BOOTSTRAP_SERVERS_ONLY.toString());
+        props.put(ProducerConfig.CLIENT_DNS_LOOKUP_CONFIG, ClientDnsLookup.USE_ALL_DNS_IPS.toString());
 
         this.topic = topic;
         this.producer = new KafkaProducer<>(props);
@@ -30,7 +40,12 @@ public class TxnProducer {
             String value
     ) throws ExecutionException, InterruptedException {
         final ProducerRecord<String, String> record = new ProducerRecord<>(this.topic, key, value);
-        RecordMetadata metadata = this.producer.send(record).get();
+        RecordMetadata metadata = this.producer.send(record, new Callback() {
+            @Override
+            public void onCompletion(RecordMetadata recordMetadataParam, Exception eParam) {
+                //System.out.println("Sent! ["+recordMetadataParam.toString()+":"+eParam.getMessage()+"]");
+            }
+        }).get();
         return metadata;
     }
 
