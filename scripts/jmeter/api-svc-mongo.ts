@@ -30,7 +30,6 @@
 import {Service} from "../../packages/api-svc/dist/service";
 import {
  AccountsBalancesAdapterMock,
- AccountsBalancesAdapterVoid,
  AuditClientMock,
  AuthorizationClientMock,
  ConfigurationClientMock,

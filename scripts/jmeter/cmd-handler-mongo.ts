@@ -34,7 +34,6 @@ import {Service} from "../../packages/command-handler-svc/dist/service";
 
 import {
  AccountsBalancesAdapterMock,
- AccountsBalancesAdapterVoid,
  AuditClientMock,
  AuthorizationClientMock,
  ConfigurationClientMock,
