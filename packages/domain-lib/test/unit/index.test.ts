@@ -832,13 +832,8 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		expect(transfers[0].transferId).toEqual(payload.transferId);
 
 		// lookup with invalid batch-id
-		// try {
-			const results2 = await settleTransferRepo.getBatchTransfersByBatchIds([randomUUID()]);
-			expect(results2.items.length).toEqual(0);
-		// } catch (err: any) {
-		// 	expect(err).toBeDefined();
-		// 	expect(err instanceof SettlementBatchNotFoundError).toEqual(true);
-		// }
+		const results2 = await settleTransferRepo.getBatchTransfersByBatchIds([randomUUID()]);
+		expect(results2.items.length).toEqual(0);
 	});
 
 	test("matrix re-calculate logic", async () => {
@@ -1917,5 +1912,140 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		expect(matrix2!.balancesByCurrency.length).toEqual(1);// EUR only.
 		expect(matrix2!.balancesByStateAndCurrency.length).toEqual(2);// 1 OPEN and 1 SETTLED
 		expect(matrix2!.balancesByParticipant.length).toEqual(4);// 2 OPEN and 2 SETTLED
+	});
+
+	test("test static matrix - three transfers with similar timestamps", async () => {
+		const payer = randomUUID();
+		const payee = randomUUID();
+		const ts = Date.now();
+		const reqTransferDto_1: ITransferDto = {
+			id: null,
+			transferId: randomUUID(),
+			payerFspId: payer,
+			payeeFspId: payee,
+			currencyCode: 'EUR',
+			amount: '100', //1 EURO
+			timestamp: ts,
+			settlementModel: 'MULTI_MATRIX'
+		};
+		const reqTransferDto_2: ITransferDto = {
+			id: null,
+			transferId: randomUUID(),
+			payerFspId: payer,
+			payeeFspId: payee,
+			currencyCode: reqTransferDto_1.currencyCode,
+			amount: '100', //1 EURO
+			timestamp: ts,
+			settlementModel: reqTransferDto_1.settlementModel
+		};
+		const reqTransferDto_3: ITransferDto = {
+			id: null,
+			transferId: randomUUID(),
+			payerFspId: payee,
+			payeeFspId: payer,
+			currencyCode: reqTransferDto_1.currencyCode,
+			amount: '1000', //10 EURO
+			timestamp: ts,
+			settlementModel: reqTransferDto_1.settlementModel
+		};
+		const batchId_1: string = await aggregate.handleTransfer(reqTransferDto_1);
+		const batchId_2: string = await aggregate.handleTransfer(reqTransferDto_2);
+
+		const matrixId_1 = await aggregate.createStaticSettlementMatrix(
+			null, // matrix-id
+			[batchId_1]
+		);
+		expect(matrixId_1).toBeDefined();
+		let matrix1 = await settleMatrixReqRepo.getMatrixById(matrixId_1);
+		expect(matrix1).toBeDefined();
+		expect(matrix1!.id).toEqual(matrixId_1);
+		expect(matrix1!.state).toEqual('IDLE');
+
+		// Balances by currency:
+		expect(matrix1!.balancesByCurrency.length).toEqual(1);
+		expect(matrix1!.balancesByCurrency[0].currencyCode).toEqual('EUR');
+		expect(matrix1!.balancesByCurrency[0].debitBalance).toEqual('200');
+		expect(matrix1!.balancesByCurrency[0].creditBalance).toEqual('200');
+
+		// Balances by state and currency:
+		expect(matrix1!.balancesByStateAndCurrency.length).toEqual(1);
+		expect(matrix1!.balancesByStateAndCurrency[0].state).toEqual('OPEN');
+		expect(matrix1!.balancesByStateAndCurrency[0].currencyCode).toEqual('EUR');
+		expect(matrix1!.balancesByStateAndCurrency[0].debitBalance).toEqual('200');
+		expect(matrix1!.balancesByStateAndCurrency[0].creditBalance).toEqual('200');
+
+		// Balances by participant:
+		expect(matrix1!.balancesByParticipant.length).toEqual(2);
+		expect(matrix1!.balancesByParticipant[0].state).toEqual('OPEN');
+		expect(matrix1!.balancesByParticipant[0].debitBalance).toEqual('200');
+		expect(matrix1!.balancesByParticipant[0].creditBalance).toEqual('0');
+		expect(matrix1!.balancesByParticipant[1].state).toEqual('OPEN');
+		expect(matrix1!.balancesByParticipant[1].debitBalance).toEqual('0');
+		expect(matrix1!.balancesByParticipant[1].creditBalance).toEqual('200');
+
+		const batchId_3: string = await aggregate.handleTransfer(reqTransferDto_3);
+		expect(batchId_1).toBeDefined();
+		expect(batchId_2).toEqual(batchId_1);
+		expect(batchId_3).toEqual(batchId_1);
+
+		// Fetch the matrix, which is not taking into account the 3rd transfer:
+		matrix1 = await settleMatrixReqRepo.getMatrixById(matrixId_1);
+		expect(matrix1).toBeDefined();
+		expect(matrix1!.id).toEqual(matrixId_1);
+		expect(matrix1!.state).toEqual('IDLE');
+
+		// balances by currency:
+		expect(matrix1!.balancesByCurrency.length).toEqual(1);
+		expect(matrix1!.balancesByCurrency[0].currencyCode).toEqual('EUR');
+		expect(matrix1!.balancesByCurrency[0].debitBalance).toEqual('200');
+		expect(matrix1!.balancesByCurrency[0].creditBalance).toEqual('200');
+
+		// balances by state and currency:
+		expect(matrix1!.balancesByStateAndCurrency.length).toEqual(1);
+		expect(matrix1!.balancesByStateAndCurrency[0].state).toEqual('OPEN');
+		expect(matrix1!.balancesByStateAndCurrency[0].currencyCode).toEqual('EUR');
+		expect(matrix1!.balancesByStateAndCurrency[0].debitBalance).toEqual('200');
+		expect(matrix1!.balancesByStateAndCurrency[0].creditBalance).toEqual('200');
+
+		// balances by participant:
+		expect(matrix1!.balancesByParticipant.length).toEqual(2);
+		expect(matrix1!.balancesByParticipant[0].state).toEqual('OPEN');
+		expect(matrix1!.balancesByParticipant[0].debitBalance).toEqual('200');
+		expect(matrix1!.balancesByParticipant[0].creditBalance).toEqual('0');
+		expect(matrix1!.balancesByParticipant[1].state).toEqual('OPEN');
+		expect(matrix1!.balancesByParticipant[1].debitBalance).toEqual('0');
+		expect(matrix1!.balancesByParticipant[1].creditBalance).toEqual('200');
+
+		// We need to re-calculate in order to account for the 3rd transfer, otherwise we have a transfer missing:
+		await aggregate.lockSettlementMatrixForAwaitingSettlement(matrixId_1);
+		// Settle will perform an internal re-calculation:
+		await aggregate.settleSettlementMatrix(matrixId_1);
+
+		matrix1 = await settleMatrixReqRepo.getMatrixById(matrixId_1);
+		expect(matrix1).toBeDefined();
+		expect(matrix1!.id).toEqual(matrixId_1);
+		expect(matrix1!.state).toEqual('FINALIZED');
+
+		// balances by currency:
+		expect(matrix1!.balancesByCurrency.length).toEqual(1);
+		expect(matrix1!.balancesByCurrency[0].currencyCode).toEqual('EUR');
+		expect(matrix1!.balancesByCurrency[0].debitBalance).toEqual('1200');
+		expect(matrix1!.balancesByCurrency[0].creditBalance).toEqual('1200');
+
+		// balances by state and currency:
+		expect(matrix1!.balancesByStateAndCurrency.length).toEqual(1);
+		expect(matrix1!.balancesByStateAndCurrency[0].state).toEqual('SETTLED');
+		expect(matrix1!.balancesByStateAndCurrency[0].currencyCode).toEqual('EUR');
+		expect(matrix1!.balancesByStateAndCurrency[0].debitBalance).toEqual('1200');
+		expect(matrix1!.balancesByStateAndCurrency[0].creditBalance).toEqual('1200');
+
+		// balances by participant:
+		expect(matrix1!.balancesByParticipant.length).toEqual(2);
+		expect(matrix1!.balancesByParticipant[0].state).toEqual('SETTLED');
+		expect(matrix1!.balancesByParticipant[0].debitBalance).toEqual('200');
+		expect(matrix1!.balancesByParticipant[0].creditBalance).toEqual('1000');
+		expect(matrix1!.balancesByParticipant[1].state).toEqual('SETTLED');
+		expect(matrix1!.balancesByParticipant[1].debitBalance).toEqual('1000');
+		expect(matrix1!.balancesByParticipant[1].creditBalance).toEqual('200');
 	});
 });
