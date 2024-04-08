@@ -1915,37 +1915,34 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 	});
 
 	test("test static matrix - three transfers with similar timestamps", async () => {
-		const payer = randomUUID();
-		const payee = randomUUID();
-		const ts = Date.now();
 		const reqTransferDto_1: ITransferDto = {
 			id: null,
 			transferId: randomUUID(),
-			payerFspId: payer,
-			payeeFspId: payee,
+			payerFspId: randomUUID(),
+			payeeFspId: randomUUID(),
 			currencyCode: 'EUR',
 			amount: '100', //1 EURO
-			timestamp: ts,
-			settlementModel: 'MULTI_MATRIX'
+			timestamp: Date.now(),
+			settlementModel: 'STALE_STATIC_MATRIX'
 		};
 		const reqTransferDto_2: ITransferDto = {
 			id: null,
 			transferId: randomUUID(),
-			payerFspId: payer,
-			payeeFspId: payee,
+			payerFspId: reqTransferDto_1.payerFspId,
+			payeeFspId: reqTransferDto_1.payeeFspId,
 			currencyCode: reqTransferDto_1.currencyCode,
 			amount: '100', //1 EURO
-			timestamp: ts,
+			timestamp: reqTransferDto_1.timestamp,
 			settlementModel: reqTransferDto_1.settlementModel
 		};
 		const reqTransferDto_3: ITransferDto = {
 			id: null,
 			transferId: randomUUID(),
-			payerFspId: payee,
-			payeeFspId: payer,
+			payerFspId: reqTransferDto_1.payeeFspId,
+			payeeFspId: reqTransferDto_1.payerFspId,
 			currencyCode: reqTransferDto_1.currencyCode,
 			amount: '1000', //10 EURO
-			timestamp: ts,
+			timestamp: reqTransferDto_1.timestamp,
 			settlementModel: reqTransferDto_1.settlementModel
 		};
 		const batchId_1: string = await aggregate.handleTransfer(reqTransferDto_1);
