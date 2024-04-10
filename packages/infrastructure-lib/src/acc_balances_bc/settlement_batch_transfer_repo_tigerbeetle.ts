@@ -70,6 +70,7 @@ export class SettlementBatchTransferRepoTigerBeetle implements ISettlementBatchT
         pageSize: number = 100,
 	): Promise<BatchTransferSearchResults>{
 		const accountsForTxnLookup : ISettlementBatchAccount[] = [];
+		// TODO should use ISettlementBatchRepo.getBatchesByIds() instead of the getBatch inside a for loop
 		for (const id of batchIds) {
 			const batch = await this._batchRepo.getBatch(id);
 			if (!batch || !batch.accounts) continue;

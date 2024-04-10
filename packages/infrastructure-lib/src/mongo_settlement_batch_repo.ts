@@ -28,7 +28,7 @@
 "use strict";
 
 import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
-import {MongoClient, Collection, Filter, FindOptions} from "mongodb";
+import {MongoClient, Collection, Filter, FindOptions, Batch} from "mongodb";
 import {
 	ISettlementBatchRepo,
 	UnableToInitRepoError
@@ -37,41 +37,55 @@ import {
 	ISettlementBatch,
 	BatchSearchResults,
 } from "@mojaloop/settlements-bc-public-types-lib";
-
+import {Redis} from "ioredis";
 
 const MAX_ENTRIES_PER_PAGE = 100;
-
+const DEFAULT_REDIS_CACHE_DURATION_SECS = 5; // 5 secs 
 
 export class MongoSettlementBatchRepo implements ISettlementBatchRepo {
 	private readonly _logger: ILogger;
 	private readonly _dbUrl: string;
 	private readonly _dbName: string;
 	private readonly _collectionName: string;
-	private readonly mongoClient: MongoClient;
+	private readonly _mongoClient: MongoClient;
 	private _collection: Collection;
+	private _redisClient: Redis;
+	private readonly _keyPrefixId= "settlementBatch_id_";
+	private readonly _keyPrefixName= "settlementBatch_name_";
+	private readonly _redisCacheDurationSecs:number;
 
 	constructor(
 		logger: ILogger,
 		dbUrl: string,
 		dbName: string,
-		collectionName: string
+		collectionName: string,
+		redisHost: string,
+		redisPort: number,
+		redisCacheDurationSecs = DEFAULT_REDIS_CACHE_DURATION_SECS
 	) {
 		this._logger = logger;
 		this._dbUrl = dbUrl;
 		this._dbName = dbName;
 		this._collectionName = collectionName;
+		this._redisCacheDurationSecs = redisCacheDurationSecs;
 
-		this.mongoClient = new MongoClient(this._dbUrl, {
+		this._mongoClient = new MongoClient(this._dbUrl, {
 			connectTimeoutMS: 5_000,
 			socketTimeoutMS: 5_000
+		});
+		
+		this._redisClient = new Redis({
+			port: redisPort,
+			host: redisHost,
+			lazyConnect: true
 		});
 	}
 
 	async init(): Promise<void> {
 		try {
-			await this.mongoClient.connect(); // Throws if the repo is unreachable.
+			await this._mongoClient.connect(); // Throws if the repo is unreachable.
 
-			const db = this.mongoClient.db(this._dbName);
+			const db = this._mongoClient.db(this._dbName);
 			const collections = await db.listCollections().toArray();
 
 			// Check if the Participants collection already exists or create.
@@ -87,39 +101,102 @@ export class MongoSettlementBatchRepo implements ISettlementBatchRepo {
 			throw new UnableToInitRepoError((error as any)?.message);
 		}
 
+		try{
+			await this._redisClient.connect();
+			this._logger.debug("Connected to Redis successfully");
+		}catch(error: unknown){
+			this._logger.error(`Unable to connect to redis cache: ${(error as Error).message}`);
+			throw error;
+		}
+	}
+	
+	async destroy(): Promise<void> {
+		await this._mongoClient.close(); // Doesn't throw if the repo is unreachable.
+		this._redisClient.disconnect();
 	}
 
-	async destroy(): Promise<void> {
-		await this.mongoClient.close(); // Doesn't throw if the repo is unreachable.
+	private _getKeyWithIdPrefix (id: string): string {
+		return this._keyPrefixId + id;
+	}
+	
+	private _getKeyWithNamePrefix (name: string): string {
+		return this._keyPrefixName + name;
+	}
+
+	private _parseCachedStr(cachedStr:string): ISettlementBatch | null{
+		try{
+			const obj = JSON.parse(cachedStr);
+
+			// manual conversion for any non-primitive props or children
+			return obj;
+		}catch (e) {
+			this._logger.error(e);
+			return null;
+		}
+	}
+
+	private async _getFromCacheById(id:string):Promise<ISettlementBatch | null>{
+		const objStr = await this._redisClient.get(this._getKeyWithIdPrefix(id));
+		if(!objStr) return null;
+
+		return this._parseCachedStr(objStr);
+	}
+
+	private async _getFromCacheByName(name:string):Promise<ISettlementBatch | null>{
+		const objStr = await this._redisClient.get(this._getKeyWithNamePrefix(name));
+		if(!objStr) return null;
+
+		return this._parseCachedStr(objStr);
+	}
+	
+	private async _setToCache(batch:ISettlementBatch):Promise<void>{
+		const parsed:any = {...batch};
+
+		// optimise: this can be done in a single call with the "multiple"
+		await this._redisClient.setex(this._getKeyWithIdPrefix(batch.id), this._redisCacheDurationSecs, JSON.stringify(parsed));
+		await this._redisClient.setex(this._getKeyWithNamePrefix(batch.batchName), this._redisCacheDurationSecs, JSON.stringify(parsed));
 	}
 
 	async storeNewBatch(batch: ISettlementBatch): Promise<void>{
 		await this._collection.insertOne(batch);
+		await this._setToCache(batch);	
 	}
 
 	async updateBatch(batch: ISettlementBatch): Promise<void>{
 		await this._collection.updateOne({id: batch.id}, {$set: batch});
+		await this._setToCache(batch);
 	}
 
 	//get by full identifier = batch name + batch sequence number
 	async getBatch(id: string): Promise<ISettlementBatch | null>{
 		try {
-			const batch = await this._collection.findOne({id: id}, {projection: {_id: 0}});
-			return batch as (ISettlementBatch | null);
+			const cachedBatch = this._getFromCacheById(id);
+			if (null != cachedBatch) return cachedBatch;
+			
+			const mongoBatch = await this._collection.findOne({id: id}, {projection: {_id: 0}});
+			if (!mongoBatch) return null;
+			
+			const batch: ISettlementBatch = mongoBatch as unknown as ISettlementBatch;
+			await this._setToCache(batch);
+			return batch;
 		} catch (error: any) {
 			throw new Error("Unable to get batch from repo - msg: "+error.message);
 		}
 	}
 
-	// there can be only one open with the same name (excludes sequence number)
+/*	// there can be only one open with the same name (excludes sequence number)
 	async getOpenBatchByName(batchName: string): Promise<ISettlementBatch | null>{
 		try {
-			const batch = await this._collection.findOne({batchName: batchName, isClosed: false}, {sort:["timestamp", "desc"], projection: {_id: 0}});
-			return batch as (ISettlementBatch | null);
+			const mongoBatch = await this._collection.findOne({batchName: batchName, isClosed: false}, {sort:["timestamp", "desc"], projection: {_id: 0}});
+			if (!mongoBatch) return null;
+			
+			const batch: ISettlementBatch = mongoBatch as unknown as ISettlementBatch;
+			await this._setToCache(batch);
+			return batch;
 		} catch (error: any) {
 			throw new Error("Unable to get batch from repo - msg: " + error.message);
 		}
-	}
+	}*/
 
 	/**
 	 * Return Batches by batch name - if pageSize is not passed pagination is ignored and all matching records returned
