@@ -94,6 +94,11 @@ The following documentation provides insight into the Settlements Bounded Contex
 
 Logs are sent to standard output by default.
 
+## Build
+```bash
+npm run build
+```
+
 ## Tests
 
 ### Unit Tests

@@ -29,12 +29,10 @@
 
 export enum Privileges {
 	// NOTE: commenting this as privileges are only for user or other service actions, not automatic actions by self
-	// CREATE_SETTLEMENT_BATCH_ACCOUNT = "SETTLEMENTS_CREATE_BATCH_ACCOUNT",
-	// CREATE_SETTLEMENT_BATCH = "SETTLEMENTS_CREATE_BATCH",
-	// CREATE_SETTLEMENT_TRANSFER = "SETTLEMENTS_CREATE_TRANSFER",
+	CREATE_SETTLEMENT_TRANSFER = "CREATE_SETTLEMENT_TRANSFER",
 
 	CREATE_SETTLEMENT_MATRIX = "CREATE_SETTLEMENT_MATRIX",
-	CREATE_SETTLEMENT_CONFIG = "SETTLEMENTS_CREATE_MODEL",
+	CREATE_SETTLEMENT_CONFIG = "CREATE_SETTLEMENT_CONFIG",
 	VIEW_SETTLEMENT_CONFIG = "VIEW_SETTLEMENT_CONFIG",
 
 	SETTLEMENTS_CLOSE_MATRIX = "SETTLEMENTS_CLOSE_MATRIX",
@@ -44,11 +42,13 @@ export enum Privileges {
 	SETTLEMENTS_UNLOCK_MATRIX = "SETTLEMENTS_UNLOCK_MATRIX",
 
 	// TODO: separate the create matrix from recalculate
-	GET_SETTLEMENT_MATRIX = "SETTLEMENTS_GET_MATRIX",
-	RETRIEVE_SETTLEMENT_BATCH = "SETTLEMENTS_RETRIEVE_BATCH",
 	REMOVE_SETTLEMENT_MATRIX_BATCH = "REMOVE_SETTLEMENT_MATRIX_BATCH"
 	// RETRIEVE_SETTLEMENT_BATCH_ACCOUNTS = "SETTLEMENTS_RETRIEVE_BATCH_ACCOUNTS",
 	// RETRIEVE_SETTLEMENT_TRANSFERS = "SETTLEMENTS_RETRIEVE_TRANSFERS"
+
+	GET_SETTLEMENT_MATRIX = "GET_SETTLEMENT_MATRIX",
+	RETRIEVE_SETTLEMENT_BATCH = "RETRIEVE_SETTLEMENT_BATCH"
+
 }
 
 
@@ -79,7 +79,7 @@ export const SettlementPrivilegesDefinition = [
 
 	{
         privId: Privileges.SETTLEMENTS_DISPUTE_MATRIX,
-        labelName: "Close Settlement Matrix",
+        labelName: "Dispute Settlement Matrix",
         description: "Allows the dispute of a settlement matrix."
     },
 
@@ -109,13 +109,13 @@ export const SettlementPrivilegesDefinition = [
 
 	{
         privId: Privileges.RETRIEVE_SETTLEMENT_BATCH,
-        labelName: "Get settlemetn batch",
+        labelName: "Get Settlement batch",
         description: "Allows the retrieval of a settlement batch."
     },
 
 	{
         privId: Privileges.REMOVE_SETTLEMENT_MATRIX_BATCH,
-        labelName: "Remove settlement matrix from batch",
+        labelName: "Remove Settlement Matrix from Batch",
         description: "Allows the retrieval of a settlement batch."
     },
 

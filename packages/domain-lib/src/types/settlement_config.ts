@@ -68,13 +68,13 @@ export class SettlementConfig implements ISettlementConfig{
 		);
 	}
 
-	calculateBatchStartTimestamp(timestamp:number):number{
+	calculateBatchStartTimestamp(timestamp:number) : number {
 		// this will round down to the batchCreateInterval in seconds (removing the remainder)
 		// returns in milliseconds format
 		// eg: if seconds are 18 and interval is 10 will be 10
 		// eg: if seconds are 31 and interval is 30 will be 30
 		// eg: if seconds are 31 and interval is 60 will be 00
-		if(!(typeof (timestamp)==="number"))
+		if(!(typeof (timestamp) === "number"))
 			throw new Error("Invalid timestamp in calculateBatchStartTimestamp");
 		return Math.floor(timestamp / 1000 / this.batchCreateInterval) * this.batchCreateInterval * 1000;
 	}

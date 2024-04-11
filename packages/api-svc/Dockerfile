@@ -58,5 +58,5 @@ RUN apk add librdkafka
 EXPOSE 3600
 COPY --from=builder /app .
 
-
+ENV NODE_ENV=production
 CMD [ "npm", "run", "start:api-svc" ]

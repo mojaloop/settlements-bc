@@ -41,15 +41,15 @@ import {
 } from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
 import {
 	AuthenticatedHttpRequester,
-	AuthorizationClient,
+	AuthorizationClient, LoginHelper,
 	TokenHelper
 } from "@mojaloop/security-bc-client-lib";
 import {
-	IParticipantAccountNotifier,
+	IAccountsBalancesAdapter,
 	ISettlementBatchRepo,
 	ISettlementBatchTransferRepo,
 	ISettlementConfigRepo,
-	ISettlementMatrixRequestRepo,
+	ISettlementMatrixRequestRepo
 } from "@mojaloop/settlements-bc-domain-lib";
 import process from "process";
 import { existsSync } from "fs";
@@ -59,26 +59,26 @@ import {
 	LocalAuditClientCryptoProvider
 } from "@mojaloop/auditing-bc-client-lib";
 import {
+	GrpcAccountsAndBalancesAdapter,
 	MongoSettlementBatchRepo,
 	MongoSettlementConfigRepo,
 	MongoSettlementMatrixRepo,
-	MongoSettlementTransferRepo
+	MongoSettlementTransferRepo,
+	TigerBeetleAccountsAndBalancesAdapter,
+	SettlementBatchTransferRepoTigerBeetle
 } from "@mojaloop/settlements-bc-infrastructure-lib";
-import { IAuthorizationClient } from "@mojaloop/security-bc-public-types-lib";
-import { Server } from "net";
-import express, { Express } from "express";
-import { ExpressRoutes } from "./routes";
-import { ITokenHelper } from "@mojaloop/security-bc-public-types-lib/";
 
-import { IMessageProducer } from "@mojaloop/platform-shared-lib-messaging-types-lib";
-import { IMetrics } from "@mojaloop/platform-shared-lib-observability-types-lib";
-import { PrometheusMetrics } from "@mojaloop/platform-shared-lib-observability-client-lib";
+import {IAuthenticatedHttpRequester, IAuthorizationClient} from "@mojaloop/security-bc-public-types-lib";
+import {Server} from "net";
+import express, {Express} from "express";
+import {ExpressRoutes} from "./routes";
+import {ITokenHelper} from "@mojaloop/security-bc-public-types-lib/";
+
+import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import crypto from "crypto";
-import { SettlementPrivilegesDefinition } from "@mojaloop/settlements-bc-domain-lib"
-
-
-import { IConfigurationClient } from "@mojaloop/platform-configuration-bc-public-types-lib";
-import { DefaultConfigProvider, ConfigurationClient, IConfigProvider } from "@mojaloop/platform-configuration-bc-client-lib";
+import {IConfigurationClient} from "@mojaloop/platform-configuration-bc-public-types-lib";
+import {ConfigurationClient, DefaultConfigProvider, IConfigProvider} from "@mojaloop/platform-configuration-bc-client-lib";
+import {SettlementPrivilegesDefinition} from "@mojaloop/settlements-bc-domain-lib" 
 
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -86,19 +86,20 @@ const packageJSON = require("../package.json");
 const BC_NAME = "settlements-bc";
 const APP_NAME = "settlements-api-svc";
 const APP_VERSION = packageJSON.version;
+const CONFIGSET_VERSION = "0.0.1";
 const PRODUCTION_MODE = process.env["PRODUCTION_MODE"] || false;
-const LOG_LEVEL: LogLevel = process.env["LOG_LEVEL"] as LogLevel || LogLevel.DEBUG;
-//const ENV_NAME = process.env["ENV_NAME"] || "dev";
+const LOG_LEVEL: LogLevel = process.env["LOG_LEVEL"] as LogLevel || LogLevel.INFO;
 
 const AUTH_N_SVC_BASEURL = process.env["AUTH_N_SVC_BASEURL"] || "http://localhost:3201";
 const AUTH_N_SVC_TOKEN_URL = AUTH_N_SVC_BASEURL + "/token"; // TODO this should not be known here, libs that use the base should add the suffix
 const AUTH_N_TOKEN_ISSUER_NAME = process.env["AUTH_N_TOKEN_ISSUER_NAME"] || "mojaloop.vnext.dev.default_issuer";
 const AUTH_N_TOKEN_AUDIENCE = process.env["AUTH_N_TOKEN_AUDIENCE"] || "mojaloop.vnext.dev.default_audience";
 
+const CONFIG_SVC_BASEURL = process.env["CONFIG_SVC_BASEURL"] || "http://localhost:3203";
+
 const AUTH_N_SVC_JWKS_URL = process.env["AUTH_N_SVC_JWKS_URL"] || `${AUTH_N_SVC_BASEURL}/.well-known/jwks.json`;
 
 const AUTH_Z_SVC_BASEURL = process.env["AUTH_Z_SVC_BASEURL"] || "http://localhost:3202";
-
 
 const KAFKA_URL = process.env["KAFKA_URL"] || "localhost:9092";
 const MONGO_URL = process.env["MONGO_URL"] || "mongodb://root:example@localhost:27017/";
@@ -110,7 +111,9 @@ const SVC_CLIENT_ID = process.env["SVC_CLIENT_ID"] || "settlements-bc-api-svc";
 const SVC_CLIENT_SECRET = process.env["SVC_CLIENT_SECRET"] || "superServiceSecret";
 
 const SVC_DEFAULT_HTTP_PORT = process.env["SVC_DEFAULT_HTTP_PORT"] || 3600;
+const ACCOUNTS_BALANCES_COA_SVC_URL = process.env["ACCOUNTS_BALANCES_COA_SVC_URL"] || "localhost:3300";
 
+// persistence related:
 const DB_NAME: string = "settlements";
 const SETTLEMENT_CONFIGS_COLLECTION_NAME: string = "configs";
 const SETTLEMENT_BATCHES_COLLECTION_NAME: string = "batches";
@@ -131,6 +134,15 @@ const kafkaProducerOptions: MLKafkaJsonProducerOptions = {
 
 let globalLogger: ILogger;
 
+// TigerBeetle:
+const USE_TIGERBEETLE= process.env["USE_TIGERBEETLE"] && process.env["USE_TIGERBEETLE"].toUpperCase()==="TRUE" || false;
+const TIGERBEETLE_CLUSTER_ID = process.env["TIGERBEETLE_CLUSTER_ID"] || 0;
+const TIGERBEETLE_CLUSTER_REPLICA_ADDRESSES = process.env["TIGERBEETLE_CLUSTER_REPLICA_ADDRESSES"] || "localhost:9001";
+
+// Redis:
+const REDIS_HOST = process.env["REDIS_HOST"] || "localhost";
+const REDIS_PORT = (process.env["REDIS_PORT"] && parseInt(process.env["REDIS_PORT"])) || 6379;
+
 export class Service {
 	static logger: ILogger;
 	static app: Express;
@@ -138,30 +150,30 @@ export class Service {
 	static tokenHelper: ITokenHelper;
 	static authorizationClient: IAuthorizationClient;
 	static auditClient: IAuditClient;
+	static configClient: IConfigurationClient;
 	static configRepo: ISettlementConfigRepo;
 	static batchRepo: ISettlementBatchRepo;
-	static participantAccountNotifier: IParticipantAccountNotifier;
 	static batchTransferRepo: ISettlementBatchTransferRepo;
 	static matrixRepo: ISettlementMatrixRequestRepo;
-	static metrics: IMetrics;
 	static messageProducer: IMessageProducer;
 	static startupTimer: NodeJS.Timeout;
 	static configClient: IConfigurationClient;
+	// static abAdapter: IAccountsBalancesAdapter;
 
 	static async start(
 		logger?: ILogger,
 		tokenHelper?: ITokenHelper,
 		authorizationClient?: IAuthorizationClient,
 		auditClient?: IAuditClient,
+		configClient?: IConfigurationClient,
 		configRepo?: ISettlementConfigRepo,
 		batchRepo?: ISettlementBatchRepo,
 		batchTransferRepo?: ISettlementBatchTransferRepo,
 		matrixRepo?: ISettlementMatrixRequestRepo,
-		participantAccountNotifier?: IParticipantAccountNotifier,
 		messageProducer?: IMessageProducer,
-		metrics?: IMetrics,
 		configProvider?: IConfigProvider
-	): Promise<void> {
+	  // accountsAndBalancesAdapter?: IAccountsBalancesAdapter
+	) : Promise<void> {
 		console.log(`Service starting with PID: ${process.pid}`);
 
 		this.startupTimer = setTimeout(() => {
@@ -182,7 +194,6 @@ export class Service {
 			await (logger as KafkaLogger).init();
 		}
 		globalLogger = this.logger = logger;
-
 
 		if (!tokenHelper) {
 			tokenHelper = new TokenHelper(
@@ -215,9 +226,10 @@ export class Service {
 		}
 
 		// authorization client
+		let authRequester: IAuthenticatedHttpRequester|null = null;
 		if (!authorizationClient) {
 			// create the instance of IAuthenticatedHttpRequester
-			const authRequester = new AuthenticatedHttpRequester(logger, AUTH_N_SVC_TOKEN_URL);
+			authRequester = new AuthenticatedHttpRequester(logger, AUTH_N_SVC_TOKEN_URL);
 			authRequester.setAppCredentials(SVC_CLIENT_ID, SVC_CLIENT_SECRET);
 
 			const consumerHandlerLogger = logger.createChild("authorizationClientConsumer");
@@ -236,6 +248,7 @@ export class Service {
 
 			// MUST only add privileges once, the cmd handler is already doing it
 			authorizationClient.addPrivilegesArray(SettlementPrivilegesDefinition);
+
 			await (authorizationClient as AuthorizationClient).bootstrap(true);
 			await (authorizationClient as AuthorizationClient).fetch();
 			// init message consumer to automatically update on role changed events
@@ -272,21 +285,43 @@ export class Service {
 		}
 		this.auditClient = auditClient;
 
+		if (!configClient) {
+			const defaultConfigProvider: DefaultConfigProvider = new DefaultConfigProvider(
+				logger,
+				authRequester!,
+				null,
+				CONFIG_SVC_BASEURL
+			);
+			configClient = new ConfigurationClient(BC_NAME, APP_NAME, APP_VERSION, CONFIGSET_VERSION, defaultConfigProvider);
+		}
+		this.configClient = configClient;
+
 		// if (!accountsAndBalancesAdapter) {
-		// 	const loginHelper = new LoginHelper(AUTH_N_SVC_TOKEN_URL, logger);
-		// 	loginHelper.setAppCredentials(SVC_CLIENT_ID, SVC_CLIENT_SECRET);
-		// 	accountsAndBalancesAdapter = new GrpcAccountsAndBalancesAdapter(ACCOUNTS_BALANCES_COA_SVC_URL, loginHelper, this.logger);
+		// 	if (USE_TIGERBEETLE) {
+		// 		accountsAndBalancesAdapter = new TigerBeetleAccountsAndBalancesAdapter(
+		// 			Number(TIGERBEETLE_CLUSTER_ID),
+		// 			[TIGERBEETLE_CLUSTER_REPLICA_ADDRESSES],
+		// 			this.logger,
+		// 			this.configClient
+		// 		);
+		// 	} else {
+		// 		const loginHelper = new LoginHelper(AUTH_N_SVC_TOKEN_URL, logger);
+		// 		loginHelper.setAppCredentials(SVC_CLIENT_ID, SVC_CLIENT_SECRET);
+		// 		accountsAndBalancesAdapter = new GrpcAccountsAndBalancesAdapter(ACCOUNTS_BALANCES_COA_SVC_URL, loginHelper, this.logger);
+		// 	}
 		// 	await accountsAndBalancesAdapter.init();
 		// }
-		// this.accountsAndBalancesAdapter = accountsAndBalancesAdapter;
+		// this.abAdapter = accountsAndBalancesAdapter;
 
-		// repositories
+		// repositories:
 		if (!configRepo) {
 			configRepo = new MongoSettlementConfigRepo(
 				logger,
 				MONGO_URL,
 				DB_NAME,
-				SETTLEMENT_CONFIGS_COLLECTION_NAME
+				SETTLEMENT_CONFIGS_COLLECTION_NAME,
+				REDIS_HOST,
+				REDIS_PORT
 			);
 			await configRepo.init();
 		}
@@ -297,19 +332,25 @@ export class Service {
 				logger,
 				MONGO_URL,
 				DB_NAME,
-				SETTLEMENT_BATCHES_COLLECTION_NAME
+				SETTLEMENT_BATCHES_COLLECTION_NAME,
+				REDIS_HOST,
+				REDIS_PORT
 			);
 			await batchRepo.init();
 		}
 		this.batchRepo = batchRepo;
 
 		if (!batchTransferRepo) {
-			batchTransferRepo = new MongoSettlementTransferRepo(
-				logger,
-				MONGO_URL,
-				DB_NAME,
-				SETTLEMENT_TRANSFERS_COLLECTION_NAME
-			);
+			// if (USE_TIGERBEETLE) {
+				batchTransferRepo = new MongoSettlementTransferRepo(
+					logger,
+					MONGO_URL,
+					DB_NAME,
+					SETTLEMENT_TRANSFERS_COLLECTION_NAME
+				);
+			// } else {
+			// 	batchTransferRepo = new SettlementBatchTransferRepoTigerBeetle(this.batchRepo, this.abAdapter);
+			// }
 			await batchTransferRepo.init();
 		}
 		this.batchTransferRepo = batchTransferRepo;
@@ -325,13 +366,6 @@ export class Service {
 		}
 		this.matrixRepo = matrixRepo;
 
-		// if (!participantAccountNotifier) {
-		// 	// we cannot use mocks in production code, they need to be injected in the Service.Start() for tests
-		// 	//participantAccountNotifier = new ParticipantAccountNotifierMock();
-		// 	throw new Error("Invalid participantAccountNotifier provided on Service.Start()");
-		// }
-		// this.participantAccountNotifier = participantAccountNotifier;
-
 		if (!messageProducer) {
 			const producerLogger = this.logger.createChild("messageProducer");
 			producerLogger.setLogLevel(LogLevel.INFO);
@@ -340,23 +374,11 @@ export class Service {
 		}
 		this.messageProducer = messageProducer;
 
-		// metrics client
-		if (!metrics) {
-			const labels: Map<string, string> = new Map<string, string>();
-			labels.set("bc", BC_NAME);
-			labels.set("app", APP_NAME);
-			labels.set("version", APP_VERSION);
-			PrometheusMetrics.Setup({ prefix: "", defaultLabels: labels }, this.logger);
-			metrics = PrometheusMetrics.getInstance();
-		}
-		this.metrics = metrics;
-
 		await this.setupExpress();
 
 		// remove startup timeout
 		clearTimeout(this.startupTimer);
 	}
-
 
 	static setupExpress(): Promise<void> {
 		return new Promise<void>((resolve) => {
@@ -394,7 +416,6 @@ export class Service {
 				resolve();
 			});
 		});
-
 	}
 
 	static async stop(): Promise<void> {
@@ -403,16 +424,13 @@ export class Service {
 		if (this.batchRepo) await this.batchRepo.destroy();
 		if (this.batchTransferRepo) await this.batchTransferRepo.destroy();
 		if (this.matrixRepo) await this.matrixRepo.destroy();
-		if (this.participantAccountNotifier) await this.participantAccountNotifier.destroy();
 		if (this.logger instanceof KafkaLogger) await this.logger.destroy();
 	}
 }
 
-
 /**
  * process termination and cleanup
  */
-
 async function _handle_int_and_term_signals(signal: NodeJS.Signals): Promise<void> {
 	console.info(`Service - ${signal} received - cleaning up...`);
 	let clean_exit = false;

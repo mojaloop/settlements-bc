@@ -52,6 +52,7 @@ import {SettlementsEventHandler} from "./handler";
 /* import configs - other imports stay above */
 import configClient from "./config";
 import path from "path";
+import {IConfigurationClient} from "@mojaloop/platform-configuration-bc-public-types-lib";
 
 const BC_NAME = configClient.boundedContextName;
 const APP_NAME = configClient.applicationName;
@@ -88,9 +89,11 @@ export class Service {
 	static messageProducer: IMessageProducer;
 	static handler: SettlementsEventHandler;
 	static startupTimer: NodeJS.Timeout;
+	static configurationClient: IConfigurationClient;
 
 	static async start(
 		logger?: ILogger,
+		configClnt?: IConfigurationClient,
 		auditClient?: IAuditClient,
 		messageConsumer?: IMessageConsumer,
 		messageProducer?: IMessageProducer
@@ -102,11 +105,13 @@ export class Service {
 		}, SERVICE_START_TIMEOUT_MS);
 
 		/// start config client - this is not mockable (can use STANDALONE MODE if desired)
-		await configClient.init();
-		await configClient.bootstrap(true);
-
-///		TODO: re-enable configClient.fetch();
-		//await configClient.fetch();
+		if (!configClnt) {
+			await configClient.init();
+			await configClient.bootstrap(true);
+			this.configurationClient = configClient;
+		} else {
+			this.configurationClient = configClnt;
+		}
 
 		if (!logger) {
 			logger = new KafkaLogger(
@@ -154,10 +159,10 @@ export class Service {
 		this.messageProducer = messageProducer;
 
 		// create handler and start it
-		this.handler = new SettlementsEventHandler(this.logger, this.auditClient, this.messageConsumer, this.messageProducer);
+		this.handler = new SettlementsEventHandler(this.logger, this.messageConsumer, this.messageProducer);
 		await this.handler.start();
 
-		this.logger.info(`Settlement Event Handler Service started, version: ${configClient.applicationVersion}`);
+		this.logger.info(`Settlement Event Handler Service started, version: ${this.configurationClient.applicationVersion}`);
 
 		// remove startup timeout
 		clearTimeout(this.startupTimer);

@@ -150,37 +150,37 @@ export class AccountsBalancesAdapterMock implements IAccountsBalancesAdapter {
 		return Promise.resolve(returnVal);
 	}
 
-	async createJournalEntry(
-		requestedId: string,
-		ownerId: string,
-		currencyCode: string,
-		amount: string,
-		pending: boolean,
-		debitedAccountId: string,
-		creditedAccountId: string
-	): Promise<string> {
+	async createJournalEntries(
+		entries: AccountsAndBalancesJournalEntry[]
+	): Promise<{id: string, errorCode: number}[]> {
+		const returnVal: {id: string, errorCode: number}[] = [];
+		for (const entry of entries) {
+			const amntAsBigInt = stringToBigint(entry.amount, 2);
+			this.abJournals.push(
+				new ABJournal(
+					entry.id!,
+					entry.ownerId!,
+					entry.currencyCode,
+					entry.amount,
+					entry.pending,
+					entry.debitedAccountId,
+					entry.creditedAccountId
+				)
+			);
+			// update the account balances:
+			for (const acc of this.abAccounts) {
+				if (acc.postedDebitBal === undefined) acc.postedDebitBal = 0n;
+				if (acc.postedCreditBal === undefined) acc.postedCreditBal = 0n;
 
-		const amntAsBigInt = stringToBigint(amount, 2);
-		this.abJournals.push(new ABJournal(
-			requestedId,
-			ownerId,
-			currencyCode,
-			amount,
-			false,
-			debitedAccountId,
-			creditedAccountId)
-		);
-		for (const acc of this.abAccounts) {
-			if (acc.postedDebitBal === undefined) acc.postedDebitBal = 0n;
-			if (acc.postedCreditBal === undefined) acc.postedCreditBal = 0n;
-
-			if (acc.requestedId === debitedAccountId) {
-				acc.postedDebitBal += BigInt(amntAsBigInt);
-			} else if (acc.requestedId === creditedAccountId) {
-				acc.postedCreditBal += BigInt(amntAsBigInt);
+				if (acc.requestedId === entry.debitedAccountId) {
+					acc.postedDebitBal += BigInt(amntAsBigInt);
+				} else if (acc.requestedId === entry.creditedAccountId) {
+					acc.postedCreditBal += BigInt(amntAsBigInt);
+				}
 			}
+			returnVal.push({id: entry.id!, errorCode: 0});
 		}
-		return Promise.resolve(requestedId);
+		return Promise.resolve(returnVal);
 	}
 
 	private convert(toConvert: ABAccount) : AccountsAndBalancesAccount {

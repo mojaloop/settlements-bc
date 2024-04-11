@@ -1,0 +1,33 @@
+### Authorization by token, part 1. Retrieve and save token.
+POST localhost:3201/token
+Content-Type: application/json
+
+{
+  "grant_type": "password",
+  "username": "admin",
+  "password": "superMegaPass",
+  "client_id": "security-bc-ui"
+}
+> {% client.global.set("access_token", response.body.access_token); %}
+
+
+
+### Retrieve Settlement Models.
+GET localhost:3600/models/
+Content-Type: application/json
+X-Correlation-ID: Manual-{{$uuid}}
+Authorization: Bearer {{access_token}}
+
+
+### Create Settlement Model.
+POST localhost:3600/models/
+Content-Type: application/json
+X-Correlation-ID: Manual-{{$uuid}}
+Authorization: Bearer {{access_token}}
+
+{
+  "id": "{{$uuid}}",
+  "settlementModel": "DEFAULT",
+  "batchCreateInterval": 500,
+  "createdBy": "Joe Schmo"
+}

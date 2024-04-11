@@ -27,7 +27,6 @@
 
 "use strict";
 
-import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import {
     IBoundedContextConfigurationClient,
     IConfigurationClient, IGlobalConfigurationClient
@@ -42,13 +41,6 @@ const APP_NAME = "settlements-svc";
 
 export class ConfigurationClientMock implements IConfigurationClient {
     private _changeHandlerFn: (type:"BC"|"GLOBAL")=>void;
-
-	// Properties received through the constructor.
-	private readonly logger: ILogger;
-
-	constructor(logger: ILogger) {
-		this.logger = logger;
-	}
 
     get applicationName(): string {
         return APP_NAME;

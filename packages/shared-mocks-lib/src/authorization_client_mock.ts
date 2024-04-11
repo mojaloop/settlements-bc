@@ -28,15 +28,12 @@
 "use strict";
 
 import {IAuthorizationClient} from "@mojaloop/security-bc-public-types-lib";
-import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 
 export class AuthorizationClientMock implements IAuthorizationClient {
 	// Properties received through the constructor.
-	private readonly logger: ILogger;
 	private readonly hasPrivilege: boolean;
 
-	constructor(logger: ILogger, hasPrivilege : boolean) {
-		this.logger = logger;
+	constructor(hasPrivilege : boolean) {
 		this.hasPrivilege = hasPrivilege;
 	}
 

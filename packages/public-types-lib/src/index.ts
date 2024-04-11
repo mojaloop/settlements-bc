@@ -37,10 +37,7 @@ export interface ITransferDto {
 	payerFspId: string;
 	payeeFspId: string;
 	currencyCode: string;
-	//currencyDecimals: number | null;
 	amount: string;
-	//debitParticipantAccountId: string;
-	//creditParticipantAccountId: string;
 	timestamp: number;
 	settlementModel: string;
 }
@@ -87,6 +84,7 @@ export declare interface ISettlementModelActivityLogEntry {
 }
 
 export interface ISettlementBatch {
+	batchUUID: string;// 123e4567-e89b-12d3-a456-426614174000
 	id: string; // FX.XOF:RWF.2021.08.23.00.00.001
 	timestamp: number;
 	settlementModel: string;
@@ -188,8 +186,6 @@ export interface ISettlementMatrixBatchAccount {
 }
 
 /* ISettlementModelClient for settlement-model-lib */
-
-
 export interface ISettlementModelClient {
 	init(): Promise<void>;
 

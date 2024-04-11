@@ -1,0 +1,27 @@
+{
+  "settlement-transfer" : {
+    "count": 200,
+    "min-max-amount": [10, 1000],
+    "currencies":["USD", "EUR"],
+    "settlement-models":["DEFAULT"],
+    "participants": ["12345", "67890", "10111", "21314", "15161", "71819"],
+    "get-by-batch-id": 0,
+    "get-by-matrix-id": 0
+  },
+  "settlement-matrix" : {
+    "create-static": 0,
+    "add-batch-to-static": 0,
+    "remove-batch-from-static": 0,
+    "get-static": 0,
+    "create-dynamic-model": 0,
+    "get-dynamic-model": 0,
+    "close": 0,
+    "dispute": 0,
+    "lock": 0,
+    "unlock": 0,
+    "settle": 0
+  },
+  "batch" : {
+    "get-by-model": 0
+  }
+}
