@@ -59,7 +59,6 @@ import {
 	ISettlementBatchTransferRepo,
 	ISettlementConfigRepo,
 	ISettlementMatrixRequestRepo,
-	Privileges,
 	SettlementPrivilegesDefinition,
 	SettlementsAggregate
 } from "@mojaloop/settlements-bc-domain-lib";

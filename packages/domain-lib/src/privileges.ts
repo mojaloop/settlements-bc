@@ -42,7 +42,7 @@ export enum Privileges {
 	SETTLEMENTS_UNLOCK_MATRIX = "SETTLEMENTS_UNLOCK_MATRIX",
 
 	// TODO: separate the create matrix from recalculate
-	REMOVE_SETTLEMENT_MATRIX_BATCH = "REMOVE_SETTLEMENT_MATRIX_BATCH"
+	REMOVE_SETTLEMENT_MATRIX_BATCH = "REMOVE_SETTLEMENT_MATRIX_BATCH",
 	// RETRIEVE_SETTLEMENT_BATCH_ACCOUNTS = "SETTLEMENTS_RETRIEVE_BATCH_ACCOUNTS",
 	// RETRIEVE_SETTLEMENT_TRANSFERS = "SETTLEMENTS_RETRIEVE_TRANSFERS"
 
@@ -119,5 +119,5 @@ export const SettlementPrivilegesDefinition = [
         description: "Allows the retrieval of a settlement batch."
     },
 
-]
+];
 

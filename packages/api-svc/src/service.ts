@@ -78,7 +78,7 @@ import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-li
 import crypto from "crypto";
 import {IConfigurationClient} from "@mojaloop/platform-configuration-bc-public-types-lib";
 import {ConfigurationClient, DefaultConfigProvider, IConfigProvider} from "@mojaloop/platform-configuration-bc-client-lib";
-import {SettlementPrivilegesDefinition} from "@mojaloop/settlements-bc-domain-lib" 
+import {SettlementPrivilegesDefinition} from "@mojaloop/settlements-bc-domain-lib"; 
 
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -86,7 +86,6 @@ const packageJSON = require("../package.json");
 const BC_NAME = "settlements-bc";
 const APP_NAME = "settlements-api-svc";
 const APP_VERSION = packageJSON.version;
-const CONFIGSET_VERSION = "0.0.1";
 const PRODUCTION_MODE = process.env["PRODUCTION_MODE"] || false;
 const LOG_LEVEL: LogLevel = process.env["LOG_LEVEL"] as LogLevel || LogLevel.INFO;
 
@@ -157,7 +156,6 @@ export class Service {
 	static matrixRepo: ISettlementMatrixRequestRepo;
 	static messageProducer: IMessageProducer;
 	static startupTimer: NodeJS.Timeout;
-	static configClient: IConfigurationClient;
 	// static abAdapter: IAccountsBalancesAdapter;
 
 	static async start(
@@ -171,8 +169,8 @@ export class Service {
 		batchTransferRepo?: ISettlementBatchTransferRepo,
 		matrixRepo?: ISettlementMatrixRequestRepo,
 		messageProducer?: IMessageProducer,
-		configProvider?: IConfigProvider
-	  // accountsAndBalancesAdapter?: IAccountsBalancesAdapter
+		configProvider?: IConfigProvider,
+		// accountsAndBalancesAdapter?: IAccountsBalancesAdapter
 	) : Promise<void> {
 		console.log(`Service starting with PID: ${process.pid}`);
 
