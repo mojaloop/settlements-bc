@@ -173,8 +173,8 @@ export class MongoSettlementConfigRepo implements ISettlementConfigRepo {
 
 	async getSettlementConfig(id: string): Promise<ISettlementConfig | null>{
 		try {
-			const cachedconfig = this._getFromCacheById(id);
-			if (null != cachedconfig) return cachedconfig;
+			const cachedconfig = await this._getFromCacheById(id);
+			if (cachedconfig) return cachedconfig;
 
 			const mongoConfig = await this._configsCollection.findOne({id: id}, {projection: {_id: 0}});
 			if (!mongoConfig) return null;
@@ -189,8 +189,8 @@ export class MongoSettlementConfigRepo implements ISettlementConfigRepo {
 
 	async getSettlementConfigByModelName(modelName: string): Promise<ISettlementConfig | null> {
 		try {
-			const cachedconfig = this._getFromCacheByName(modelName);
-			if (null != cachedconfig) return cachedconfig;
+			const cachedconfig = await this._getFromCacheByName(modelName);
+			if (cachedconfig) return cachedconfig;
 			
 			const mongoConfig = await this._configsCollection.findOne({settlementModel: modelName}, {projection: {_id: 0}});
 			if (!mongoConfig) return null;

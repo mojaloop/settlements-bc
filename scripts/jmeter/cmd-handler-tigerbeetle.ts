@@ -64,8 +64,6 @@ Service.start(
     undefined,
     undefined,
     undefined,
-    undefined,
-    undefined,
     configClient
 ).then(() => {
     console.log("Cmd-Handler: JMeter-TigerBeetle 📈🪲 Service start complete!");
