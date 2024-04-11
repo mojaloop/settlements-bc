@@ -39,6 +39,7 @@ import {
 } from "@mojaloop/platform-configuration-bc-client-lib";
 import {AuthenticatedHttpRequester} from "@mojaloop/security-bc-client-lib";
 import {MLKafkaJsonConsumer} from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
+import process from "process";
 // import { ConfigParameterTypes } from "@mojaloop/platform-configuration-bc-public-types-lib";
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -59,7 +60,7 @@ const SVC_CLIENT_SECRET = process.env["SVC_CLIENT_SECRET"] || "superServiceSecre
 const AUTH_N_SVC_BASEURL = process.env["AUTH_N_SVC_BASEURL"] || "http://localhost:3201";
 const AUTH_N_SVC_TOKEN_URL = AUTH_N_SVC_BASEURL + "/token"; // TODO this should not be known here, libs that use the base should add the suffix
 
-const CONFIG_SVC_BASEURL = process.env["CONFIG_SVC_BASEURL"] || "http://localhost:3203";
+//const CONFIG_BASE_URL = process.env["CONFIG_BASE_URL"] || "http://localhost:3100";
 
 const logger: ILogger = new ConsoleLogger();
 
@@ -75,7 +76,7 @@ const defaultConfigProvider: DefaultConfigProvider = new DefaultConfigProvider(
     logger,
     authRequester,
     messageConsumer,
-    CONFIG_SVC_BASEURL
+    //CONFIG_BASE_URL
 );
 
 const configClient = new ConfigurationClient(BC_NAME, APP_NAME, APP_VERSION, CONFIGSET_VERSION, defaultConfigProvider);
