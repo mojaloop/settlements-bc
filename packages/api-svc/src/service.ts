@@ -217,7 +217,7 @@ export class Service {
 			);
 			// MUST only add privileges once, the cmd handler is already doing it
 			// addPrivileges(authorizationClient as AuthorizationClient);
-			await (authorizationClient as AuthorizationClient).bootstrap(true);
+			// await (authorizationClient as AuthorizationClient).bootstrap(true);
 			await (authorizationClient as AuthorizationClient).fetch();
 			// init message consumer to automatically update on role changed events
 			await (authorizationClient as AuthorizationClient).init();
