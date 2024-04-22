@@ -169,7 +169,6 @@ export class Service {
 		batchTransferRepo?: ISettlementBatchTransferRepo,
 		matrixRepo?: ISettlementMatrixRequestRepo,
 		messageProducer?: IMessageProducer,
-		configProvider?: IConfigProvider,
 		// accountsAndBalancesAdapter?: IAccountsBalancesAdapter
 	) : Promise<void> {
 		console.log(`Service starting with PID: ${process.pid}`);
@@ -191,8 +190,9 @@ export class Service {
 			);
 			await (logger as KafkaLogger).init();
 		}
-		globalLogger = this.logger = logger;
 
+		
+		globalLogger = this.logger = logger;
 		if (!tokenHelper) {
 			tokenHelper = new TokenHelper(
 				AUTH_N_SVC_JWKS_URL, logger, AUTH_N_TOKEN_ISSUER_NAME, AUTH_N_TOKEN_AUDIENCE,
@@ -201,28 +201,7 @@ export class Service {
 			await tokenHelper.init();
 		}
 		this.tokenHelper = tokenHelper;
-
-		// start config client - this is not mockable (can use STANDALONE MODE if desired)
-		if (!configProvider) {
-			// use default url from PLATFORM_CONFIG_CENTRAL_URL env var
-			const authRequester = new AuthenticatedHttpRequester(logger, AUTH_N_SVC_TOKEN_URL);
-			authRequester.setAppCredentials(SVC_CLIENT_ID, SVC_CLIENT_SECRET);
-
-			const messageConsumer = new MLKafkaJsonConsumer({
-				kafkaBrokerList: KAFKA_URL,
-				kafkaGroupId: `${APP_NAME}_${Date.now()}` // unique consumer group - use instance id when possible
-			}, logger.createChild("configClient.consumer"));
-			const defaultConfigProvider: DefaultConfigProvider = new DefaultConfigProvider(logger, authRequester, messageConsumer, CONFIG_BASE_URL);
-
-			const configClient = new ConfigurationClient(BC_NAME, APP_NAME, APP_VERSION, CONFIGSET_VERSION, defaultConfigProvider);
-			await configClient.init();
-			await configClient.bootstrap(true);
-			await configClient.fetch();
-
-
-
-		}
-
+		
 		// authorization client
 		let authRequester: IAuthenticatedHttpRequester|null = null;
 		if (!authorizationClient) {
