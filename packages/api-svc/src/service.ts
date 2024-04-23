@@ -49,7 +49,8 @@ import {
 	ISettlementBatchRepo,
 	ISettlementBatchTransferRepo,
 	ISettlementConfigRepo,
-	ISettlementMatrixRequestRepo
+	ISettlementMatrixRequestRepo,
+	SettlementPrivilegesDefinition
 } from "@mojaloop/settlements-bc-domain-lib";
 import process from "process";
 import { existsSync } from "fs";
@@ -77,8 +78,7 @@ import {ITokenHelper} from "@mojaloop/security-bc-public-types-lib/";
 import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import crypto from "crypto";
 import {IConfigurationClient} from "@mojaloop/platform-configuration-bc-public-types-lib";
-import {ConfigurationClient, DefaultConfigProvider, IConfigProvider} from "@mojaloop/platform-configuration-bc-client-lib";
-import {SettlementPrivilegesDefinition} from "@mojaloop/settlements-bc-domain-lib"; 
+import {ConfigurationClient, DefaultConfigProvider} from "@mojaloop/platform-configuration-bc-client-lib";
 
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -124,7 +124,6 @@ const SERVICE_START_TIMEOUT_MS = (process.env["SERVICE_START_TIMEOUT_MS"] && par
 const INSTANCE_NAME = `${BC_NAME}_${APP_NAME}`;
 const INSTANCE_ID = `${INSTANCE_NAME}__${crypto.randomUUID()}`;
 
-const CONFIG_BASE_URL = process.env["CONFIG_BASE_URL"] || "http://localhost:3100";
 const CONFIGSET_VERSION = process.env["CONFIGSET_VERSION"] || "0.0.1";
 
 const kafkaProducerOptions: MLKafkaJsonProducerOptions = {
