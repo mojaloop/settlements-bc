@@ -170,7 +170,7 @@ export class MongoSettlementBatchRepo implements ISettlementBatchRepo {
 	//get by full identifier = batch name + batch sequence number
 	async getBatch(id: string): Promise<ISettlementBatch | null>{
 		try {
-			const cachedBatch = this._getFromCacheById(id);
+			const cachedBatch = await this._getFromCacheById(id);
 			if (null != cachedBatch) return cachedBatch;
 			
 			const mongoBatch = await this._collection.findOne({id: id}, {projection: {_id: 0}});
