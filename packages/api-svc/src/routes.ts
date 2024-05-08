@@ -229,7 +229,9 @@ export class ExpressRoutes {
 		
 		const modelId = req.params.id as string;
 		try {
-			this._enforcePrivilege(req.securityContext, Privileges.VIEW_SETTLEMENT_CONFIG);
+			if(req.securityContext){
+				this._enforcePrivilege(req.securityContext, Privileges.GET_SETTLEMENT_MATRIX);
+			}
 			this._logger.debug(`Got getSettlementModels request for modelId: ${modelId}`);
 			const settlementModel = await this._configRepo.getSettlementConfig(modelId);
 			if (!settlementModel) {
