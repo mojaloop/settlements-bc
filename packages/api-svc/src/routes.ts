@@ -202,9 +202,7 @@ export class ExpressRoutes {
 	
 		const name = req.query.name as string;
 		try {
-			if(req.securityContext){
-				this._enforcePrivilege(req.securityContext, Privileges.VIEW_SETTLEMENT_CONFIG);
-			}
+			this._enforcePrivilege(req.securityContext!, Privileges.VIEW_SETTLEMENT_CONFIG);
 			let retModels: ISettlementConfig[] = [];
 			if (name) {
 				this._logger.debug(`Got getSettlementModels request for model name: ${name}`);
@@ -229,9 +227,7 @@ export class ExpressRoutes {
 		
 		const modelId = req.params.id as string;
 		try {
-			if(req.securityContext){
-				this._enforcePrivilege(req.securityContext, Privileges.GET_SETTLEMENT_MATRIX);
-			}
+			this._enforcePrivilege(req.securityContext!, Privileges.VIEW_SETTLEMENT_CONFIG);
 			this._logger.debug(`Got getSettlementModels request for modelId: ${modelId}`);
 			const settlementModel = await this._configRepo.getSettlementConfig(modelId);
 			if (!settlementModel) {
@@ -254,9 +250,7 @@ export class ExpressRoutes {
 		const createdBy = req.body.createdBy;
 
 		try {
-			if(req.securityContext){
-				this._enforcePrivilege(req.securityContext, Privileges.CREATE_SETTLEMENT_CONFIG)
-			}
+				this._enforcePrivilege(req.securityContext!, Privileges.CREATE_SETTLEMENT_CONFIG);
 			if (!name) {
 				this._logger.warn("Invalid Name on Settlement Model creation");
 				return this.sendErrorResponse(res, 400, "Invalid Name on Settlement Model creation");
@@ -300,9 +294,7 @@ export class ExpressRoutes {
 
 		const batchId = req.params.id as string;
 		try {
-			if(req.securityContext){
-				this._enforcePrivilege(req.securityContext, Privileges.RETRIEVE_SETTLEMENT_BATCH);
-			}
+			this._enforcePrivilege(req.securityContext!, Privileges.RETRIEVE_SETTLEMENT_BATCH);
 			this._logger.debug(`Got getSettlementBatch request for batchId: ${batchId}`);
 			const settlementBatch = await this._batchRepo.getBatch(batchId);
 			if (!settlementBatch) {
@@ -338,9 +330,7 @@ export class ExpressRoutes {
 		let batchStatuses: string[] = [];
 
 		try {
-			if(req.securityContext){
-				this._enforcePrivilege(req.securityContext, Privileges.RETRIEVE_SETTLEMENT_BATCH);
-			}
+			this._enforcePrivilege(req.securityContext!, Privileges.RETRIEVE_SETTLEMENT_BATCH);
 			if (currencyCodesStr && Array.isArray(currencyCodesStr)) {
 				currencyCodes = currencyCodesStr;
 			} else if (currencyCodesStr) {
@@ -408,9 +398,7 @@ export class ExpressRoutes {
 		const pageSize = pageSizeStr ? parseInt(pageSizeStr) : MAX_ENTRIES_PER_PAGE;
 
 		try {
-			if(req.securityContext){
-				this._enforcePrivilege(req.securityContext, Privileges.RETRIEVE_SETTLEMENT_BATCH);
-			}
+			this._enforcePrivilege(req.securityContext!, Privileges.RETRIEVE_SETTLEMENT_BATCH);
 			let result: BatchTransferSearchResults;
 			if (batchId) {
 				result = await this._batchTransferRepo.getBatchTransfersByBatchIds([batchId], pageIndex, pageSize);
@@ -458,9 +446,7 @@ export class ExpressRoutes {
 	private async postCreateMatrix(req: express.Request, res: express.Response): Promise<void> {
 
 		try {
-			if(req.securityContext){
-				this._enforcePrivilege(req.securityContext, Privileges.CREATE_SETTLEMENT_MATRIX)
-			}
+			this._enforcePrivilege(req.securityContext!, Privileges.CREATE_SETTLEMENT_MATRIX);
 			const matrixId = req.body.matrixiId || randomUUID();
 			const type = req.body.type as string || null;
 
@@ -515,9 +501,7 @@ export class ExpressRoutes {
 
 	private async postRecalculateMatrix(req: express.Request, res: express.Response): Promise<void> {
 		try {
-			if(req.securityContext){
-				this._enforcePrivilege(req.securityContext, Privileges.GET_SETTLEMENT_MATRIX)
-			}
+			this._enforcePrivilege(req.securityContext!, Privileges.GET_SETTLEMENT_MATRIX);
 			const matrixId = req.params.id as string;
 
 			const matrix = await this._matrixRepo.getMatrixById(matrixId);
@@ -540,9 +524,7 @@ export class ExpressRoutes {
 
 	private async postCloseSettlementMatrix(req: express.Request, res: express.Response): Promise<void> {
 		try {
-			if(req.securityContext){
-				this._enforcePrivilege(req.securityContext, Privileges.SETTLEMENTS_CLOSE_MATRIX)
-			}
+			this._enforcePrivilege(req.securityContext!, Privileges.SETTLEMENTS_CLOSE_MATRIX);
 			const matrixId = req.params.id as string;
 			const matrix = await this._matrixRepo.getMatrixById(matrixId);
 			if (!matrix) return this.sendErrorResponse(res, 404, "Matrix not found");
@@ -560,9 +542,7 @@ export class ExpressRoutes {
 
 	private async postSettleSettlementMatrix(req: express.Request, res: express.Response): Promise<void> {
 		try {
-			if(req.securityContext){
-				this._enforcePrivilege(req.securityContext, Privileges.SETTLEMENTS_SETTLE_MATRIX);
-			}
+			this._enforcePrivilege(req.securityContext!, Privileges.SETTLEMENTS_SETTLE_MATRIX);
 			const matrixId = req.params.id as string;
 			const matrix = await this._matrixRepo.getMatrixById(matrixId);
 			if (!matrix) return this.sendErrorResponse(res, 404, "Matrix not found");
@@ -580,9 +560,7 @@ export class ExpressRoutes {
 
 	private async postDisputeSettlementMatrix(req: express.Request, res: express.Response): Promise<void> {
 		try {
-			if(req.securityContext){
-				this._enforcePrivilege(req.securityContext, Privileges.SETTLEMENTS_DISPUTE_MATRIX);
-			}
+			this._enforcePrivilege(req.securityContext!, Privileges.SETTLEMENTS_DISPUTE_MATRIX);
 			const matrixId = req.params.id as string;
 			const matrix = await this._matrixRepo.getMatrixById(matrixId);
 			if (!matrix) return this.sendErrorResponse(res, 404, "Matrix not found");
@@ -600,9 +578,7 @@ export class ExpressRoutes {
 
 	private async postAddBatchToStaticMatrix(req: express.Request, res: express.Response): Promise<void> {
 		try {
-			if(req.securityContext){
-				this._enforcePrivilege(req.securityContext, Privileges.CREATE_SETTLEMENT_MATRIX);
-			}
+			this._enforcePrivilege(req.securityContext!, Privileges.CREATE_SETTLEMENT_MATRIX);
 			const matrixId = req.params.id as string;
 			const addReqPayload = req.body as AddBatchesToMatrixCmdPayload;
 			addReqPayload.matrixId = matrixId;
@@ -620,9 +596,7 @@ export class ExpressRoutes {
 
 	private async postRemoveBatchFromStaticMatrix(req: express.Request, res: express.Response): Promise<void> {
 		try {
-			if(req.securityContext){
-				this._enforcePrivilege(req.securityContext, Privileges.REMOVE_SETTLEMENT_MATRIX_BATCH);
-			}
+			this._enforcePrivilege(req.securityContext!, Privileges.REMOVE_SETTLEMENT_MATRIX_BATCH);
 			const matrixId = req.params.id as string;
 			const removeReqPayload = req.body as RemoveBatchesFromMatrixCmdPayload;
 			removeReqPayload.matrixId = matrixId;
@@ -641,9 +615,7 @@ export class ExpressRoutes {
 	private async getSettlementMatrix(req: express.Request, res: express.Response): Promise<void> {
 
 		try {
-			if(req.securityContext){
-				this._enforcePrivilege(req.securityContext, Privileges.GET_SETTLEMENT_MATRIX);
-			}
+			this._enforcePrivilege(req.securityContext!, Privileges.GET_SETTLEMENT_MATRIX);
 			const id = req.params.id as string;
 
 			const resp = await this._matrixRepo.getMatrixById(id);
@@ -661,9 +633,7 @@ export class ExpressRoutes {
 	private async getSettlementMatrices(req: express.Request, res: express.Response): Promise<void> {
 
 		try {
-			if(req.securityContext){
-				this._enforcePrivilege(req.securityContext, Privileges.GET_SETTLEMENT_MATRIX);
-			}
+			this._enforcePrivilege(req.securityContext!, Privileges.GET_SETTLEMENT_MATRIX);
 			const matrixId = req.query.matrixId as string;
 			const type = req.query.type as string;
 			const state = req.query.state as string;
@@ -717,9 +687,7 @@ export class ExpressRoutes {
 
 	private async postLockSettlementMatrix(req: express.Request, res: express.Response): Promise<void> {
 		try {
-			if(req.securityContext){
-				this._enforcePrivilege(req.securityContext, Privileges.SETTLEMENTS_LOCK_MATRIX);
-			}
+			this._enforcePrivilege(req.securityContext!, Privileges.SETTLEMENTS_LOCK_MATRIX);
 			const matrixId = req.params.id as string;
 			const matrix = await this._matrixRepo.getMatrixById(matrixId);
 			if (!matrix) return this.sendErrorResponse(res, 404, "Matrix not found");
@@ -737,9 +705,7 @@ export class ExpressRoutes {
 
 	private async postUnlockSettlementMatrix(req: express.Request, res: express.Response): Promise<void> {
 		try {
-			if(req.securityContext){
-				this._enforcePrivilege(req.securityContext, Privileges.SETTLEMENTS_UNLOCK_MATRIX);
-			}
+			this._enforcePrivilege(req.securityContext!, Privileges.SETTLEMENTS_UNLOCK_MATRIX);
 			const matrixId = req.params.id as string;
 			const matrix = await this._matrixRepo.getMatrixById(matrixId);
 			if (!matrix) return this.sendErrorResponse(res, 404, "Matrix not found");
