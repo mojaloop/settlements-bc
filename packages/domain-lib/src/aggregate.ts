@@ -358,7 +358,9 @@ export class SettlementsAggregate {
 		return batch.id;
 	}
 
+
 	async createSettlementConfig(cmdPayload: CreateSettlementModelCmdPayload): Promise<void> {
+
 		if (!cmdPayload) {
 			const err = new InvalidSettlementModelError("Invalid settlement model");
 			this._logger.warn(err.message);
@@ -413,7 +415,9 @@ export class SettlementsAggregate {
 		);
 	}
 
+
 	async createStaticSettlementMatrix(matrixId: string | null, batchIds: string[]): Promise<string> {
+
 		const startTimestamp = Date.now();
 
 		// Need the batches first to get the currency
@@ -458,6 +462,7 @@ export class SettlementsAggregate {
 		fromDate: number,
 		toDate: number
 	): Promise<string> {
+
 		const startTimestamp = Date.now();
 
 		const newMatrix = SettlementMatrix.CreateDynamic(
@@ -496,7 +501,9 @@ export class SettlementsAggregate {
 		return newMatrix.id;
 	}
 
+
 	async addBatchesToStaticSettlementMatrix(matrixId: string, newBatchIds: string[]): Promise<void> {
+
 		const startTimestamp = Date.now();
 
 		const matrixDto = await this._settlementMatrixReqRepo.getMatrixById(matrixId);
@@ -545,7 +552,9 @@ export class SettlementsAggregate {
 		return;
 	}
 
+
 	async removeBatchesFromStaticSettlementMatrix(matrixId: string, batchIdsToRemove: string[]): Promise<void> {
+
 		const startTimestamp = Date.now();
 
 		const matrixDto = await this._settlementMatrixReqRepo.getMatrixById(matrixId);
@@ -593,7 +602,9 @@ export class SettlementsAggregate {
 		);
 	}
 
+
 	async recalculateSettlementMatrix(id: string): Promise<void> {
+
 		const matrixDto = await this._settlementMatrixReqRepo.getMatrixById(id);
 		if (!matrixDto) {
 			const err = new SettlementMatrixNotFoundError(`Matrix with id: ${id} not found`);
@@ -689,6 +700,7 @@ export class SettlementsAggregate {
 	}
 
 	async lockSettlementMatrixForAwaitingSettlement(id: string): Promise<void> {
+
 		const matrixDto = await this._settlementMatrixReqRepo.getMatrixById(id);
 		if (!matrixDto) {
 			const err = new SettlementMatrixNotFoundError(`Matrix with id: ${id} not found`);

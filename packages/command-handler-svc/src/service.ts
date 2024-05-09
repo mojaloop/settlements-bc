@@ -59,7 +59,7 @@ import {
 	ISettlementBatchTransferRepo,
 	ISettlementConfigRepo,
 	ISettlementMatrixRequestRepo,
-	Privileges,
+	SettlementPrivilegesDefinition,
 	SettlementsAggregate
 } from "@mojaloop/settlements-bc-domain-lib";
 import {Express} from "express";
@@ -245,7 +245,7 @@ export class Service {
 				authRequester,
 				messageConsumer
 			);
-			addPrivileges(authorizationClient as AuthorizationClient);
+			authorizationClient.addPrivilegesArray(SettlementPrivilegesDefinition);
 			await (authorizationClient as AuthorizationClient).bootstrap(true);
 			await (authorizationClient as AuthorizationClient).fetch();
 			// init message consumer to automatically update on role changed events
@@ -429,61 +429,6 @@ export class Service {
 	}
 }
 
-
-function addPrivileges(authorizationClient: AuthorizationClient): void {
-	// processing of transfers must always happen, this priv is not required
-	authorizationClient.addPrivilege(
-		Privileges.CREATE_DYNAMIC_SETTLEMENT_MATRIX,
-		Privileges.CREATE_DYNAMIC_SETTLEMENT_MATRIX,
-		"Allows the creation of a dynamic settlement matrix."
-	);
-	authorizationClient.addPrivilege(
-		Privileges.CREATE_STATIC_SETTLEMENT_MATRIX,
-		Privileges.CREATE_STATIC_SETTLEMENT_MATRIX,
-		"Allows the creation of a static settlement matrix."
-	);
-
-	authorizationClient.addPrivilege(
-		Privileges.GET_SETTLEMENT_MATRIX,
-		Privileges.GET_SETTLEMENT_MATRIX,
-		"Allows the retrieval of a settlement matrix."
-	);
-	authorizationClient.addPrivilege(
-		Privileges.SETTLEMENTS_CLOSE_MATRIX,
-		Privileges.SETTLEMENTS_CLOSE_MATRIX,
-		"Allows the settling of a settlement matrix."
-	);
-	authorizationClient.addPrivilege(
-		Privileges.SETTLEMENTS_SETTLE_MATRIX,
-		Privileges.SETTLEMENTS_SETTLE_MATRIX,
-		"Allows the dispute of a settlement matrix."
-	);
-	authorizationClient.addPrivilege(
-		Privileges.SETTLEMENTS_DISPUTE_MATRIX,
-		Privileges.SETTLEMENTS_DISPUTE_MATRIX,
-		"Allows the dispute of a settlement matrix."
-	);
-	authorizationClient.addPrivilege(
-		Privileges.SETTLEMENTS_LOCK_MATRIX,
-		Privileges.SETTLEMENTS_LOCK_MATRIX,
-		"Allows the locking of a settlement matrix."
-	);
-	authorizationClient.addPrivilege(
-		Privileges.SETTLEMENTS_UNLOCK_MATRIX,
-		Privileges.SETTLEMENTS_UNLOCK_MATRIX,
-		"Allows the unlocking of a settlement matrix."
-	);
-	authorizationClient.addPrivilege(
-		Privileges.GET_SETTLEMENT_MATRIX,
-		Privileges.GET_SETTLEMENT_MATRIX,
-		"Allows the retrieval of a settlement matrix request."
-	);
-	authorizationClient.addPrivilege(
-		Privileges.RETRIEVE_SETTLEMENT_BATCH,
-		Privileges.RETRIEVE_SETTLEMENT_BATCH,
-		"Allows the retrieval of a settlement batch."
-	);
-}
 
 
 /**

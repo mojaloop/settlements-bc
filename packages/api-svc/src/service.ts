@@ -31,9 +31,9 @@
 "use strict";
 
 
-import {IAuditClient} from "@mojaloop/auditing-bc-public-types-lib";
-import {KafkaLogger} from "@mojaloop/logging-bc-client-lib";
-import {ILogger, LogLevel} from "@mojaloop/logging-bc-public-types-lib";
+import { IAuditClient } from "@mojaloop/auditing-bc-public-types-lib";
+import { KafkaLogger } from "@mojaloop/logging-bc-client-lib";
+import { ILogger, LogLevel } from "@mojaloop/logging-bc-public-types-lib";
 import {
 	MLKafkaJsonConsumer,
 	MLKafkaJsonProducer,
@@ -49,10 +49,11 @@ import {
 	ISettlementBatchRepo,
 	ISettlementBatchTransferRepo,
 	ISettlementConfigRepo,
-	ISettlementMatrixRequestRepo
+	ISettlementMatrixRequestRepo,
+	SettlementPrivilegesDefinition
 } from "@mojaloop/settlements-bc-domain-lib";
 import process from "process";
-import {existsSync} from "fs";
+import { existsSync } from "fs";
 import {
 	AuditClient,
 	KafkaAuditClientDispatcher,
@@ -67,6 +68,7 @@ import {
 	TigerBeetleAccountsAndBalancesAdapter,
 	SettlementBatchTransferRepoTigerBeetle
 } from "@mojaloop/settlements-bc-infrastructure-lib";
+
 import {IAuthenticatedHttpRequester, IAuthorizationClient} from "@mojaloop/security-bc-public-types-lib";
 import {Server} from "net";
 import express, {Express} from "express";
@@ -78,12 +80,12 @@ import crypto from "crypto";
 import {IConfigurationClient} from "@mojaloop/platform-configuration-bc-public-types-lib";
 import {ConfigurationClient, DefaultConfigProvider} from "@mojaloop/platform-configuration-bc-client-lib";
 
+
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const packageJSON = require("../package.json");
 const BC_NAME = "settlements-bc";
 const APP_NAME = "settlements-api-svc";
 const APP_VERSION = packageJSON.version;
-const CONFIGSET_VERSION = "0.0.1";
 const PRODUCTION_MODE = process.env["PRODUCTION_MODE"] || false;
 const LOG_LEVEL: LogLevel = process.env["LOG_LEVEL"] as LogLevel || LogLevel.INFO;
 
@@ -104,7 +106,6 @@ const MONGO_URL = process.env["MONGO_URL"] || "mongodb://root:example@localhost:
 const KAFKA_AUDITS_TOPIC = process.env["KAFKA_AUDITS_TOPIC"] || "audits";
 const KAFKA_LOGS_TOPIC = process.env["KAFKA_LOGS_TOPIC"] || "logs";
 const AUDIT_KEY_FILE_PATH = process.env["AUDIT_KEY_FILE_PATH"] || "/app/data/audit_private_key.pem";
-
 const SVC_CLIENT_ID = process.env["SVC_CLIENT_ID"] || "settlements-bc-api-svc";
 const SVC_CLIENT_SECRET = process.env["SVC_CLIENT_SECRET"] || "superServiceSecret";
 
@@ -118,10 +119,12 @@ const SETTLEMENT_BATCHES_COLLECTION_NAME: string = "batches";
 const SETTLEMENT_MATRICES_COLLECTION_NAME: string = "matrices";
 const SETTLEMENT_TRANSFERS_COLLECTION_NAME: string = "transfers";
 
-const SERVICE_START_TIMEOUT_MS= (process.env["SERVICE_START_TIMEOUT_MS"] && parseInt(process.env["SERVICE_START_TIMEOUT_MS"])) || 60_000;
+const SERVICE_START_TIMEOUT_MS = (process.env["SERVICE_START_TIMEOUT_MS"] && parseInt(process.env["SERVICE_START_TIMEOUT_MS"])) || 60_000;
 
 const INSTANCE_NAME = `${BC_NAME}_${APP_NAME}`;
 const INSTANCE_ID = `${INSTANCE_NAME}__${crypto.randomUUID()}`;
+
+const CONFIGSET_VERSION = process.env["CONFIGSET_VERSION"] || "0.0.1";
 
 const kafkaProducerOptions: MLKafkaJsonProducerOptions = {
 	kafkaBrokerList: KAFKA_URL
@@ -155,7 +158,7 @@ export class Service {
 	// static abAdapter: IAccountsBalancesAdapter;
 
 	static async start(
-		logger?:ILogger,
+		logger?: ILogger,
 		tokenHelper?: ITokenHelper,
 		authorizationClient?: IAuthorizationClient,
 		auditClient?: IAuditClient,
@@ -169,9 +172,11 @@ export class Service {
 	) : Promise<void> {
 		console.log(`Service starting with PID: ${process.pid}`);
 
-		this.startupTimer = setTimeout(()=>{
+		this.startupTimer = setTimeout(() => {
 			throw new Error("Service start timed-out");
 		}, SERVICE_START_TIMEOUT_MS);
+
+
 
 		if (!logger) {
 			logger = new KafkaLogger(
@@ -185,16 +190,16 @@ export class Service {
 			await (logger as KafkaLogger).init();
 		}
 		globalLogger = this.logger = logger;
-
+		
 		if (!tokenHelper) {
 			tokenHelper = new TokenHelper(
-				AUTH_N_SVC_JWKS_URL, logger, AUTH_N_TOKEN_ISSUER_NAME,AUTH_N_TOKEN_AUDIENCE,
-				new MLKafkaJsonConsumer({kafkaBrokerList: KAFKA_URL, autoOffsetReset: "earliest", kafkaGroupId: INSTANCE_ID}, logger) // for jwt list - no groupId
+				AUTH_N_SVC_JWKS_URL, logger, AUTH_N_TOKEN_ISSUER_NAME, AUTH_N_TOKEN_AUDIENCE,
+				new MLKafkaJsonConsumer({ kafkaBrokerList: KAFKA_URL, autoOffsetReset: "earliest", kafkaGroupId: INSTANCE_ID }, logger) // for jwt list - no groupId
 			);
 			await tokenHelper.init();
 		}
 		this.tokenHelper = tokenHelper;
-
+		
 		// authorization client
 		let authRequester: IAuthenticatedHttpRequester|null = null;
 		if (!authorizationClient) {
@@ -215,9 +220,10 @@ export class Service {
 				authRequester,
 				messageConsumer
 			);
+
 			// MUST only add privileges once, the cmd handler is already doing it
-			// addPrivileges(authorizationClient as AuthorizationClient);
-			// await (authorizationClient as AuthorizationClient).bootstrap(true);
+			authorizationClient.addPrivilegesArray(SettlementPrivilegesDefinition);
+			await (authorizationClient as AuthorizationClient).bootstrap(true);
 			await (authorizationClient as AuthorizationClient).fetch();
 			// init message consumer to automatically update on role changed events
 			await (authorizationClient as AuthorizationClient).init();
@@ -228,7 +234,7 @@ export class Service {
 			if (!existsSync(AUDIT_KEY_FILE_PATH)) {
 				if (PRODUCTION_MODE) process.exit(9);
 				// create e tmp file
-				LocalAuditClientCryptoProvider.createRsaPrivateKeyFileSync(AUDIT_KEY_FILE_PATH,2048);
+				LocalAuditClientCryptoProvider.createRsaPrivateKeyFileSync(AUDIT_KEY_FILE_PATH, 2048);
 			}
 			const auditLogger = logger.createChild("auditDispatcher");
 			auditLogger.setLogLevel(LogLevel.INFO);
@@ -352,7 +358,7 @@ export class Service {
 		return new Promise<void>((resolve) => {
 			this.app = express();
 			this.app.use(express.json()); // for parsing application/json
-			this.app.use(express.urlencoded({extended: true})); // for parsing application/x-www-form-urlencoded
+			this.app.use(express.urlencoded({ extended: true })); // for parsing application/x-www-form-urlencoded
 
 			const routes = new ExpressRoutes(
 				this.logger,
@@ -361,7 +367,9 @@ export class Service {
 				this.batchRepo,
 				this.batchTransferRepo,
 				this.matrixRepo,
-				this.messageProducer
+				this.messageProducer,
+				this.authorizationClient
+
 			);
 
 			this.app.use("/", routes.MainRouter);

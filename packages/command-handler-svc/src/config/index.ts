@@ -72,12 +72,14 @@ const messageConsumer = new MLKafkaJsonConsumer({
  kafkaBrokerList: KAFKA_URL,
  kafkaGroupId: `${APP_NAME}_${Date.now()}` // unique consumer group - use instance id when possible
 }, logger.createChild("configClient.consumer"));
+
 const defaultConfigProvider: DefaultConfigProvider = new DefaultConfigProvider(
     logger,
     authRequester,
     messageConsumer,
     //CONFIG_BASE_URL
 );
+
 
 const configClient = new ConfigurationClient(BC_NAME, APP_NAME, APP_VERSION, CONFIGSET_VERSION, defaultConfigProvider);
 export = configClient;
