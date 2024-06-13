@@ -65,6 +65,7 @@
   "workspaces": [
 	"packages/public-types-lib",
 	"packages/domain-lib",
+	"packages/settlements-config-lib",
 	"packages/infrastructure-lib",
 	"packages/shared-mocks-lib",
 	"packages/settlements-bc-shared-mocks-lib",
