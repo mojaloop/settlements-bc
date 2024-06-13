@@ -98,7 +98,7 @@ const packageJSON = require("../package.json");
 
 const BC_NAME = "settlements-bc";
 const APP_NAME = "command-handler-svc";
-const BC_VERSION = packageJSON.version;
+const APP_VERSION = packageJSON.version;
 const PRODUCTION_MODE = process.env["PRODUCTION_MODE"] || false;
 const LOG_LEVEL: LogLevel = process.env["LOG_LEVEL"] as LogLevel || LogLevel.INFO;
 const MONGO_URL = process.env["MONGO_URL"] || "mongodb://root:example@localhost:27017/";
@@ -224,7 +224,7 @@ export class Service {
 			logger = new KafkaLogger(
 				BC_NAME,
 				APP_NAME,
-				BC_VERSION,
+				APP_VERSION,
 				kafkaProducerCommonOptions,
 				KAFKA_LOGS_TOPIC,
 				LOG_LEVEL
@@ -282,7 +282,7 @@ export class Service {
             // setup privileges - bootstrap app privs and get priv/role associations
             authorizationClient = new AuthorizationClient(
                 BC_NAME, 
-                BC_VERSION,
+                APP_VERSION,
                 AUTH_Z_SVC_BASEURL, 
                 logger.createChild("AuthorizationClient"),
                 authRequester,
@@ -318,7 +318,7 @@ export class Service {
 			auditClient = new AuditClient(
 				BC_NAME,
 				APP_NAME,
-				BC_VERSION,
+				APP_VERSION,
 				cryptoProvider,
 				auditDispatcher
 			);
@@ -426,7 +426,7 @@ export class Service {
 			const labels: Map<string, string> = new Map<string, string>();
 			labels.set("bc", BC_NAME);
 			labels.set("app", APP_NAME);
-			labels.set("version", BC_VERSION);
+			labels.set("version", APP_VERSION);
 			PrometheusMetrics.Setup({prefix:"", defaultLabels: labels}, this.logger);
 			metrics = PrometheusMetrics.getInstance();
 		}
@@ -454,7 +454,7 @@ export class Service {
 		);
 		await this.handler.start();
 
-		this.logger.info(`Settlements Command Handler Service started, version: ${BC_VERSION}`);
+		this.logger.info(`Settlements Command Handler Service started, version: ${APP_VERSION}`);
 
 		// Remove startup timeout
 		clearTimeout(this.startupTimer);
