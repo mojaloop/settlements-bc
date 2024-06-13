@@ -42,6 +42,7 @@ COPY tsconfig.json ./
 COPY packages/public-types-lib ./packages/public-types-lib
 COPY packages/infrastructure-lib ./packages/infrastructure-lib
 COPY packages/domain-lib ./packages/domain-lib
+COPY packages/settlements-config-lib ./packages/settlements-config-lib
 
 # copy service code
 COPY packages/command-handler-svc ./packages/command-handler-svc
