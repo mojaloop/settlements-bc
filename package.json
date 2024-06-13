@@ -1,6 +1,6 @@
 {
   "name": "@mojaloop/settlements-bc",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Settlements Bounded Context",
   "license": "Apache-2.0",
   "homepage": "https://github.com/mojaloop/settlements-bc",
@@ -24,7 +24,7 @@
 	"lint": "npm -ws -p run lint",
 	"lint:fix": "npm -ws run lint:fix",
 	"build": "npm -ws run build",
-	"test:unit": "npm -ws -p run test:unit",
+	"test:unit": "npm -ws --if-present run test:unit",
 	"test:unit:domain": "npm -ws -p run test:unit:domain",
 	"test:integration": "jest test/integration/",
 	"test:integration-http": "jest test/integration/http.test.ts",
@@ -58,13 +58,14 @@
 	"npm-check-updates": "~16.10.19",
 	"nyc": "^15.1.0",
 	"supertest": "^6.3.4",
-	"ts-jest": "~29.1.2",
+	"ts-jest": "~29.1.4",
 	"tslib": "~2.5.3",
 	"typescript": "~5.0.4"
   },
   "workspaces": [
 	"packages/public-types-lib",
 	"packages/domain-lib",
+	"packages/settlements-config-lib",
 	"packages/infrastructure-lib",
 	"packages/shared-mocks-lib",
 	"packages/settlements-bc-shared-mocks-lib",

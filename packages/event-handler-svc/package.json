@@ -1,6 +1,6 @@
 {
   "name": "@mojaloop/settlements-bc-event-handler-svc",
-  "version": "0.5.4",
+  "version": "0.6.0",
   "description": "Mojaloop vNext Settlements BC - Event Handler Service",
   "license": "Apache-2.0",
   "homepage": "https://github.com/mojaloop/settlements-bc/event-handler-svc",
@@ -39,15 +39,16 @@
   },
   "dependencies": {
     "@mojaloop/settlements-bc-domain-lib": "*",
+    "@mojaloop/settlements-bc-config-lib": "*",
     "@mojaloop/auditing-bc-client-lib": "~0.0.15",
     "@mojaloop/auditing-bc-public-types-lib": "~0.0.17",
     "@mojaloop/logging-bc-client-lib": "~0.1.30",
     "@mojaloop/logging-bc-public-types-lib": "~0.1.23",
-    "@mojaloop/platform-configuration-bc-public-types-lib": "~0.3.5",
-    "@mojaloop/platform-configuration-bc-client-lib": "~0.3.9",
+    "@mojaloop/platform-configuration-bc-public-types-lib": "~0.6.1",
+    "@mojaloop/platform-configuration-bc-client-lib": "~0.6.3",
     "@mojaloop/platform-shared-lib-messaging-types-lib": "~0.2.103",
-    "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib": "~0.3.71",
-    "@mojaloop/security-bc-public-types-lib": "~0.3.6"
+    "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib": "~0.5.18",
+    "@mojaloop/security-bc-public-types-lib": "~0.6.1"
   },
   "devDependencies": {
     "@types/jest": "^29.5.12",
@@ -58,7 +59,7 @@
     "husky": "^8.0.3",
     "jest": "^29.5.0",
     "npm-check-updates": "^16.10.19",
-    "ts-jest": "^29.1.2",
+    "ts-jest": "^29.1.4",
     "typescript": "^5.0.4"
   },
   "engines": {

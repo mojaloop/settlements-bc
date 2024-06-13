@@ -1,0 +1,41 @@
+{
+    "name": "@mojaloop/settlements-bc-config-lib",
+    "version": "0.6.0",
+    "description": "Settlements BC common config libs.",
+    "license": "Apache-2.0",
+    "homepage": "https://github.com/mojaloop/settlements-bc/tree/main/packages/settlements-config-lib",
+    "bugs": {
+        "url": "https://github.com/mojaloop/settlements-bc/issues#readme"
+    },
+    "contributors": [
+        "José Antunes <jose.antunes@arg.software>",
+        "Rui Rocha <rui.rocha@arg.software>"
+    ],
+    "private": true,
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "files": [
+        "/dist"
+    ],
+    "scripts": {
+        "build": "tsc",
+        "clean": "npm run clean:npm; npm run clean:dist",
+        "clean:dist": "rm -rf dist",
+        "clean:npm": "rm -rf node_modules",
+        "audit:check": "npm npm audit",
+        "dep:check": "ncu -e 2",
+        "dep:update": "ncu -u",
+        "lint": "eslint ./src",
+        "lint:fix": "eslint ./src --fix"
+    },
+    "dependencies": {
+    },
+    "devDependencies": {
+        "eslint": "^8.56.0",
+        "npm-check-updates": "^16.14.20",
+        "typescript": "^4.7.4"
+    },
+    "engines": {
+        "node": ">=20.10.0"
+    }
+}

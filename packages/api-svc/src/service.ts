@@ -77,9 +77,6 @@ import {ITokenHelper} from "@mojaloop/security-bc-public-types-lib/";
 
 import {IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import crypto from "crypto";
-import {IConfigurationClient} from "@mojaloop/platform-configuration-bc-public-types-lib";
-import {ConfigurationClient, DefaultConfigProvider} from "@mojaloop/platform-configuration-bc-client-lib";
-
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const packageJSON = require("../package.json");
@@ -124,8 +121,6 @@ const SERVICE_START_TIMEOUT_MS = (process.env["SERVICE_START_TIMEOUT_MS"] && par
 const INSTANCE_NAME = `${BC_NAME}_${APP_NAME}`;
 const INSTANCE_ID = `${INSTANCE_NAME}__${crypto.randomUUID()}`;
 
-const CONFIGSET_VERSION = process.env["CONFIGSET_VERSION"] || "0.0.1";
-
 const kafkaProducerOptions: MLKafkaJsonProducerOptions = {
 	kafkaBrokerList: KAFKA_URL
 };
@@ -148,7 +143,6 @@ export class Service {
 	static tokenHelper: ITokenHelper;
 	static authorizationClient: IAuthorizationClient;
 	static auditClient: IAuditClient;
-	static configClient: IConfigurationClient;
 	static configRepo: ISettlementConfigRepo;
 	static batchRepo: ISettlementBatchRepo;
 	static batchTransferRepo: ISettlementBatchTransferRepo;
@@ -162,7 +156,6 @@ export class Service {
 		tokenHelper?: ITokenHelper,
 		authorizationClient?: IAuthorizationClient,
 		auditClient?: IAuditClient,
-		configClient?: IConfigurationClient,
 		configRepo?: ISettlementConfigRepo,
 		batchRepo?: ISettlementBatchRepo,
 		batchTransferRepo?: ISettlementBatchTransferRepo,
@@ -215,18 +208,17 @@ export class Service {
 
 			// setup privileges - bootstrap app privs and get priv/role associations
 			authorizationClient = new AuthorizationClient(
-				BC_NAME, APP_NAME, APP_VERSION,
-				AUTH_Z_SVC_BASEURL, logger.createChild("AuthorizationClient"),
-				authRequester,
-				messageConsumer
+				BC_NAME, 
+                APP_VERSION,
+                AUTH_Z_SVC_BASEURL, 
+                logger.createChild("AuthorizationClient"),
+                authRequester,
+                messageConsumer
 			);
 
-			// MUST only add privileges once, the cmd handler is already doing it
-			authorizationClient.addPrivilegesArray(SettlementPrivilegesDefinition);
-			await (authorizationClient as AuthorizationClient).bootstrap(true);
-			await (authorizationClient as AuthorizationClient).fetch();
-			// init message consumer to automatically update on role changed events
-			await (authorizationClient as AuthorizationClient).init();
+            await (authorizationClient as AuthorizationClient).fetch();
+            // init message consumer to automatically update on role changed events
+            await (authorizationClient as AuthorizationClient).init();
 		}
 		this.authorizationClient = authorizationClient;
 
@@ -258,17 +250,6 @@ export class Service {
 			await auditClient.init();
 		}
 		this.auditClient = auditClient;
-
-		if (!configClient) {
-			const defaultConfigProvider: DefaultConfigProvider = new DefaultConfigProvider(
-				logger,
-				authRequester!,
-				null,
-				CONFIG_BASE_URL
-			);
-			configClient = new ConfigurationClient(BC_NAME, APP_NAME, APP_VERSION, CONFIGSET_VERSION, defaultConfigProvider);
-		}
-		this.configClient = configClient;
 
 		// if (!accountsAndBalancesAdapter) {
 		// 	if (USE_TIGERBEETLE) {

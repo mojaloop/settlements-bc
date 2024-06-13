@@ -1,6 +1,6 @@
 {
   "name": "@mojaloop/settlements-bc-infrastructure-lib",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Settlements BC - Infrastructure Library",
   "license": "Apache-2.0",
   "homepage": "https://github.com/mojaloop/settlements-bc/tree/main/packages/infrastructure-lib",
@@ -37,12 +37,12 @@
 	"@mojaloop/logging-bc-public-types-lib": "~0.5.4",
 	"@mojaloop/accounts-and-balances-bc-grpc-client-lib": "~0.5.2",
 	"@mojaloop/accounts-and-balances-bc-public-types-lib": "~0.5.1",
-	"@mojaloop/security-bc-client-lib": "~0.5.11",
-	"@mojaloop/security-bc-public-types-lib": "~0.5.6",
-	"@mojaloop/platform-configuration-bc-public-types-lib": "~0.5.2",
+	"@mojaloop/security-bc-client-lib": "~0.6.2",
+	"@mojaloop/security-bc-public-types-lib": "~0.6.1",
+	"@mojaloop/platform-configuration-bc-public-types-lib": "~0.6.1",
 	"tigerbeetle-node": "0.15.3",
-	"tslib": "~2.6.2",
-	"mongodb": "~6.5.0",
+	"tslib": "~2.6.3",
+	"mongodb": "~6.7.0",
   "ioredis": "~5.4.1"
   },
   "engines": {
