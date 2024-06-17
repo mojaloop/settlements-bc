@@ -1,6 +1,6 @@
 {
   "name": "@mojaloop/settlements-bc-model-lib",
-  "version": "0.6.0",
+  "version": "0.6.2",
   "description": "Settlements BC - Settlement Model Library",
   "license": "Apache-2.0",
   "homepage": "https://github.com/mojaloop/settlements-bc/tree/main/packages/settlement-model-lib",
@@ -35,7 +35,7 @@
   "dependencies": {
     "@mojaloop/logging-bc-public-types-lib": "~0.5.4",
     "@mojaloop/security-bc-public-types-lib": "~0.6.1",
-    "@mojaloop/settlements-bc-public-types-lib": "~0.6.1",
+    "@mojaloop/settlements-bc-public-types-lib": "~0.6.3",
     "tslib": "~2.6.3"
   },
   "engines": {
