@@ -38,14 +38,14 @@
   "dependencies": {
 	"@mojaloop/settlements-bc-model-lib": "*",
 	"@mojaloop/settlements-bc-public-types-lib": "*",
-	"@mojaloop/platform-shared-lib-public-messages-lib": "~0.5.21",
+	"@mojaloop/platform-shared-lib-public-messages-lib": "~0.5.23",
 	"@mojaloop/auditing-bc-public-types-lib": "~0.5.2",
 	"@mojaloop/logging-bc-public-types-lib": "~0.5.4",
 	"@mojaloop/security-bc-public-types-lib": "~0.6.1",
 	"@mojaloop/platform-configuration-bc-client-lib": "~0.6.3",
 	"@mojaloop/platform-configuration-bc-public-types-lib": "~0.6.1",
 	"@mojaloop/accounts-and-balances-bc-public-types-lib": "~0.6.1",
-	"@mojaloop/platform-shared-lib-observability-types-lib": "~0.5.6"
+	"@mojaloop/platform-shared-lib-observability-types-lib": "~0.5.7"
   },
   "engines": {
 	"node": ">=20.10.0"
