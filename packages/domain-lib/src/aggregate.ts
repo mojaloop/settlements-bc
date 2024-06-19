@@ -243,8 +243,8 @@ export class SettlementsAggregate {
 		// get or create a batch
 		const config = SettlementConfig.fromDto(configDto);
 		const batchStartDate: number = config.calculateBatchStartTimestamp(transferDto.timestamp);
-		const resp = await this._getOrCreateBatch(transferDto.settlementModel, currency.code, new Date(batchStartDate));
-		const batch = resp.batch;
+		const getOrCreateBatchResponse = await this._getOrCreateBatch(transferDto.settlementModel, currency.code, new Date(batchStartDate));
+		const batch = getOrCreateBatchResponse.batch;
 
 		const tookBatch = (Date.now() - tookInd);
 		tookInd = Date.now();
@@ -300,15 +300,9 @@ export class SettlementsAggregate {
 				timestamp: start
 			}
 		];
+		
 		const journalResult = await this._abAdapter.createJournalEntries(journalEntries);
-		for (const entry of journalResult) {
-			if (entry.errorCode > 0) {
-				throw new InvalidJournalEntryError(
-					`Unable to create journal entries. Error [${entry.errorCode}] for request [${entry.id}].`
-				);
-			}
-		}
-
+		
 		const tookTransfer = (Date.now() - tookInd);
 		tookInd = Date.now();
 
@@ -322,7 +316,7 @@ export class SettlementsAggregate {
 			transferDto.amount,
 			batch.id,
 			batch.batchName,
-			journalResult.length > 0 ? journalResult[0].id : transferDto.transferId
+			journalResult[0].id
 		);
 		await this._batchTransferRepo.storeBatchTransfer(batchTransfer);
 
@@ -330,7 +324,7 @@ export class SettlementsAggregate {
 		tookInd = Date.now();
 
 		// persist the batch changes:
-		if (resp.created) {
+		if (getOrCreateBatchResponse.created) {
 			await this._batchRepo.storeNewBatch(batch);
 		} else if (accountAdded) {
 			await this._batchRepo.updateBatch(batch);
@@ -338,7 +332,7 @@ export class SettlementsAggregate {
 
 		const tookBatchCreateUpdate = (Date.now() - tookInd);
 
-		if (resp.created && this._auditingClient) {
+		if (getOrCreateBatchResponse.created && this._auditingClient) {
 			// We perform an async audit:
 			// @esli
 			await this._auditingClient.audit(

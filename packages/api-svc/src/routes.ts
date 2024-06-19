@@ -56,8 +56,8 @@ import express from "express";
 import { ITokenHelper, IAuthorizationClient } from "@mojaloop/security-bc-public-types-lib";
 import { randomUUID } from "crypto";
 import { IMessageProducer } from "@mojaloop/platform-shared-lib-messaging-types-lib";
-import { CommandMsg } from "@mojaloop/platform-shared-lib-messaging-types-lib/dist/index";
-import { ISettlementConfigRepo } from "@mojaloop/settlements-bc-domain-lib/dist/index";
+import { CommandMsg } from "@mojaloop/platform-shared-lib-messaging-types-lib";
+import { ISettlementConfigRepo } from "@mojaloop/settlements-bc-domain-lib";
 import { Privileges } from "@mojaloop/settlements-bc-domain-lib/dist/privileges";
 
 // Extend express request to include our security fields.

@@ -35,7 +35,7 @@ import { IAuditClient } from "@mojaloop/auditing-bc-public-types-lib";
 import { KafkaLogger } from "@mojaloop/logging-bc-client-lib";
 import { ILogger, LogLevel } from "@mojaloop/logging-bc-public-types-lib";
 import {
-	MLKafkaJsonConsumer,
+	MLKafkaJsonConsumer, MLKafkaJsonConsumerOptions,
 	MLKafkaJsonProducer,
 	MLKafkaJsonProducerOptions
 } from "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib";
@@ -100,7 +100,14 @@ const AUTH_N_SVC_JWKS_URL = process.env["AUTH_N_SVC_JWKS_URL"] || `${AUTH_N_SVC_
 
 const AUTH_Z_SVC_BASEURL = process.env["AUTH_Z_SVC_BASEURL"] || "http://localhost:3202";
 
+// Message Consumer/Publisher
 const KAFKA_URL = process.env["KAFKA_URL"] || "localhost:9092";
+const KAFKA_AUTH_ENABLED = process.env["KAFKA_AUTH_ENABLED"] && process.env["KAFKA_AUTH_ENABLED"].toUpperCase()==="TRUE" || false;
+const KAFKA_AUTH_PROTOCOL = process.env["KAFKA_AUTH_PROTOCOL"] || "sasl_plaintext";
+const KAFKA_AUTH_MECHANISM = process.env["KAFKA_AUTH_MECHANISM"] || "plain";
+const KAFKA_AUTH_USERNAME = process.env["KAFKA_AUTH_USERNAME"] || "user";
+const KAFKA_AUTH_PASSWORD = process.env["KAFKA_AUTH_PASSWORD"] || "password";
+
 const MONGO_URL = process.env["MONGO_URL"] || "mongodb://root:example@localhost:27017/";
 
 const KAFKA_AUDITS_TOPIC = process.env["KAFKA_AUDITS_TOPIC"] || "audits";
@@ -126,9 +133,22 @@ const INSTANCE_ID = `${INSTANCE_NAME}__${crypto.randomUUID()}`;
 
 const CONFIGSET_VERSION = process.env["CONFIGSET_VERSION"] || "0.0.1";
 
-const kafkaProducerOptions: MLKafkaJsonProducerOptions = {
+// kafka common options
+const kafkaProducerCommonOptions:MLKafkaJsonProducerOptions = {
+	kafkaBrokerList: KAFKA_URL,
+	producerClientId: `${INSTANCE_ID}`,
+};
+const kafkaConsumerCommonOptions:MLKafkaJsonConsumerOptions ={
 	kafkaBrokerList: KAFKA_URL
 };
+if(KAFKA_AUTH_ENABLED){
+	kafkaProducerCommonOptions.authentication = kafkaConsumerCommonOptions.authentication = {
+		protocol: KAFKA_AUTH_PROTOCOL as "plaintext" | "ssl" | "sasl_plaintext" | "sasl_ssl",
+		mechanism: KAFKA_AUTH_MECHANISM as "PLAIN" | "GSSAPI" | "SCRAM-SHA-256" | "SCRAM-SHA-512",
+		username: KAFKA_AUTH_USERNAME,
+		password: KAFKA_AUTH_PASSWORD
+	};
+}
 
 let globalLogger: ILogger;
 
@@ -183,7 +203,7 @@ export class Service {
 				BC_NAME,
 				APP_NAME,
 				APP_VERSION,
-				kafkaProducerOptions,
+				kafkaProducerCommonOptions,
 				KAFKA_LOGS_TOPIC,
 				LOG_LEVEL
 			);
@@ -194,7 +214,11 @@ export class Service {
 		if (!tokenHelper) {
 			tokenHelper = new TokenHelper(
 				AUTH_N_SVC_JWKS_URL, logger, AUTH_N_TOKEN_ISSUER_NAME, AUTH_N_TOKEN_AUDIENCE,
-				new MLKafkaJsonConsumer({ kafkaBrokerList: KAFKA_URL, autoOffsetReset: "earliest", kafkaGroupId: INSTANCE_ID }, logger) // for jwt list - no groupId
+				new MLKafkaJsonConsumer({
+					...kafkaConsumerCommonOptions,
+					autoOffsetReset: "earliest", 
+					kafkaGroupId: INSTANCE_ID 
+				}, logger) // for jwt list - no groupId
 			);
 			await tokenHelper.init();
 		}
@@ -209,8 +233,8 @@ export class Service {
 
 			const consumerHandlerLogger = logger.createChild("authorizationClientConsumer");
 			const messageConsumer = new MLKafkaJsonConsumer({
-				kafkaBrokerList: KAFKA_URL,
-				kafkaGroupId: `${BC_NAME}_${APP_NAME}_authz_client`
+				...kafkaConsumerCommonOptions,
+				kafkaGroupId: `${INSTANCE_ID}_authz_client`
 			}, consumerHandlerLogger);
 
 			// setup privileges - bootstrap app privs and get priv/role associations
@@ -243,7 +267,7 @@ export class Service {
 				AUDIT_KEY_FILE_PATH
 			);
 			const auditDispatcher = new KafkaAuditClientDispatcher(
-				kafkaProducerOptions,
+				kafkaProducerCommonOptions,
 				KAFKA_AUDITS_TOPIC,
 				auditLogger
 			);
@@ -343,7 +367,7 @@ export class Service {
 		if (!messageProducer) {
 			const producerLogger = this.logger.createChild("messageProducer");
 			producerLogger.setLogLevel(LogLevel.INFO);
-			messageProducer = new MLKafkaJsonProducer(kafkaProducerOptions, producerLogger);
+			messageProducer = new MLKafkaJsonProducer(kafkaProducerCommonOptions, producerLogger);
 			await messageProducer.connect();
 		}
 		this.messageProducer = messageProducer;

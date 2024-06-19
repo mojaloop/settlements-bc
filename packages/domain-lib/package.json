@@ -45,7 +45,8 @@
 	"@mojaloop/platform-configuration-bc-client-lib": "~0.5.5",
 	"@mojaloop/platform-configuration-bc-public-types-lib": "~0.5.2",
 	"@mojaloop/accounts-and-balances-bc-public-types-lib": "~0.5.1",
-	"@mojaloop/platform-shared-lib-observability-types-lib": "~0.5.3"
+	"@mojaloop/platform-shared-lib-observability-types-lib": "~0.5.3",
+	"@mojaloop/platform-shared-lib-messaging-types-lib": "~0.6.2"
   },
   "engines": {
 	"node": ">=20.10.0"
