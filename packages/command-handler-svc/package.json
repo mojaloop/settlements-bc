@@ -1,6 +1,6 @@
 {
   "name": "@mojaloop/settlements-bc-command-handler-svc",
-  "version": "0.5.7",
+  "version": "0.6.0",
   "description": "Mojaloop vNext Settlements BC - Command Handler Service",
   "license": "Apache-2.0",
   "homepage": "https://github.com/mojaloop/settlements-bc/command-handler-svc",
@@ -40,13 +40,14 @@
   "dependencies": {
     "@mojaloop/settlements-bc-domain-lib": "*",
     "@mojaloop/settlements-bc-infrastructure-lib": "*",
-    "@mojaloop/security-bc-client-lib": "0.5.11",
-    "@mojaloop/security-bc-public-types-lib": "~0.5.6",
+    "@mojaloop/settlements-bc-config-lib": "*",
+    "@mojaloop/security-bc-client-lib": "~0.6.2",
+    "@mojaloop/security-bc-public-types-lib": "~0.6.1",
     "@mojaloop/logging-bc-client-lib": "~0.5.7",
     "@mojaloop/platform-shared-lib-messaging-types-lib": "~0.2.103",
     "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib": "~0.5.18",
-    "@mojaloop/platform-configuration-bc-public-types-lib": "~0.5.2",
-    "@mojaloop/platform-configuration-bc-client-lib": "~0.5.5",
+    "@mojaloop/platform-configuration-bc-public-types-lib": "~0.6.1",
+    "@mojaloop/platform-configuration-bc-client-lib": "~0.6.3",
     "@mojaloop/auditing-bc-client-lib": "~0.5.3",
     "@mojaloop/platform-shared-lib-observability-types-lib": "~0.5.3",
     "@mojaloop/platform-shared-lib-observability-client-lib": "~0.5.2",
@@ -54,6 +55,7 @@
   },
   "devDependencies": {
     "@mojaloop/settlements-bc-shared-mocks-lib": "*",
+    "@mojaloop/settlements-bc-config-lib": "*",
     "@mojaloop/logging-bc-public-types-lib": "~0.5.4",
     "@types/express": "^4.17.21",
     "@types/jest": "^29.5.12",
@@ -64,7 +66,7 @@
     "husky": "^8.0.3",
     "jest": "^29.5.0",
     "npm-check-updates": "^16.10.19",
-    "ts-jest": "^29.1.2",
+    "ts-jest": "^29.1.5",
     "typescript": "^5.0.4"
   },
   "engines": {

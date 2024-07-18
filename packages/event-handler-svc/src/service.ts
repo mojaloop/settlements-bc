@@ -49,14 +49,17 @@ import {IMessageConsumer, IMessageProducer} from "@mojaloop/platform-shared-lib-
 import process from "process";
 import {SettlementsEventHandler} from "./handler";
 
-/* import configs - other imports stay above */
-import configClient from "./config";
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const packageJSON = require("../package.json");
+
 import {IConfigurationClient} from "@mojaloop/platform-configuration-bc-public-types-lib";
 import crypto from "crypto";
 
-const BC_NAME = configClient.boundedContextName;
-const APP_NAME = configClient.applicationName;
-const APP_VERSION = configClient.applicationVersion;
+import {GetSettlementsConfigSet} from "@mojaloop/settlements-bc-config-lib";
+
+const BC_NAME = "quoting-bc";
+const APP_NAME = "event-handler-svc";
+const APP_VERSION = packageJSON.version;
 const PRODUCTION_MODE = process.env["PRODUCTION_MODE"] || false;
 const LOG_LEVEL: LogLevel = process.env["LOG_LEVEL"] as LogLevel || LogLevel.DEBUG;
 const INSTANCE_NAME = `${BC_NAME}_${APP_NAME}`;
@@ -110,11 +113,10 @@ export class Service {
 	static messageProducer: IMessageProducer;
 	static handler: SettlementsEventHandler;
 	static startupTimer: NodeJS.Timeout;
-	static configurationClient: IConfigurationClient;
+	static configClient: IConfigurationClient;
 
 	static async start(
 		logger?: ILogger,
-		configClnt?: IConfigurationClient,
 		auditClient?: IAuditClient,
 		messageConsumer?: IMessageConsumer,
 		messageProducer?: IMessageProducer
@@ -125,14 +127,9 @@ export class Service {
 			throw new Error("Service start timed-out");
 		}, SERVICE_START_TIMEOUT_MS);
 
-		/// start config client - this is not mockable (can use STANDALONE MODE if desired)
-		if (!configClnt) {
-			await configClient.init();
-			await configClient.bootstrap(true);
-			this.configurationClient = configClient;
-		} else {
-			this.configurationClient = configClnt;
-		}
+        // We only need the minimum, no configProvider required
+        this.configClient = GetSettlementsConfigSet(BC_NAME);
+        await this.configClient.init();
 
 		if (!logger) {
 			logger = new KafkaLogger(
@@ -183,7 +180,7 @@ export class Service {
 		this.handler = new SettlementsEventHandler(this.logger, this.messageConsumer, this.messageProducer);
 		await this.handler.start();
 
-		this.logger.info(`Settlement Event Handler Service started, version: ${this.configurationClient.applicationVersion}`);
+		this.logger.info(`Settlement Event Handler Service started, version: ${APP_VERSION}`);
 
 		// remove startup timeout
 		clearTimeout(this.startupTimer);

@@ -85,15 +85,20 @@ import {MongoSettlementMatrixRepo} from "@mojaloop/settlements-bc-infrastructure
 import {IMetrics} from "@mojaloop/platform-shared-lib-observability-types-lib";
 import {PrometheusMetrics} from "@mojaloop/platform-shared-lib-observability-client-lib";
 
-import configClient from "./config";
 import {DEFAULT_SETTLEMENT_MODEL_ID, DEFAULT_SETTLEMENT_MODEL_NAME} from "@mojaloop/settlements-bc-public-types-lib";
 import {IConfigurationClient} from "@mojaloop/platform-configuration-bc-public-types-lib";
 
 import crypto from "crypto";
+import { DefaultConfigProvider, IConfigProvider } from "@mojaloop/platform-configuration-bc-client-lib";
 
-const BC_NAME = configClient.boundedContextName;
-const APP_NAME = configClient.applicationName;
-const APP_VERSION = configClient.applicationVersion;
+import {GetSettlementsConfigSet} from "@mojaloop/settlements-bc-config-lib";
+
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const packageJSON = require("../package.json");
+
+const BC_NAME = "settlements-bc";
+const APP_NAME = "command-handler-svc";
+const APP_VERSION = packageJSON.version;
 const PRODUCTION_MODE = process.env["PRODUCTION_MODE"] || false;
 const LOG_LEVEL: LogLevel = process.env["LOG_LEVEL"] as LogLevel || LogLevel.INFO;
 
@@ -167,6 +172,15 @@ const TIGERBEETLE_CLUSTER_REPLICA_ADDRESSES = process.env["TIGERBEETLE_CLUSTER_R
 const REDIS_HOST = process.env["REDIS_HOST"] || "localhost";
 const REDIS_PORT = (process.env["REDIS_PORT"] && parseInt(process.env["REDIS_PORT"])) || 6379;
 
+if(KAFKA_AUTH_ENABLED){
+    kafkaProducerCommonOptions.authentication = kafkaConsumerCommonOptions.authentication = {
+        protocol: KAFKA_AUTH_PROTOCOL as "plaintext" | "ssl" | "sasl_plaintext" | "sasl_ssl",
+        mechanism: KAFKA_AUTH_MECHANISM as "PLAIN" | "GSSAPI" | "SCRAM-SHA-256" | "SCRAM-SHA-512",
+        username: KAFKA_AUTH_USERNAME,
+        password: KAFKA_AUTH_PASSWORD
+    };
+}
+
 let globalLogger: ILogger;
 
 export class Service {
@@ -186,7 +200,7 @@ export class Service {
 	static aggregate: SettlementsAggregate;
 	static handler: SettlementsCommandHandler;
 	static metrics: IMetrics;
-	static configurationClient: IConfigurationClient;
+	static configClient: IConfigurationClient;
 	static startupTimer: NodeJS.Timeout;
 
 	static async start(
@@ -203,7 +217,7 @@ export class Service {
 		messageConsumer?: IMessageConsumer,
 		messageProducer?: IMessageProducer,
 		metrics?: IMetrics,
-		confClient?: IConfigurationClient
+		configProvider?: IConfigProvider,
 	): Promise<void> {
 		console.log(`Service starting with PID: ${process.pid}`);
 
@@ -226,6 +240,24 @@ export class Service {
 		}
 		globalLogger = this.logger = logger;
 
+		// start config client - this is not mockable (can use STANDALONE MODE if desired)
+		if(!configProvider) {
+			// create the instance of IAuthenticatedHttpRequester
+			const authRequester = new AuthenticatedHttpRequester(logger, AUTH_N_SVC_TOKEN_URL);
+			authRequester.setAppCredentials(SVC_CLIENT_ID, SVC_CLIENT_SECRET);
+
+			const messageConsumer = new MLKafkaJsonConsumer({
+				...kafkaConsumerOptions,
+				kafkaGroupId: `${INSTANCE_ID}_config_client` // unique consumer group per instance
+			}, this.logger.createChild("configClient.consumer"));
+			configProvider = new DefaultConfigProvider(logger, authRequester, messageConsumer);
+		}
+
+		this.configClient = GetSettlementsConfigSet(BC_NAME, configProvider);
+		await this.configClient.init();
+		await this.configClient.bootstrap(true);
+		await this.configClient.fetch();
+				
 		if (!tokenHelper) {
 			tokenHelper = new TokenHelper(
 				AUTH_N_SVC_JWKS_URL, logger, AUTH_N_TOKEN_ISSUER_NAME, AUTH_N_TOKEN_AUDIENCE,
@@ -245,41 +277,36 @@ export class Service {
 		}
 		this.loginHelper = loginHelper;
 
-		// config client:
-		if (!confClient) confClient = configClient;
-		this.configurationClient = confClient;
+        // authorization client
+        if (!authorizationClient) {
+            // create the instance of IAuthenticatedHttpRequester
+            const authRequester = new AuthenticatedHttpRequester(logger, AUTH_N_SVC_TOKEN_URL);
+            authRequester.setAppCredentials(SVC_CLIENT_ID, SVC_CLIENT_SECRET);
 
-		// authorization client
-		let authRequester: IAuthenticatedHttpRequester|null = null;
-		if (!authorizationClient) {
-			// create the instance of IAuthenticatedHttpRequester
-			authRequester = new AuthenticatedHttpRequester(logger, AUTH_N_SVC_TOKEN_URL);
-			authRequester.setAppCredentials(SVC_CLIENT_ID, SVC_CLIENT_SECRET);
+            const messageConsumer = new MLKafkaJsonConsumer(
+                {
+                    ...kafkaConsumerOptions,
+                    kafkaGroupId: `${INSTANCE_ID}_authz_client` // unique consumer group per instance
+                }, logger.createChild("authorizationClientConsumer")
+            );
 
-			const consumerHandlerLogger = logger.createChild("authorizationClientConsumer");
-			const messageConsumer = new MLKafkaJsonConsumer({
-				...kafkaConsumerCommonOptions,
-				kafkaGroupId: `${INSTANCE_ID}_authz_client`
-			}, consumerHandlerLogger);
+            // setup privileges - bootstrap app privs and get priv/role associations
+            authorizationClient = new AuthorizationClient(
+                BC_NAME, 
+                APP_VERSION,
+                AUTH_Z_SVC_BASEURL, 
+                logger.createChild("AuthorizationClient"),
+                authRequester,
+                messageConsumer
+            );
 
-			// setup privileges - bootstrap app privs and get priv/role associations
-			authorizationClient = new AuthorizationClient(
-				BC_NAME, APP_NAME, APP_VERSION,
-				AUTH_Z_SVC_BASEURL, logger.createChild("AuthorizationClient"),
-				authRequester,
-				messageConsumer
-			);
-			authorizationClient.addPrivilegesArray(SettlementPrivilegesDefinition);
-			await (authorizationClient as AuthorizationClient).bootstrap(true);
-			await (authorizationClient as AuthorizationClient).fetch();
-			// init message consumer to automatically update on role changed events
-			await (authorizationClient as AuthorizationClient).init();
-		}
-		this.authorizationClient = authorizationClient;
-
-		await this.configurationClient.init();
-		await this.configurationClient.bootstrap(true);
-		await this.configurationClient.fetch();
+            authorizationClient.addPrivilegesArray(SettlementPrivilegesDefinition);
+            await (authorizationClient as AuthorizationClient).bootstrap(true);
+            await (authorizationClient as AuthorizationClient).fetch();
+            // init message consumer to automatically update on role changed events
+            await (authorizationClient as AuthorizationClient).init();
+        }
+        this.authorizationClient = authorizationClient;
 
 		if (!auditClient) {
 			if (!existsSync(AUDIT_KEY_FILE_PATH)) {
@@ -316,7 +343,7 @@ export class Service {
 					Number(TIGERBEETLE_CLUSTER_ID),
 					[TIGERBEETLE_CLUSTER_REPLICA_ADDRESSES],
 					this.logger,
-					this.configurationClient
+					this.configClient
 				);
 			} else {
 				accountsAndBalancesAdapter = new GrpcAccountsAndBalancesAdapter(ACCOUNTS_BALANCES_COA_SVC_URL, this.loginHelper as LoginHelper, this.logger);
@@ -420,7 +447,7 @@ export class Service {
 		this.aggregate = new SettlementsAggregate(
 			this.logger,
 			this.auditClient,
-			this.configurationClient,
+			this.configClient,
 			this.batchRepo,
 			this.batchTransferRepo,
 			this.configRepo,
@@ -438,7 +465,7 @@ export class Service {
 		);
 		await this.handler.start();
 
-		this.logger.info(`Settlements Command Handler Service started, version: ${configClient.applicationVersion}`);
+		this.logger.info(`Settlements Command Handler Service started, version: ${APP_VERSION}`);
 
 		// Remove startup timeout
 		clearTimeout(this.startupTimer);

@@ -19,6 +19,7 @@ COPY packages/public-types-lib/package.json ./packages/public-types-lib/
 COPY packages/infrastructure-lib/package.json ./packages/infrastructure-lib/
 COPY packages/domain-lib/package.json ./packages/domain-lib/
 COPY packages/command-handler-svc/package.json ./packages/command-handler-svc/
+COPY packages/settlements-config-lib/package.json ./packages/settlements-config-lib/
 
 #RUN ls -la
 
@@ -41,6 +42,7 @@ COPY tsconfig.json ./
 COPY packages/public-types-lib ./packages/public-types-lib
 COPY packages/infrastructure-lib ./packages/infrastructure-lib
 COPY packages/domain-lib ./packages/domain-lib
+COPY packages/settlements-config-lib ./packages/settlements-config-lib
 
 # copy service code
 COPY packages/command-handler-svc ./packages/command-handler-svc
