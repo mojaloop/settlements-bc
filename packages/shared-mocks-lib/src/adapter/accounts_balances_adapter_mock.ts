@@ -150,6 +150,16 @@ export class AccountsBalancesAdapterMock implements IAccountsBalancesAdapter {
 		return Promise.resolve(returnVal);
 	}
 
+	async getJournalEntriesByTransferId(transferId: string): Promise<AccountsAndBalancesJournalEntry[]> {
+		const returnVal :AccountsAndBalancesJournalEntry[] = [];
+		for (const je of this.abJournals) {
+			if (je.requestedId === transferId) {
+				returnVal.push(this.convertJE(je));
+			}
+		}
+		return Promise.resolve(returnVal);
+	}
+
 	async createJournalEntries(
 		entries: AccountsAndBalancesJournalEntry[]
 	): Promise<{id: string, errorCode: number}[]> {

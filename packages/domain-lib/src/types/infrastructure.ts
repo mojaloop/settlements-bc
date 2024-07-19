@@ -56,6 +56,7 @@ export interface IAccountsBalancesAdapter {
 
 	createJournalEntries(entries: AccountsAndBalancesJournalEntry[]): Promise<{id: string, errorCode: number}[]>;
 	getJournalEntriesByAccountId(accountId: string): Promise<AccountsAndBalancesJournalEntry[]>;
+	getJournalEntriesByTransferId(transferId: string): Promise<AccountsAndBalancesJournalEntry[]>;
 }
 
 export interface ISettlementConfigRepo {
@@ -116,6 +117,8 @@ export interface ISettlementBatchTransferRepo {
 
 	// TODO this one also needs pagination
 	getBatchTransfers(pageIndex?: number, pageSize?: number): Promise<BatchTransferSearchResults>;
+
+	getAllTransfersByBatchId(batchId: string): Promise<ISettlementBatchTransfer[]>;
 }
 
 export interface ISettlementMatrixRequestRepo {

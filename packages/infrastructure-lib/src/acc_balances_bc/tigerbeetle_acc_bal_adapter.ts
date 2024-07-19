@@ -266,6 +266,32 @@ export class TigerBeetleAccountsAndBalancesAdapter implements IAccountsBalancesA
         });
     }
 
+    async getJournalEntriesByTransferId(ledgerTransferId: string): Promise<AccountsAndBalancesJournalEntry[]> {
+        // Create request for TigerBeetle:
+        const accIdTB = this._uuidToBigint(ledgerTransferId);
+
+        // Invoke Client:
+        let transfers: TB.Transfer[] = [];
+        try {
+            const getAcc : AccountFilter = {
+                account_id: accIdTB,
+                timestamp_min: 0n,
+                timestamp_max: 0n,
+                limit: 100_000,//TODO need to make a config.
+                flags: AccountFilterFlags.credits | AccountFilterFlags.debits
+                //flags: 0//(1 << 0) | (1 << 1) // See //AccountFilterFlags.credits | AccountFilterFlags.debits
+            }
+            transfers = await this._client.getAccountTransfers(getAcc);
+        } catch (error: unknown) {
+            this._logger.error(error);
+            throw error;
+        }
+
+        return transfers.map(item => {
+            return this._mapTbTransferToABTransfer(item);
+        });
+    }
+
     async getAccount(accId: string): Promise<AccountsAndBalancesAccount | null> {
         // Create request for TigerBeetle:
         const request = this._uuidToBigint(accId);

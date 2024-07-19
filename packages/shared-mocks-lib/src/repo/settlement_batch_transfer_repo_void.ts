@@ -79,4 +79,8 @@ export class SettlementBatchTransferRepoVoid implements ISettlementBatchTransfer
 		};
 		return Promise.resolve(searchResults);
 	}
+
+	async getAllTransfersByBatchId(batchId: string): Promise<ISettlementBatchTransfer[]> {
+		return [];
+	}
 }

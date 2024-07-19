@@ -140,4 +140,8 @@ export class SettlementBatchTransferRepoTigerBeetle implements ISettlementBatchT
 		};
 		return Promise.resolve(searchResults);
 	}
+
+	async getAllTransfersByBatchId(batchId: string): Promise<ISettlementBatchTransfer[]> {
+		return Promise.resolve([]);
+	}
 }

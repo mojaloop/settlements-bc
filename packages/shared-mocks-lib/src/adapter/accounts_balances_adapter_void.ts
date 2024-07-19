@@ -74,6 +74,10 @@ export class AccountsBalancesAdapterVoid implements IAccountsBalancesAdapter {
 		return Promise.resolve([]);
 	}
 
+	async getJournalEntriesByTransferId(transferId: string): Promise<AccountsAndBalancesJournalEntry[]> {
+		return Promise.resolve([]);
+	}
+
 	async createJournalEntries(
 		entries: AccountsAndBalancesJournalEntry[]
 	): Promise<{id: string, errorCode: number}[]> {
