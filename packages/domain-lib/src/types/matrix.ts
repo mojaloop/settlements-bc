@@ -33,10 +33,13 @@ import {
   ISettlementMatrixBatch,
   ISettlementMatrixBalanceByCurrency,
   ISettlementMatrixBalanceByStateAndCurrency,
-  ISettlementMatrixBalanceByParticipant
+  ISettlementMatrixBalanceByParticipant,
+  SettlementMatrixBatchState,
+  ISettlementBatchTransfer
 } from "@mojaloop/settlements-bc-public-types-lib";
 import {randomUUID} from "crypto";
 import {bigintToString, stringToBigint} from "../converters";
+import { Currency } from "@mojaloop/platform-configuration-bc-public-types-lib";
 
 export class SettlementMatrix implements ISettlementMatrix {
   id: string;
@@ -81,80 +84,86 @@ export class SettlementMatrix implements ISettlementMatrix {
   }
 
   addBalance(
-      participantId:string,
-      currencyCode: string,
-      state: string,
-      debitBalance: bigint,
-      creditBalance: bigint,
-      currencyDecimals: number
+    batchTransfer:ISettlementBatchTransfer,
+    currency: Currency,
+    state: SettlementMatrixBatchState,
   ): void {
     if(!this.balancesByParticipant) this.balancesByParticipant =[];
     if(!this.balancesByCurrency) this.balancesByCurrency =[];
     if(!this.balancesByStateAndCurrency) this.balancesByStateAndCurrency =[];
 
-    // byParticipant
-    const byParticipant = this.balancesByParticipant.find(value =>
-        value.state === state && value.currencyCode === currencyCode && value.participantId === participantId);
-    if (byParticipant) {
-      byParticipant.debitBalance = bigintToString(
-          stringToBigint(byParticipant.debitBalance, currencyDecimals) + debitBalance,
-          currencyDecimals
-      );
-      byParticipant.creditBalance = bigintToString(
-          stringToBigint(byParticipant.creditBalance, currencyDecimals) + creditBalance,
-          currencyDecimals
-      );
-    }else {
-      this.balancesByParticipant.push({
-        participantId: participantId,
-        state: state,
-        currencyCode: currencyCode,
-        debitBalance: bigintToString(debitBalance, currencyDecimals),
-        creditBalance: bigintToString(creditBalance, currencyDecimals)
-      });
+    const currencyCode = currency.code;
+    const currencyDecimals = currency.decimals;
+
+    const participantIdsList = [batchTransfer.payerFspId, batchTransfer.payeeFspId];
+
+    for (const participantId of participantIdsList) {
+      const debitBalance = participantId === batchTransfer.payerFspId ? stringToBigint(batchTransfer.amount, currencyDecimals) : 0n;
+      const creditBalance = participantId === batchTransfer.payeeFspId ? stringToBigint(batchTransfer.amount, currencyDecimals) : 0n;
+      
+      // byParticipant
+      const byParticipant = this.balancesByParticipant.find(value =>
+          value.state === state && value.currencyCode === currencyCode && value.participantId === participantId);
+      if (byParticipant) {
+        byParticipant.debitBalance = bigintToString(
+            stringToBigint(byParticipant.debitBalance, currencyDecimals) + debitBalance,
+            currencyDecimals
+        );
+        byParticipant.creditBalance = bigintToString(
+            stringToBigint(byParticipant.creditBalance, currencyDecimals) + creditBalance,
+            currencyDecimals
+        );
+      }else {
+        this.balancesByParticipant.push({
+          participantId: participantId,
+          state: state,
+          currencyCode: currencyCode,
+          debitBalance: bigintToString(debitBalance, currencyDecimals),
+          creditBalance: bigintToString(creditBalance, currencyDecimals)
+        });
+      }
+
+      // byCurrency
+      const byCurrency = this.balancesByCurrency.find(value => value.currencyCode === currencyCode);
+      if (byCurrency) {
+        byCurrency.debitBalance = bigintToString(
+            stringToBigint(byCurrency.debitBalance, currencyDecimals) + debitBalance,
+            currencyDecimals
+        );
+        byCurrency.creditBalance = bigintToString(
+            stringToBigint(byCurrency.creditBalance, currencyDecimals) + creditBalance,
+            currencyDecimals
+        );
+      }else{
+        this.balancesByCurrency.push({
+          currencyCode: currencyCode,
+          debitBalance: bigintToString(debitBalance, currencyDecimals),
+          creditBalance: bigintToString(creditBalance, currencyDecimals)
+        });
+      }
+
+
+      // byStateAndCurrency
+      const byStateAndCurrency = this.balancesByStateAndCurrency.find(
+          value =>  value.state === state && value.currencyCode === currencyCode);
+      if (byStateAndCurrency) {
+        byStateAndCurrency.debitBalance = bigintToString(
+            stringToBigint(byStateAndCurrency.debitBalance, currencyDecimals) + debitBalance,
+            currencyDecimals
+        );
+        byStateAndCurrency.creditBalance = bigintToString(
+            stringToBigint(byStateAndCurrency.creditBalance, currencyDecimals) + creditBalance,
+            currencyDecimals
+        );
+      }else{
+        this.balancesByStateAndCurrency.push({
+          state: state,
+          currencyCode: currencyCode,
+          debitBalance: bigintToString(debitBalance, currencyDecimals),
+          creditBalance: bigintToString(creditBalance, currencyDecimals)
+        });
+      }
     }
-
-    // byCurrency
-    const byCurrency = this.balancesByCurrency.find(value => value.currencyCode === currencyCode);
-    if (byCurrency) {
-      byCurrency.debitBalance = bigintToString(
-          stringToBigint(byCurrency.debitBalance, currencyDecimals) + debitBalance,
-          currencyDecimals
-      );
-      byCurrency.creditBalance = bigintToString(
-          stringToBigint(byCurrency.creditBalance, currencyDecimals) + creditBalance,
-          currencyDecimals
-      );
-    }else{
-      this.balancesByCurrency.push({
-        currencyCode: currencyCode,
-        debitBalance: bigintToString(debitBalance, currencyDecimals),
-        creditBalance: bigintToString(creditBalance, currencyDecimals)
-      });
-    }
-
-
-    // byStateAndCurrency
-    const byStateAndCurrency = this.balancesByStateAndCurrency.find(
-        value =>  value.state === state && value.currencyCode === currencyCode);
-    if (byStateAndCurrency) {
-      byStateAndCurrency.debitBalance = bigintToString(
-          stringToBigint(byStateAndCurrency.debitBalance, currencyDecimals) + debitBalance,
-          currencyDecimals
-      );
-      byStateAndCurrency.creditBalance = bigintToString(
-          stringToBigint(byStateAndCurrency.creditBalance, currencyDecimals) + creditBalance,
-          currencyDecimals
-      );
-    }else{
-      this.balancesByStateAndCurrency.push({
-        state: state,
-        currencyCode: currencyCode,
-        debitBalance: bigintToString(debitBalance, currencyDecimals),
-        creditBalance: bigintToString(creditBalance, currencyDecimals)
-      });
-    }
-
 
   }
 
