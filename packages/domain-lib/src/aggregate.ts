@@ -232,85 +232,18 @@ export class SettlementsAggregate {
 		const tookValidate = (Date.now() - start);
 
 		// verify the currency code (and get the corresponding currency decimals).
-		let tookInd = Date.now();
+		const tookInd = Date.now();
 		const currency = this._getCurrencyOrThrow(transferDto.currencyCode);
 		this._getAmountOrThrow(transferDto.amount, currency);
 
-		const tookCurrency = (Date.now() - tookInd);
-		tookInd = Date.now();
+		const tookSettlementConfig = (Date.now() - start);
 
 		const configDto = await this._getSettlementConfig(transferDto.settlementModel);
 		// get or create a batch
 		const config = SettlementConfig.fromDto(configDto);
 		const batchStartDate: number = config.calculateBatchStartTimestamp(transferDto.timestamp);
-		const resp = await this._getOrCreateBatch(transferDto.settlementModel, currency.code, new Date(batchStartDate));
-		const batch = resp.batch;
-
-		const tookBatch = (Date.now() - tookInd);
-		tookInd = Date.now();
-
-		// find payer batch account (debit):
-		let accountAdded = false;
-		let debitedAccountExtId;
-		const debitedAccount = batch.getAccount(transferDto.payerFspId, currency.code);
-		if (debitedAccount) {
-			debitedAccountExtId = debitedAccount.accountExtId;
-		} else {
-			debitedAccountExtId = randomUUID();
-			debitedAccountExtId = await this._abAdapter.createAccount(
-				debitedAccountExtId,
-				transferDto.payerFspId, // account owner is the participantId
-				BATCH_ACCOUNT_TYPE_IN_ACCOUNTS_AND_BALANCES,
-				currency.code
-			);
-			batch.addAccount(debitedAccountExtId, transferDto.payerFspId, currency.code);
-			accountAdded = true;
-		}
-
-		// find payee batch account (credit):
-		let creditedAccountExtId;
-		const creditedAccount = batch.getAccount(transferDto.payeeFspId, currency.code);
-		if (creditedAccount) {
-			creditedAccountExtId = creditedAccount.accountExtId;
-		} else {
-			creditedAccountExtId = randomUUID();
-			creditedAccountExtId = await this._abAdapter.createAccount(
-				creditedAccountExtId,
-				transferDto.payeeFspId, // account owner is the participantId
-				BATCH_ACCOUNT_TYPE_IN_ACCOUNTS_AND_BALANCES,
-				currency.code
-			);
-			batch.addAccount(creditedAccountExtId, transferDto.payeeFspId, currency.code);
-			accountAdded = true;
-		}
-
-		const tookAccounts = (Date.now() - tookInd);
-		tookInd = Date.now();
-
-		// create the journal entry:
-		const journalEntries: AccountsAndBalancesJournalEntry[] = [
-			{
-				id: transferDto.transferId,
-				ownerId: batch.batchUUID, // allows us to segment transfers for batches easily.
-				amount: transferDto.amount,
-				debitedAccountId: debitedAccountExtId,
-				creditedAccountId: creditedAccountExtId,
-				currencyCode: currency.code,
-				pending: false, // not a 2-phase transfer.
-				timestamp: start
-			}
-		];
-		const journalResult = await this._abAdapter.createJournalEntries(journalEntries);
-		for (const entry of journalResult) {
-			if (entry.errorCode > 0) {
-				throw new InvalidJournalEntryError(
-					`Unable to create journal entries. Error [${entry.errorCode}] for request [${entry.id}].`
-				);
-			}
-		}
-
-		const tookTransfer = (Date.now() - tookInd);
-		tookInd = Date.now();
+		const getOrCreateBatchResponse = await this._getOrCreateBatch(transferDto.settlementModel, currency.code, new Date(batchStartDate));
+		const batch = getOrCreateBatchResponse.batch;
 
 		// add the transfer record to the batch and persist the batch changes
 		const batchTransfer = new SettlementBatchTransfer(
@@ -322,42 +255,72 @@ export class SettlementsAggregate {
 			transferDto.amount,
 			batch.id,
 			batch.batchName,
-			journalResult.length > 0 ? journalResult[0].id : transferDto.transferId
+			null,
+			null
 		);
 		await this._batchTransferRepo.storeBatchTransfer(batchTransfer);
 
-		const tookTransferOther = (Date.now() - tookInd);
-		tookInd = Date.now();
-
 		// persist the batch changes:
-		if (resp.created) {
+		if (getOrCreateBatchResponse.created) {
 			await this._batchRepo.storeNewBatch(batch);
-		} else if (accountAdded) {
-			await this._batchRepo.updateBatch(batch);
-		}
+		} 
 
-		const tookBatchCreateUpdate = (Date.now() - tookInd);
-
-		if (resp.created && this._auditingClient) {
-			// We perform an async audit:
-			// @esli
-			await this._auditingClient.audit(
-				AuditingActions.SETTLEMENT_BATCH_CREATED,
-				true,
-				undefined,
-				[
-					{key: "settlementBatchIdIdentifier", value: batch.id}
-				]
-			);
-		}
+		// We perform an async audit:
+		// @esli
+		await this._auditingClient.audit(
+			AuditingActions.SETTLEMENT_BATCH_CREATED,
+			true,
+			undefined,
+			[
+				{key: "settlementBatchIdIdentifier", value: batch.id}
+			]
+		);
+		
 
 		const tookAll = (Date.now() - start);
 		if (tookAll > 400) {
-			this._logger.warn(`handleTransfer took too long: ${tookAll} - Validate[${tookValidate}], Currency[${tookCurrency}], Batch[${tookBatch}], Account[${tookAccounts}], Transfer[${tookTransfer}], TransferOther[${tookTransferOther}], BatchCreateUpdate[${tookBatchCreateUpdate}]`);
+			this._logger.warn(`handleTransfer took too long: ${tookAll} - SettlementConfig[${tookSettlementConfig}]`);
 		}
 		return batch.id;
 	}
 
+	async recalculateSettlementMatrix(id: string): Promise<void> {
+		const matrixDto = await this._settlementMatrixReqRepo.getMatrixById(id);
+		if (!matrixDto) {
+			const err = new SettlementMatrixNotFoundError(`Matrix with id: ${id} not found`);
+			this._logger.warn(err.message);
+			throw err; // not found
+		}
+
+		if (matrixDto.state !== "IDLE" && matrixDto.state !== "OUT_OF_SYNC") {
+			const err = new CannotRecalculateSettlementMatrixError("Can only recalculate matrices in idle or out-of-sync statuses");
+			this._logger.warn(err.message);
+			throw err;
+		}
+
+		const matrix = SettlementMatrix.CreateFromDto(matrixDto);
+		const startTimestamp = Date.now();
+
+		const previousState = matrix.state;
+		matrix.state = "BUSY";
+
+		await this._settlementMatrixReqRepo.storeMatrix(matrix);
+		await this._recalculateMatrix(matrix);
+
+		await this._updateMatrixStateAndSave(matrix, (previousState === "OUT_OF_SYNC" ? "IDLE" : previousState), startTimestamp);
+
+		// We perform an async audit:
+		// @esli
+		this._auditingClient.audit(
+			AuditingActions.SETTLEMENT_MATRIX_REQUEST_FETCH,
+			true,
+			undefined, [
+				{key: "settlementModels", value: matrix.settlementModel ?? ""},
+				{key: "settlementMatrixReqId", value: id}
+			]
+		);
+		return;
+	}
 
 	async createSettlementConfig(cmdPayload: CreateSettlementModelCmdPayload): Promise<void> {
 
@@ -603,44 +566,6 @@ export class SettlementsAggregate {
 	}
 
 
-	async recalculateSettlementMatrix(id: string): Promise<void> {
-
-		const matrixDto = await this._settlementMatrixReqRepo.getMatrixById(id);
-		if (!matrixDto) {
-			const err = new SettlementMatrixNotFoundError(`Matrix with id: ${id} not found`);
-			this._logger.warn(err.message);
-			throw err; // not found
-		}
-
-		if (matrixDto.state !== "IDLE" && matrixDto.state !== "OUT_OF_SYNC") {
-			const err = new CannotRecalculateSettlementMatrixError("Can only recalculate matrices in idle or out-of-sync statuses");
-			this._logger.warn(err.message);
-			throw err;
-		}
-
-		const matrix = SettlementMatrix.CreateFromDto(matrixDto);
-		const startTimestamp = Date.now();
-
-		const previousState = matrix.state;
-		matrix.state = "BUSY";
-
-		await this._settlementMatrixReqRepo.storeMatrix(matrix);
-		await this._recalculateMatrix(matrix);
-
-		await this._updateMatrixStateAndSave(matrix, (previousState === "OUT_OF_SYNC" ? "IDLE" : previousState), startTimestamp);
-
-		// We perform an async audit:
-		// @esli
-		this._auditingClient.audit(
-			AuditingActions.SETTLEMENT_MATRIX_REQUEST_FETCH,
-			true,
-			undefined, [
-				{key: "settlementModels", value: matrix.settlementModel ?? ""},
-				{key: "settlementMatrixReqId", value: id}
-			]
-		);
-		return;
-	}
 
 	async disputeSettlementMatrix(id: string): Promise<void> {
 		const matrixDto = await this._settlementMatrixReqRepo.getMatrixById(id);
@@ -998,38 +923,159 @@ export class SettlementsAggregate {
 		if (batches && batches.length > 0) {
 			// invoke the A&B adapter in order to fetch up-to-date balances:
 			await this._updateBatchAccountBalances(batches);
-
+			
 			for (const batch of batches) {
-				if (settlingMatrix) {
-					// when settling, we can only settle batches that are AWAITING_SETTLEMENT and are already owned by this matrix
-					if (!batch.ownerMatrixId || batch.ownerMatrixId !== matrix.id) continue;
-					else if (batch.state !== "AWAITING_SETTLEMENT") continue;
-				}
-
 				const currency = this._getCurrencyOrThrow(batch.currencyCode);
-
 				let batchDebitBalance = 0n, batchCreditBalance = 0n;
-				batch.accounts.forEach(acc => {
-					const accDebit = stringToBigint(acc.debitBalance, currency.decimals);
-					const accCredit = stringToBigint(acc.creditBalance, currency.decimals);
 
-					batchDebitBalance += accDebit;
-					batchCreditBalance += accCredit;
-					matrix.addBalance(
-						acc.participantId,
-						batch.currencyCode,
-						settlingMatrix ? "SETTLED" : batch.state,
-						accDebit,
-						accCredit,
-						currency.decimals
-					);
-				});
+				const settlementBatch = new SettlementBatch(
+					batch.batchUUID,
+					batch.id,
+					batch.timestamp,
+					batch.settlementModel,
+					batch.currencyCode,
+					batch.batchSequence,
+					batch.batchName,
+					batch.state !== "CLOSED" && batch.state !== "AWAITING_SETTLEMENT" ? batch.state : "OPEN",
+					batch.accounts
+				);
 
+				const batchTransfers = await this._batchTransferRepo.getAllTransfersByBatchId(settlementBatch.id);
+
+
+				for(let i=0 ; i<batchTransfers.length ; i+=1) {
+					const start = Date.now();
+					let tookInd = Date.now();
+
+					const batchTransfer = batchTransfers[i];
+					let accountAdded = false;
+
+					if(!batchTransfer.journalEntryId) {
+
+						// find payer batch account (debit):
+						let debitedAccountExtId;
+						const debitedAccount = settlementBatch.getAccount(batchTransfer.payerFspId, settlementBatch.currencyCode);
+						if (debitedAccount) {
+							debitedAccountExtId = debitedAccount.accountExtId;
+						} else {
+							debitedAccountExtId = randomUUID();
+							debitedAccountExtId = await this._abAdapter.createAccount(
+								debitedAccountExtId,
+								batchTransfer.payerFspId, // account owner is the participantId
+								BATCH_ACCOUNT_TYPE_IN_ACCOUNTS_AND_BALANCES,
+								settlementBatch.currencyCode
+							);
+							settlementBatch.addAccount(debitedAccountExtId, batchTransfer.payerFspId, settlementBatch.currencyCode);
+							accountAdded = true;
+						}
+
+						// find payee batch account (credit):
+						let creditedAccountExtId;
+						const creditedAccount = settlementBatch.getAccount(batchTransfer.payeeFspId, settlementBatch.currencyCode);
+						if (creditedAccount) {
+							creditedAccountExtId = creditedAccount.accountExtId;
+						} else {
+							creditedAccountExtId = randomUUID();
+							creditedAccountExtId = await this._abAdapter.createAccount(
+								creditedAccountExtId,
+								batchTransfer.payeeFspId, // account owner is the participantId
+								BATCH_ACCOUNT_TYPE_IN_ACCOUNTS_AND_BALANCES,
+								settlementBatch.currencyCode
+							);
+							settlementBatch.addAccount(creditedAccountExtId, batchTransfer.payeeFspId, settlementBatch.currencyCode);
+							accountAdded = true;
+						}
+
+						// create the journal entry:
+						const journalEntries: AccountsAndBalancesJournalEntry[] = [
+							{
+								id: batchTransfer.transferId,
+								ownerId: batch.batchUUID, // allows us to segment transfers for batches easily.
+								amount: batchTransfer.amount,
+								debitedAccountId: debitedAccountExtId,
+								creditedAccountId: creditedAccountExtId,
+								currencyCode: settlementBatch.currencyCode,
+								pending: false, // not a 2-phase transfer.
+								timestamp: start
+							}
+						];
+						const journalResult = await this._abAdapter.createJournalEntries(journalEntries);
+						for (const entry of journalResult) {
+							if (entry.errorCode > 0) {
+								throw new InvalidJournalEntryError(
+									`Unable to create journal entries. Error [${entry.errorCode}] for request [${entry.id}].`
+								);
+							}
+						}
+
+						const tookTransfer = (Date.now() - tookInd);
+						tookInd = Date.now();
+						
+
+						// update the transfer batch changes
+						const updatedBatchTransfer = new SettlementBatchTransfer(
+							batchTransfer.transferId,
+							batchTransfer.transferTimestamp,
+							batchTransfer.payerFspId,
+							batchTransfer.payeeFspId,
+							batchTransfer.currencyCode,
+							batchTransfer.amount,
+							settlementBatch.id,
+							settlementBatch.batchName,
+							journalResult[0].id
+						);
+						await this._batchTransferRepo.storeBatchTransfer(updatedBatchTransfer);
+						
+						const tookTransferOther = (Date.now() - tookInd);
+						tookInd = Date.now();
+	
+						const tookAll = (Date.now() - start);
+						if (tookAll > 400) {
+							this._logger.warn(`Treating transfer in recalculateMatrix took too long: ${tookAll} - SettlementBatchTransfer[${updatedBatchTransfer.transferId}], Transfer[${tookTransfer}], TransferOther[${tookTransferOther}]`);
+						}
+
+											
+						if (settlingMatrix) {
+							// when settling, we can only settle batches that are AWAITING_SETTLEMENT and are already owned by this matrix
+							if (!batch.ownerMatrixId || batch.ownerMatrixId !== matrix.id) continue;
+							else if (batch.state !== "AWAITING_SETTLEMENT") continue;
+						}
+
+						matrix.addBalance(
+							batchTransfer,
+							currency,
+							settlingMatrix ? "SETTLED" : batch.state,
+						);
+	
+						await this._updateBatchAccountBalances([batch]);
+					}
+					// persist the batch changes since the accounts are now added in the recalculate:
+					if (accountAdded) {
+						await this._batchRepo.updateBatch(batch);
+					}
+
+					const tookBatchUpdate = (Date.now() - tookInd);
+					tookInd = Date.now();
+
+					const tookAll = (Date.now() - start);
+					if (tookAll > 400) {
+						this._logger.warn(`Treating transfer in recalculateMatrix took too long: ${tookAll} - BatchCreateUpdate[${tookBatchUpdate}]`);
+					}
+
+					const accAddAmount = stringToBigint(batchTransfer.amount, currency.decimals);
+
+					// This is a zero sum game, so we add the amount to both debit and credit
+					batchDebitBalance += accAddAmount;
+					batchCreditBalance += accAddAmount;
+
+				}
+				
 				matrix.addBatch(
 					batch,
 					bigintToString(batchDebitBalance, currency.decimals),
 					bigintToString(batchCreditBalance, currency.decimals)
 				);
+
 			}
 		}
 	}
@@ -1145,6 +1191,20 @@ export class SettlementsAggregate {
 			batchName,
 			"OPEN"
 		);
+
+		// persist the batch changes:
+		await this._batchRepo.storeNewBatch(newBatch);
+
+		await this._auditingClient.audit(
+			AuditingActions.SETTLEMENT_BATCH_CREATED,
+			true,
+			undefined,
+			[
+				{key: "settlementBatchIdIdentifier", value: newBatch.id}
+			]
+		);
+	
+
 		return Promise.resolve({batch: newBatch, created: true});
 	}
 }

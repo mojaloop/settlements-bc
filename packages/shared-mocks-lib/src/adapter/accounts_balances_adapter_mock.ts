@@ -140,16 +140,6 @@ export class AccountsBalancesAdapterMock implements IAccountsBalancesAdapter {
 		return Promise.resolve(returnVal);
 	}
 
-	async getJournalEntriesByAccountId(accountId: string): Promise<AccountsAndBalancesJournalEntry[]> {
-		const returnVal :AccountsAndBalancesJournalEntry[] = [];
-		for (const je of this.abJournals) {
-			if (je.creditedAccountId === accountId || je.debitedAccountId === accountId) {
-				returnVal.push(this.convertJE(je));
-			}
-		}
-		return Promise.resolve(returnVal);
-	}
-
 	async createJournalEntries(
 		entries: AccountsAndBalancesJournalEntry[]
 	): Promise<{id: string, errorCode: number}[]> {
@@ -204,7 +194,7 @@ export class AccountsBalancesAdapterMock implements IAccountsBalancesAdapter {
 		return returnVal;
 	}
 
-	private convertJE(toConvert: ABJournal) : AccountsAndBalancesJournalEntry {
+	private convertJournalEntry(toConvert: ABJournal) : AccountsAndBalancesJournalEntry {
 		const returnVal : AccountsAndBalancesJournalEntry = {
 			id: toConvert.requestedId,
 			ownerId: toConvert.ownerId,

@@ -38,7 +38,7 @@ export class SettlementBatchTransfer implements ISettlementBatchTransfer {
 	amount: string;
 	batchId: string;
 	batchName: string;
-	journalEntryId: string;
+	journalEntryId: string | null;
 	matrixId: string | null;
 
 	constructor(
@@ -50,7 +50,7 @@ export class SettlementBatchTransfer implements ISettlementBatchTransfer {
 		amount: string,
 		batchId: string,
 		batchName: string,
-		journalEntryId: string,
+		journalEntryId: string | null = null, // Not yet accounted/in a&b will have this as a null
 		matrixId: string | null = null
 	) {
 		this.transferId = transferId;

@@ -149,7 +149,6 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		expect(batches.items.length).toBeGreaterThan(0);
 		expect(batches.items[0].id).toEqual(batchId);
 		expect(batches.items[0].state).toEqual('OPEN');
-		expect(batches.items[0].accounts.length).toEqual(2);
 
 		// batch:
 		const batchById = await settleBatchRepo.getBatch(batchId);
@@ -162,51 +161,18 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		expect(batchById!.batchSequence).toEqual(1);
 		expect(batchById!.state).toEqual('OPEN');
 		expect(batchById!.accounts).toBeDefined();
-		expect(batchById!.accounts.length).toEqual(2);
+		expect(batchById!.accounts.length).toEqual(0);
 
 		// accounts:
 		const accDR = await abAdapter.getParticipantAccounts(reqTransferDto.payerFspId);
 		expect(accDR).toBeDefined();
-		expect(accDR.length).toEqual(1);
-		expect(accDR[0]!.id).toBeDefined();
-		expect(accDR[0]!.ownerId).toEqual(reqTransferDto.payerFspId);
-		expect(accDR[0]!.state).toEqual('ACTIVE');
-		expect(accDR[0]!.type).toEqual('SETTLEMENT');
-		expect(accDR[0]!.currencyCode).toEqual(reqTransferDto.currencyCode);
-		expect(accDR[0]!.pendingDebitBalance).toEqual('0');
-		expect(accDR[0]!.postedDebitBalance).toEqual(reqTransferDto.amount);
-		expect(accDR[0]!.postedCreditBalance).toEqual('0');
-		expect(accDR[0]!.pendingCreditBalance).toEqual('0');
-		expect(accDR[0]!.timestampLastJournalEntry).toBeDefined();
-		expect(accDR[0]!.timestampLastJournalEntry).toBeGreaterThan(0);
+		expect(accDR.length).toEqual(0);
 
 		const accCR = await abAdapter.getParticipantAccounts(reqTransferDto.payeeFspId);
 		expect(accCR).toBeDefined();
-		expect(accCR.length).toEqual(1);
-		expect(accCR[0]!.id).toBeDefined();
-		expect(accCR[0]!.ownerId).toEqual(reqTransferDto.payeeFspId);
-		expect(accCR[0]!.state).toEqual('ACTIVE');
-		expect(accCR[0]!.type).toEqual('SETTLEMENT');
-		expect(accCR[0]!.currencyCode).toEqual(reqTransferDto.currencyCode);
-		expect(accCR[0]!.pendingDebitBalance).toEqual('0');
-		expect(accCR[0]!.postedDebitBalance).toEqual('0');
-		expect(accCR[0]!.postedCreditBalance).toEqual(reqTransferDto.amount);
-		expect(accCR[0]!.pendingCreditBalance).toEqual('0');
-		expect(accCR[0]!.timestampLastJournalEntry).toBeDefined();
-		expect(accCR[0]!.timestampLastJournalEntry).toBeGreaterThan(0);
+		expect(accCR.length).toEqual(0);
 
-		// transfers (journal entries):
-		const accDRTransfers = await abAdapter.getJournalEntriesByAccountId(accDR[0]!.id!);
-		expect(accDRTransfers).toBeDefined();
-		expect(accDRTransfers.length).toEqual(1);
-		expect(accDRTransfers[0].id).toBeDefined();
-		expect(accDRTransfers[0].ownerId).toBeDefined();
-		expect(accDRTransfers[0].currencyCode).toEqual(reqTransferDto.currencyCode);
-		expect(accDRTransfers[0].amount).toEqual(reqTransferDto.amount);
-		expect(accDRTransfers[0].pending).toEqual(false);
-		expect(accDRTransfers[0].debitedAccountId).toEqual(accDR[0]!.id);
-		expect(accDRTransfers[0].creditedAccountId).toEqual(accCR[0]!.id);
-		expect(accDRTransfers[0].timestamp).toBeGreaterThan(0);
+		
 
 		// transfers (settlement link):
 		// locate the transfer link in settlement and ensure they match up:
@@ -222,7 +188,6 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		expect(accDRTransferSttl.items[0].amount).toEqual(reqTransferDto.amount);
 		expect(accDRTransferSttl.items[0].batchId).toEqual(batchId);
 		expect(accDRTransferSttl.items[0].batchName).toEqual(batches.items[0].batchName);
-		expect(accDRTransferSttl.items[0].journalEntryId).toEqual(accDRTransfers[0].id);
 	});
 
 	test("create settlement transfer and ensure batch allocation is correct based on settlement model", async () => {
@@ -774,6 +739,20 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 			},
 		);
 		expect(batchId2).toBeDefined();
+
+		// Now we need to create a second matrix in order to process and access the accounts from the second batchId
+		const matrixId2 = await aggregate.createDynamicSettlementMatrix(
+			null, //matrix-id
+			settleModel,
+			[currency],
+			[],
+			Date.now() - 5000,
+			Date.now(),
+		);
+		expect(matrixId2).toBeDefined();
+
+		// Call recalculate after each handleTransfer to match the accounts
+		await aggregate.recalculateSettlementMatrix(matrixId2);
 
 		const partAccPayer = await abAdapter.getParticipantAccounts(payer);
 		const partAccPayee = await abAdapter.getParticipantAccounts(payee);

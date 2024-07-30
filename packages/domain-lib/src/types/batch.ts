@@ -29,7 +29,8 @@
 
 import {
 	ISettlementBatch,
-	ISettlementBatchAccount
+	ISettlementBatchAccount,
+	SettlementMatrixBatchState
 } from "@mojaloop/settlements-bc-public-types-lib";
 
 export class SettlementBatch implements ISettlementBatch {
@@ -40,7 +41,7 @@ export class SettlementBatch implements ISettlementBatch {
 	currencyCode: string;
 	batchName: string; // FX.XOF:RWF.2021.08.23.00.00 (minus seq)
 	batchSequence: number; // 1 (seq only)
-	state: "OPEN" | "CLOSED" | "DISPUTED" | "AWAITING_SETTLEMENT" | "SETTLED";
+	state: SettlementMatrixBatchState;
 
 	// this will only exist for batches that are in a state that mandates a
 	// single matrix owning it, like "AWAITING_SETTLEMENT" or "SETTLED"

@@ -101,7 +101,6 @@ const APP_NAME = "command-handler-svc";
 const APP_VERSION = packageJSON.version;
 const PRODUCTION_MODE = process.env["PRODUCTION_MODE"] || false;
 const LOG_LEVEL: LogLevel = process.env["LOG_LEVEL"] as LogLevel || LogLevel.INFO;
-const MONGO_URL = process.env["MONGO_URL"] || "mongodb://root:example@localhost:27017/";
 
 // Message Consumer/Publisher
 const KAFKA_URL = process.env["KAFKA_URL"] || "localhost:9092";
@@ -110,6 +109,8 @@ const KAFKA_AUTH_PROTOCOL = process.env["KAFKA_AUTH_PROTOCOL"] || "sasl_plaintex
 const KAFKA_AUTH_MECHANISM = process.env["KAFKA_AUTH_MECHANISM"] || "plain";
 const KAFKA_AUTH_USERNAME = process.env["KAFKA_AUTH_USERNAME"] || "user";
 const KAFKA_AUTH_PASSWORD = process.env["KAFKA_AUTH_PASSWORD"] || "password";
+
+const MONGO_URL = process.env["MONGO_URL"] || "mongodb://root:example@localhost:27017/";
 
 const KAFKA_AUDITS_TOPIC = process.env["KAFKA_AUDITS_TOPIC"] || "audits";
 const KAFKA_LOGS_TOPIC = process.env["KAFKA_LOGS_TOPIC"] || "logs";
@@ -140,6 +141,27 @@ const SERVICE_START_TIMEOUT_MS= (process.env["SERVICE_START_TIMEOUT_MS"] && pars
 const INSTANCE_NAME = `${BC_NAME}_${APP_NAME}`;
 const INSTANCE_ID = `${INSTANCE_NAME}__${crypto.randomUUID()}`;
 
+// kafka common options
+const kafkaProducerCommonOptions:MLKafkaJsonProducerOptions = {
+	kafkaBrokerList: KAFKA_URL,
+	producerClientId: `${INSTANCE_ID}`,
+};
+const kafkaConsumerCommonOptions:MLKafkaJsonConsumerOptions ={
+	kafkaBrokerList: KAFKA_URL
+};
+if(KAFKA_AUTH_ENABLED){
+	kafkaProducerCommonOptions.authentication = kafkaConsumerCommonOptions.authentication = {
+		protocol: KAFKA_AUTH_PROTOCOL as "plaintext" | "ssl" | "sasl_plaintext" | "sasl_ssl",
+		mechanism: KAFKA_AUTH_MECHANISM as "PLAIN" | "GSSAPI" | "SCRAM-SHA-256" | "SCRAM-SHA-512",
+		username: KAFKA_AUTH_USERNAME,
+		password: KAFKA_AUTH_PASSWORD
+	};
+}
+
+const kafkaConsumerOptions: MLKafkaJsonConsumerOptions = {
+	...kafkaConsumerCommonOptions,
+	kafkaGroupId: `${BC_NAME}_${APP_NAME}`
+};
 
 // TigerBeetle:
 const USE_TIGERBEETLE= process.env["USE_TIGERBEETLE"] && process.env["USE_TIGERBEETLE"].toUpperCase()==="TRUE" || false;
@@ -150,14 +172,6 @@ const TIGERBEETLE_CLUSTER_REPLICA_ADDRESSES = process.env["TIGERBEETLE_CLUSTER_R
 const REDIS_HOST = process.env["REDIS_HOST"] || "localhost";
 const REDIS_PORT = (process.env["REDIS_PORT"] && parseInt(process.env["REDIS_PORT"])) || 6379;
 
-// kafka common options
-const kafkaProducerCommonOptions:MLKafkaJsonProducerOptions = {
-    kafkaBrokerList: KAFKA_URL,
-    producerClientId: `${INSTANCE_ID}`,
-};
-const kafkaConsumerCommonOptions:MLKafkaJsonConsumerOptions ={
-    kafkaBrokerList: KAFKA_URL
-};
 if(KAFKA_AUTH_ENABLED){
     kafkaProducerCommonOptions.authentication = kafkaConsumerCommonOptions.authentication = {
         protocol: KAFKA_AUTH_PROTOCOL as "plaintext" | "ssl" | "sasl_plaintext" | "sasl_ssl",
@@ -166,13 +180,6 @@ if(KAFKA_AUTH_ENABLED){
         password: KAFKA_AUTH_PASSWORD
     };
 }
-
-const kafkaConsumerOptions: MLKafkaJsonConsumerOptions = {
-	...kafkaConsumerCommonOptions,
-	kafkaGroupId: `${BC_NAME}_${APP_NAME}`,
-    //batchSize: CONSUMER_BATCH_SIZE,
-    //batchTimeoutMs: CONSUMER_BATCH_TIMEOUT_MS
-};
 
 let globalLogger: ILogger;
 
@@ -254,7 +261,11 @@ export class Service {
 		if (!tokenHelper) {
 			tokenHelper = new TokenHelper(
 				AUTH_N_SVC_JWKS_URL, logger, AUTH_N_TOKEN_ISSUER_NAME, AUTH_N_TOKEN_AUDIENCE,
-				new MLKafkaJsonConsumer({kafkaBrokerList: KAFKA_URL, autoOffsetReset: "earliest", kafkaGroupId: INSTANCE_ID}, logger) // for jwt list - no groupId
+				new MLKafkaJsonConsumer({
+					...kafkaConsumerCommonOptions, 
+					autoOffsetReset: "earliest", 
+					kafkaGroupId: `${INSTANCE_ID}_tokenHelper`
+				}, logger) // for jwt list - no groupId
 			);
 			await tokenHelper.init();
 		}

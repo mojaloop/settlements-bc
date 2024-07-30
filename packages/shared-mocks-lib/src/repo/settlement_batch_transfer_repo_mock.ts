@@ -111,4 +111,8 @@ export class SettlementBatchTransferRepoMock implements ISettlementBatchTransfer
 		return Promise.resolve(searchResults);
 
 	}
+
+	async getAllTransfersByBatchId(batchId: string): Promise<ISettlementBatchTransfer[]> {
+		return this._list.filter(value => value.batchId===batchId);
+	}
 }

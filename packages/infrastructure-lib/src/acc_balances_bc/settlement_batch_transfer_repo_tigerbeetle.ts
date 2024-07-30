@@ -92,24 +92,7 @@ export class SettlementBatchTransferRepoTigerBeetle implements ISettlementBatchT
 		if (accountsForTxnLookup.length === 0) return Promise.resolve(searchResultsEmpty);
 
 		for (const accForLookup of accountsForTxnLookup) {
-			const abTxns: AccountsAndBalancesJournalEntry[] = await this._accBalAdapter.getJournalEntriesByAccountId(accForLookup.accountExtId);
 			const returnItems: ISettlementBatchTransfer[] = [];
-			if (abTxns.length) {
-				for (const abTxn of abTxns) {
-					returnItems.push({
-						amount: abTxn.amount,
-						batchId: "",// TODO do later.
-						batchName: "",// TODO do later.
-						currencyCode: abTxn.currencyCode,
-						journalEntryId: abTxn.id!,
-						matrixId: "",//TODO do later.
-						payeeFspId: abTxn.creditedAccountId,
-						payerFspId: abTxn.debitedAccountId,
-						transferId: abTxn.ownerId!,
-						transferTimestamp: abTxn.timestamp!
-					});
-				}
-			}
 
 			const searchResults: BatchTransferSearchResults = {
 				pageIndex: pageIndex,
@@ -139,5 +122,9 @@ export class SettlementBatchTransferRepoTigerBeetle implements ISettlementBatchT
 			items: []
 		};
 		return Promise.resolve(searchResults);
+	}
+
+	async getAllTransfersByBatchId(batchId: string): Promise<ISettlementBatchTransfer[]> {
+		return Promise.resolve([]);
 	}
 }

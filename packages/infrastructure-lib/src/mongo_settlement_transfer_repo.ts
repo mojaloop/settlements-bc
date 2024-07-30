@@ -187,4 +187,13 @@ export class MongoSettlementTransferRepo implements ISettlementBatchTransferRepo
 			throw new Error("Unable to get transfers from repo - msg: " + error.message);
 		}
 	}
+
+	async getAllTransfersByBatchId(batchId: string): Promise<ISettlementBatchTransfer[]> {
+		try {
+			const transfers = await this._collection.find({ batchId: batchId }).project({ _id: 0 }).toArray();
+			return transfers as ISettlementBatchTransfer[];
+		} catch (error: any) {
+			throw new Error("Unable to get transfers by batchId from repo - msg: " + error.message);
+		}
+	}
 }
