@@ -232,7 +232,7 @@ export class SettlementsAggregate {
 		const tookValidate = (Date.now() - start);
 
 		// verify the currency code (and get the corresponding currency decimals).
-		let tookInd = Date.now();
+		const tookInd = Date.now();
 		const currency = this._getCurrencyOrThrow(transferDto.currencyCode);
 		this._getAmountOrThrow(transferDto.amount, currency);
 
@@ -255,12 +255,10 @@ export class SettlementsAggregate {
 			transferDto.amount,
 			batch.id,
 			batch.batchName,
-			transferDto.transferId
+			null,
+			null
 		);
 		await this._batchTransferRepo.storeBatchTransfer(batchTransfer);
-
-		const tookTransferOther = (Date.now() - tookInd);
-		tookInd = Date.now();
 
 		// persist the batch changes:
 		if (getOrCreateBatchResponse.created) {
@@ -942,7 +940,7 @@ export class SettlementsAggregate {
 					batch.accounts
 				);
 
-				const batchTransfers = await this._batchTransferRepo.getAllTransfersByBatchId(settlementBatch.id)
+				const batchTransfers = await this._batchTransferRepo.getAllTransfersByBatchId(settlementBatch.id);
 
 
 				for(let i=0 ; i<batchTransfers.length ; i+=1) {
@@ -952,15 +950,7 @@ export class SettlementsAggregate {
 					const batchTransfer = batchTransfers[i];
 					let accountAdded = false;
 
-					const debitedAccount = settlementBatch.getAccount(batchTransfer.payeeFspId, settlementBatch.currencyCode);
-					const creditedAccount = settlementBatch.getAccount(batchTransfer.payeeFspId, settlementBatch.currencyCode);
-
-					let batchTransferJournalEntries = [];
-					if(debitedAccount && creditedAccount) { 
-						batchTransferJournalEntries = await this._abAdapter.getJournalEntriesByTransferId(batchTransfer.transferId)
-					}
-
-					if(batchTransferJournalEntries.length === 0) {
+					if(!batchTransfer.journalEntryId) {
 
 						// find payer batch account (debit):
 						let debitedAccountExtId;
@@ -1044,8 +1034,20 @@ export class SettlementsAggregate {
 							this._logger.warn(`Treating transfer in recalculateMatrix took too long: ${tookAll} - SettlementBatchTransfer[${updatedBatchTransfer.transferId}], Transfer[${tookTransfer}], TransferOther[${tookTransferOther}]`);
 						}
 
-						await this._updateBatchAccountBalances([batch]);
+											
+						if (settlingMatrix) {
+							// when settling, we can only settle batches that are AWAITING_SETTLEMENT and are already owned by this matrix
+							if (!batch.ownerMatrixId || batch.ownerMatrixId !== matrix.id) continue;
+							else if (batch.state !== "AWAITING_SETTLEMENT") continue;
+						}
 
+						matrix.addBalance(
+							batchTransfer,
+							currency,
+							settlingMatrix ? "SETTLED" : batch.state,
+						);
+	
+						await this._updateBatchAccountBalances([batch]);
 					}
 					// persist the batch changes since the accounts are now added in the recalculate:
 					if (accountAdded) {
@@ -1059,20 +1061,8 @@ export class SettlementsAggregate {
 					if (tookAll > 400) {
 						this._logger.warn(`Treating transfer in recalculateMatrix took too long: ${tookAll} - BatchCreateUpdate[${tookBatchUpdate}]`);
 					}
-					
-					if (settlingMatrix) {
-						// when settling, we can only settle batches that are AWAITING_SETTLEMENT and are already owned by this matrix
-						if (!batch.ownerMatrixId || batch.ownerMatrixId !== matrix.id) continue;
-						else if (batch.state !== "AWAITING_SETTLEMENT") continue;
-					}
 
 					const accAddAmount = stringToBigint(batchTransfer.amount, currency.decimals);
-
-					matrix.addBalance(
-						batchTransfer,
-						currency,
-						settlingMatrix ? "SETTLED" : batch.state,
-					);
 
 					// This is a zero sum game, so we add the amount to both debit and credit
 					batchDebitBalance += accAddAmount;

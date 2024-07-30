@@ -117,6 +117,7 @@ export interface ISettlementBatchTransfer {
 	amount: string;
 	batchId: string;
 	batchName: string;
+	// NOTE: since the handleTransfer no longer populates the account info and therefore does not have its journalEntryId, it can be null so we need to check at a later stage
 	journalEntryId: string | null;
 	matrixId: string | null;
 }

@@ -151,24 +151,6 @@ export class GrpcAccountsAndBalancesAdapter implements IAccountsBalancesAdapter 
         return mappedResponses;
     }
 
-    async getJournalEntriesByAccountId(accountId: string): Promise<AccountsAndBalancesJournalEntry[]> {
-        // TODO @pedro, please complete:
-        return Promise.resolve([]);
-    }
-
-    async getJournalEntriesByTransferId(transferId: string): Promise<AccountsAndBalancesJournalEntry[]> {
-        let journalEntries: AccountsAndBalancesJournalEntry[]
-
-        try {
-            journalEntries = await this._client.getJournalEntriesByOwnerId(transferId);
-        } catch(err: any) {
-            throw new Error(`Unable to get journalEntries for ${transferId}: ` + (err));
-        }
-
-        return journalEntries
-
-    }
-
     async getAccount(accId: string): Promise<AccountsAndBalancesAccount | null> {
         const foundAccounts = await this._client.getAccountsByIds([accId]);
         if(!foundAccounts || foundAccounts.length<=0){

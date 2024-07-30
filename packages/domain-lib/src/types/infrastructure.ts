@@ -55,8 +55,6 @@ export interface IAccountsBalancesAdapter {
 	getParticipantAccounts(participantId: string): Promise<AccountsAndBalancesAccount[]>;
 
 	createJournalEntries(entries: AccountsAndBalancesJournalEntry[]): Promise<{id: string, errorCode: number}[]>;
-	getJournalEntriesByAccountId(accountId: string): Promise<AccountsAndBalancesJournalEntry[]>;
-	getJournalEntriesByTransferId(transferId: string): Promise<AccountsAndBalancesJournalEntry[]>;
 }
 
 export interface ISettlementConfigRepo {

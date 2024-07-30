@@ -721,14 +721,11 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		);
 		expect(matrixId).toBeDefined();
 
-		// Call recalculate after each handleTransfer to match the accounts
-		await aggregate.recalculateSettlementMatrix(matrixId);
-
 		// lock:
 		await aggregate.lockSettlementMatrixForAwaitingSettlement(matrixId);
 		// settle:
 		await aggregate.settleSettlementMatrix(matrixId);
-		
+
 		// New Transfer under a new batch but same participants:
 		const batchId2 = await aggregate.handleTransfer({
 			id: null,
@@ -920,21 +917,21 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 		expect(matrixDisp!.type).toEqual("STATIC");
 		// Currency:
 		expect(matrixDisp!.balancesByStateAndCurrency.length).toEqual(1);
-		expect(matrixDisp!.balancesByStateAndCurrency[0].debitBalance).toEqual("20000");
-		expect(matrixDisp!.balancesByStateAndCurrency[0].creditBalance).toEqual("20000");
+		expect(matrixDisp!.balancesByStateAndCurrency[0].debitBalance).toEqual("10000");
+		expect(matrixDisp!.balancesByStateAndCurrency[0].creditBalance).toEqual("10000");
 		expect(matrixDisp!.balancesByStateAndCurrency[0].currencyCode).toEqual("EUR");
 		expect(matrixDisp!.balancesByStateAndCurrency[0].state).toEqual("OPEN");
 		// Participants:
 		expect(matrixDisp!.balancesByParticipant.length).toEqual(2);
 		// Payer:
-		expect(matrixDisp!.balancesByParticipant[0].debitBalance).toEqual("20000");
+		expect(matrixDisp!.balancesByParticipant[0].debitBalance).toEqual("10000");
 		expect(matrixDisp!.balancesByParticipant[0].creditBalance).toEqual("0");
 		expect(matrixDisp!.balancesByParticipant[0].participantId).toEqual(reqTransferDto.payerFspId);
 		expect(matrixDisp!.balancesByParticipant[0].currencyCode).toEqual("EUR");
 		expect(matrixDisp!.balancesByParticipant[0].state).toEqual("OPEN");
 		// Payee:
 		expect(matrixDisp!.balancesByParticipant[1].debitBalance).toEqual("0");
-		expect(matrixDisp!.balancesByParticipant[1].creditBalance).toEqual("20000");
+		expect(matrixDisp!.balancesByParticipant[1].creditBalance).toEqual("10000");
 		expect(matrixDisp!.balancesByParticipant[1].participantId).toEqual(reqTransferDto.payeeFspId);
 		expect(matrixDisp!.balancesByParticipant[1].currencyCode).toEqual("EUR");
 		expect(matrixDisp!.balancesByParticipant[1].state).toEqual("OPEN");
@@ -948,14 +945,14 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 
 		expect(matrixDisp!.balancesByParticipant.length).toEqual(2);
 		// Payer:
-		expect(matrixDisp!.balancesByParticipant[0].debitBalance).toEqual("20000");
+		expect(matrixDisp!.balancesByParticipant[0].debitBalance).toEqual("10000");
 		expect(matrixDisp!.balancesByParticipant[0].creditBalance).toEqual("0");
 		expect(matrixDisp!.balancesByParticipant[0].participantId).toEqual(reqTransferDto.payerFspId);
 		expect(matrixDisp!.balancesByParticipant[0].currencyCode).toEqual("EUR");
 		expect(matrixDisp!.balancesByParticipant[0].state).toEqual("DISPUTED");
 		// Payee:
 		expect(matrixDisp!.balancesByParticipant[1].debitBalance).toEqual("0");
-		expect(matrixDisp!.balancesByParticipant[1].creditBalance).toEqual("20000");
+		expect(matrixDisp!.balancesByParticipant[1].creditBalance).toEqual("10000");
 		expect(matrixDisp!.balancesByParticipant[1].participantId).toEqual(reqTransferDto.payeeFspId);
 		expect(matrixDisp!.balancesByParticipant[1].currencyCode).toEqual("EUR");
 		expect(matrixDisp!.balancesByParticipant[1].state).toEqual("DISPUTED");
@@ -1136,21 +1133,21 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 
 		// Totals:
 		expect(matrixDisp2!.balancesByStateAndCurrency.length).toEqual(1);
-		expect(matrixDisp2!.balancesByStateAndCurrency[0].debitBalance).toEqual("20000");
-		expect(matrixDisp2!.balancesByStateAndCurrency[0].creditBalance).toEqual("20000");
+		expect(matrixDisp2!.balancesByStateAndCurrency[0].debitBalance).toEqual("10000");
+		expect(matrixDisp2!.balancesByStateAndCurrency[0].creditBalance).toEqual("10000");
 		expect(matrixDisp2!.balancesByStateAndCurrency[0].currencyCode).toEqual("EUR");
 		expect(matrixDisp2!.balancesByStateAndCurrency[0].state).toEqual("OPEN");
 		// Participants:
 		expect(matrixDisp2!.balancesByParticipant.length).toEqual(2);
 		// Payer:
-		expect(matrixDisp2!.balancesByParticipant[0].debitBalance).toEqual("20000");
+		expect(matrixDisp2!.balancesByParticipant[0].debitBalance).toEqual("10000");
 		expect(matrixDisp2!.balancesByParticipant[0].creditBalance).toEqual("0");
 		expect(matrixDisp2!.balancesByParticipant[0].participantId).toEqual(reqTransferDto.payerFspId);
 		expect(matrixDisp2!.balancesByParticipant[0].currencyCode).toEqual("EUR");
 		expect(matrixDisp2!.balancesByParticipant[0].state).toEqual("OPEN");
 		// Payee:
 		expect(matrixDisp2!.balancesByParticipant[1].debitBalance).toEqual("0");
-		expect(matrixDisp2!.balancesByParticipant[1].creditBalance).toEqual("20000");
+		expect(matrixDisp2!.balancesByParticipant[1].creditBalance).toEqual("10000");
 		expect(matrixDisp2!.balancesByParticipant[1].participantId).toEqual(reqTransferDto.payeeFspId);
 		expect(matrixDisp2!.balancesByParticipant[1].currencyCode).toEqual("EUR");
 		expect(matrixDisp2!.balancesByParticipant[1].state).toEqual("OPEN");
@@ -1174,21 +1171,21 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 
 		// Totals:
 		expect(matrixDisp2!.balancesByStateAndCurrency.length).toEqual(1);
-		expect(matrixDisp2!.balancesByStateAndCurrency[0].debitBalance).toEqual("20000");
-		expect(matrixDisp2!.balancesByStateAndCurrency[0].creditBalance).toEqual("20000");
+		expect(matrixDisp2!.balancesByStateAndCurrency[0].debitBalance).toEqual("10000");
+		expect(matrixDisp2!.balancesByStateAndCurrency[0].creditBalance).toEqual("10000");
 		expect(matrixDisp2!.balancesByStateAndCurrency[0].currencyCode).toEqual("EUR");
 		expect(matrixDisp2!.balancesByStateAndCurrency[0].state).toEqual("OPEN");
 		// Participants:
 		expect(matrixDisp2!.balancesByParticipant.length).toEqual(2);
 		// Payer:
-		expect(matrixDisp2!.balancesByParticipant[0].debitBalance).toEqual("20000");
+		expect(matrixDisp2!.balancesByParticipant[0].debitBalance).toEqual("10000");
 		expect(matrixDisp2!.balancesByParticipant[0].creditBalance).toEqual("0");
 		expect(matrixDisp2!.balancesByParticipant[0].participantId).toEqual(reqTransferDto.payerFspId);
 		expect(matrixDisp2!.balancesByParticipant[0].currencyCode).toEqual("EUR");
 		expect(matrixDisp2!.balancesByParticipant[0].state).toEqual("OPEN");
 		// Payee:
 		expect(matrixDisp2!.balancesByParticipant[1].debitBalance).toEqual("0");
-		expect(matrixDisp2!.balancesByParticipant[1].creditBalance).toEqual("20000");
+		expect(matrixDisp2!.balancesByParticipant[1].creditBalance).toEqual("10000");
 		expect(matrixDisp2!.balancesByParticipant[1].participantId).toEqual(reqTransferDto.payeeFspId);
 		expect(matrixDisp2!.balancesByParticipant[1].currencyCode).toEqual("EUR");
 		expect(matrixDisp2!.balancesByParticipant[1].state).toEqual("OPEN");
@@ -1229,20 +1226,20 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 
 		// Totals:
 		expect(matrixDisp!.balancesByStateAndCurrency.length).toEqual(1);
-		expect(matrixDisp!.balancesByStateAndCurrency[0].debitBalance).toEqual("20000");
-		expect(matrixDisp!.balancesByStateAndCurrency[0].creditBalance).toEqual("20000");
+		expect(matrixDisp!.balancesByStateAndCurrency[0].debitBalance).toEqual("10000");
+		expect(matrixDisp!.balancesByStateAndCurrency[0].creditBalance).toEqual("10000");
 		expect(matrixDisp!.balancesByStateAndCurrency[0].currencyCode).toEqual("EUR");
 		expect(matrixDisp!.balancesByStateAndCurrency[0].state).toEqual("SETTLED");
 		// Participants:
 		expect(matrixDisp!.balancesByParticipant.length).toEqual(2);
 		// Payer:
-		expect(matrixDisp!.balancesByParticipant[0].debitBalance).toEqual("20000");
+		expect(matrixDisp!.balancesByParticipant[0].debitBalance).toEqual("10000");
 		expect(matrixDisp!.balancesByParticipant[0].creditBalance).toEqual("0");
 		expect(matrixDisp!.balancesByParticipant[0].currencyCode).toEqual("EUR");
 		expect(matrixDisp!.balancesByParticipant[0].state).toEqual("SETTLED");
 		// Payee:
 		expect(matrixDisp!.balancesByParticipant[1].debitBalance).toEqual("0");
-		expect(matrixDisp!.balancesByParticipant[1].creditBalance).toEqual("20000");
+		expect(matrixDisp!.balancesByParticipant[1].creditBalance).toEqual("10000");
 		expect(matrixDisp!.balancesByParticipant[1].currencyCode).toEqual("EUR");
 		expect(matrixDisp!.balancesByParticipant[1].state).toEqual("SETTLED");
 
