@@ -44,7 +44,7 @@
     "@mojaloop/security-bc-client-lib": "~0.6.2",
     "@mojaloop/security-bc-public-types-lib": "~0.6.1",
     "@mojaloop/logging-bc-client-lib": "~0.5.7",
-    "@mojaloop/platform-shared-lib-messaging-types-lib": "~0.2.103",
+    "@mojaloop/platform-shared-lib-messaging-types-lib": "~0.6.2",
     "@mojaloop/platform-shared-lib-nodejs-kafka-client-lib": "~0.5.18",
     "@mojaloop/platform-configuration-bc-public-types-lib": "~0.6.1",
     "@mojaloop/platform-configuration-bc-client-lib": "~0.6.3",

@@ -57,6 +57,7 @@
     "@mojaloop/platform-shared-lib-observability-types-lib": "~0.5.7",
     "@mojaloop/platform-configuration-bc-public-types-lib": "~0.6.1",
     "@mojaloop/platform-configuration-bc-client-lib": "~0.6.3",
+    "@mojaloop/platform-shared-lib-messaging-types-lib": "~0.6.2",
     "express": "~4.19.2"
   },
   "engines": {
