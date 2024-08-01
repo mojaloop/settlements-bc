@@ -799,7 +799,8 @@ describe("Settlements BC [Domain] - Unit Tests", () => {
 			msgTimestamp: Date.now(),
 			msgPartition: null,
 			msgOffset: null,
-			msgName: ""
+			msgName: "",
+			tracingInfo: undefined
 		};
 		const batchId = await aggregate.processTransferCmd(reqTransferCmd);
 		expect(batchId).toBeDefined();
