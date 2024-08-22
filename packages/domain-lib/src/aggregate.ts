@@ -923,7 +923,7 @@ export class SettlementsAggregate {
 		if (batches && batches.length > 0) {
 			// invoke the A&B adapter in order to fetch up-to-date balances:
 			await this._updateBatchAccountBalances(batches);
-			
+
 			for (const batch of batches) {
 				const currency = this._getCurrencyOrThrow(batch.currencyCode);
 				let batchDebitBalance = 0n, batchCreditBalance = 0n;
@@ -1041,14 +1041,15 @@ export class SettlementsAggregate {
 							else if (batch.state !== "AWAITING_SETTLEMENT") continue;
 						}
 
-						matrix.addBalance(
-							batchTransfer,
-							currency,
-							settlingMatrix ? "SETTLED" : batch.state,
-						);
-	
-						await this._updateBatchAccountBalances([batch]);
 					}
+					matrix.addBalance(
+						batchTransfer,
+						currency,
+						settlingMatrix ? "SETTLED" : batch.state,
+					);
+
+					await this._updateBatchAccountBalances([batch]);
+					
 					// persist the batch changes since the accounts are now added in the recalculate:
 					if (accountAdded) {
 						await this._batchRepo.updateBatch(batch);
