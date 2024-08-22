@@ -1047,7 +1047,6 @@ export class SettlementsAggregate {
 						currency,
 						settlingMatrix ? "SETTLED" : batch.state,
 					);
-					this._logger.info(`After addBalance call: ${JSON.stringify(matrix)}`);
 
 					await this._updateBatchAccountBalances([batch]);
 					
@@ -1077,7 +1076,6 @@ export class SettlementsAggregate {
 					bigintToString(batchDebitBalance, currency.decimals),
 					bigintToString(batchCreditBalance, currency.decimals)
 				);
-				this._logger.info(`After addBatch call: ${JSON.stringify(matrix)}`);
 
 			}
 		}
