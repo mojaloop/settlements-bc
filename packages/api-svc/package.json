@@ -38,7 +38,7 @@
   },
   "devDependencies": {
     "@mojaloop/settlements-bc-shared-mocks-lib": "*",
-    "@types/express": "~5.0.0",
+    "@types/express": "^4.17.21",
     "axios": "~1.7.7"
   },
   "dependencies": {
@@ -58,7 +58,7 @@
     "@mojaloop/platform-configuration-bc-public-types-lib": "~0.6.1",
     "@mojaloop/platform-configuration-bc-client-lib": "~0.6.3",
     "@mojaloop/platform-shared-lib-messaging-types-lib": "~0.7.1",
-    "express": "~4.21.0"
+    "express": "~4.19.2"
   },
   "engines": {
     "node": ">=20.10.0"
