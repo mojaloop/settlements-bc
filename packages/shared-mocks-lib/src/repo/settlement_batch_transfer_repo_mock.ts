@@ -43,7 +43,12 @@ export class SettlementBatchTransferRepoMock implements ISettlementBatchTransfer
 	}
 
 	async storeBatchTransfer(...batchTransfer: ISettlementBatchTransfer[]): Promise<void> {
-		this._list.push(...batchTransfer);
+		const newArr = this._list.filter(value => {
+			const found = batchTransfer.find(transfer => transfer.transferId === value.transferId);
+			return found == null;
+		});
+		newArr.push(...batchTransfer);
+		this._list = newArr;
 		return Promise.resolve();
 	}
 

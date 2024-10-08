@@ -42,7 +42,7 @@
     "@mojaloop/settlements-bc-config-lib": "*",
     "@mojaloop/auditing-bc-client-lib": "~0.5.3",
     "@mojaloop/auditing-bc-public-types-lib": "~0.5.2",
-    "@mojaloop/logging-bc-client-lib": "~0.5.7",
+    "@mojaloop/logging-bc-client-lib": "~0.5.8",
     "@mojaloop/logging-bc-public-types-lib": "~0.5.4",
     "@mojaloop/platform-configuration-bc-public-types-lib": "~0.6.1",
     "@mojaloop/platform-configuration-bc-client-lib": "~0.6.3",
@@ -51,7 +51,7 @@
     "@mojaloop/security-bc-public-types-lib": "~0.6.1"
   },
   "devDependencies": {
-    "@types/jest": "^29.5.12",
+    "@types/jest": "^29.5.13",
     "@types/node": "^18.15.13",
     "@typescript-eslint/eslint-plugin": "^5.57.1",
     "@typescript-eslint/parser": "^5.57.1",
