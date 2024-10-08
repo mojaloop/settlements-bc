@@ -1033,22 +1033,23 @@ export class SettlementsAggregate {
 						if (tookAll > 400) {
 							this._logger.warn(`Treating transfer in recalculateMatrix took too long: ${tookAll} - SettlementBatchTransfer[${updatedBatchTransfer.transferId}], Transfer[${tookTransfer}], TransferOther[${tookTransferOther}]`);
 						}
-
-											
-						if (settlingMatrix) {
-							// when settling, we can only settle batches that are AWAITING_SETTLEMENT and are already owned by this matrix
-							if (!batch.ownerMatrixId || batch.ownerMatrixId !== matrix.id) continue;
-							else if (batch.state !== "AWAITING_SETTLEMENT") continue;
-						}
-
-						matrix.addBalance(
-							batchTransfer,
-							currency,
-							settlingMatrix ? "SETTLED" : batch.state,
-						);
 	
 						await this._updateBatchAccountBalances([batch]);
 					}
+
+					if (settlingMatrix) {
+						// when settling, we can only settle batches that are AWAITING_SETTLEMENT and are already owned by this matrix
+						if (!batch.ownerMatrixId || batch.ownerMatrixId !== matrix.id) continue;
+						else if (batch.state !== "AWAITING_SETTLEMENT") continue;
+					}
+
+					// Readd blances by participants, currency etc
+					matrix.addBalance(
+						batchTransfer,
+						currency,
+						settlingMatrix ? "SETTLED" : batch.state,
+					);
+
 					// persist the batch changes since the accounts are now added in the recalculate:
 					if (accountAdded) {
 						await this._batchRepo.updateBatch(batch);

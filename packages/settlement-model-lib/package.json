@@ -36,7 +36,7 @@
     "@mojaloop/logging-bc-public-types-lib": "~0.5.4",
     "@mojaloop/security-bc-public-types-lib": "~0.6.1",
     "@mojaloop/settlements-bc-public-types-lib": "*",
-    "tslib": "~2.6.3"
+    "tslib": "~2.7.0"
   },
   "engines": {
     "node": ">=20.10.0"
