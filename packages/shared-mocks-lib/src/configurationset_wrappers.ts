@@ -41,6 +41,10 @@ import {
     IGlobalConfigurationClient
 } from "@mojaloop/platform-configuration-bc-public-types-lib";
 
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 export class BaseConfigurationMockClient implements IBaseConfigurationClient{
     protected _schemaVersion: string;
     protected _iterationNumber: number;

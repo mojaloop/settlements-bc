@@ -39,6 +39,9 @@ import {
 	ISettlementBatchAccount,
 	ISettlementBatchTransfer
 } from "@mojaloop/settlements-bc-public-types-lib";
+/* eslint-disable @typescript-eslint/ban-ts-comment */
+/* eslint-disable @typescript-eslint/no-unused-vars */
+// @ts-ignore
 import {AccountsAndBalancesJournalEntry} from "@mojaloop/accounts-and-balances-bc-public-types-lib";
 
 export class SettlementBatchTransferRepoTigerBeetle implements ISettlementBatchTransferRepo {

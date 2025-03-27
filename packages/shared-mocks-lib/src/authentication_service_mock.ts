@@ -39,7 +39,7 @@ export class AuthenticationServiceMock {
 	static readonly ISSUER_NAME: string = "http://localhost:3201/";
 	static readonly JWKS_URL: string = "http://localhost:3201/.well-known/jwks.json";
 	static readonly AUDIENCE: string = "mojaloop.vnext.default_audience";
-	static readonly VALID_ACCESS_TOKEN: string = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6InNSMHVoT2hpM05VbmJlMTF5SDZtOUZtcFpNN2JiRVl2czdpbGNfanN1MHMifQ.eyJ0eXAiOiJCZWFyZXIiLCJhenAiOiJzZWN1cml0eS1iYy11aSIsInJvbGVzIjpbIiJdLCJpYXQiOjE2NjQ0OTYyNjksImV4cCI6NDgyMDE5MTQ2OSwiYXVkIjoibW9qYWxvb3Audm5leHQuZGVmYXVsdF9hdWRpZW5jZSIsImlzcyI6Imh0dHA6Ly9sb2NhbGhvc3Q6MzIwMS8iLCJzdWIiOiJ1c2VyOjp1c2VyIiwianRpIjoiNDVlODNkNjYtMThmOS00MTVlLWE2M2QtYzkyMGZiMTM2ZTU4In0.p3k1S9Qh03Y-SpNiUrjgEiurEkNHeYy75ACQJeVrqHzt6sD2vjLQcwxp77zBVU1e8CeIk56wGPhD9dXhBxF2AteoWYUBQTLz3urqnl9NhmWaTDdJDTVgipRRX3NuFHo30HdVIek_9HCFh4E2-_r0dKAYqhQhsIsvl8HigUNfgxsaqoSXaI4imfAqvo7Sr9SegLLN4XAV0MuKPmkYZZZCwvttf_w1K7ynT2XEvSUn1pCwvF4SkgblCJlCKWpWT0GpnG_P-oNuEpDABnemNPlA7BvGAAwBXpptZKV8dBnhrzPaV-u1CsiNS-EG_3oLkuK7C8Veg1meakzlJi5g0duc-A";
+	static readonly VALID_ACCESS_TOKEN: string = "VALID_ACCESS_TOKEN_GOES_HERE";
 
 	constructor(logger: ILogger) {
 		this.logger = logger;

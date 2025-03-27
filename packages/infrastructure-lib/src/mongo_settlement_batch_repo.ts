@@ -30,6 +30,9 @@ optionally within square brackets <email>.
 "use strict";
 
 import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
+/* eslint-disable @typescript-eslint/ban-ts-comment */
+/* eslint-disable @typescript-eslint/no-unused-vars */
+// @ts-ignore
 import {MongoClient, Collection, Filter, FindOptions, Batch} from "mongodb";
 import {
 	ISettlementBatchRepo,
@@ -43,6 +46,8 @@ import {Redis} from "ioredis";
 
 const MAX_ENTRIES_PER_PAGE = 100;
 const DEFAULT_REDIS_CACHE_DURATION_SECS = 5; // 5 secs 
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 export class MongoSettlementBatchRepo implements ISettlementBatchRepo {
 	private readonly _logger: ILogger;

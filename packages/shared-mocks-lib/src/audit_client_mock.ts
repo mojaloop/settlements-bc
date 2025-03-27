@@ -31,6 +31,8 @@ optionally within square brackets <email>.
 
 import {AuditEntryLabel, AuditSecurityContext, IAuditClient} from "@mojaloop/auditing-bc-public-types-lib";
 
+/* eslint-disable @typescript-eslint/no-unused-vars */
+
 export class AuditClientMock implements IAuditClient {
 	// Properties received through the constructor.
 

@@ -47,7 +47,7 @@
 	"start:command-handler-svc-jmeter-mongo": "NODE_ENV='dev-jmeter' MONGO_URL='mongodb://root:mongoDbPas42@localhost:27017/' USE_TIGERBEETLE=false LOG_LEVEL=info npx ts-node scripts/jmeter/cmd-handler-mongo.ts"
   },
   "devDependencies": {
-	"@types/jest": "~29.5.13",
+	"@types/jest": "~29.5.14",
 	"@types/node": "^18.15.13",
 	"@types/supertest": "^2.0.16",
 	"@typescript-eslint/eslint-plugin": "~5.57.1",

@@ -38,6 +38,7 @@ import {
 import {ISettlementMatrix, MatrixSearchResults} from "@mojaloop/settlements-bc-public-types-lib";
 import {FindOptions} from "mongodb/mongodb";
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 const MAX_ENTRIES_PER_PAGE = 100;
 

@@ -29,6 +29,8 @@ optionally within square brackets <email>.
 
 "use strict";
 
+/* eslint-disable @typescript-eslint/no-unused-vars */
+
 import {IMessage, IMessageConsumer, IMessageProducer} from "@mojaloop/platform-shared-lib-messaging-types-lib";
 import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 

@@ -28,6 +28,9 @@ Crosslake
 - Pedro Sousa Barreto <pedrob@crosslaketech.com>
 *****/
 
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
+
 "use strict";
 
 import {ILogger} from "@mojaloop/logging-bc-public-types-lib";

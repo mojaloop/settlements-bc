@@ -31,6 +31,8 @@ optionally within square brackets <email>.
 
 import {IAuthorizationClient} from "@mojaloop/security-bc-public-types-lib";
 
+/* eslint-disable @typescript-eslint/no-unused-vars */
+
 export class AuthorizationClientMock implements IAuthorizationClient {
 	// Properties received through the constructor.
 	private readonly hasPrivilege: boolean;

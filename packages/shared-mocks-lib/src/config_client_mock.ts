@@ -68,6 +68,9 @@ export class ConfigurationClientMock implements IConfigurationClient {
         return Promise.resolve(undefined);
     }
 
+    /* eslint-disable @typescript-eslint/ban-ts-comment */
+    /* eslint-disable @typescript-eslint/no-unused-vars */
+    // @ts-ignore
     bootstrap(ignoreDuplicateError?: boolean): Promise<boolean> {
         return Promise.resolve(true);
     }
@@ -84,3 +87,5 @@ export class ConfigurationClientMock implements IConfigurationClient {
         return new GlobalConfigurationClientMock();
     }
 }
+
+/* eslint-disable @typescript-eslint/no-unused-vars */

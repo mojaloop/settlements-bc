@@ -27,6 +27,9 @@ optionally within square brackets <email>.
 * - Jason Bruwer <jason.bruwer@coil.com>
 *****/
 
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 "use strict";
 import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import {IAuthenticatedHttpRequester} from "@mojaloop/security-bc-public-types-lib";

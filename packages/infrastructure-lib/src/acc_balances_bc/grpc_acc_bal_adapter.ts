@@ -44,6 +44,9 @@ import {
 import {ILoginHelper, UnauthorizedError } from "@mojaloop/security-bc-public-types-lib";
 import {AccountsAndBalancesJournalEntry} from "@mojaloop/accounts-and-balances-bc-public-types-lib";
 
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 export class GrpcAccountsAndBalancesAdapter implements IAccountsBalancesAdapter {
     private readonly _grpcUrl: string;
     private _logger: ILogger;

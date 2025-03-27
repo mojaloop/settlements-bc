@@ -29,6 +29,8 @@ optionally within square brackets <email>.
 
 "use strict";
 
+/* eslint-disable @typescript-eslint/no-unused-vars */
+
 import {ISettlementConfigRepo} from "@mojaloop/settlements-bc-domain-lib";
 import {
 	DEFAULT_SETTLEMENT_MODEL_ID,

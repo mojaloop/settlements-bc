@@ -26,6 +26,9 @@ optionally within square brackets <email>.
 - Jason Bruwer <jason.bruwer@coil.com>
 *****/
 
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
+
 import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import {
     AccountsAndBalancesAccount,

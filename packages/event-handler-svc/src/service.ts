@@ -75,7 +75,11 @@ const KAFKA_AUDITS_TOPIC = process.env["KAFKA_AUDITS_TOPIC"] || "audits";
 const KAFKA_LOGS_TOPIC = process.env["KAFKA_LOGS_TOPIC"] || "logs";
 const AUDIT_KEY_FILE_PATH = process.env["AUDIT_KEY_FILE_PATH"] || "/app/data/audit_private_key.pem";
 
+/* eslint-disable @typescript-eslint/ban-ts-comment */
+/* eslint-disable @typescript-eslint/no-unused-vars */
+// @ts-ignore
 const SVC_CLIENT_ID = process.env["SVC_CLIENT_ID"] || "settlements-event-handler-svc";
+// @ts-ignore
 const SVC_CLIENT_SECRET = process.env["SVC_CLIENT_SECRET"] || "superServiceSecret";
 
 const SERVICE_START_TIMEOUT_MS= (process.env["SERVICE_START_TIMEOUT_MS"] && parseInt(process.env["SERVICE_START_TIMEOUT_MS"])) || 60_000;
@@ -228,3 +232,5 @@ process.on("uncaughtException", (err: Error) => {
 	console.log("UncaughtException - EXITING...");
 	process.exit(999);
 });
+
+/* eslint-disable @typescript-eslint/no-unused-vars */

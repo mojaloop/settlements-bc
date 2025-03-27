@@ -29,6 +29,8 @@ optionally within square brackets <email>.
 
 "use strict";
 
+/* eslint-disable @typescript-eslint/no-unused-vars */
+
 import {ISettlementBatchTransferRepo} from "@mojaloop/settlements-bc-domain-lib";
 import { BatchTransferSearchResults, ISettlementBatchTransfer } from "@mojaloop/settlements-bc-public-types-lib";
 

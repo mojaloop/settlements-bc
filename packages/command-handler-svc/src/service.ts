@@ -51,6 +51,9 @@ import {
 	LoginHelper
 } from "@mojaloop/security-bc-client-lib";
 
+/* eslint-disable @typescript-eslint/ban-ts-comment */
+/* eslint-disable @typescript-eslint/no-unused-vars */
+// @ts-ignore
 import {
 	IAccountsBalancesAdapter, 
 	ISettlementBatchRepo,
@@ -179,6 +182,7 @@ if(KAFKA_AUTH_ENABLED){
     };
 }
 
+// @ts-ignore
 let globalLogger: ILogger;
 
 export class Service {

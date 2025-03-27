@@ -34,16 +34,16 @@
   },
   "dependencies": {
 	"@mojaloop/settlements-bc-domain-lib": "*",
-	"@mojaloop/logging-bc-public-types-lib": "~0.5.4",
+	"@mojaloop/logging-bc-public-types-lib": "~0.5.5",
 	"@mojaloop/accounts-and-balances-bc-grpc-client-lib": "~0.6.2",
 	"@mojaloop/accounts-and-balances-bc-public-types-lib": "~0.6.1",
 	"@mojaloop/security-bc-client-lib": "~0.6.3",
 	"@mojaloop/security-bc-public-types-lib": "~0.6.1",
-	"@mojaloop/platform-configuration-bc-public-types-lib": "~0.6.1",
-	"tigerbeetle-node": "0.16.8",
-	"tslib": "~2.7.0",
-	"mongodb": "~6.9.0",
-  "ioredis": "~5.4.1"
+	"@mojaloop/platform-configuration-bc-public-types-lib": "~0.6.2",
+	"tigerbeetle-node": "0.16.33",
+	"tslib": "~2.8.1",
+	"mongodb": "~6.15.0",
+  "ioredis": "~5.6.0"
   },
   "engines": {
 	"node": ">=20.10.0"

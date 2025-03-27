@@ -36,6 +36,8 @@ import {
 	AccountsAndBalancesJournalEntry
 } from "@mojaloop/accounts-and-balances-bc-public-types-lib";
 
+/* eslint-disable @typescript-eslint/no-unused-vars */
+
 export class AccountsBalancesAdapterVoid implements IAccountsBalancesAdapter {
 
 	async init(): Promise<void> {

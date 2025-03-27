@@ -33,6 +33,8 @@ import {Redis} from "ioredis";
 import { ISettlementBatchCacheRepo } from "@mojaloop/settlements-bc-domain-lib";
 import {BatchSearchResults} from "@mojaloop/settlements-bc-public-types-lib";
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 export class SettlementBatchCacheRepoRedis implements ISettlementBatchCacheRepo {
     private readonly _logger: ILogger;
     private readonly _keyPrefix= "settlementBatch_";

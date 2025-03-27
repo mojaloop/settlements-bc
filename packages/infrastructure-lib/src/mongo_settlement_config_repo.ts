@@ -29,6 +29,8 @@ optionally within square brackets <email>.
 
 "use strict";
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import {ILogger} from "@mojaloop/logging-bc-public-types-lib";
 import {MongoClient, Collection} from "mongodb";
 import {

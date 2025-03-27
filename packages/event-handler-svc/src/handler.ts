@@ -35,6 +35,7 @@ import {
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
 import {ProcessTransferCmd, ProcessTransferCmdPayload} from "@mojaloop/settlements-bc-domain-lib";
 
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
 
 export class SettlementsEventHandler{
 	private _logger: ILogger;

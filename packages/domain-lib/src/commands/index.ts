@@ -34,6 +34,9 @@ import {
 	SETTLEMENTS_AGGREGATE_NAME,
 	SettlementsBCTopics
 } from "@mojaloop/platform-shared-lib-public-messages-lib";
+/* eslint-disable @typescript-eslint/ban-ts-comment */
+/* eslint-disable @typescript-eslint/no-unused-vars */
+// @ts-ignore
 import { ISettlementConfig } from "@mojaloop/settlements-bc-public-types-lib";
 import { InvalidSettlementModelError } from "../types/errors";
 

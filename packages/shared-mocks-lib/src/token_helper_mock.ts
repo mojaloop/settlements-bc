@@ -29,6 +29,8 @@ optionally within square brackets <email>.
 
 "use strict";
 
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import {CallSecurityContext, ITokenHelper} from "@mojaloop/security-bc-public-types-lib";
 

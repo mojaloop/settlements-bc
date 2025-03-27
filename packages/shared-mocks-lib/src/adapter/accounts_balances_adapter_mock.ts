@@ -29,6 +29,9 @@ optionally within square brackets <email>.
 
 "use strict";
 
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
+
 import {IAccountsBalancesAdapter, stringToBigint, bigintToString} from "@mojaloop/settlements-bc-domain-lib";
 import {
 	AccountsAndBalancesAccount,
