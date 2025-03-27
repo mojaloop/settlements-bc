@@ -1,29 +1,31 @@
 /*****
- License
- --------------
- Copyright © 2017 Bill & Melinda Gates Foundation
- The Mojaloop files are made available by the Bill & Melinda Gates Foundation under the Apache License, Version 2.0 (the "License") and you may not use these files except in compliance with the License. You may obtain a copy of the License at
+License
+--------------
+Copyright © 2020-2025 Mojaloop Foundation
+The Mojaloop files are made available by the Mojaloop Foundation under the Apache License, Version 2.0 (the "License") and you may not use these files except in compliance with the License. You may obtain a copy of the License at
 
  http://www.apache.org/licenses/LICENSE-2.0
 
  Unless required by applicable law or agreed to in writing, the Mojaloop files are distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
 
- Contributors
- --------------
- This is the official list (alphabetical ordering) of the Mojaloop project contributors for this file.
- Names of the original copyright holders (individuals or organizations)
- should be listed with a '*' in the first column. People who have
- contributed from an organization can be listed under the organization
- that actually holds the copyright for their contributions (see the
- Gates Foundation organization for an example). Those individuals should have
- their names indented and be marked with a '-'. Email address can be added
- optionally within square brackets <email>.
+Contributors
+--------------
+This is the official list of the Mojaloop project contributors for this file.
+Names of the original copyright holders (individuals or organizations)
+should be listed with a '*' in the first column. People who have
+contributed from an organization can be listed under the organization
+that actually holds the copyright for their contributions (see the
+Mojaloop Foundation for an example). Those individuals should have
+their names indented and be marked with a '-'. Email address can be added
+optionally within square brackets <email>.
 
- * Coil
- * - Jason Bruwer <jason.bruwer@coil.com>
+* Mojaloop Foundation
+- Name Surname <name.surname@mojaloop.io>
 
- --------------
- ******/
+* Coil
+
+* - Jason Bruwer <jason.bruwer@coil.com>
+*****/
 
 "use strict";
 
@@ -69,6 +71,11 @@ declare module "express-serve-static-core" {
 
 const MAX_ENTRIES_PER_PAGE = 100;
 
+/* eslint-disable @typescript-eslint/ban-ts-comment */
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unused-vars */
+
 export class ExpressRoutes {
 	private readonly _logger: ILogger;
 	private readonly _tokenHelper: ITokenHelper;
@@ -105,6 +112,7 @@ export class ExpressRoutes {
 		// NOTE: ORDER MATTERS HERE!!!
 
 		// Inject authentication - all requests require a valid token.
+		// @ts-ignore
 		this._router.use(this._authenticationMiddleware.bind(this)); // All requests require authentication.
 		// Transfers:
 		this._router.get("/transfers", this.getSettlementBatchTransfers.bind(this));
@@ -202,6 +210,7 @@ export class ExpressRoutes {
 	
 		const name = req.query.name as string;
 		try {
+			// @ts-ignore
 			this._enforcePrivilege(req.securityContext!, Privileges.VIEW_SETTLEMENT_CONFIG);
 			let retModels: ISettlementConfig[] = [];
 			if (name) {
@@ -227,6 +236,7 @@ export class ExpressRoutes {
 		
 		const modelId = req.params.id as string;
 		try {
+			// @ts-ignore
 			this._enforcePrivilege(req.securityContext!, Privileges.VIEW_SETTLEMENT_CONFIG);
 			this._logger.debug(`Got getSettlementModels request for modelId: ${modelId}`);
 			const settlementModel = await this._configRepo.getSettlementConfig(modelId);
@@ -250,7 +260,8 @@ export class ExpressRoutes {
 		const createdBy = req.body.createdBy;
 
 		try {
-				this._enforcePrivilege(req.securityContext!, Privileges.CREATE_SETTLEMENT_CONFIG);
+			// @ts-ignore
+			this._enforcePrivilege(req.securityContext!, Privileges.CREATE_SETTLEMENT_CONFIG);
 			if (!name) {
 				this._logger.warn("Invalid Name on Settlement Model creation");
 				return this.sendErrorResponse(res, 400, "Invalid Name on Settlement Model creation");
@@ -294,6 +305,7 @@ export class ExpressRoutes {
 
 		const batchId = req.params.id as string;
 		try {
+			// @ts-ignore
 			this._enforcePrivilege(req.securityContext!, Privileges.RETRIEVE_SETTLEMENT_BATCH);
 			this._logger.debug(`Got getSettlementBatch request for batchId: ${batchId}`);
 			const settlementBatch = await this._batchRepo.getBatch(batchId);
@@ -330,6 +342,7 @@ export class ExpressRoutes {
 		let batchStatuses: string[] = [];
 
 		try {
+			// @ts-ignore
 			this._enforcePrivilege(req.securityContext!, Privileges.RETRIEVE_SETTLEMENT_BATCH);
 			if (currencyCodesStr && Array.isArray(currencyCodesStr)) {
 				currencyCodes = currencyCodesStr;
@@ -398,6 +411,7 @@ export class ExpressRoutes {
 		const pageSize = pageSizeStr ? parseInt(pageSizeStr) : MAX_ENTRIES_PER_PAGE;
 
 		try {
+			// @ts-ignore
 			this._enforcePrivilege(req.securityContext!, Privileges.RETRIEVE_SETTLEMENT_BATCH);
 			let result: BatchTransferSearchResults;
 			if (batchId) {
@@ -446,6 +460,7 @@ export class ExpressRoutes {
 	private async postCreateMatrix(req: express.Request, res: express.Response): Promise<void> {
 
 		try {
+			// @ts-ignore
 			this._enforcePrivilege(req.securityContext!, Privileges.CREATE_SETTLEMENT_MATRIX);
 			const matrixId = req.body.matrixiId || randomUUID();
 			const type = req.body.type as string || null;
@@ -501,6 +516,7 @@ export class ExpressRoutes {
 
 	private async postRecalculateMatrix(req: express.Request, res: express.Response): Promise<void> {
 		try {
+			// @ts-ignore
 			this._enforcePrivilege(req.securityContext!, Privileges.GET_SETTLEMENT_MATRIX);
 			const matrixId = req.params.id as string;
 
@@ -524,6 +540,7 @@ export class ExpressRoutes {
 
 	private async postCloseSettlementMatrix(req: express.Request, res: express.Response): Promise<void> {
 		try {
+			// @ts-ignore
 			this._enforcePrivilege(req.securityContext!, Privileges.SETTLEMENTS_CLOSE_MATRIX);
 			const matrixId = req.params.id as string;
 			const matrix = await this._matrixRepo.getMatrixById(matrixId);
@@ -542,6 +559,7 @@ export class ExpressRoutes {
 
 	private async postSettleSettlementMatrix(req: express.Request, res: express.Response): Promise<void> {
 		try {
+			// @ts-ignore
 			this._enforcePrivilege(req.securityContext!, Privileges.SETTLEMENTS_SETTLE_MATRIX);
 			const matrixId = req.params.id as string;
 			const matrix = await this._matrixRepo.getMatrixById(matrixId);
@@ -560,6 +578,7 @@ export class ExpressRoutes {
 
 	private async postDisputeSettlementMatrix(req: express.Request, res: express.Response): Promise<void> {
 		try {
+			// @ts-ignore
 			this._enforcePrivilege(req.securityContext!, Privileges.SETTLEMENTS_DISPUTE_MATRIX);
 			const matrixId = req.params.id as string;
 			const matrix = await this._matrixRepo.getMatrixById(matrixId);
@@ -578,6 +597,7 @@ export class ExpressRoutes {
 
 	private async postAddBatchToStaticMatrix(req: express.Request, res: express.Response): Promise<void> {
 		try {
+			// @ts-ignore
 			this._enforcePrivilege(req.securityContext!, Privileges.CREATE_SETTLEMENT_MATRIX);
 			const matrixId = req.params.id as string;
 			const addReqPayload = req.body as AddBatchesToMatrixCmdPayload;
@@ -596,6 +616,7 @@ export class ExpressRoutes {
 
 	private async postRemoveBatchFromStaticMatrix(req: express.Request, res: express.Response): Promise<void> {
 		try {
+			// @ts-ignore
 			this._enforcePrivilege(req.securityContext!, Privileges.REMOVE_SETTLEMENT_MATRIX_BATCH);
 			const matrixId = req.params.id as string;
 			const removeReqPayload = req.body as RemoveBatchesFromMatrixCmdPayload;
@@ -615,6 +636,7 @@ export class ExpressRoutes {
 	private async getSettlementMatrix(req: express.Request, res: express.Response): Promise<void> {
 
 		try {
+			// @ts-ignore
 			this._enforcePrivilege(req.securityContext!, Privileges.GET_SETTLEMENT_MATRIX);
 			const id = req.params.id as string;
 
@@ -633,6 +655,7 @@ export class ExpressRoutes {
 	private async getSettlementMatrices(req: express.Request, res: express.Response): Promise<void> {
 
 		try {
+			// @ts-ignore
 			this._enforcePrivilege(req.securityContext!, Privileges.GET_SETTLEMENT_MATRIX);
 			const matrixId = req.query.matrixId as string;
 			const type = req.query.type as string;
@@ -687,6 +710,7 @@ export class ExpressRoutes {
 
 	private async postLockSettlementMatrix(req: express.Request, res: express.Response): Promise<void> {
 		try {
+			// @ts-ignore
 			this._enforcePrivilege(req.securityContext!, Privileges.SETTLEMENTS_LOCK_MATRIX);
 			const matrixId = req.params.id as string;
 			const matrix = await this._matrixRepo.getMatrixById(matrixId);
@@ -705,6 +729,7 @@ export class ExpressRoutes {
 
 	private async postUnlockSettlementMatrix(req: express.Request, res: express.Response): Promise<void> {
 		try {
+			// @ts-ignore
 			this._enforcePrivilege(req.securityContext!, Privileges.SETTLEMENTS_UNLOCK_MATRIX);
 			const matrixId = req.params.id as string;
 			const matrix = await this._matrixRepo.getMatrixById(matrixId);
