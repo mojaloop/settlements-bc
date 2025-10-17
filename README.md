@@ -1,4 +1,11 @@
-# Settlements Bounded Context
+# [DEPRECATED] Settlements Bounded Context
+
+---------------------------------------------------------------------------------------------------------------------------------------------------------
+**Deprecation Notice**: This repo was deprecated as of October 2025. It is no longer maintained, and is no longer referenced by any releases of Mojaloop.
+
+For a list of active Mojaloop repos, please refer to [Mojaloop documentation](https://docs.mojaloop.io) or [Mojaloop GitHub Org](https://github.com/mojaloop).
+
+---------------------------------------------------------------------------------------------------------------------------------------------------------
 
 [![Git Commit](https://img.shields.io/github/last-commit/mojaloop/settlements-bc.svg?style=flat)](https://github.com/mojaloop/settlements-bc/commits/master)
 [![Git Releases](https://img.shields.io/github/release/mojaloop/settlements-bc.svg?style=flat)](https://github.com/mojaloop/settlements-bc/releases)
